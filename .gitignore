@@ -1,0 +1,9 @@
+Godot_v*.zip
+Godot/
+
+# .NET build output
+bin/
+obj/
+
+# Godot import cache
+.godot/
