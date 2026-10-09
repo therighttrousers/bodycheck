@@ -17,7 +17,7 @@ public sealed class World
 
     public TileGrid Tiles { get; }
     public List<Body> Bodies { get; } = [];
-    public Vector2 Gravity { get; set; } = new(0, -30);
+    public Vector2 Gravity { get; set; } = new(0, -50);
 
     public void Step(float dt)
     {

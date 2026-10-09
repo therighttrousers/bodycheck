@@ -20,9 +20,9 @@ public partial class Main : Node3D
         "#..............................#",
         "#...............####...........#",
         "#..............................#",
-        "#.........##...................#",
+        "#.............##...............#",
         "#..............................#",
-        "#.....###..........#...........#",
+        "#.......###........#...........#",
         "#..................#.....###...#",
         "#..............#####...........#",
         "#..P...........#...............#",
@@ -31,7 +31,7 @@ public partial class Main : Node3D
         "################################",
     ];
 
-    private static readonly System.Numerics.Vector2 PlayerHalfSize = new(0.4f, 0.45f);
+    private static readonly System.Numerics.Vector2 PlayerHalfSize = new(0.4f, 0.8f);
 
     private World _world = null!;
     private Body _playerBody = null!;
@@ -40,6 +40,10 @@ public partial class Main : Node3D
 
     public override void _Ready()
     {
+        Engine.MaxFps = 60;
+        Engine.PhysicsTicksPerSecond = 60;
+        Engine.PhysicsJitterFix = 0;
+
         AddInputActions();
 
         _world = new World(TileGrid.FromText(Room));
@@ -54,8 +58,9 @@ public partial class Main : Node3D
 
     public override void _PhysicsProcess(double delta)
     {
+        var frame = Engine.GetPhysicsFrames();
         var input = new PlayerInput(Input.GetAxis("move_left", "move_right"), Input.IsActionPressed("jump"));
-        _player.Apply(input, _world, (float)delta);
+        _player.Apply(input, _world, (float)delta, frame);
         _world.Step((float)delta);
         _playerNode.Position = ToGodot(_playerBody.Position);
     }
