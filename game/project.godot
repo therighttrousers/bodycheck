@@ -11,9 +11,14 @@ config_version=5
 [application]
 
 config/name="Body Check"
+run/main_scene="res://main/Main.tscn"
 config/features=PackedStringArray("4.7", "C#", "Forward Plus")
 
 [dotnet]
 
 project/assembly_name="BodyCheck"
 project/solution_directory=".."
+
+[physics]
+
+common/physics_interpolation=true

@@ -27,4 +27,9 @@ Steps:
 - Build everything: `dotnet build`
 - Run the unit tests: `dotnet test`
 - Open the editor: `.\Godot\Godot.exe --path game --editor`
-- Run the game: `.\Godot\Godot.exe --path game`
+- Run the game: `dotnet build`, then `.\Godot\Godot.exe --path game`. Running from the command line doesn't build the C# code first; pressing Play in the editor does.
+
+# Controls
+
+- Move: A/D, arrow keys, or gamepad left stick or D-pad
+- Jump: Space, or gamepad A. Hold to jump higher.
