@@ -14,12 +14,12 @@ public partial class Main : Node3D
     private static readonly Color PlayerColor = new(0.2f, 0.9f, 1.0f);
     private static readonly Color RobotColor = new(1.0f, 0.45f, 0.15f);
 
-    private readonly PlayerTuning _tuning = new();
     private readonly List<(Body Body, Node3D Node)> _bodyNodes = [];
 
     private int _roomIndex;
     private World _world = null!;
     private PlayerController _player = null!;
+    private List<ICharacterController> _characters = [];
 
     // Holds everything that belongs to the current room, so that changing rooms can free it all at once.
     private Node3D _roomNode = null!;
@@ -60,6 +60,10 @@ public partial class Main : Node3D
 
         var input = new PlayerInput(Input.GetAxis("move_left", "move_right"), Input.IsActionPressed("jump"));
         _player.Apply(input, _world, (float)delta);
+        foreach (var character in _characters)
+        {
+            character.Apply(_world, (float)delta);
+        }
         _world.Step((float)delta);
 
         foreach ((Body body, Node3D node) in _bodyNodes)
@@ -84,17 +88,21 @@ public partial class Main : Node3D
         _bodyNodes.Clear();
 
         _world = new World(room.CreateTiles());
-        var feetToCenter = new System.Numerics.Vector2(0, _tuning.HalfSize.Y);
 
-        _player = new PlayerController(room.PlayerStart + feetToCenter, _tuning);
+        var playerTuning = new PlayerTuning();
+        var playerFeetToCenter = new System.Numerics.Vector2(0, playerTuning.HalfSize.Y);
+        _player = new PlayerController(room.PlayerStart + playerFeetToCenter, playerTuning);
         AddBody(_player.Body, PlayerColor, glows: true);
 
+        _characters = [];
+
+        var robotTuning = new RobotTuning();
+        var robotFeetToCenter = new System.Numerics.Vector2(0, robotTuning.HalfSize.Y);
         foreach (System.Numerics.Vector2 start in room.RobotStarts)
         {
-            // TODO: Give robots their own tuning and a patrol controller. For now a robot is a
-            // player-sized box that can be stood on and pushed.
-            var robot = new Body(start + feetToCenter, _tuning.HalfSize, _tuning.Mass) { Drag = _tuning.Drag };
-            AddBody(robot, RobotColor, glows: false);
+            var robot = new RobotController(start + robotFeetToCenter, robotTuning);
+            _characters.Add(robot);
+            AddBody(robot.Body, RobotColor, glows: false);
         }
 
         AddTiles();

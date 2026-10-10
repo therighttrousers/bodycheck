@@ -48,12 +48,36 @@ public sealed class Body
     public Body? Support { get; internal set; }
 
     public Vector2 Momentum => Mass * Velocity;
-    public bool OnGround => (Contacts & Contacts.Floor) != 0;
+    public bool OnGround => Contacts.HasFlag(Contacts.Floor);
+    public bool OnTiles => Contacts.HasFlag(Contacts.Floor) && Support == null;
 
     /// <summary>Adds a force that acts for the duration of the next step.</summary>
     public void ApplyForce(Vector2 force) => _force += force;
 
     public void ApplyImpulse(Vector2 impulse) => Velocity += impulse / Mass;
+
+    /// <summary>
+    /// If Body.Support is non-null, applies forces to Body and Body.Support due to friction.
+    /// </summary>
+    public void ApplySupportFriction(float kineticFriction, float weight, float dt)
+    {
+        if (Support == null) return;
+
+        var relVel = Velocity - Support.Velocity;
+        var relSpeed = relVel.Length();
+        if (relSpeed < 0.0001f) return;
+
+        var relDir = relVel / relSpeed;
+
+        // Cap force magnitude by the amount needed to perfectly match speeds this frame if there were no other
+        // forces applied to this and Support. Intended to correct overshoot, which causes jitter.
+        var force = -relDir * Math.Min(
+            kineticFriction * weight,
+            relSpeed * Mass * Support.Mass / (Mass + Support.Mass) / dt
+        );
+        ApplyForce(force);
+        Support.ApplyForce(-force);
+    }
 
     public void Teleport(Vector2 position, Vector2 velocity)
     {

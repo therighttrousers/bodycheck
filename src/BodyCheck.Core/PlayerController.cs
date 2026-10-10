@@ -24,7 +24,8 @@ public sealed record PlayerTuning
     public float AirReverseDriveForce { get; init; } = 80;
 
     /// <summary>Coefficient of ground friction, applied when not driving in the direction of travel.</summary>
-    public float Friction { get; init; } = 4;
+    public float GroundFriction { get; init; } = 4;
+    public float SupportFriction { get; init; } = 2;
 
     /// <summary>Upward speed given by the jump impulse.</summary>
     public float JumpSpeed { get; init; } = 16;
@@ -54,6 +55,7 @@ public sealed class PlayerController
 
     private bool _jumpWasHeld;
     private int _groundTicksLeft;
+    private Vector2 _lastGroundVelocity = new();
     private int _thrustTicksLeft;
 
     public PlayerController(Vector2 position, PlayerTuning tuning)
@@ -74,11 +76,13 @@ public sealed class PlayerController
         if (Body.OnGround)
         {
             _groundTicksLeft = Tuning.CoyoteTicks + 1; // +1 to include this frame in remaining ground ticks
+            _lastGroundVelocity = Body.Velocity;
         }
 
         float weight = Body.Mass * -world.Gravity.Y;
         ApplyRun(Math.Clamp(input.Move, -1, 1), weight, dt);
         ApplyJump(input.JumpHeld, weight);
+        Body.ApplySupportFriction(Tuning.SupportFriction, weight, dt);
 
         _groundTicksLeft = Math.Max(0, _groundTicksLeft - 1);
         _thrustTicksLeft = Math.Max(0, _thrustTicksLeft - 1);
@@ -95,17 +99,19 @@ public sealed class PlayerController
             // The drive fades out as the body nears top speed in the input direction.
             // It never slows a body that is already faster than that.
             float headroom = Math.Clamp(1 - speed * MathF.Sign(move) / Tuning.TopSpeed, 0, 1);
-            float force =
+            float drive =
                 _groundTicksLeft > 0
                     ? (reverse ? Tuning.GroundReverseDriveForce : Tuning.GroundForwardDriveForce)
                     : (reverse ? Tuning.AirReverseDriveForce : Tuning.AirForwardDriveForce);
-            Body.ApplyForce(new Vector2(move * force * headroom, 0));
+            var force = new Vector2(move * drive * headroom, 0);
+            Body.ApplyForce(force);
+            Body.Support?.ApplyForce(-force);
         }
 
-        if (Body.OnGround && reverse)
+        if (Body.OnTiles && reverse)
         {
             // Friction can stop the body but can't reverse it.
-            float impulse = MathF.Min(Tuning.Friction * weight * dt, Body.Mass * MathF.Abs(speed));
+            float impulse = MathF.Min(Tuning.GroundFriction * weight * dt, Body.Mass * MathF.Abs(speed));
             Body.ApplyImpulse(new Vector2(-MathF.Sign(speed) * impulse, 0));
         }
     }
@@ -119,7 +125,12 @@ public sealed class PlayerController
 
         if (!_jumpWasHeld && _groundTicksLeft > 0)
         {
-            Body.ApplyImpulse(new Vector2(0, Body.Mass * (Tuning.JumpSpeed - Body.Velocity.Y)));
+            // From jump speed, subtract the delta-Y accumulated during coyote frames (which should be negative), to
+            // allow coyote jumps to go just as high as jumps from the ground.
+            var coyoteVelocityY = Body.Velocity.Y - _lastGroundVelocity.Y;
+            var impulse = new Vector2(0, Body.Mass * (Tuning.JumpSpeed - coyoteVelocityY));
+            Body.ApplyImpulse(impulse);
+            Body.Support?.ApplyImpulse(-impulse);
             _groundTicksLeft = 0;
             _thrustTicksLeft = Tuning.JumpThrustTicks;
         }
@@ -132,7 +143,9 @@ public sealed class PlayerController
 
         if (_thrustTicksLeft > 0)
         {
-            Body.ApplyForce(new Vector2(0, Tuning.JumpThrustFrac * weight));
+            var force = new Vector2(0, Tuning.JumpThrustFrac * weight);
+            Body.ApplyForce(force);
+            Body.Support?.ApplyForce(-force);
         }
     }
 }
