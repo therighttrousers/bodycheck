@@ -5,18 +5,6 @@ namespace BodyCheck.Core;
 /// <param name="Move">Horizontal input, from -1 (left) to 1 (right).</param>
 public readonly record struct PlayerInput(float Move, bool JumpHeld);
 
-/// <summary>
-/// Tuning parameters for the player controller. Goals for setting these constants:
-/// <list type="bullet">
-///     <item>Minimum jump height is just over 2 tiles.</item>
-///     <item>Maximum jump height is just over 4 tiles.</item>
-///     <item>Jumps at full horizontal speed are approximately 45 degrees.</item>
-///     <item>Air control is weaker than ground control.</item>
-///     <item>Accelerating in reverse is faster than accelerating forward (mostly for precision landings).</item>
-/// </list>
-/// </summary>
-/// 
-/// TODO: Move this into a design doc
 public sealed record PlayerTuning
 {
     public Vector2 HalfSize { get; init; } = new(0.4f, 0.8f);
