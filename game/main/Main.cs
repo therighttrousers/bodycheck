@@ -26,30 +26,27 @@ public partial class Main : Node3D
         "#..................#.....###...#",
         "#..............#####...........#",
         "#..P...........#...............#",
-        "#.........#....#.......##......#",
         "#.........#............##......#",
+        "#.........#............##......#",
+        "##.#################.###########",
+        "#..............................#",
+        "#..............................#",
         "################################",
     ];
 
-    private static readonly System.Numerics.Vector2 PlayerHalfSize = new(0.4f, 0.8f);
-
     private World _world = null!;
-    private Body _playerBody = null!;
+    private PlayerTuning _tuning = null!;
     private PlayerController _player = null!;
     private Node3D _playerNode = null!;
 
     public override void _Ready()
     {
-        Engine.MaxFps = 60;
-        Engine.PhysicsTicksPerSecond = 60;
-        Engine.PhysicsJitterFix = 0;
-
         AddInputActions();
 
         _world = new World(TileGrid.FromText(Room));
-        _playerBody = new Body(FindPlayerStart(), PlayerHalfSize, mass: 1) { Drag = 0.5f };
-        _world.Bodies.Add(_playerBody);
-        _player = new PlayerController(_playerBody, new PlayerTuning());
+        _tuning = new PlayerTuning();
+        _player = new PlayerController(FindPlayerStart(), _tuning);
+        _world.Bodies.Add(_player.Body);
 
         AddTiles();
         AddPlayer();
@@ -58,16 +55,15 @@ public partial class Main : Node3D
 
     public override void _PhysicsProcess(double delta)
     {
-        var frame = Engine.GetPhysicsFrames();
         var input = new PlayerInput(Input.GetAxis("move_left", "move_right"), Input.IsActionPressed("jump"));
-        _player.Apply(input, _world, (float)delta, frame);
+        _player.Apply(input, _world, (float)delta);
         _world.Step((float)delta);
-        _playerNode.Position = ToGodot(_playerBody.Position);
+        _playerNode.Position = ToGodot(_player.Body.Position);
     }
 
     private static Vector3 ToGodot(System.Numerics.Vector2 v) => new(v.X, v.Y, 0);
 
-    private static System.Numerics.Vector2 FindPlayerStart()
+    private System.Numerics.Vector2 FindPlayerStart()
     {
         for (int row = 0; row < Room.Length; row++)
         {
@@ -75,7 +71,7 @@ public partial class Main : Node3D
             if (x >= 0)
             {
                 // Standing on the floor of its tile.
-                return new System.Numerics.Vector2(x + 0.5f, Room.Length - 1 - row + PlayerHalfSize.Y);
+                return new System.Numerics.Vector2(x + 0.5f, Room.Length - 1 - row + _tuning.HalfSize.Y);
             }
         }
         throw new System.InvalidOperationException("The room has no player start.");
@@ -141,11 +137,12 @@ public partial class Main : Node3D
     private void AddPlayer()
     {
         var glow = new Color(0.2f, 0.9f, 1.0f);
+        var playerSize = 2 * _tuning.HalfSize;
         _playerNode = new MeshInstance3D
         {
             Mesh = new BoxMesh
             {
-                Size = new Vector3(2 * PlayerHalfSize.X, 2 * PlayerHalfSize.Y, 0.8f),
+                Size = new Vector3(playerSize.X, playerSize.Y, playerSize.X),
                 Material = new StandardMaterial3D
                 {
                     AlbedoColor = glow,
@@ -154,7 +151,7 @@ public partial class Main : Node3D
                     EmissionEnergyMultiplier = 1.5f,
                 },
             },
-            Position = ToGodot(_playerBody.Position),
+            Position = ToGodot(_player.Body.Position),
         };
         _playerNode.AddChild(new OmniLight3D { LightColor = glow, LightEnergy = 2, OmniRange = 6 });
         AddChild(_playerNode);

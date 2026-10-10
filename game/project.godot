@@ -11,8 +11,9 @@ config_version=5
 [application]
 
 config/name="Body Check"
-run/main_scene="res://main/Main.tscn"
 config/features=PackedStringArray("4.7", "C#", "Forward Plus")
+run/main_scene="res://main/Main.tscn"
+run/max_fps=60
 
 [dotnet]
 
@@ -21,4 +22,5 @@ project/solution_directory=".."
 
 [physics]
 
+common/physics_jitter_fix=0
 common/physics_interpolation=true

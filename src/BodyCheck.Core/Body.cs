@@ -50,6 +50,13 @@ public sealed class Body
 
     public void ApplyImpulse(Vector2 impulse) => Velocity += impulse / Mass;
 
+    public void Teleport(Vector2 position, Vector2 velocity)
+    {
+        Position = position;
+        Velocity = velocity;
+        Contacts = Contacts.None;
+    }
+
     internal void IntegrateForces(float dt)
     {
         Velocity += _force / Mass * dt;

@@ -5,29 +5,31 @@ namespace BodyCheck.Core.Tests;
 public class PlayerControllerTests
 {
     private const float Dt = 1f / 60;
-    private static readonly Vector2 HalfSize = new(0.4f, 0.45f);
-    private static readonly PlayerTuning Tuning = new();
 
     private static readonly PlayerInput Idle = new(0, false);
     private static readonly PlayerInput Right = new(1, false);
     private static readonly PlayerInput Jump = new(0, true);
 
+    // Most tests use the default tuning. These isolate one mechanism from the others.
+    private static readonly PlayerTuning NoDrag = new() { Drag = 0 };
+    private static readonly PlayerTuning NoDragFullThrust = new() { Drag = 0, JumpThrustFrac = 1 };
+
     private readonly World _world;
-    private readonly Body _body;
+    private readonly PlayerTuning _tuning;
     private readonly PlayerController _player;
 
-    public PlayerControllerTests() : this(ceilingHeight: 20)
+    public PlayerControllerTests() : this(new PlayerTuning())
     {
     }
 
-    private PlayerControllerTests(int ceilingHeight)
+    private PlayerControllerTests(PlayerTuning tuning, int ceilingHeight = 20)
     {
         // An empty room 60 wide with its floor top at y = 1.
         var rows = Enumerable.Repeat(new string('.', 60), ceilingHeight).Append(new string('#', 60));
         _world = new World(TileGrid.FromText(rows.ToList()));
-        _body = new Body(new Vector2(5, 1 + HalfSize.Y), HalfSize, mass: 1);
-        _world.Bodies.Add(_body);
-        _player = new PlayerController(_body, Tuning);
+        _tuning = tuning;
+        _player = new PlayerController(new Vector2(5, 1 + _tuning.HalfSize.Y), _tuning);
+        _world.Bodies.Add(_player.Body);
         Tick(Idle);
     }
 
@@ -47,8 +49,8 @@ public class PlayerControllerTests
         for (int tick = 0; tick < 600; tick++)
         {
             Tick(tick < ticksHeld ? Jump : Idle);
-            apex = MathF.Max(apex, _body.Position.Y - HalfSize.Y - 1);
-            if (_body.OnGround)
+            apex = MathF.Max(apex, _player.Body.Position.Y - _tuning.HalfSize.Y - 1);
+            if (_player.Body.OnGround)
             {
                 return apex;
             }
@@ -57,81 +59,108 @@ public class PlayerControllerTests
     }
 
     [Fact]
-    public void Running_approaches_top_speed_without_passing_it()
+    public void Running_settles_at_the_speed_where_drive_balances_drag()
     {
+        float drive = _tuning.GroundForwardDriveForce;
+        float balance = drive / (drive / _tuning.TopSpeed + _tuning.Drag);
+
         Tick(Right, 120);
 
-        Assert.InRange(_body.Velocity.X, 0.95f * Tuning.TopSpeed, Tuning.TopSpeed);
+        Assert.Equal(balance, _player.Body.Velocity.X, 3);
+    }
+
+    [Fact]
+    public void Running_without_drag_approaches_top_speed_without_passing_it()
+    {
+        var scene = new PlayerControllerTests(NoDrag);
+
+        scene.Tick(Right, 120);
+
+        Assert.InRange(scene._player.Body.Velocity.X, 0.99f * NoDrag.TopSpeed, NoDrag.TopSpeed);
     }
 
     [Fact]
     public void Running_reaches_most_of_top_speed_quickly()
     {
-        Tick(Right, 12);
+        Tick(Right, 15);
 
-        Assert.True(_body.Velocity.X > 0.8f * Tuning.TopSpeed);
+        Assert.InRange(_player.Body.Velocity.X, 0.8f * _tuning.TopSpeed, float.MaxValue);
     }
 
     [Fact]
     public void Driving_does_not_slow_a_body_that_is_over_top_speed()
     {
-        _body.ApplyImpulse(new Vector2(20, 0));
+        var scene = new PlayerControllerTests(NoDrag);
+        scene._player.Body.ApplyImpulse(new Vector2(20, 0) * scene._player.Body.Mass);
 
-        Tick(Right, 30);
+        scene.Tick(Right, 30);
 
-        Assert.Equal(20, _body.Velocity.X);
+        Assert.Equal(20, scene._player.Body.Velocity.X);
     }
 
     [Fact]
     public void Friction_stops_the_body_without_reversing_it()
     {
-        _body.ApplyImpulse(new Vector2(5, 0));
+        _player.Body.ApplyImpulse(new Vector2(5, 0));
 
         Tick(Idle, 30);
 
-        Assert.Equal(0, _body.Velocity.X);
+        Assert.Equal(0, _player.Body.Velocity.X);
     }
 
     [Fact]
     public void There_is_no_friction_in_the_air()
     {
-        _body.Position = new Vector2(5, 15);
-        Tick(Idle);
-        _body.ApplyImpulse(new Vector2(5, 0));
+        var scene = new PlayerControllerTests(NoDrag);
+        scene._player.Teleport(new Vector2(5, 15), Vector2.Zero);
+        scene.Tick(Idle);
+        scene._player.Body.ApplyImpulse(new Vector2(5, 0));
 
-        Tick(Idle, 10);
+        scene.Tick(Idle, 10);
 
-        Assert.Equal(5, _body.Velocity.X);
+        Assert.Equal(5, scene._player.Body.Velocity.X);
     }
 
     [Fact]
     public void Jumping_gives_an_upward_impulse()
     {
         var world = new World(_world.Tiles);
-        var body = new Body(_body.Position, HalfSize, mass: 3);
-        world.Bodies.Add(body);
-        var player = new PlayerController(body, Tuning);
+        var player = new PlayerController(_player.Body.Position, new PlayerTuning() { Mass = 3 });
+        world.Bodies.Add(player.Body);
         world.Step(Dt);
 
         player.Apply(Jump, world, Dt);
 
-        Assert.Equal(new Vector2(0, 3 * Tuning.JumpSpeed), body.Momentum);
+        Assert.Equal(new Vector2(0, 3 * _tuning.JumpSpeed), player.Body.Momentum);
     }
 
     [Fact]
-    public void Holding_jump_rises_at_constant_speed_while_the_thrust_lasts()
+    public void Thrust_equal_to_weight_holds_the_rise_at_constant_speed()
     {
-        Tick(Jump, 6);
+        var scene = new PlayerControllerTests(NoDragFullThrust);
 
-        Assert.Equal(Tuning.JumpSpeed, _body.Velocity.Y, 4);
+        scene.Tick(Jump, NoDragFullThrust.JumpThrustTicks);
+
+        Assert.Equal(NoDragFullThrust.JumpSpeed, scene._player.Body.Velocity.Y, 4);
     }
 
     [Fact]
-    public void A_tap_jumps_about_as_high_as_the_impulse_alone()
+    public void Thrust_below_weight_slows_the_rise_less_than_gravity_alone()
     {
-        float impulseOnly = Tuning.JumpSpeed * Tuning.JumpSpeed / (2 * -_world.Gravity.Y);
+        float lostToGravityAlone = -_world.Gravity.Y * _tuning.JumpThrustTicks * Dt;
 
-        float apex = ApexOfJump(ticksHeld: 1);
+        Tick(Jump, _tuning.JumpThrustTicks);
+
+        Assert.InRange(_player.Body.Velocity.Y, _tuning.JumpSpeed - lostToGravityAlone, _tuning.JumpSpeed);
+    }
+
+    [Fact]
+    public void A_tap_without_drag_jumps_about_as_high_as_the_impulse_alone()
+    {
+        var scene = new PlayerControllerTests(NoDrag);
+        float impulseOnly = NoDrag.JumpSpeed * NoDrag.JumpSpeed / (2 * -scene._world.Gravity.Y);
+
+        float apex = scene.ApexOfJump(ticksHeld: 1);
 
         Assert.InRange(apex, impulseOnly - 0.1f, impulseOnly + 0.2f);
     }
@@ -139,11 +168,32 @@ public class PlayerControllerTests
     [Fact]
     public void Holding_jump_adds_the_distance_risen_under_thrust()
     {
-        float tap = new PlayerControllerTests().ApexOfJump(ticksHeld: 1);
+        float tap = new PlayerControllerTests(NoDragFullThrust).ApexOfJump(ticksHeld: 1);
+        // A tap already gets the first tick of thrust.
+        float risenUnderThrust = (NoDragFullThrust.JumpThrustTicks - 1) * NoDragFullThrust.JumpSpeed * Dt;
 
-        float held = ApexOfJump(ticksHeld: 600);
+        float held = new PlayerControllerTests(NoDragFullThrust).ApexOfJump(ticksHeld: 600);
 
-        Assert.InRange(held - tap, 0.9f * Tuning.JumpSpeed * Tuning.JumpHoldTime, Tuning.JumpSpeed * Tuning.JumpHoldTime);
+        Assert.Equal(risenUnderThrust, held - tap, 3);
+    }
+
+    // The next two tests check design goals for the default tuning: a jump reaches a ledge
+    // that many tiles up, but not one a tile higher.
+
+    [Fact]
+    public void The_shortest_jump_clears_2_tiles_but_not_3()
+    {
+        float apex = ApexOfJump(ticksHeld: 1);
+
+        Assert.InRange(apex, 2, 3);
+    }
+
+    [Fact]
+    public void The_tallest_jump_clears_4_tiles_but_not_5()
+    {
+        float apex = ApexOfJump(ticksHeld: 600);
+
+        Assert.InRange(apex, 4, 5);
     }
 
     [Fact]
@@ -153,28 +203,28 @@ public class PlayerControllerTests
 
         Tick(Jump, 10);
 
-        Assert.True(_body.OnGround);
+        Assert.True(_player.Body.OnGround);
     }
 
     [Fact]
     public void Jump_does_nothing_in_the_air()
     {
-        _body.Position = new Vector2(5, 15);
+        _player.Teleport(new Vector2(5, 15), new Vector2(0, 0));
         Tick(Idle);
-        float before = _body.Velocity.Y;
+        float before = _player.Body.Velocity.Y;
 
         Tick(Jump);
 
-        Assert.True(_body.Velocity.Y < before);
+        Assert.InRange(_player.Body.Velocity.Y, float.MinValue, before);
     }
 
     [Fact]
     public void Thrust_ends_when_the_body_hits_a_ceiling()
     {
-        var low = new PlayerControllerTests(ceilingHeight: 2);
+        var low = new PlayerControllerTests(new PlayerTuning(), ceilingHeight: 2);
 
         low.Tick(Jump, 40);
 
-        Assert.True(low._body.OnGround);
+        Assert.True(low._player.Body.OnGround);
     }
 }
