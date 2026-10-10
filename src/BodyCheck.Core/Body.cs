@@ -63,7 +63,8 @@ public sealed class Body
     {
         if (Support == null) return;
 
-        var relVel = Velocity - Support.Velocity;
+        // var relVel = Velocity - Support.Velocity;
+        var relVel = new Vector2(Velocity.X - Support.Velocity.X, 0);
         var relSpeed = relVel.Length();
         if (relSpeed < 0.0001f) return;
 
