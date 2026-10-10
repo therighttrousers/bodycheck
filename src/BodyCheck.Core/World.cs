@@ -26,43 +26,83 @@ public sealed class World
             body.ApplyForce(body.Mass * Gravity);
             body.ApplyForce(-body.Drag * body.Velocity);
             body.IntegrateForces(dt);
-
             body.Contacts = Contacts.None;
-            Vector2 velocity = body.Velocity;
-            if (MoveAlongAxis(body, 0, velocity.X * dt))
-            {
-                body.Contacts |= velocity.X > 0 ? Contacts.Right : Contacts.Left;
-                velocity.X = 0;
-            }
-            if (MoveAlongAxis(body, 1, velocity.Y * dt))
-            {
-                body.Contacts |= velocity.Y > 0 ? Contacts.Ceiling : Contacts.Floor;
-                velocity.Y = 0;
-            }
-            body.Velocity = velocity;
+            body.Support = null;
+        }
+
+        // Bodies move one at a time, in list order. A body that pushes one later in the list is held
+        // back until that one has moved, so it can trail by up to a tick's travel.
+        foreach (Body body in Bodies)
+        {
+            MoveAndCollide(body, 0, dt);
+            MoveAndCollide(body, 1, dt);
         }
     }
 
+    private void MoveAndCollide(Body body, int axis, float dt)
+    {
+        float speed = body.Velocity[axis];
+        int sign = MathF.Sign(speed);
+        (bool hitTile, Body? hitBody) = MoveAlongAxis(body, axis, speed * dt);
+
+        if (hitTile)
+        {
+            Vector2 velocity = body.Velocity;
+            velocity[axis] = 0;
+            body.Velocity = velocity;
+            body.Contacts |= Side(axis, sign);
+        }
+        else if (hitBody is not null && (speed - hitBody.Velocity[axis]) * sign > 0)
+        {
+            // The two are closing: share their momentum along this axis, with no bounce.
+            float shared = (body.Momentum[axis] + hitBody.Momentum[axis]) / (body.Mass + hitBody.Mass);
+            Vector2 impulse = (axis == 0 ? Vector2.UnitX : Vector2.UnitY) * body.Mass * (shared - speed);
+            body.ApplyImpulse(impulse);
+            hitBody.ApplyImpulse(-impulse);
+
+            body.Contacts |= Side(axis, sign);
+            hitBody.Contacts |= Side(axis, -sign);
+            if (axis == 1)
+            {
+                (Body upper, Body lower) = sign < 0 ? (body, hitBody) : (hitBody, body);
+                upper.Support = lower;
+            }
+        }
+    }
+
+    private static Contacts Side(int axis, int sign) => (axis, sign > 0) switch
+    {
+        (0, true) => Contacts.Right,
+        (0, false) => Contacts.Left,
+        (_, true) => Contacts.Ceiling,
+        (_, false) => Contacts.Floor,
+    };
+
     /// <summary>
-    /// Moves a body along one axis, stopping flush against the first solid tile in the way.
-    /// Returns true if it was stopped.
+    /// Moves a body along one axis, stopping flush against the first solid tile or other body in the way.
+    /// Returns what stopped it, if anything. A tile wins a tie.
     /// </summary>
-    private bool MoveAlongAxis(Body body, int axis, float delta)
+    private (bool HitTile, Body? HitBody) MoveAlongAxis(Body body, int axis, float delta)
     {
         if (delta == 0)
         {
-            return false;
+            return (false, null);
         }
 
         int other = 1 - axis;
         Vector2 position = body.Position;
         Vector2 half = body.HalfSize;
-        int lo = (int)MathF.Floor(position[other] - half[other] + Epsilon);
-        int hi = (int)MathF.Floor(position[other] + half[other] - Epsilon);
+        float lo = position[other] - half[other] + Epsilon;
+        float hi = position[other] + half[other] - Epsilon;
 
         int sign = MathF.Sign(delta);
         float edge = position[axis] + sign * half[axis];
         float target = edge + delta;
+
+        // How far the leading edge can travel, and the face that stops it.
+        float travel = MathF.Abs(delta);
+        float? stopFace = null;
+        Body? hitBody = null;
 
         // Walk the rows or columns the leading edge would enter, nearest first.
         int line = sign > 0
@@ -70,18 +110,37 @@ public sealed class World
             : (int)MathF.Floor(edge + Epsilon) - 1;
         for (; sign > 0 ? line < target : line + 1 > target; line += sign)
         {
-            if (AnySolid(axis, line, lo, hi))
+            if (AnySolid(axis, line, (int)MathF.Floor(lo), (int)MathF.Floor(hi)))
             {
-                float face = sign > 0 ? line : line + 1;
-                position[axis] = face - sign * half[axis];
-                body.Position = position;
-                return true;
+                stopFace = sign > 0 ? line : line + 1;
+                travel = MathF.Max(0, (stopFace.Value - edge) * sign);
+                break;
             }
         }
 
-        position[axis] += delta;
+        foreach (Body candidate in Bodies)
+        {
+            if (candidate == body
+                || lo >= candidate.Position[other] + candidate.HalfSize[other]
+                || hi <= candidate.Position[other] - candidate.HalfSize[other])
+            {
+                continue;
+            }
+
+            // Bodies that already overlap by more than rounding error are left free to separate.
+            float face = candidate.Position[axis] - sign * candidate.HalfSize[axis];
+            float gap = (face - edge) * sign;
+            if (gap > -Epsilon && gap < travel)
+            {
+                stopFace = face;
+                travel = MathF.Max(0, gap);
+                hitBody = candidate;
+            }
+        }
+
+        position[axis] = stopFace is float stop ? stop - sign * half[axis] : position[axis] + delta;
         body.Position = position;
-        return false;
+        return (stopFace is not null && hitBody is null, hitBody);
     }
 
     private bool AnySolid(int axis, int line, int lo, int hi)

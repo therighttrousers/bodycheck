@@ -1,106 +1,132 @@
+using System;
+using System.Collections.Generic;
+using System.Runtime.ExceptionServices;
 using BodyCheck.Core;
 using Godot;
 
 namespace BodyCheck;
 
 /// <summary>
-/// Prototype 1: a graybox room built in code, drawing the Core simulation.
+/// Draws the Core simulation of one room from the <see cref="Rooms"/> library, as gray boxes.
 /// </summary>
 public partial class Main : Node3D
 {
-    // '#' is a solid tile and 'P' is where the player starts.
-    private static readonly string[] Room =
-    [
-        "################################",
-        "#..............................#",
-        "#..............................#",
-        "#..............................#",
-        "#.......................####...#",
-        "#..............................#",
-        "#..............................#",
-        "#...............####...........#",
-        "#..............................#",
-        "#.............##...............#",
-        "#..............................#",
-        "#.......###........#...........#",
-        "#..................#.....###...#",
-        "#..............#####...........#",
-        "#..P...........#...............#",
-        "#.........#............##......#",
-        "#.........#............##......#",
-        "##.#################.###########",
-        "#..............................#",
-        "#..............................#",
-        "################################",
-    ];
+    private static readonly Color PlayerColor = new(0.2f, 0.9f, 1.0f);
+    private static readonly Color RobotColor = new(1.0f, 0.45f, 0.15f);
 
+    private readonly PlayerTuning _tuning = new();
+    private readonly List<(Body Body, Node3D Node)> _bodyNodes = [];
+
+    private int _roomIndex;
     private World _world = null!;
-    private PlayerTuning _tuning = null!;
     private PlayerController _player = null!;
-    private Node3D _playerNode = null!;
+
+    // Holds everything that belongs to the current room, so that changing rooms can free it all at once.
+    private Node3D _roomNode = null!;
 
     public override void _Ready()
     {
         AddInputActions();
+        AddLights();
+        LoadRoom(StartingRoomIndex());
+    }
 
-        _world = new World(TileGrid.FromText(Room));
-        _tuning = new PlayerTuning();
-        _player = new PlayerController(FindPlayerStart(), _tuning);
-        _world.Bodies.Add(_player.Body);
-
-        AddTiles();
-        AddPlayer();
-        AddCameraAndLights();
+    /// <summary>
+    /// The room named by the first argument after "--" on the command line, or the first room.
+    /// </summary>
+    private static int StartingRoomIndex()
+    {
+        string[] args = OS.GetCmdlineUserArgs();
+        for (int i = 0; args.Length > 0 && i < Rooms.All.Count; i++)
+        {
+            if (Rooms.All[i].Name.Equals(args[0], System.StringComparison.OrdinalIgnoreCase))
+            {
+                return i;
+            }
+        }
+        return 0;
     }
 
     public override void _PhysicsProcess(double delta)
     {
+        if (Input.IsActionJustPressed("next_room"))
+        {
+            LoadRoom(_roomIndex + 1);
+        }
+        else if (Input.IsActionJustPressed("previous_room"))
+        {
+            LoadRoom(_roomIndex - 1);
+        }
+
         var input = new PlayerInput(Input.GetAxis("move_left", "move_right"), Input.IsActionPressed("jump"));
         _player.Apply(input, _world, (float)delta);
         _world.Step((float)delta);
-        _playerNode.Position = ToGodot(_player.Body.Position);
+
+        foreach ((Body body, Node3D node) in _bodyNodes)
+        {
+            node.Position = ToGodot(body.Position);
+        }
     }
 
     private static Vector3 ToGodot(System.Numerics.Vector2 v) => new(v.X, v.Y, 0);
 
-    private System.Numerics.Vector2 FindPlayerStart()
+    private void LoadRoom(int index)
     {
-        for (int row = 0; row < Room.Length; row++)
+        GD.Print($"LoadRoom {index}");
+
+        _roomIndex = Mathf.PosMod(index, Rooms.All.Count);
+        Room room = Rooms.All[_roomIndex];
+        GetWindow().Title = $"Body Check: {room.Name}";
+
+        _roomNode?.QueueFree();
+        _roomNode = new Node3D();
+        AddChild(_roomNode);
+        _bodyNodes.Clear();
+
+        _world = new World(room.CreateTiles());
+        var feetToCenter = new System.Numerics.Vector2(0, _tuning.HalfSize.Y);
+
+        _player = new PlayerController(room.PlayerStart + feetToCenter, _tuning);
+        AddBody(_player.Body, PlayerColor, glows: true);
+
+        foreach (System.Numerics.Vector2 start in room.RobotStarts)
         {
-            int x = Room[row].IndexOf('P');
-            if (x >= 0)
+            // TODO: Give robots their own tuning and a patrol controller. For now a robot is a
+            // player-sized box that can be stood on and pushed.
+            var robot = new Body(start + feetToCenter, _tuning.HalfSize, _tuning.Mass) { Drag = _tuning.Drag };
+            AddBody(robot, RobotColor, glows: false);
+        }
+
+        AddTiles();
+        AddCamera();
+    }
+
+    private void AddBody(Body body, Color color, bool glows)
+    {
+        _world.Bodies.Add(body);
+
+        System.Numerics.Vector2 size = 2 * body.HalfSize;
+        var node = new MeshInstance3D
+        {
+            Mesh = new BoxMesh
             {
-                // Standing on the floor of its tile.
-                return new System.Numerics.Vector2(x + 0.5f, Room.Length - 1 - row + _tuning.HalfSize.Y);
-            }
-        }
-        throw new System.InvalidOperationException("The room has no player start.");
-    }
-
-    private static void AddInputActions()
-    {
-        AddAction("move_left",
-            new InputEventKey { PhysicalKeycode = Key.A },
-            new InputEventKey { PhysicalKeycode = Key.Left },
-            new InputEventJoypadMotion { Axis = JoyAxis.LeftX, AxisValue = -1 },
-            new InputEventJoypadButton { ButtonIndex = JoyButton.DpadLeft });
-        AddAction("move_right",
-            new InputEventKey { PhysicalKeycode = Key.D },
-            new InputEventKey { PhysicalKeycode = Key.Right },
-            new InputEventJoypadMotion { Axis = JoyAxis.LeftX, AxisValue = 1 },
-            new InputEventJoypadButton { ButtonIndex = JoyButton.DpadRight });
-        AddAction("jump",
-            new InputEventKey { PhysicalKeycode = Key.Space },
-            new InputEventJoypadButton { ButtonIndex = JoyButton.A });
-    }
-
-    private static void AddAction(string name, params InputEvent[] events)
-    {
-        InputMap.AddAction(name, deadzone: 0.2f);
-        foreach (InputEvent e in events)
+                Size = new Vector3(size.X, size.Y, size.X),
+                Material = new StandardMaterial3D
+                {
+                    AlbedoColor = color,
+                    EmissionEnabled = glows,
+                    Emission = color,
+                    EmissionEnergyMultiplier = 1.5f,
+                },
+            },
+            Position = ToGodot(body.Position),
+        };
+        if (glows)
         {
-            InputMap.ActionAddEvent(name, e);
+            node.AddChild(new OmniLight3D { LightColor = color, LightEnergy = 2, OmniRange = 6 });
         }
+        _roomNode.AddChild(node);
+        _bodyNodes.Add((body, node));
     }
 
     private void AddTiles()
@@ -117,13 +143,13 @@ public partial class Main : Node3D
             {
                 if (tiles.IsSolid(x, y))
                 {
-                    AddChild(new MeshInstance3D { Mesh = mesh, Position = new Vector3(x + 0.5f, y + 0.5f, 0) });
+                    _roomNode.AddChild(new MeshInstance3D { Mesh = mesh, Position = new Vector3(x + 0.5f, y + 0.5f, 0) });
                 }
             }
         }
 
         // A back wall, so that lights have something to fall on.
-        AddChild(new MeshInstance3D
+        _roomNode.AddChild(new MeshInstance3D
         {
             Mesh = new BoxMesh
             {
@@ -134,40 +160,24 @@ public partial class Main : Node3D
         });
     }
 
-    private void AddPlayer()
+    private void AddCamera()
     {
-        var glow = new Color(0.2f, 0.9f, 1.0f);
-        var playerSize = 2 * _tuning.HalfSize;
-        _playerNode = new MeshInstance3D
-        {
-            Mesh = new BoxMesh
-            {
-                Size = new Vector3(playerSize.X, playerSize.Y, playerSize.X),
-                Material = new StandardMaterial3D
-                {
-                    AlbedoColor = glow,
-                    EmissionEnabled = true,
-                    Emission = glow,
-                    EmissionEnergyMultiplier = 1.5f,
-                },
-            },
-            Position = ToGodot(_player.Body.Position),
-        };
-        _playerNode.AddChild(new OmniLight3D { LightColor = glow, LightEnergy = 2, OmniRange = 6 });
-        AddChild(_playerNode);
-    }
-
-    private void AddCameraAndLights()
-    {
+        // Far enough back to fit the whole room, whichever of its width and height is the tighter fit.
         TileGrid tiles = _world.Tiles;
         const float fov = 50;
-        float distance = tiles.Height / 2f / Mathf.Tan(Mathf.DegToRad(fov / 2));
-        AddChild(new Camera3D
+        Vector2 view = GetViewport().GetVisibleRect().Size;
+        float halfHeight = Mathf.Max(tiles.Height / 2f, tiles.Width / 2f * view.Y / view.X);
+        float distance = halfHeight / Mathf.Tan(Mathf.DegToRad(fov / 2));
+        _roomNode.AddChild(new Camera3D
         {
             Fov = fov,
             Position = new Vector3(tiles.Width / 2f, tiles.Height / 2f, distance + 0.5f),
+            Current = true,
         });
+    }
 
+    private void AddLights()
+    {
         AddChild(new DirectionalLight3D
         {
             RotationDegrees = new Vector3(-35, -25, 0),
@@ -186,5 +196,37 @@ public partial class Main : Node3D
                 AmbientLightEnergy = 0.3f,
             },
         });
+    }
+
+    private static void AddInputActions()
+    {
+        AddAction("move_left",
+            new InputEventKey { PhysicalKeycode = Key.A },
+            new InputEventKey { PhysicalKeycode = Key.Left },
+            new InputEventJoypadMotion { Axis = JoyAxis.LeftX, AxisValue = -1 },
+            new InputEventJoypadButton { ButtonIndex = JoyButton.DpadLeft });
+        AddAction("move_right",
+            new InputEventKey { PhysicalKeycode = Key.D },
+            new InputEventKey { PhysicalKeycode = Key.Right },
+            new InputEventJoypadMotion { Axis = JoyAxis.LeftX, AxisValue = 1 },
+            new InputEventJoypadButton { ButtonIndex = JoyButton.DpadRight });
+        AddAction("jump",
+            new InputEventKey { PhysicalKeycode = Key.Space },
+            new InputEventJoypadButton { ButtonIndex = JoyButton.A });
+        AddAction("next_room",
+            new InputEventKey { PhysicalKeycode = Key.Period },
+            new InputEventJoypadButton { ButtonIndex = JoyButton.RightShoulder });
+        AddAction("previous_room",
+            new InputEventKey { PhysicalKeycode = Key.Comma },
+            new InputEventJoypadButton { ButtonIndex = JoyButton.LeftShoulder });
+    }
+
+    private static void AddAction(string name, params InputEvent[] events)
+    {
+        InputMap.AddAction(name, deadzone: 0.2f);
+        foreach (InputEvent e in events)
+        {
+            InputMap.ActionAddEvent(name, e);
+        }
     }
 }

@@ -14,7 +14,7 @@ public enum Contacts
 
 /// <summary>
 /// An axis-aligned box with mass. Velocity changes only through forces and impulses,
-/// and through contact with solid tiles.
+/// and through contact with solid tiles and other bodies.
 /// </summary>
 public sealed class Body
 {
@@ -37,10 +37,15 @@ public sealed class Body
     public float Drag { get; set; }
 
     /// <summary>
-    /// Which sides were stopped by solid tiles during the last step. A body at rest against a wall
+    /// Which sides met solid tiles or other bodies during the last step. A body at rest against a wall
     /// isn't moving into it, so only the floor contact persists (gravity renews it every step).
     /// </summary>
     public Contacts Contacts { get; internal set; }
+
+    /// <summary>
+    /// The body this one stood on during the last step, or null if it stood on tiles or on nothing.
+    /// </summary>
+    public Body? Support { get; internal set; }
 
     public Vector2 Momentum => Mass * Velocity;
     public bool OnGround => (Contacts & Contacts.Floor) != 0;
@@ -55,6 +60,7 @@ public sealed class Body
         Position = position;
         Velocity = velocity;
         Contacts = Contacts.None;
+        Support = null;
     }
 
     internal void IntegrateForces(float dt)

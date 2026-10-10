@@ -33,3 +33,9 @@ Steps:
 
 - Move: A/D, arrow keys, or gamepad left stick or D-pad
 - Jump: Space, or gamepad A. Hold to jump higher.
+- Next or previous test room: Page Down or Page Up, or gamepad right or left shoulder button
+
+# Test rooms
+
+The named test rooms are in `src/BodyCheck.Core/Rooms.cs`. To start in a particular room, pass its name after `--`:
+`.\Godot\Godot.exe --path game -- "Robot ride"`
