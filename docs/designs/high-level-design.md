@@ -89,7 +89,8 @@ See [progression.md](progression.md).
 ## Design docs
 
 - [movement.md](movement.md): how the player and other bodies move, collide and grip.
-- [progression.md](progression.md): abilities, world changes, lasers and water, in the order the player meets them.
+- [progression.md](progression.md): abilities, world changes, water, in the order the player meets them.
+- [enemies.md](enemies.md): enemies, projectiles and enemy weapons.
 
 ## Open questions
 

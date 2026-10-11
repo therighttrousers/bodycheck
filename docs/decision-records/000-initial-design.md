@@ -2,8 +2,6 @@
 
 ## Context
 
-Neil wants to get back into C# by making a 2D metroidvania (code name: Body Check). The starting point is [initial-ideas.md](../designs/initial-ideas.md), which will be dissolved into proper design docs as items here settle.
-
 Goals:
 - Decide enough tech to start a graybox prototype: run and jump in a simple tile-based world, then rideable enemies, then boost.
 - Tighten the core mechanics (boost, bash, lasers) where the initial ideas leave gaps.
@@ -16,7 +14,7 @@ Art is basic shapes until the mechanics are proven.
 
 Names: this record uses the abilities' original names throughout. Item 4.4 renamed them: what is called "boost" here is now "phase", and what is called "bash" here is now "boost".
 
-Closed on 2026-10-11. Outcomes and unresolved items are in the design docs: [high-level-design.md](../designs/high-level-design.md), [movement.md](../designs/movement.md) and [progression.md](../designs/progression.md).
+Closed on 2026-10-11. Outcomes and unresolved items are in the design docs: [high-level-design.md](../designs/high-level-design.md), [movement.md](../designs/movement.md), [progression.md](../designs/progression.md) and [enemies.md](../designs/enemies.md).
 
 ## 1. Tech
 
