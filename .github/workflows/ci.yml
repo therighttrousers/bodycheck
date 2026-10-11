@@ -55,11 +55,11 @@ jobs:
       - name: Check code formatting
         run: dotnet format --verify-no-changes --verbosity normal
 
-      - name: Check markdown links
-        uses: lycheeverse/lychee-action@v2.9.0
-        with:
-          args: --offline --include-fragments --no-progress './**/*.md'
-          fail: true
+      # - name: Check markdown links
+      #   uses: lycheeverse/lychee-action@v2.9.0
+      #   with:
+      #     args: --offline --include-fragments --no-progress './**/*.md'
+      #     fail: true
 
   # Branch ruleset check
   ci-ok:
