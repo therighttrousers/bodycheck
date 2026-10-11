@@ -13,6 +13,13 @@ public enum Contacts
 }
 
 /// <summary>
+/// How a body uses its grip on whatever it stands on. It pushes against the ground to bring its
+/// horizontal speed, relative to the ground, towards <paramref name="TargetSpeed"/>, using at most
+/// <paramref name="MaxForce"/>. A target of zero is braking. A maximum of zero is no grip at all.
+/// </summary>
+public readonly record struct Traction(float TargetSpeed, float MaxForce);
+
+/// <summary>
 /// An axis-aligned box with mass. Velocity changes only through forces and impulses,
 /// and through contact with solid tiles and other bodies.
 /// </summary>
@@ -53,7 +60,16 @@ public sealed class Body
     /// Returns true whenever this body is blocked from falling by a tile below it, transitively through its Support.
     /// It is NOT safe to call this during a call to World.Step (except from World.Step itself).
     /// </summary>
-    public bool IsTransitivelyOnTiles() => TransitivelyOnTiles ??= Support != null && Support.IsTransitivelyOnTiles();
+    public bool IsTransitivelyOnTiles() => TransitivelyOnTiles ??= Support is not null && Support.IsTransitivelyOnTiles();
+
+    /// <summary>
+    /// The grip this body applies while it stands on something. <see cref="World.Step"/> turns it into
+    /// equal and opposite impulses on this body and its <see cref="Support"/>. It has no effect in the air.
+    /// </summary>
+    public Traction Traction { get; set; }
+
+    /// <summary>The velocity of whatever this body stands on: zero for tiles, and in the air.</summary>
+    public Vector2 GroundVelocity => Support?.Velocity ?? Vector2.Zero;
 
     public Vector2 Momentum => Mass * Velocity;
     public bool OnGround => Contacts.HasFlag(Contacts.Floor);
@@ -63,30 +79,6 @@ public sealed class Body
     public void ApplyForce(Vector2 force) => _force += force;
 
     public void ApplyImpulse(Vector2 impulse) => Velocity += impulse / Mass;
-
-    /// <summary>
-    /// If Body.Support is non-null, applies forces to Body and Body.Support due to friction.
-    /// </summary>
-    public void ApplySupportFriction(float kineticFriction, float weight, float dt)
-    {
-        if (Support == null) return;
-
-        // var relVel = Velocity - Support.Velocity;
-        var relVel = new Vector2(Velocity.X - Support.Velocity.X, 0);
-        var relSpeed = relVel.Length();
-        if (relSpeed < 0.0001f) return;
-
-        var relDir = relVel / relSpeed;
-
-        // Cap force magnitude by the amount needed to perfectly match speeds this frame if there were no other
-        // forces applied to this and Support. Intended to correct overshoot, which causes jitter.
-        var force = -relDir * Math.Min(
-            kineticFriction * weight,
-            relSpeed * Mass * Support.Mass / (Mass + Support.Mass) / dt
-        );
-        ApplyForce(force);
-        Support.ApplyForce(-force);
-    }
 
     public void Teleport(Vector2 position, Vector2 velocity)
     {

@@ -16,9 +16,11 @@ public sealed record RobotTuning
     /// <summary>Force applied when on the ground and moving against the direction of input.</summary>
     public float ReverseDriveForce { get; init; } = 40;
 
-    /// <summary>Coefficient of ground friction, applied when not driving in the direction of travel.</summary>
+    /// <summary>
+    /// Coefficient of friction with the ground, whether tiles or another body. Applied when not driving in
+    /// the direction of travel.
+    /// </summary>
     public float GroundFriction { get; init; } = 4;
-    public float SupportFriction { get; init; } = 2;
 }
 
 public sealed class RobotController : ICharacterController
@@ -59,31 +61,29 @@ public sealed class RobotController : ICharacterController
         }
 
         float weight = Body.Mass * -world.Gravity.Y;
-        ApplyRun(_move, weight, dt);
-        Body.ApplySupportFriction(Tuning.SupportFriction, weight, dt);
+        ApplyRun(_move, weight);
     }
 
-    private void ApplyRun(float move, float weight, float dt)
+    private void ApplyRun(float move, float weight)
     {
-        float speed = Body.Velocity.X;
+        // Speed is relative to whatever the body stands on.
+        float speed = Body.Velocity.X - Body.GroundVelocity.X;
         bool reverse = speed != 0 && move * speed <= 0;
 
+        float drive = 0;
         if (move != 0)
         {
             // The drive fades out as the body nears top speed in the input direction.
             // It never slows a body that is already faster than that.
             float headroom = Math.Clamp(1 - speed * MathF.Sign(move) / Tuning.TopSpeed, 0, 1);
-            float drive = reverse ? Tuning.ReverseDriveForce : Tuning.ForwardDriveForce;
-            var force = new Vector2(move * drive * headroom, 0);
-            Body.ApplyForce(force);
-            Body.Support?.ApplyForce(-force);
+            float force = reverse ? Tuning.ReverseDriveForce : Tuning.ForwardDriveForce;
+            drive = MathF.Abs(move) * force * headroom;
         }
 
-        if (Body.OnTiles && reverse)
-        {
-            // Friction can stop the body but can't reverse it.
-            float impulse = MathF.Min(Tuning.GroundFriction * weight * dt, Body.Mass * MathF.Abs(speed));
-            Body.ApplyImpulse(new Vector2(-MathF.Sign(speed) * impulse, 0));
-        }
+        // The drive is traction: the world applies it, and pushes back on the support. Friction adds to it
+        // unless the body is driving the way it is already going, so it holds an idle body still on its
+        // support, and can stop a moving one but can't reverse it. Neither does anything in the air.
+        float friction = move == 0 || reverse ? Tuning.GroundFriction * weight : 0;
+        Body.Traction = new Traction(MathF.Sign(move) * Tuning.TopSpeed, drive + friction);
     }
 }
