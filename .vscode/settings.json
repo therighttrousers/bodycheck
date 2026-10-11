@@ -6,8 +6,16 @@
     "editor.formatOnSave": true,
     "rewrap.wrappingColumn": 120,
 
+    "[csharp]": {
+        "editor.defaultFormatter": "ms-dotnettools.csharp"
+    },
+
     "json.format.keepLines": true,
     "[json]": {
         "editor.defaultFormatter": "vscode.json-language-features"
     },
+
+    "[xml]": {
+        "editor.defaultFormatter": "redhat.vscode-xml"
+    }
 }

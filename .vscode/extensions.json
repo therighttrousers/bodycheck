@@ -3,5 +3,6 @@
         "ms-dotnettools.csdevkit",
         "geequlim.godot-tools",
         "neikeq.godot-csharp-vscode",
+        "redhat.vscode-xml",
     ]
 }

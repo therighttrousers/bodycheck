@@ -14,8 +14,10 @@ Prerequisites:
 - If you want to edit the map, the [LDtk editor](https://ldtk.io/download/)
 
 Steps:
-1. Run `git clone <repo-url>`; `cd` to the repo
-2. Run `.\dev-setup.ps1`
+1. Run `git clone <repo-url>`.
+2. `cd` to the repo directory.
+3. Run `.\dev-setup.ps1`.
+4. Open the repo folder in VS Code and install the extensions recommended for this repository.
 
 # Layout
 
