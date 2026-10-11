@@ -15,4 +15,5 @@ Rename-Item -Path "Godot\Godot_v4.7.2-stable_mono_win64.exe" -NewName "Godot.exe
 Rename-Item -Path "Godot\Godot_v4.7.2-stable_mono_win64_console.exe" -NewName "Godot_console.exe"
 
 dotnet restore
+dotnet tool restore
 dotnet husky install
