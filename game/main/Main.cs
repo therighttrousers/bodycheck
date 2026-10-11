@@ -13,6 +13,7 @@ public partial class Main : Node3D
 {
     private static readonly Color PlayerColor = new(0.2f, 0.9f, 1.0f);
     private static readonly Color RobotColor = new(1.0f, 0.45f, 0.15f);
+    private static readonly Color PlatformColor = new(0.9f, 0.1f, 0.7f);
 
     private readonly List<(Body Body, Node3D Node)> _bodyNodes = [];
 
@@ -98,11 +99,20 @@ public partial class Main : Node3D
 
         var robotTuning = new RobotTuning();
         var robotFeetToCenter = new System.Numerics.Vector2(0, robotTuning.HalfSize.Y);
-        foreach (System.Numerics.Vector2 start in room.RobotStarts)
+        foreach (var start in room.RobotStarts)
         {
             var robot = new RobotController(start + robotFeetToCenter, robotTuning);
             _characters.Add(robot);
             AddBody(robot.Body, RobotColor, glows: false);
+        }
+
+        var platformTuning = new PlatformTuning();
+        var platformBaseToCenter = new System.Numerics.Vector2(0, platformTuning.HalfSize.Y);
+        foreach (var start in room.PlatformStarts)
+        {
+            var platform = new PlatformController(start + platformBaseToCenter, platformTuning);
+            _characters.Add(platform);
+            AddBody(platform.Body, PlatformColor, glows: false);
         }
 
         AddTiles();
