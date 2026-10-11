@@ -7,3 +7,6 @@ obj/
 
 # Godot import cache
 .godot/
+
+# LDtk crash backups
+game/levels/**/backups/
