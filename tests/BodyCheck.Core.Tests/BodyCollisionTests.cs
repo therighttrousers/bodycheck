@@ -46,6 +46,10 @@ public class BodyCollisionTests
         Assert.True(upper.OnGround);
         Assert.Same(lower, upper.Support);
         Assert.Null(lower.Support);
+        Assert.True(lower.IsTransitivelyOnTiles());
+        Assert.True(upper.IsTransitivelyOnTiles());
+        Assert.Equal(0, upper.Velocity.Y);
+        Assert.Equal(0, lower.Velocity.Y);
     }
 
     [Fact]

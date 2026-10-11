@@ -47,6 +47,14 @@ public sealed class Body
     /// </summary>
     public Body? Support { get; internal set; }
 
+    internal bool? TransitivelyOnTiles { get; set; }
+
+    /// <summary>
+    /// Returns true whenever this body is blocked from falling by a tile below it, transitively through its Support.
+    /// It is NOT safe to call this during a call to World.Step (except from World.Step itself).
+    /// </summary>
+    public bool IsTransitivelyOnTiles() => TransitivelyOnTiles ??= Support != null && Support.IsTransitivelyOnTiles();
+
     public Vector2 Momentum => Mass * Velocity;
     public bool OnGround => Contacts.HasFlag(Contacts.Floor);
     public bool OnTiles => Contacts.HasFlag(Contacts.Floor) && Support == null;
@@ -86,6 +94,7 @@ public sealed class Body
         Velocity = velocity;
         Contacts = Contacts.None;
         Support = null;
+        TransitivelyOnTiles = null;
     }
 
     internal void IntegrateForces(float dt)

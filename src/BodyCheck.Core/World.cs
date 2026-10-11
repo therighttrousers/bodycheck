@@ -28,6 +28,7 @@ public sealed class World
             body.IntegrateForces(dt);
             body.Contacts = Contacts.None;
             body.Support = null;
+            body.TransitivelyOnTiles = null;
         }
 
         // Bodies move one at a time, in list order. A body that pushes one later in the list is held
@@ -36,6 +37,14 @@ public sealed class World
         {
             MoveAndCollide(body, 0, dt);
             MoveAndCollide(body, 1, dt);
+        }
+
+        foreach (Body body in Bodies)
+        {
+            if (body.IsTransitivelyOnTiles() && body.Velocity.Y != 0)
+            {
+                body.Velocity = new Vector2(body.Velocity.X, 0);
+            }
         }
     }
 
@@ -50,9 +59,14 @@ public sealed class World
             Vector2 velocity = body.Velocity;
             velocity[axis] = 0;
             body.Velocity = velocity;
-            body.Contacts |= Side(axis, sign);
+            var contact = Side(axis, sign);
+            body.Contacts |= contact;
+            if (contact == Contacts.Floor)
+            {
+                body.TransitivelyOnTiles = true;
+            }
         }
-        else if (hitBody is not null && (speed - hitBody.Velocity[axis]) * sign > 0)
+        else if (hitBody is not null && (speed - hitBody.Velocity[axis]) * sign >= 0)
         {
             // The two are closing: share their momentum along this axis, with no bounce.
             float shared = (body.Momentum[axis] + hitBody.Momentum[axis]) / (body.Mass + hitBody.Mass);
