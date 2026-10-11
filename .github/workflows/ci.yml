@@ -40,8 +40,8 @@ jobs:
           git add -A
           git diff --cached --exit-code
 
-  lint-format:
-    name: Lint and check formatting
+  format:
+    name: Check formatting
     runs-on: windows-latest
     steps:
       - name: Checkout
@@ -52,13 +52,19 @@ jobs:
         with:
           dotnet-version: '10.0.401'
 
-      - name: Check Formatting
+      - name: Check code formatting
         run: dotnet format --verify-no-changes --verbosity normal
+
+      # - name: Check markdown links
+      #   uses: lycheeverse/lychee-action@v2.9.0
+      #   with:
+      #     args: --offline --include-fragments --no-progress './**/*.md'
+      #     fail: true
 
   # Branch ruleset check
   ci-ok:
     if: always()
-    needs: [build-test, lint-format]
+    needs: [build-test, format]
     runs-on: ubuntu-latest
     steps:
       - if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')

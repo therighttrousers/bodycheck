@@ -7,6 +7,12 @@
     <RootNamespace>BodyCheck</RootNamespace>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <TreatWarningsAsErrors Condition="'$(CI)' == 'true'">true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\src\BodyCheck.Core\BodyCheck.Core.csproj" />
   </ItemGroup>
