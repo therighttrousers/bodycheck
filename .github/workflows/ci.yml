@@ -56,7 +56,7 @@ jobs:
         run: dotnet format --verify-no-changes --verbosity normal
 
       - name: Check markdown links
-        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        uses: lycheeverse/lychee-action@v2.9.0
         with:
           args: --offline --include-fragments --no-progress './**/*.md'
           fail: true
