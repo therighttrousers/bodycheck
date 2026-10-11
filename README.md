@@ -15,7 +15,7 @@ Prerequisites:
 
 Steps:
 1. Run `git clone <repo-url>`; `cd` to the repo
-2. Run `.\install_godot.ps1`
+2. Run `.\dev-setup.ps1`
 
 # Layout
 
