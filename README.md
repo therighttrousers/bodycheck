@@ -6,7 +6,9 @@ TODO: Write
 
 Prerequisites:
 - Windows
-- Git
+- Git with LFS extension to efficiently handle large binaries
+  - Download Git from https://git-scm.com/, install
+  - Download Git LFS from https://git-lfs.com/, install, run `git lfs install` once
 - .NET SDK 10
 - Visual Studio Code
 - If you want to edit the map, the [LDtk editor](https://ldtk.io/download/)

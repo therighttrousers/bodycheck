@@ -1,0 +1,2 @@
+* text=auto eol=lf
+*.psd filter=lfs diff=lfs merge=lfs -text
