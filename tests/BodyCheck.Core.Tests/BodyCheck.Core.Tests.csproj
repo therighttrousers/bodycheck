@@ -28,4 +28,12 @@
     <ProjectReference Include="..\..\src\BodyCheck.Core\BodyCheck.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The C# API of the Godot that dev-setup.ps1 installs, so that its version always matches the engine. -->
+    <Reference Include="GodotSharp">
+      <HintPath>..\..\Godot\GodotSharp\Api\Debug\GodotSharp.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+
 </Project>

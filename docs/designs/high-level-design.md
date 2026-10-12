@@ -5,6 +5,7 @@
 Relevant decision records:
 - [000: Initial design](../decision-records/000-initial-design.md)
 - [001: Godot's 3D physics engine](../decision-records/001-godot-3d-physics.md)
+- [002: `BodyCheck.Core` depends on GodotSharp](../decision-records/002-core-depends-on-godotsharp.md)
 
 ## Vision
 
@@ -84,7 +85,7 @@ See [progression.md](progression.md).
 - **Language:** C# on .NET 10.
 - **Physics:** Godot's 3D physics engine, Jolt, with gameplay locked to the XY plane. The engine detects collisions, resolves contacts and moves bodies. Grip and drag are ours, applied on top of it each tick. See [movement.md](movement.md#physics-engine).
 - **`game/`:** the Godot project. Bodies are `RigidBody3D` nodes, and character controllers turn input and behaviour into forces and impulses on them.
-- **`src/BodyCheck.Core`:** a plain class library with no Godot dependency, for rules that don't need the engine. Today it also holds the earlier 2D simulation, which the main scene still runs.
+- **`src/BodyCheck.Core`:** the game's rules, as a class library: character controllers, traction, tuning, rooms and tiles. It uses Godot's value types, such as vectors, but no nodes, so it runs outside the engine. Controllers reach bodies through an interface that the game's body node implements. It references the GodotSharp assembly of the installed engine, so `dev-setup.ps1` has to be run before it builds. Today it still holds the earlier 2D simulation instead, which the main scene runs (`002`).
 - **`tests/BodyCheck.Core.Tests`:** unit tests for the library, in xUnit.
 - **`tests/BodyCheck.Game.Tests`:** tests that need the engine, run inside Godot through gdUnit4Net by plain `dotnet test`. Godot runs headless at a fixed frame rate, so physics ticks faster than real time. The project is a Godot project of its own, whose settings are copied from the game's on every build. It can't load the game's scenes or assets by `res://` path.
 - **Migration:** in progress. The engine-based code is in `game/spike/` and is to replace the main scene and Core's simulation.
@@ -117,7 +118,8 @@ World:
 Tech:
 - Low-resolution rendering is untried. First to try: render at twice the target size (e.g. 640x480), average 2x2 blocks down to the target (e.g. 320x240), quantize to a fixed palette or a fixed number of bits per color channel, then upscale with nearest-neighbour. Hardware anti-aliasing may be a better way to get the first two steps.
 - Phantom Camera is unverified for this project: use from C#, and camera limits in 3D. Its limit, lookahead and newer framed-follow features are described for its 2D camera only.
-- What stays in `BodyCheck.Core` once its simulation is gone? Rooms, the tile grid, tuning records and the LDtk loader need no engine. Controllers now act on engine bodies. Option: move them to `game/`, leaving Core as a small utility library. Option (Neil): let Core depend on `GodotSharp` and keep the controllers there. Godot's vector types work outside the engine, but nodes don't, so the controllers would act on a body interface that the game's nodes implement.
+- Core's old simulation uses the names `Body`, `World` and `Traction`, which the new code wants. Delete the old simulation first, or build the new code under other names and rename at the end?
+- Can the Godot editor attach a script to a scene only when the script is in the Godot project itself? Believed so, which is why node classes stay in `game/`.
 - Which of Core's tests are rewritten as engine tests? `WorldTests` and `BodyCollisionTests` test the old simulation and go. The player, riding and traction tests state design goals.
 - Engine tests need a dedicated test scene, instead of the spike's main scene, which will force that scene to be split into smaller reusable parts.
 - gdUnit4Net is used outside its stated support (.NET 8 and 9, Godot 4.4 to 4.5), and `gdUnit4.api` is a prerelease. To be revisited when it releases.
