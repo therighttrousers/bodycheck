@@ -1,12 +1,14 @@
+using BodyCheck.Core;
+
 using Godot;
 
-namespace BodyCheck.Spike;
+namespace BodyCheck.Probes;
 
 /// <summary>
 /// In the "Corner" room: runs right into a two-tile wall until stopped, then does a full jump straight up,
 /// and reports whether the top corner of the wall disturbs the body on the way down.
 /// </summary>
-public sealed class CornerProbe
+public sealed class CornerProbe : IProbe
 {
     private const int JumpTick = 120;
     private const int EndTick = 240;
@@ -14,7 +16,7 @@ public sealed class CornerProbe
     // The x of the wall's left face.
     private const float WallFace = 9;
 
-    private readonly JoltBody _body;
+    private readonly BodyNode _body;
     private readonly bool _holdRight;
     private int _tick;
 
@@ -24,7 +26,7 @@ public sealed class CornerProbe
     private float _maxLeftSpeed;
 
     /// <param name="holdRight">Whether to keep pushing into the wall during the jump.</param>
-    public CornerProbe(JoltBody body, bool holdRight)
+    public CornerProbe(BodyNode body, bool holdRight)
     {
         _body = body;
         _holdRight = holdRight;
@@ -32,8 +34,12 @@ public sealed class CornerProbe
 
     public bool Done => _tick > EndTick;
 
-    /// <summary>Call once per physics tick, before the controller. Returns the input for this tick.</summary>
-    public JoltPlayerInput Tick()
+    public PlayerInput Input { get; private set; }
+
+    public void Tick(float dt) => Input = NextInput();
+
+    /// <summary>Called once per physics tick, before the controller. Returns the input for this tick.</summary>
+    private PlayerInput NextInput()
     {
         int t = _tick++;
         Vector3 p = _body.Position;
@@ -41,13 +47,13 @@ public sealed class CornerProbe
 
         if (t < JumpTick)
         {
-            return new JoltPlayerInput(t < 30 ? 0 : 1, false);
+            return new PlayerInput(t < 30 ? 0 : 1, false);
         }
 
         if (t == JumpTick)
         {
             _restX = p.X;
-            GD.Print($"  stopped at the wall: right edge {p.X + _body.HalfSize.X - WallFace:F4} past its face, contacts {_body.Contacts}");
+            GD.Print($"  stopped at the wall: right edge {p.X + _body.Body.HalfSize.X - WallFace:F4} past its face, contacts {_body.Body.Contacts}");
         }
 
         _apex = Mathf.Max(_apex, p.Y);
@@ -56,14 +62,14 @@ public sealed class CornerProbe
         {
             _maxLeftSpeed = -v.X;
             GD.Print($"  tick {t - JumpTick}: pushed left, vx {v.X:F3}, vy {v.Y:F3}, "
-                + $"bottom {p.Y - _body.HalfSize.Y:F3}, right edge {p.X + _body.HalfSize.X - WallFace:F4} past the face");
+                + $"bottom {p.Y - _body.Body.HalfSize.Y:F3}, right edge {p.X + _body.Body.HalfSize.X - WallFace:F4} past the face");
         }
 
         if (t == EndTick)
         {
-            GD.Print($"  apex {_apex - _body.HalfSize.Y - 1:F3} tiles above the floor; moved left by at most {_restX - _minX:F4}; "
-                + $"ends at x {p.X:F4}, bottom {p.Y - _body.HalfSize.Y:F3}");
+            GD.Print($"  apex {_apex - _body.Body.HalfSize.Y - 1:F3} tiles above the floor; moved left by at most {_restX - _minX:F4}; "
+                + $"ends at x {p.X:F4}, bottom {p.Y - _body.Body.HalfSize.Y:F3}");
         }
-        return new JoltPlayerInput(_holdRight ? 1 : 0, t < JumpTick + 40);
+        return new PlayerInput(_holdRight ? 1 : 0, t < JumpTick + 40);
     }
 }

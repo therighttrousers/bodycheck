@@ -84,13 +84,18 @@ See [progression.md](progression.md).
 - **Engine:** Godot 4.7.2, .NET build, Forward+ renderer, desktop only. The engine is installed into the repository by a script and is not on the PATH.
 - **Language:** C# on .NET 10.
 - **Physics:** Godot's 3D physics engine, Jolt, with gameplay locked to the XY plane. The engine detects collisions, resolves contacts and moves bodies. Grip and drag are ours, applied on top of it each tick. See [movement.md](movement.md#physics-engine).
-- **`game/`:** the Godot project. Bodies are `RigidBody3D` nodes, and character controllers turn input and behaviour into forces and impulses on them.
-- **`src/BodyCheck.Core`:** the game's rules, as a class library: character controllers, traction, tuning, rooms and tiles. It uses Godot's value types, such as vectors, but no nodes, so it runs outside the engine. Controllers reach bodies through an interface that the game's body node implements. It references the GodotSharp assembly of the installed engine, so `dev-setup.ps1` has to be run before it builds. Today it still holds the earlier 2D simulation instead, which the main scene runs (`002`).
-- **`tests/BodyCheck.Core.Tests`:** unit tests for the library, in xUnit.
+- **`src/BodyCheck.Core`:** the game's rules, as a class library: bodies, traction, character controllers, tuning, rooms and tiles. It uses Godot's value types, such as vectors, but no nodes, so it runs outside the engine. It references the GodotSharp assembly of the installed engine, so `dev-setup.ps1` has to be run before it builds (`002`).
+  - A `Body` is the rules' view of one box. Controllers change its motion only by adding forces and impulses and by setting its traction.
+  - `World.Step` turns each body's forces, impulses, drag and traction into one impulse for the engine.
+- **`game/`:** the Godot project, which holds the nodes.
+  - `BodyNode` is the engine's side of a `Body`. Each tick it copies the engine's position, velocity and contacts into the body, and gives the engine the body's impulse.
+  - `RoomNode` is one room, simulated: tiles, bodies and controllers, with no camera, lights or input of its own, so tests use it as it is.
+  - `Main` adds the camera, the lights and the player's input to a `RoomNode`, and switches rooms.
+  - `probes/` holds scripted measurements, run headless with `--probe=` and a name.
+- **`tests/BodyCheck.Core.Tests`:** unit tests for the library, in xUnit. They run without the engine, and stand in for it where a test needs one.
 - **`tests/BodyCheck.Game.Tests`:** tests that need the engine, run inside Godot through gdUnit4Net by plain `dotnet test`. Godot runs headless at a fixed frame rate, so physics ticks faster than real time. The project is a Godot project of its own, whose settings are copied from the game's on every build. It can't load the game's scenes or assets by `res://` path.
-- **Migration:** in progress. The engine-based code is in `game/spike/` and is to replace the main scene and Core's simulation.
 - **Levels:** authored in 2D in LDtk, in `game/levels/`, and turned into 3D at load. The LDtk JSON will be read at runtime at first, and moved to an asset pipeline only if the loading code proves too slow, too complex or too fragile. No loader exists yet.
-- **Test rooms:** a library of named rooms in `Rooms.cs`, described as text. Design docs and tests refer to them by name.
+- **Test rooms:** a library of named rooms, described as text. `Rooms.cs` has the ones to play in; `TestRooms.cs` has the ones that tests and probes measure in. Design docs and tests refer to them by name.
 - **Camera:** Phantom Camera, to be added. Out-of-the-box tools are preferred.
 - **Modelling:** Blender.
 
@@ -118,10 +123,6 @@ World:
 Tech:
 - Low-resolution rendering is untried. First to try: render at twice the target size (e.g. 640x480), average 2x2 blocks down to the target (e.g. 320x240), quantize to a fixed palette or a fixed number of bits per color channel, then upscale with nearest-neighbour. Hardware anti-aliasing may be a better way to get the first two steps.
 - Phantom Camera is unverified for this project: use from C#, and camera limits in 3D. Its limit, lookahead and newer framed-follow features are described for its 2D camera only.
-- Core's old simulation uses the names `Body`, `World` and `Traction`, which the new code wants. Delete the old simulation first, or build the new code under other names and rename at the end?
 - Can the Godot editor attach a script to a scene only when the script is in the Godot project itself? Believed so, which is why node classes stay in `game/`.
-- Which of Core's tests are rewritten as engine tests? `WorldTests` and `BodyCollisionTests` test the old simulation and go. The player, riding and traction tests state design goals.
-- Engine tests need a dedicated test scene, instead of the spike's main scene, which will force that scene to be split into smaller reusable parts.
 - gdUnit4Net is used outside its stated support (.NET 8 and 9, Godot 4.4 to 4.5), and `gdUnit4.api` is a prerelease. To be revisited when it releases.
-- Do engine tests show up in VS Code's test explorer?
 - Would Godot's 3D physics, with gameplay locked to one plane, serve better than our own simulation? To be investigated later.

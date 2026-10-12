@@ -1,4 +1,4 @@
-using System.Numerics;
+using Godot;
 
 namespace BodyCheck.Core;
 
@@ -20,47 +20,45 @@ public enum Contacts
 public readonly record struct Traction(float TargetSpeed, float MaxForce);
 
 /// <summary>
-/// An axis-aligned box with mass. Velocity changes only through forces and impulses,
-/// and through contact with solid tiles and other bodies.
+/// The rules' view of a box with mass, in the XY plane. The physics engine moves it and resolves its
+/// contacts; the node that owns it copies the engine's state in each tick, with <see cref="SetMotion"/>
+/// and <see cref="SetContacts"/>, and passes <see cref="TakeEngineImpulse"/> back to the engine.
+/// <para>
+/// Controllers change a body's motion only through <see cref="AddForce"/>, <see cref="AddImpulse"/> and
+/// <see cref="Traction"/>, so that <see cref="World.Step"/> sees everything that acts on it.
+/// </para>
 /// </summary>
 public sealed class Body
 {
     private Vector2 _force;
+    private Vector2 _impulse;
+    private Vector2 _engineImpulse;
 
-    public Body(Vector2 position, Vector2 halfSize, float mass)
+    public Body(Vector2 halfSize, float mass)
     {
-        Position = position;
         HalfSize = halfSize;
         Mass = mass;
     }
 
-    /// <summary>The center of the box.</summary>
-    public Vector2 Position { get; set; }
     public Vector2 HalfSize { get; }
     public float Mass { get; }
-    public Vector2 Velocity { get; internal set; }
 
     /// <summary>Linear drag coefficient: drag force is -Drag × Velocity.</summary>
     public float Drag { get; set; }
 
     /// <summary>
-    /// Which sides met solid tiles or other bodies during the last step. A body at rest against a wall
-    /// isn't moving into it, so only the floor contact persists (gravity renews it every step).
+    /// The engine's coefficient of friction for this body. Leave it at 0 for anything that walks: a walker
+    /// grips through <see cref="Traction"/>, and with engine friction it would grip walls too, and lose its
+    /// speed on landing. Other bodies, which have no traction, need it to rest on things and be carried.
+    /// <para>
+    /// Where two bodies touch, the engine uses the smaller of their coefficients, so a walker slides
+    /// freely against everything.
+    /// </para>
     /// </summary>
-    public Contacts Contacts { get; internal set; }
+    public float EngineFriction { get; init; }
 
-    /// <summary>
-    /// The body this one stood on during the last step, or null if it stood on tiles or on nothing.
-    /// </summary>
-    public Body? Support { get; internal set; }
-
-    internal bool? TransitivelyOnTiles { get; set; }
-
-    /// <summary>
-    /// Returns true whenever this body is blocked from falling by a tile below it, transitively through its Support.
-    /// It is NOT safe to call this during a call to World.Step (except from World.Step itself).
-    /// </summary>
-    public bool IsTransitivelyOnTiles() => TransitivelyOnTiles ??= Support is not null && Support.IsTransitivelyOnTiles();
+    /// <summary>Whether this body grips through traction rather than through the engine's friction.</summary>
+    public bool IsWalker => EngineFriction == 0;
 
     /// <summary>
     /// The grip this body applies while it stands on something. <see cref="World.Step"/> turns it into
@@ -68,30 +66,71 @@ public sealed class Body
     /// </summary>
     public Traction Traction { get; set; }
 
+    /// <summary>The center of the box, as of the engine's last step.</summary>
+    public Vector2 Position { get; private set; }
+
+    /// <summary>
+    /// The velocity as of the engine's last step, plus the impulses added since. Forces added since then
+    /// don't show in it until the next step.
+    /// </summary>
+    public Vector2 Velocity => EngineVelocity + _impulse / Mass;
+
+    /// <summary>The velocity as of the engine's last step.</summary>
+    internal Vector2 EngineVelocity { get; private set; }
+
+    /// <summary>Which sides touched tiles or other bodies during the engine's last step.</summary>
+    public Contacts Contacts { get; private set; }
+
+    /// <summary>The body this one stood on during the engine's last step, or null if it stood on tiles or on nothing.</summary>
+    public Body? Support { get; private set; }
+
     /// <summary>The velocity of whatever this body stands on: zero for tiles, and in the air.</summary>
     public Vector2 GroundVelocity => Support?.Velocity ?? Vector2.Zero;
 
-    public Vector2 Momentum => Mass * Velocity;
     public bool OnGround => Contacts.HasFlag(Contacts.Floor);
-    public bool OnTiles => Contacts.HasFlag(Contacts.Floor) && Support == null;
+
+    /// <summary>This body's velocity as <see cref="World.Step"/> works it out, before the engine has it.</summary>
+    internal Vector2 StepVelocity { get; set; }
 
     /// <summary>Adds a force that acts for the duration of the next step.</summary>
-    public void ApplyForce(Vector2 force) => _force += force;
+    public void AddForce(Vector2 force) => _force += force;
 
-    public void ApplyImpulse(Vector2 impulse) => Velocity += impulse / Mass;
+    /// <summary>Adds an impulse that takes effect in the next step.</summary>
+    public void AddImpulse(Vector2 impulse) => _impulse += impulse;
 
-    public void Teleport(Vector2 position, Vector2 velocity)
+    /// <summary>For the owning node: copies in where the engine has the body, and how fast it is moving.</summary>
+    public void SetMotion(Vector2 position, Vector2 velocity)
     {
         Position = position;
-        Velocity = velocity;
-        Contacts = Contacts.None;
-        Support = null;
-        TransitivelyOnTiles = null;
+        EngineVelocity = velocity;
     }
 
-    internal void IntegrateForces(float dt)
+    /// <summary>For the owning node: copies in what the body touched during the engine's last step.</summary>
+    public void SetContacts(Contacts contacts, Body? support)
     {
-        Velocity += _force / Mass * dt;
-        _force = Vector2.Zero;
+        Contacts = contacts;
+        Support = support;
     }
+
+    /// <summary>
+    /// For the owning node: returns the impulse that the last <see cref="World.Step"/> worked out for the
+    /// engine to apply, and clears it.
+    /// </summary>
+    public Vector2 TakeEngineImpulse()
+    {
+        Vector2 impulse = _engineImpulse;
+        _engineImpulse = Vector2.Zero;
+        return impulse;
+    }
+
+    /// <summary>Returns the forces and impulses added since the last step as one impulse, and clears them.</summary>
+    internal Vector2 TakePendingImpulse(float dt)
+    {
+        Vector2 total = _force * dt + _impulse;
+        _force = Vector2.Zero;
+        _impulse = Vector2.Zero;
+        return total;
+    }
+
+    internal void SetEngineImpulse(Vector2 impulse) => _engineImpulse = impulse;
 }

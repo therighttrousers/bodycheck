@@ -1,55 +1,78 @@
-using System.Collections.Generic;
+using System;
+using System.Linq;
 
 using BodyCheck.Core;
+using BodyCheck.Probes;
 
 using Godot;
 
 namespace BodyCheck;
 
 /// <summary>
-/// Draws the Core simulation of one room from the <see cref="Rooms"/> library, as gray boxes.
+/// Plays one room from the <see cref="Rooms"/> library, drawn as gray boxes: it adds the camera, the
+/// lights and the player's input to a <see cref="RoomNode"/>.
+/// <para>
+/// User arguments, after "--" on the command line: a room name; "--tiles=single" for one collider per
+/// tile instead of merged boxes; "--probe=" and a probe's name to run that probe and quit.
+/// </para>
 /// </summary>
 public partial class Main : Node3D
 {
-    private static readonly Color PlayerColor = new(0.2f, 0.9f, 1.0f);
-    private static readonly Color RobotColor = new(1.0f, 0.45f, 0.15f);
-    private static readonly Color PlatformColor = new(0.9f, 0.1f, 0.7f);
-
-    private readonly List<(Body Body, Node3D Node)> _bodyNodes = [];
-
     private int _roomIndex;
-    private World _world = null!;
-    private PlayerController _player = null!;
-    private List<ICharacterController> _characters = [];
-
-    // Holds everything that belongs to the current room, so that changing rooms can free it all at once.
-    private Node3D _roomNode = null!;
+    private bool _mergeTiles = true;
+    private RoomNode _room = null!;
+    private Camera3D _camera = null!;
+    private IProbe? _probe;
 
     public override void _Ready()
     {
         AddInputActions();
         AddLights();
-        LoadRoom(StartingRoomIndex());
-    }
 
-    /// <summary>
-    /// The room named by the first argument after "--" on the command line, or the first room.
-    /// </summary>
-    private static int StartingRoomIndex()
-    {
-        string[] args = OS.GetCmdlineUserArgs();
-        for (int i = 0; args.Length > 0 && i < Rooms.All.Count; i++)
+        string? roomName = null;
+        string? probeName = null;
+        foreach (string arg in OS.GetCmdlineUserArgs())
         {
-            if (Rooms.All[i].Name.Equals(args[0], System.StringComparison.OrdinalIgnoreCase))
+            if (arg == "--tiles=single")
             {
-                return i;
+                _mergeTiles = false;
+            }
+            else if (arg.StartsWith("--probe="))
+            {
+                probeName = arg["--probe=".Length..];
+            }
+            else
+            {
+                roomName = arg;
             }
         }
-        return 0;
+
+        if (probeName is not null)
+        {
+            _probe = Probe.Start(probeName, room => LoadRoom(room), _mergeTiles);
+            return;
+        }
+
+        int index = Rooms.All.ToList().FindIndex(
+            room => room.Name.Equals(roomName, StringComparison.OrdinalIgnoreCase));
+        LoadRoom(Math.Max(index, 0));
+        _room.PlayerInput = () => new PlayerInput(
+            Input.GetAxis("move_left", "move_right"), Input.IsActionPressed("jump"));
     }
 
     public override void _PhysicsProcess(double delta)
     {
+        // This runs before the room's own tick, because a parent is processed before its children.
+        if (_probe is not null)
+        {
+            _probe.Tick((float)delta);
+            if (_probe.Done)
+            {
+                GetTree().Quit();
+            }
+            return;
+        }
+
         if (Input.IsActionJustPressed("next_room"))
         {
             LoadRoom(_roomIndex + 1);
@@ -58,140 +81,43 @@ public partial class Main : Node3D
         {
             LoadRoom(_roomIndex - 1);
         }
-
-        var input = new PlayerInput(Input.GetAxis("move_left", "move_right"), Input.IsActionPressed("jump"));
-        _player.Apply(input, _world, (float)delta);
-        foreach (var character in _characters)
-        {
-            character.Apply(_world, (float)delta);
-        }
-        _world.Step((float)delta);
-
-        foreach ((Body body, Node3D node) in _bodyNodes)
-        {
-            node.Position = ToGodot(body.Position);
-        }
     }
-
-    private static Vector3 ToGodot(System.Numerics.Vector2 v) => new(v.X, v.Y, 0);
 
     private void LoadRoom(int index)
     {
-        GD.Print($"LoadRoom {index}");
-
+        Func<PlayerInput>? input = _room?.PlayerInput;
         _roomIndex = Mathf.PosMod(index, Rooms.All.Count);
-        Room room = Rooms.All[_roomIndex];
+        LoadRoom(Rooms.All[_roomIndex]).PlayerInput = input;
+    }
+
+    /// <summary>Replaces the current room, if there is one, and points the camera at the new one.</summary>
+    private RoomNode LoadRoom(Room room)
+    {
+        _room?.QueueFree();
+        _camera?.QueueFree();
+
         GetWindow().Title = $"Body Check: {room.Name}";
-
-        _roomNode?.QueueFree();
-        _roomNode = new Node3D();
-        AddChild(_roomNode);
-        _bodyNodes.Clear();
-
-        _world = new World(room.CreateTiles());
-
-        var playerTuning = new PlayerTuning();
-        var playerFeetToCenter = new System.Numerics.Vector2(0, playerTuning.HalfSize.Y);
-        _player = new PlayerController(room.PlayerStart + playerFeetToCenter, playerTuning);
-        AddBody(_player.Body, PlayerColor, glows: true);
-
-        _characters = [];
-
-        var robotTuning = new RobotTuning();
-        var robotFeetToCenter = new System.Numerics.Vector2(0, robotTuning.HalfSize.Y);
-        foreach (var start in room.RobotStarts)
-        {
-            var robot = new RobotController(start + robotFeetToCenter, robotTuning);
-            _characters.Add(robot);
-            AddBody(robot.Body, RobotColor, glows: false);
-        }
-
-        var platformTuning = new PlatformTuning();
-        var platformBaseToCenter = new System.Numerics.Vector2(0, platformTuning.HalfSize.Y);
-        foreach (var start in room.PlatformStarts)
-        {
-            var platform = new PlatformController(start + platformBaseToCenter, platformTuning);
-            _characters.Add(platform);
-            AddBody(platform.Body, PlatformColor, glows: false);
-        }
-
-        AddTiles();
+        _room = new RoomNode(room, _mergeTiles);
+        AddChild(_room);
         AddCamera();
-    }
-
-    private void AddBody(Body body, Color color, bool glows)
-    {
-        _world.Bodies.Add(body);
-
-        System.Numerics.Vector2 size = 2 * body.HalfSize;
-        var node = new MeshInstance3D
-        {
-            Mesh = new BoxMesh
-            {
-                Size = new Vector3(size.X, size.Y, size.X),
-                Material = new StandardMaterial3D
-                {
-                    AlbedoColor = color,
-                    EmissionEnabled = glows,
-                    Emission = color,
-                    EmissionEnergyMultiplier = 1.5f,
-                },
-            },
-            Position = ToGodot(body.Position),
-        };
-        if (glows)
-        {
-            node.AddChild(new OmniLight3D { LightColor = color, LightEnergy = 2, OmniRange = 6 });
-        }
-        _roomNode.AddChild(node);
-        _bodyNodes.Add((body, node));
-    }
-
-    private void AddTiles()
-    {
-        var mesh = new BoxMesh
-        {
-            Size = Vector3.One,
-            Material = new StandardMaterial3D { AlbedoColor = new Color(0.35f, 0.38f, 0.45f) },
-        };
-        TileGrid tiles = _world.Tiles;
-        for (int x = 0; x < tiles.Width; x++)
-        {
-            for (int y = 0; y < tiles.Height; y++)
-            {
-                if (tiles.IsSolid(x, y))
-                {
-                    _roomNode.AddChild(new MeshInstance3D { Mesh = mesh, Position = new Vector3(x + 0.5f, y + 0.5f, 0) });
-                }
-            }
-        }
-
-        // A back wall, so that lights have something to fall on.
-        _roomNode.AddChild(new MeshInstance3D
-        {
-            Mesh = new BoxMesh
-            {
-                Size = new Vector3(tiles.Width, tiles.Height, 0.2f),
-                Material = new StandardMaterial3D { AlbedoColor = new Color(0.12f, 0.13f, 0.16f) },
-            },
-            Position = new Vector3(tiles.Width / 2f, tiles.Height / 2f, -0.6f),
-        });
+        return _room;
     }
 
     private void AddCamera()
     {
         // Far enough back to fit the whole room, whichever of its width and height is the tighter fit.
-        TileGrid tiles = _world.Tiles;
+        TileGrid tiles = _room.Tiles;
         const float fov = 50;
         Vector2 view = GetViewport().GetVisibleRect().Size;
         float halfHeight = Mathf.Max(tiles.Height / 2f, tiles.Width / 2f * view.Y / view.X);
         float distance = halfHeight / Mathf.Tan(Mathf.DegToRad(fov / 2));
-        _roomNode.AddChild(new Camera3D
+        _camera = new Camera3D
         {
             Fov = fov,
             Position = new Vector3(tiles.Width / 2f, tiles.Height / 2f, distance + 0.5f),
             Current = true,
-        });
+        };
+        AddChild(_camera);
     }
 
     private void AddLights()

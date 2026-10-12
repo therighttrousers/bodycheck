@@ -1,34 +1,40 @@
+using BodyCheck.Core;
+
 using Godot;
 
-namespace BodyCheck.Spike;
+namespace BodyCheck.Probes;
 
 /// <summary>
 /// Drives the player controller with scripted input in the "Seams" room and prints what the body does:
 /// jumps beside a wall with and without pushing into it, running to top speed, a jump at top speed, and
 /// a reversal.
 /// </summary>
-public sealed class PlayerProbe
+public sealed class PlayerProbe : IProbe
 {
-    private static readonly JoltPlayerInput Idle = new(0, false);
-    private static readonly JoltPlayerInput Left = new(-1, false);
-    private static readonly JoltPlayerInput Right = new(1, false);
+    private static readonly PlayerInput Idle = new(0, false);
+    private static readonly PlayerInput Left = new(-1, false);
+    private static readonly PlayerInput Right = new(1, false);
 
-    private readonly JoltBody _body;
+    private readonly BodyNode _body;
     private int _tick;
 
     private float _restY;
     private float _apex;
     private int _airTicks;
 
-    public PlayerProbe(JoltBody body)
+    public PlayerProbe(BodyNode body)
     {
         _body = body;
     }
 
     public bool Done => _tick > 520;
 
-    /// <summary>Call once per physics tick, before the controller. Returns the input for this tick.</summary>
-    public JoltPlayerInput Tick()
+    public PlayerInput Input { get; private set; }
+
+    public void Tick(float dt) => Input = NextInput();
+
+    /// <summary>Called once per physics tick, before the controller. Returns the input for this tick.</summary>
+    private PlayerInput NextInput()
     {
         int t = _tick++;
         Vector3 v = _body.LinearVelocity;
@@ -42,14 +48,14 @@ public sealed class PlayerProbe
         if (t < 180)
         {
             TrackJump(t, 60, "jump pushing into a wall");
-            return new JoltPlayerInput(-1, t == 60);
+            return new PlayerInput(-1, t == 60);
         }
 
         // The same jump beside the wall, without pushing.
         if (t < 300)
         {
             TrackJump(t, 180, "jump beside a wall, no push");
-            return new JoltPlayerInput(0, t == 180);
+            return new PlayerInput(0, t == 180);
         }
 
         // Run right to top speed, then tap jump while running.
@@ -63,8 +69,8 @@ public sealed class PlayerProbe
         }
         if (t < 396)
         {
-            GD.Print($"  jump at top speed, tick {t - 390}: vx {v.X:F3}, vy {v.Y:F3}, on ground {_body.OnGround}");
-            return new JoltPlayerInput(1, t == 390);
+            GD.Print($"  jump at top speed, tick {t - 390}: vx {v.X:F3}, vy {v.Y:F3}, on ground {_body.Body.OnGround}");
+            return new PlayerInput(1, t == 390);
         }
         if (t < 450)
         {
@@ -95,7 +101,7 @@ public sealed class PlayerProbe
         }
 
         _apex = Mathf.Max(_apex, _body.Position.Y);
-        if (!_body.OnGround)
+        if (!_body.Body.OnGround)
         {
             _airTicks++;
         }

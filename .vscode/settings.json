@@ -4,6 +4,7 @@
     },
 
     "godotTools.editorPath.godot4": ".\\Godot\\Godot.exe",
+    "dotnet.unitTests.runSettingsPath": ".runsettings",
 
     "editor.formatOnSave": true,
     "rewrap.wrappingColumn": 120,

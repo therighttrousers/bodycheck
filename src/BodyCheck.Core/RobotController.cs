@@ -1,4 +1,4 @@
-using System.Numerics;
+using Godot;
 
 namespace BodyCheck.Core;
 
@@ -31,16 +31,16 @@ public sealed class RobotController : ICharacterController
     private float _facing = 1;
     private float _move = 0;
 
-    public RobotController(Vector2 position, RobotTuning tuning)
+    public RobotController(RobotTuning tuning)
     {
         Tuning = tuning;
-        Body = new Body(position, Tuning.HalfSize, Tuning.Mass) { Drag = Tuning.Drag };
+        Body = new Body(Tuning.HalfSize, Tuning.Mass) { Drag = Tuning.Drag };
     }
 
     public void Apply(World world, float dt)
     {
         // Patrol if on tiles. Bounce off of anything solid (including the player).
-        if (Body.OnTiles)
+        if (Body.OnGround && Body.Support is null)
         {
             if (_move == 0)
             {
@@ -60,7 +60,7 @@ public sealed class RobotController : ICharacterController
             _move = 0;
         }
 
-        float weight = Body.Mass * -world.Gravity.Y;
+        float weight = Body.Mass * world.Gravity;
         ApplyRun(_move, weight);
     }
 
