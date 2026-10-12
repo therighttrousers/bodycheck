@@ -104,7 +104,8 @@ Facts checked on 2026-10-11:
     - If the engine isn't found, the tests are reported as "no test is available" and the run fails.
     - The test run starts the Godot editor to build, and the editor re-indents any C# file open in its script editor with tabs. Fixed for everyone by `[editor_overrides]` in `game/project.godot`, which sets the editor's indent type to spaces for this project.
   - Later (Neil): a dedicated scene for tests instead of the spike's main scene, which will force that scene to be split into smaller reusable parts.
-  - To be checked: tests in VS Code's test explorer; the run in CI.
+  - CI, 2026-10-12: the first run failed with "no test is available". Before it starts Godot, gdUnit4Net rebuilds the test project in the Debug configuration without building the projects it references, and CI had built only Release. CI now builds and tests in Debug. Checked in a fresh clone: Release fails the same way, Debug passes and leaves no new files.
+  - To be checked: tests in VS Code's test explorer.
 - [ ] 3.2 Which of today's tests survive? `WorldTests` and `BodyCollisionTests` test our engine and would go. The player, riding and traction tests state design goals and would become in-engine tests.
 
 ## 4. Alternatives to Godot 3D physics
