@@ -30,7 +30,7 @@ Rationale: decision record `001`.
 - All solid tiles are shapes of one static body, merged along rows into larger boxes, so that a floor seam can't catch a sliding body (`001 §1.2`).
 - Four project settings make contacts exact and corners sharp (`001 §1.3`): collision margin fraction 0.005, penetration slop 0, continuous collision detection's maximum penetration 0, and 60 physics ticks per second.
 - Controllers give a body its forces and impulses through `AddForce` and `AddImpulse`, never the engine's own methods, so that traction can take them into account.
-- An impulse doesn't show in a body's velocity until the engine's next step.
+- A body's velocity, as controllers see it, includes the impulses added this tick. Forces don't show in it until the engine's next step.
 
 # Ground contact and traction
 

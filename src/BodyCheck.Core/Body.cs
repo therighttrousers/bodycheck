@@ -56,10 +56,13 @@ public sealed class Body
     public Vector2 Position { get; private set; }
 
     /// <summary>
-    /// The velocity as of the engine's last step. Forces and impulses added since then don't show in it
-    /// until the next step.
+    /// The velocity as of the engine's last step, plus the impulses added since. Forces added since then
+    /// don't show in it until the next step.
     /// </summary>
-    public Vector2 Velocity { get; private set; }
+    public Vector2 Velocity => EngineVelocity + _impulse / Mass;
+
+    /// <summary>The velocity as of the engine's last step.</summary>
+    internal Vector2 EngineVelocity { get; private set; }
 
     /// <summary>Which sides touched tiles or other bodies during the engine's last step.</summary>
     public Contacts Contacts { get; private set; }
@@ -85,7 +88,7 @@ public sealed class Body
     public void SetMotion(Vector2 position, Vector2 velocity)
     {
         Position = position;
-        Velocity = velocity;
+        EngineVelocity = velocity;
     }
 
     /// <summary>For the owning node: copies in what the body touched during the engine's last step.</summary>

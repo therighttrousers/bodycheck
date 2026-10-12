@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace BodyCheck.Core;
 
 /// <summary>
@@ -47,4 +49,29 @@ public static class TestRooms
         .. Enumerable.Repeat("#" + new string('.', 38) + "#", 6),
         new string('#', 40),
     ]));
+
+    /// <summary>
+    /// A room with only a player in it, surrounded on all sides by walls.
+    /// The default player position (1, 1) is the bottom-left corner.
+    /// </summary>
+    public static Room EmptyFrame(int width, int height, int playerX = 1, int playerY = 1)
+    {
+        Debug.Assert(width >= 3);
+        Debug.Assert(height >= 3);
+        Debug.Assert(playerX >= 1 && playerX < width - 1);
+        Debug.Assert(playerY >= 1 && playerY < height - 1);
+
+        string[] rows =
+        [
+            new string('#', width),
+            .. Enumerable.Repeat("#" + new string('.', width - 2) + "#", height - 2).ToArray(),
+            new string('#', width),
+        ];
+
+        // Rows are listed top first, and playerY counts up from the bottom.
+        int row = height - 1 - playerY;
+        rows[row] = rows[row][0..playerX] + "P" + rows[row][(playerX + 1)..width];
+
+        return new Room("Empty frame", string.Join('\n', rows));
+    }
 }

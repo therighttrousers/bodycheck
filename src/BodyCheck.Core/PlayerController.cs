@@ -135,7 +135,7 @@ public sealed class PlayerController
             _groundTicksLeft = 0;
             _thrustTicksLeft = Tuning.JumpThrustTicks + 1;
 
-            // The impulse doesn't show in the body's velocity until the engine's step, so thrust waits a tick.
+            // Thrust starts on the next tick.
             return;
         }
 

@@ -22,7 +22,7 @@ public partial class RoomNode : Node3D
     private readonly List<ICharacterController> _characters = [];
 
     /// <param name="mergeTiles">Whether to merge tiles into larger colliders, or give each tile its own.</param>
-    public RoomNode(Room room, bool mergeTiles = true)
+    public RoomNode(Room room, bool mergeTiles = true, PlayerController? playerController = null)
     {
         Room = room;
         Tiles = room.CreateTiles();
@@ -39,7 +39,7 @@ public partial class RoomNode : Node3D
             Position = new Vector3(Tiles.Width / 2f, Tiles.Height / 2f, -0.6f),
         });
 
-        PlayerController = new PlayerController(new PlayerTuning());
+        PlayerController = playerController ?? new PlayerController(new PlayerTuning());
         Player = AddBody(PlayerController.Body, room.PlayerStart, PlayerColor, glows: true);
 
         var robotTuning = new RobotTuning();

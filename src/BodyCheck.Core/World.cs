@@ -28,8 +28,8 @@ public sealed class World
         // velocity doesn't change until its step, so a working copy is kept.
         foreach (Body body in Bodies)
         {
-            body.AddForce(-body.Drag * body.Velocity);
-            body.StepVelocity = body.Velocity + body.TakePendingImpulse(dt) / body.Mass;
+            body.AddForce(-body.Drag * body.EngineVelocity);
+            body.StepVelocity = body.EngineVelocity + body.TakePendingImpulse(dt) / body.Mass;
         }
 
         // Traction comes after every other force is in the velocities, so that it can cancel them exactly.
@@ -37,7 +37,7 @@ public sealed class World
 
         foreach (Body body in Bodies)
         {
-            body.SetEngineImpulse(body.Mass * (body.StepVelocity - body.Velocity));
+            body.SetEngineImpulse(body.Mass * (body.StepVelocity - body.EngineVelocity));
         }
     }
 
