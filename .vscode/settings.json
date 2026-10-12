@@ -3,6 +3,8 @@
         "Godot": true,
     },
 
+    "godotTools.editorPath.godot4": ".\\Godot\\Godot.exe",
+
     "editor.formatOnSave": true,
     "rewrap.wrappingColumn": 120,
 
