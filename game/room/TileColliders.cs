@@ -12,6 +12,10 @@ namespace BodyCheck;
 /// </summary>
 public static class TileColliders
 {
+    // Walkers have no engine friction, and the smaller of two coefficients wins, so this only affects
+    // bodies that have some.
+    private const float Friction = 1;
+
     /// <summary>
     /// Returns a static body with a box collider for each box of tiles. Each collider is drawn, so the
     /// layout is visible.
@@ -19,7 +23,7 @@ public static class TileColliders
     /// <param name="merge">Whether to merge tiles into larger boxes, or give each tile its own.</param>
     public static StaticBody3D Build(TileGrid tiles, bool merge = true)
     {
-        var body = new StaticBody3D { PhysicsMaterialOverride = new PhysicsMaterial { Friction = 0, Bounce = 0 } };
+        var body = new StaticBody3D { PhysicsMaterialOverride = new PhysicsMaterial { Friction = Friction, Bounce = 0 } };
         var material = new StandardMaterial3D { AlbedoColor = new Color(0.35f, 0.38f, 0.45f) };
         foreach (Rect2I box in TileBoxes(tiles, merge))
         {

@@ -6,8 +6,8 @@ namespace BodyCheck;
 
 /// <summary>
 /// The engine's side of a <see cref="Core.Body"/>: a box that can only move in the XY plane and can't
-/// rotate. The engine moves it and resolves its contacts. Friction, bounce and damping are off in the
-/// engine: grip and drag are the rules' own, worked out by <see cref="World.Step"/>.
+/// rotate. The engine moves it and resolves its contacts. Bounce and damping are off in the engine, and so
+/// is friction for a walker: drag and a walker's grip are the rules' own, worked out by <see cref="World.Step"/>.
 /// <para>
 /// Each tick, <see cref="RoomNode"/> calls <see cref="PullMotion"/> before the controllers run and
 /// <see cref="PushImpulse"/> after the world has stepped.
@@ -31,13 +31,16 @@ public partial class BodyNode : RigidBody3D
         AxisLockAngularY = true;
         AxisLockAngularZ = true;
 
-        PhysicsMaterialOverride = new PhysicsMaterial { Friction = 0, Bounce = 0 };
+        // Never rough: where two bodies touch, the smaller friction has to win, so that a walker's zero does.
+        PhysicsMaterialOverride = new PhysicsMaterial { Friction = body.EngineFriction, Bounce = 0, Rough = false };
         LinearDampMode = DampMode.Replace;
         LinearDamp = 0;
         CanSleep = false;
         ContactMonitor = true;
         MaxContactsReported = 8;
-        ContinuousCd = true;
+
+        // Continuous detection keeps a walker's contacts exact, which its movement depends on.
+        ContinuousCd = body.IsWalker;
 
         var size = new Vector3(2 * body.HalfSize.X, 2 * body.HalfSize.Y, Depth);
         AddChild(new CollisionShape3D { Shape = new BoxShape3D { Size = size } });

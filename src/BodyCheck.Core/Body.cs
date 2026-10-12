@@ -47,6 +47,20 @@ public sealed class Body
     public float Drag { get; set; }
 
     /// <summary>
+    /// The engine's coefficient of friction for this body. Leave it at 0 for anything that walks: a walker
+    /// grips through <see cref="Traction"/>, and with engine friction it would grip walls too, and lose its
+    /// speed on landing. Other bodies, which have no traction, need it to rest on things and be carried.
+    /// <para>
+    /// Where two bodies touch, the engine uses the smaller of their coefficients, so a walker slides
+    /// freely against everything.
+    /// </para>
+    /// </summary>
+    public float EngineFriction { get; init; }
+
+    /// <summary>Whether this body grips through traction rather than through the engine's friction.</summary>
+    public bool IsWalker => EngineFriction == 0;
+
+    /// <summary>
     /// The grip this body applies while it stands on something. <see cref="World.Step"/> turns it into
     /// equal and opposite impulses on this body and its <see cref="Support"/>. It has no effect in the air.
     /// </summary>

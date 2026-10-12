@@ -14,7 +14,7 @@ Note: As we develop, we will create test rooms and refer to them here; e.g. "pla
 - Air drive is weaker than ground drive.
 - Drive in reverse is faster than drive forward (mostly for precision landings).
 - Moving off an edge (not jumping) maintains ground control for a short time; i.e. coyote frames.
-- Moving over a 1-tile gap at top speed consistently skips over it or falls in it.
+- Moving over a 1-tile gap at top speed consistently skips over it.
 - Jumping up through a 1-tile gap doesn't require perfect alignment.
 
 # Physics engine
@@ -24,8 +24,8 @@ Rationale: decision record `001`.
 - Bodies are simulated by Godot's 3D physics engine, Jolt. Each is a `RigidBody3D` with a box shape, with movement along Z and all rotation locked.
 - The player is not a `CharacterBody3D`: that kind of body has no mass and can't be pushed (`001 §1.1`).
 - Walking entities have engine friction 0 and continuous collision detection, and get their grip from traction, below. With engine friction they grip walls and lose their speed on landing (`001 §2.1`).
-- Other bodies, such as rocks to push or stacks to topple, use engine friction and ordinary collision detection. A hovering platform is one of these, so that what rests on it is carried.
-- No body is ever `Rough`, so that a walker's zero friction wins on every contact it has (`001 §1.4`).
+- Other bodies use engine friction and ordinary collision detection: blocks, which have no controller and are only pushed, carried and stood on, and hovering platforms, so that what rests on them is carried. A body is a walker exactly when its engine friction is 0.
+- No body is ever `Rough`, so that a walker's zero friction wins on every contact it has (`001 §1.4`). Tiles have friction 1, which therefore affects only bodies that have friction of their own.
 - Bounce is 0 on everything. Drag is our own force, not the engine's damping.
 - All solid tiles are shapes of one static body, merged along rows into larger boxes, so that a floor seam can't catch a sliding body (`001 §1.2`).
 - Four project settings make contacts exact and corners sharp (`001 §1.3`): collision margin fraction 0.005, penetration slop 0, continuous collision detection's maximum penetration 0, and 60 physics ticks per second.
@@ -54,9 +54,9 @@ TODO
 
 - Landing on a ledge after a short fall is unreliable. With an overhang of 0.16 tiles or less and a fall of under about 3 tiles, the player sinks past the corner in most cases and is eased out sideways. Longer falls always land. Not yet tried: more physics ticks per second; a cap on falling speed; our own downward sweep before the step (`001 §1.3`).
 - The player can land on a seam partway down a vertical wall. Boxes can't avoid this. Candidate fix: one concave mesh made of the exposed tile faces (`001 §1.2`).
-- Bodies with engine friction are untried: a rock on a platform, a rock pushed by a walker, a walker standing on a rock.
+- When two moving bodies meet, they overlap for a tick or two: by up to 0.15 tiles when the player runs into a robot at top speed. The engine tests collisions between moving bodies once per tick, and its continuous detection doesn't start until a body moves about 18 tiles per second. Is that acceptable, given the principle that player and NPCs can't occupy the same space? Bodies at rest against each other don't overlap.
+- A block on a platform slides each time a wall stops the platform dead. It stays on over 30 seconds of patrolling, but nothing guarantees that for other speeds and sizes.
 - Body stability and simulation time under the current settings are to be watched over longer testing.
-- By hand, the player no longer falls into a one-tile gap at top speed. To be confirmed by a test.
-- Pushing from the side, in either direction, is not measured yet. By hand, a robot can push the player.
+- A robot that walks into an idle player turns round without moving it, because the player's braking grip is far stronger than the robot's drive. By hand, a robot can push the player in other situations, which no test covers yet.
 - Sprinting on a patrolling robot stalls it within a couple of ticks, because the robot's drive is far weaker than the player's. Should a robot hold its patrol speed more firmly when something pushes on it?
 - Traction limits come from each character's tuning, not from the load on the contact, so a robot carrying the player grips the floor no harder than one carrying nothing. Is that worth changing?

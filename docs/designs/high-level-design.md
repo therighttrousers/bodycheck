@@ -124,6 +124,5 @@ Tech:
 - Low-resolution rendering is untried. First to try: render at twice the target size (e.g. 640x480), average 2x2 blocks down to the target (e.g. 320x240), quantize to a fixed palette or a fixed number of bits per color channel, then upscale with nearest-neighbour. Hardware anti-aliasing may be a better way to get the first two steps.
 - Phantom Camera is unverified for this project: use from C#, and camera limits in 3D. Its limit, lookahead and newer framed-follow features are described for its 2D camera only.
 - Can the Godot editor attach a script to a scene only when the script is in the Godot project itself? Believed so, which is why node classes stay in `game/`.
-- Two collision goals lost their tests with the old simulation, and are to be rewritten as engine tests: colliding bodies share momentum without bouncing, and a body isn't pushed through a wall.
 - gdUnit4Net is used outside its stated support (.NET 8 and 9, Godot 4.4 to 4.5), and `gdUnit4.api` is a prerelease. To be revisited when it releases.
 - Would Godot's 3D physics, with gameplay locked to one plane, serve better than our own simulation? To be investigated later.

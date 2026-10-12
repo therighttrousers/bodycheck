@@ -9,6 +9,7 @@ namespace BodyCheck.Core;
 /// <item>'P' is where the player starts</item>
 /// <item>'R' is where a robot starts</item>
 /// <item>'H' is where a horizontal platform starts</item>
+/// <item>'B' is where a block starts</item>
 /// </list>
 /// </summary>
 public sealed class Room
@@ -22,6 +23,7 @@ public sealed class Room
 
         var robotStarts = new List<Vector2>();
         var platformStarts = new List<Vector2>();
+        var blockStarts = new List<Vector2>();
         Vector2? playerStart = null;
         for (int row = 0; row < _rows.Length; row++)
         {
@@ -40,6 +42,9 @@ public sealed class Room
                     case 'H':
                         platformStarts.Add(floorPoint);
                         break;
+                    case 'B':
+                        blockStarts.Add(floorPoint);
+                        break;
                 }
             }
         }
@@ -47,6 +52,7 @@ public sealed class Room
         PlayerStart = playerStart ?? throw new ArgumentException($"Room '{name}' has no player start.");
         RobotStarts = robotStarts;
         PlatformStarts = platformStarts;
+        BlockStarts = blockStarts;
     }
 
     public string Name { get; }
@@ -59,6 +65,9 @@ public sealed class Room
 
     /// <summary>Where each platform's base starts.</summary>
     public IReadOnlyList<Vector2> PlatformStarts { get; }
+
+    /// <summary>Where each block's base starts.</summary>
+    public IReadOnlyList<Vector2> BlockStarts { get; }
 
     /// <summary>Builds a fresh grid, so that one world's changes to its tiles don't reach another's.</summary>
     public TileGrid CreateTiles() => TileGrid.FromText(_rows);

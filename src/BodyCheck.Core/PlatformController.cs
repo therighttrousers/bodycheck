@@ -8,6 +8,9 @@ public sealed record PlatformTuning
     public float Mass { get; init; } = 5.0f;
     public float Drag { get; init; } = 0.5f;
 
+    /// <summary>The engine's coefficient of friction, which carries the things that rest on the platform.</summary>
+    public float EngineFriction { get; init; } = 1;
+
     /// <summary>Speed at which the horizontal drive force falls to zero.</summary>
     public float TopSpeed { get; init; } = 8;
 
@@ -33,7 +36,7 @@ public sealed class PlatformController : ICharacterController
     {
         _startHeight = startHeight;
         Tuning = tuning;
-        Body = new Body(Tuning.HalfSize, Tuning.Mass) { Drag = Tuning.Drag };
+        Body = new Body(Tuning.HalfSize, Tuning.Mass) { Drag = Tuning.Drag, EngineFriction = Tuning.EngineFriction };
     }
 
     public void Apply(World world, float dt)

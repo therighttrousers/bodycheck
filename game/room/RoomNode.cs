@@ -17,9 +17,11 @@ public partial class RoomNode : Node3D
     private static readonly Color PlayerColor = new(0.2f, 0.9f, 1.0f);
     private static readonly Color RobotColor = new(1.0f, 0.45f, 0.15f);
     private static readonly Color PlatformColor = new(0.9f, 0.1f, 0.7f);
+    private static readonly Color BlockColor = new(0.6f, 0.65f, 0.3f);
 
     private readonly List<BodyNode> _bodyNodes = [];
     private readonly List<ICharacterController> _characters = [];
+    private readonly List<BodyNode> _blocks = [];
 
     /// <param name="mergeTiles">Whether to merge tiles into larger colliders, or give each tile its own.</param>
     public RoomNode(Room room, bool mergeTiles = true, PlayerController? playerController = null)
@@ -57,6 +59,12 @@ public partial class RoomNode : Node3D
             _characters.Add(platform);
             AddBody(platform.Body, start, PlatformColor, glows: false);
         }
+
+        var blockTuning = new BlockTuning();
+        foreach (Vector2 start in room.BlockStarts)
+        {
+            _blocks.Add(AddBody(blockTuning.CreateBody(), start, BlockColor, glows: false));
+        }
     }
 
     public Room Room { get; }
@@ -68,6 +76,9 @@ public partial class RoomNode : Node3D
 
     /// <summary>The robots' and platforms' controllers, robots first.</summary>
     public IReadOnlyList<ICharacterController> Characters => _characters;
+
+    /// <summary>The blocks' nodes. A block has no controller: it is only pushed, carried and stood on.</summary>
+    public IReadOnlyList<BodyNode> Blocks => _blocks;
 
     /// <summary>The node of every body in the room, in the order of <see cref="World.Bodies"/>.</summary>
     public IReadOnlyList<BodyNode> BodyNodes => _bodyNodes;
