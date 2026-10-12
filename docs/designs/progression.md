@@ -36,9 +36,9 @@ Run and jump. See [movement.md](movement.md).
 - The player teleports to the other side of an object.
 - The player's momentum is replaced: fixed magnitude, in one of eight directions chosen by player input.
 - The player's position is replaced: a fixed distance from the object's center, in the direction of the new momentum.
-- A movable object, such as an enemy, is thrown backwards, opposite to the player's exit direction. Lighter objects are thrown farther.
-- Traversal: phase through objects and enemies to go faster and reach high places.
-- Combat: throw an enemy into the air, into spikes or into a pit. For example, jump near a spike pit and phase diagonally down through an enemy to lob it up and into the pit.
+- A movable object is thrown backwards, opposite to the player's exit direction. Lighter objects are thrown farther.
+- Traversal: phase through objects and NPCs to go faster and reach high places.
+- Combat: throw an NPC into the air, into spikes or into a pit. For example, jump near a spike pit and phase diagonally down through an NPC to lob it up and into the pit.
 
 ## World change: activate laser turrets
 
@@ -48,9 +48,9 @@ Run and jump. See [movement.md](movement.md).
 
 ## Ability: boost
 
-- The player briefly speeds up and bounces off an object or enemy, doing damage.
+- The player briefly speeds up and bounces off an object or NPC, doing damage.
 - Knockback works like a collision between billiard balls, with some of the energy lost to damage.
-- Traversal: break breakable tiles, and bounce off objects and enemies to reach high places.
+- Traversal: break breakable tiles, and bounce off objects and NPCs to reach high places.
 - Combat: the player does kinetic damage.
 - Boost is NOT limited by a refresh, such as "one boost in the air, refreshed on landing".
 
@@ -85,12 +85,12 @@ Phase:
 - What happens when the teleport destination is blocked?
 - Phasing straight down through a grounded target puts the player on the floor and sends the target up. What is that good for? Idea: a short fall stuns the target.
 - Should a phase launch the player faster off heavy or immovable targets? That would make turrets give bigger launches in general, and make phasing upward off a robot stronger than phasing sideways.
-- Should dead enemies remain as objects that can be phased through and boosted off?
+- Should dead NPCs remain as objects that can be phased through and boosted off?
 
 Boost:
 - How is boost kept from becoming flight? Option: a long enough cooldown. Option: boost must always be against a designated object.
 - Does boost double as swimming? It could, if water is like air with higher resistance and some buoyancy. This is the current leaning.
-- Should boosting into spiky enemies be safe through invulnerability frames? Options: always, never, or as a later upgrade.
+- Should boosting into spiky NPCs be safe through invulnerability frames? Options: always, never, or as a later upgrade.
 
 Lasers and water:
 - Can robot lasers be designed to add traversal options naturally, beyond breaking blocks and activating switches?
