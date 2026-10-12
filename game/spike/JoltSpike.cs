@@ -49,7 +49,7 @@ public partial class JoltSpike : Node3D
         """);
 
     /// <summary>A long floor with the player above a robot, which has room to patrol one way for a long time.</summary>
-    private static readonly Room RobotRidingRoom = new("Robot riding", string.Join('\n',
+    public static readonly Room RobotRidingRoom = new("Robot riding", string.Join('\n',
     [
         .. Enumerable.Repeat(new string('.', 400), 8),
         new string('.', 20) + "P" + new string('.', 379),
@@ -59,7 +59,7 @@ public partial class JoltSpike : Node3D
     ]));
 
     /// <summary>A hovering platform between two walls, with the player about 3 tiles above it.</summary>
-    private static readonly Room PlatformRidingRoom = new("Platform riding", string.Join('\n',
+    public static readonly Room PlatformRidingRoom = new("Platform riding", string.Join('\n',
     [
         .. Enumerable.Repeat("#" + new string('.', 38) + "#", 3),
         "#" + new string('.', 19) + "P" + new string('.', 18) + "#",
@@ -86,6 +86,14 @@ public partial class JoltSpike : Node3D
 
     private readonly List<IJoltCharacterController> _controllers = [];
 
+    public IReadOnlyList<IJoltCharacterController> Controllers => _controllers;
+
+    /// <summary>For tests: the room to load, instead of the one named on the command line.</summary>
+    public Room? RoomOverride { get; init; }
+
+    /// <summary>For tests: supplies the player's input each tick, instead of the keyboard and gamepad.</summary>
+    public System.Func<JoltPlayerInput>? InputOverride { get; init; }
+
     public override void _Ready()
     {
         ReadArguments();
@@ -105,6 +113,7 @@ public partial class JoltSpike : Node3D
         {
             _room = PlatformRidingRoom;
         }
+        _room = RoomOverride ?? _room;
         _tiles = _room.CreateTiles();
         GetWindow().Title = $"Body Check, Jolt spike: {_room.Name}";
 
@@ -206,6 +215,7 @@ public partial class JoltSpike : Node3D
         }
 
         JoltPlayerInput input = _playerProbe?.Tick() ?? _cornerProbe?.Tick() ?? _ridingProbe?.Tick()
+            ?? InputOverride?.Invoke()
             ?? new JoltPlayerInput(Input.GetAxis("move_left", "move_right"), Input.IsActionPressed("jump"));
         _playerController.Apply(input, (float)delta);
 
@@ -388,6 +398,11 @@ public partial class JoltSpike : Node3D
 
     private static void AddAction(string name, params InputEvent[] events)
     {
+        // Tests load this scene more than once in one run.
+        if (InputMap.HasAction(name))
+        {
+            return;
+        }
         InputMap.AddAction(name, deadzone: 0.2f);
         foreach (InputEvent e in events)
         {

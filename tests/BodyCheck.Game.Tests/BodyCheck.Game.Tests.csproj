@@ -1,0 +1,46 @@
+<Project Sdk="Godot.NET.Sdk/4.7.2">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <RunSettingsFilePath>$(MSBuildThisFileDirectory)..\..\.runsettings</RunSettingsFilePath>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <TreatWarningsAsErrors Condition="'$(CI)' == 'true'">true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
+    <PackageReference Include="gdUnit4.api" Version="5.1.0-rc5" />
+    <PackageReference Include="gdUnit4.test.adapter" Version="3.1.1" />
+    <PackageReference Include="gdUnit4.analyzers" Version="1.0.0">
+      <PrivateAssets>none</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\game\BodyCheck.csproj" />
+  </ItemGroup>
+
+  <!--
+    gdUnit4Net starts Godot in this directory, so it has to be a Godot project. Its project.godot is a copy of
+    the game's with the assembly name changed, so that tests run under the game's settings (physics above all).
+    The game's own scenes and assets are not reachable by res:// paths from here.
+  -->
+  <Target Name="CopyGameProjectSettings" BeforeTargets="BeforeBuild">
+    <PropertyGroup>
+      <GameProjectSettings>$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)..\..\game\project.godot'))</GameProjectSettings>
+      <GameProjectSettings>$(GameProjectSettings.Replace('project/assembly_name="BodyCheck"', 'project/assembly_name="BodyCheck.Game.Tests"'))</GameProjectSettings>
+      <GameProjectSettings>$(GameProjectSettings.Replace('project/solution_directory=".."', 'project/solution_directory="../.."'))</GameProjectSettings>
+      <GameProjectSettings>$(GameProjectSettings.Replace(';', '%3B'))</GameProjectSettings>
+    </PropertyGroup>
+    <WriteLinesToFile File="$(MSBuildThisFileDirectory)project.godot" Lines="$(GameProjectSettings)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+  </Target>
+
+</Project>

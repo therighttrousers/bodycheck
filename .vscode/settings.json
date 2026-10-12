@@ -12,6 +12,12 @@
         "editor.defaultFormatter": "ms-dotnettools.csharp"
     },
 
+    "explorer.fileNesting.enabled": true,
+    "explorer.fileNesting.expand": false,
+    "explorer.fileNesting.patterns": {
+        "*.cs": "${basename}.cs.uid",
+    },
+
     "json.format.keepLines": true,
     "[json]": {
         "editor.defaultFormatter": "vscode.json-language-features"

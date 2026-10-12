@@ -11,8 +11,8 @@ config_version=5
 [application]
 
 config/name="Body Check"
-config/features=PackedStringArray("4.7", "C#", "Forward Plus")
 run/main_scene="res://main/Main.tscn"
+config/features=PackedStringArray("4.7", "C#", "Forward Plus")
 run/max_fps=60
 
 [dotnet]
@@ -20,12 +20,15 @@ run/max_fps=60
 project/assembly_name="BodyCheck"
 project/solution_directory=".."
 
+[editor_overrides]
+
+text_editor/behavior/indent/type=1
+
 [physics]
 
-3d/physics_engine="Jolt Physics"
 common/physics_jitter_fix=0
-common/physics_ticks_per_second=60
-common/physics_interpolation=true
-jolt_physics_3d/collisions/collision_margin_fraction=0.005
+3d/physics_engine="Jolt Physics"
 jolt_physics_3d/simulation/penetration_slop=0.0
 jolt_physics_3d/simulation/continuous_cd_max_penetration=0.0
+jolt_physics_3d/collisions/collision_margin_fraction=0.005
+common/physics_interpolation=true
