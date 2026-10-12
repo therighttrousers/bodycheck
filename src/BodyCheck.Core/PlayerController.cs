@@ -1,4 +1,4 @@
-using System.Numerics;
+using Godot;
 
 namespace BodyCheck.Core;
 
@@ -35,7 +35,7 @@ public sealed record PlayerTuning
     /// <summary>
     /// Number of frames the jump thrust lasts while the button is held. Includes the frame with the initial jump impulse.
     /// </summary>
-    public int JumpThrustTicks { get; init; } = 12;
+    public int JumpThrustTicks { get; init; } = 13;
 
     /// <summary>Jump thrust as a fraction of the player's weight. At 1 it cancels gravity.</summary>
     public float JumpThrustFrac { get; init; } = 0.9f;
@@ -57,20 +57,13 @@ public sealed class PlayerController
 
     private bool _jumpWasHeld;
     private int _groundTicksLeft;
-    private Vector2 _lastGroundVelocity = new();
+    private Vector2 _lastGroundVelocity = Vector2.Zero;
     private int _thrustTicksLeft;
 
-    public PlayerController(Vector2 position, PlayerTuning tuning)
+    public PlayerController(PlayerTuning tuning)
     {
         Tuning = tuning;
-        Body = new Body(position, Tuning.HalfSize, Tuning.Mass) { Drag = Tuning.Drag };
-    }
-
-    public void Teleport(Vector2 position, Vector2 velocity)
-    {
-        Body.Teleport(position, velocity);
-        _groundTicksLeft = 0;
-        _thrustTicksLeft = 0;
+        Body = new Body(Tuning.HalfSize, Tuning.Mass) { Drag = Tuning.Drag };
     }
 
     public void Apply(PlayerInput input, World world, float dt)
@@ -81,7 +74,7 @@ public sealed class PlayerController
             _lastGroundVelocity = Body.Velocity;
         }
 
-        float weight = Body.Mass * -world.Gravity.Y;
+        float weight = Body.Mass * world.Gravity;
         ApplyRun(Math.Clamp(input.Move, -1, 1), weight);
         ApplyJump(input.JumpHeld, weight);
 
@@ -102,11 +95,11 @@ public sealed class PlayerController
             // The drive fades out as the body nears top speed in the input direction.
             // It never slows a body that is already faster than that.
             float headroom = Math.Clamp(1 - speed * MathF.Sign(move) / Tuning.TopSpeed, 0, 1);
-            float force =
+            float driveForce =
                 _groundTicksLeft > 0
                     ? (reverse ? Tuning.GroundReverseDriveForce : Tuning.GroundForwardDriveForce)
                     : (reverse ? Tuning.AirReverseDriveForce : Tuning.AirForwardDriveForce);
-            drive = MathF.Abs(move) * force * headroom;
+            drive = MathF.Abs(move) * driveForce * headroom;
         }
 
         if (Body.OnGround)
@@ -120,7 +113,7 @@ public sealed class PlayerController
         else
         {
             Body.Traction = default;
-            Body.ApplyForce(new Vector2(MathF.Sign(move) * drive, 0));
+            Body.AddForce(new Vector2(MathF.Sign(move) * drive, 0));
         }
     }
 
@@ -137,10 +130,13 @@ public sealed class PlayerController
             // allow coyote jumps to go just as high as jumps from the ground.
             var coyoteVelocityY = Body.Velocity.Y - _lastGroundVelocity.Y;
             var impulse = new Vector2(0, Body.Mass * (Tuning.JumpSpeed - coyoteVelocityY));
-            Body.ApplyImpulse(impulse);
-            Body.Support?.ApplyImpulse(-impulse);
+            Body.AddImpulse(impulse);
+            Body.Support?.AddImpulse(-impulse);
             _groundTicksLeft = 0;
-            _thrustTicksLeft = Tuning.JumpThrustTicks;
+            _thrustTicksLeft = Tuning.JumpThrustTicks + 1;
+
+            // The impulse doesn't show in the body's velocity until the engine's step, so thrust waits a tick.
+            return;
         }
 
         // If stopped rising (e.g. hit a ceiling), cancel thrust.
@@ -152,8 +148,8 @@ public sealed class PlayerController
         if (_thrustTicksLeft > 0)
         {
             var force = new Vector2(0, Tuning.JumpThrustFrac * weight);
-            Body.ApplyForce(force);
-            Body.Support?.ApplyForce(-force);
+            Body.AddForce(force);
+            Body.Support?.AddForce(-force);
         }
     }
 }

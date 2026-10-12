@@ -1,20 +1,22 @@
+using BodyCheck.Core;
+
 using Godot;
 
-namespace BodyCheck.Spike;
+namespace BodyCheck.Probes;
 
 /// <summary>
 /// Measures the riding criteria of decision record 000 §2.2 and the platform numbers of §2.4: the player
 /// is dropped onto a carrier (a patrolling robot, or a hovering platform), stands idle on it for 30
 /// seconds, then taps jump.
 /// </summary>
-public sealed class RidingProbe
+public sealed class RidingProbe : IProbe
 {
     private const int SettleTicks = 600;
     private const int RideTicks = 1800;
     private const int JumpTicks = 120;
 
-    private readonly JoltBody _rider;
-    private readonly JoltBody _carrier;
+    private readonly BodyNode _rider;
+    private readonly BodyNode _carrier;
     private readonly float _carrierStartY;
     private int _tick;
 
@@ -28,7 +30,7 @@ public sealed class RidingProbe
     private float _jumpStartY;
     private float _apex;
 
-    public RidingProbe(JoltBody rider, JoltBody carrier)
+    public RidingProbe(BodyNode rider, BodyNode carrier)
     {
         _rider = rider;
         _carrier = carrier;
@@ -37,12 +39,16 @@ public sealed class RidingProbe
 
     public bool Done => _tick > SettleTicks + RideTicks + JumpTicks;
 
-    /// <summary>Call once per physics tick, before the controllers. Returns the input for this tick.</summary>
-    public JoltPlayerInput Tick()
+    public PlayerInput Input { get; private set; }
+
+    public void Tick(float dt) => Input = NextInput();
+
+    /// <summary>Called once per physics tick, before the controllers. Returns the input for this tick.</summary>
+    private PlayerInput NextInput()
     {
         int t = _tick++;
         float offset = _rider.Position.X - _carrier.Position.X;
-        float overlap = _carrier.Position.Y + _carrier.HalfSize.Y - (_rider.Position.Y - _rider.HalfSize.Y);
+        float overlap = _carrier.Position.Y + _carrier.Body.HalfSize.Y - (_rider.Position.Y - _rider.Body.HalfSize.Y);
 
         if (t < SettleTicks)
         {
@@ -70,7 +76,7 @@ public sealed class RidingProbe
         {
             _largestOverlap = Mathf.Max(_largestOverlap, overlap);
             _largestOffsetChange = Mathf.Max(_largestOffsetChange, Mathf.Abs(offset - _offsetAtStart));
-            if (_rider.Support != _carrier)
+            if (_rider.Body.Support != _carrier.Body)
             {
                 _ticksOffCarrier++;
             }
@@ -85,7 +91,7 @@ public sealed class RidingProbe
             _jumpStartY = _rider.Position.Y;
             _apex = _jumpStartY;
             GD.Print($"  before the jump: carrier vx {_carrier.LinearVelocity.X:F3}, rider vx {_rider.LinearVelocity.X:F3}");
-            return new JoltPlayerInput(0, true);
+            return new PlayerInput(0, true);
         }
 
         if (t == SettleTicks + RideTicks + 2)

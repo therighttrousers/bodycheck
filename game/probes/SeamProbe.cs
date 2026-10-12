@@ -1,17 +1,19 @@
+using BodyCheck.Core;
+
 using Godot;
 
-namespace BodyCheck.Spike;
+namespace BodyCheck.Probes;
 
 /// <summary>
 /// Slides a resting body along a flat floor and reports whether tile seams disturb it. With no friction,
 /// drag is the only thing that should slow it, and nothing should move it vertically.
 /// </summary>
-public sealed class SeamProbe
+public sealed class SeamProbe : IProbe
 {
     private const int SettleTicks = 30;
     private const int SlideTicks = 180;
 
-    private readonly JoltBody _body;
+    private readonly BodyNode _body;
     private readonly float _speed;
 
     private int _tick;
@@ -23,14 +25,18 @@ public sealed class SeamProbe
     private float _maxSpeedLoss;
     private int _ticksOffGround;
 
-    public SeamProbe(JoltBody body, float speed)
+    public SeamProbe(BodyNode body, float speed)
     {
         _body = body;
         _speed = speed;
     }
 
     /// <summary>Call once per physics tick. Returns true when the probe has finished and printed its result.</summary>
-    public bool Tick(float dt)
+    public bool Done { get; private set; }
+
+    public void Tick(float dt) => Done = Advance(dt);
+
+    private bool Advance(float dt)
     {
         _tick++;
         if (_tick < SettleTicks)
@@ -43,19 +49,19 @@ public sealed class SeamProbe
             _restY = _body.Position.Y;
             _startX = _body.Position.X;
             _expectedSpeed = _speed;
-            _body.AddImpulse(new Vector3(_body.Mass * _speed, 0, 0));
-            GD.Print($"  at rest: y = {_restY:F4} (box bottom {_restY - _body.HalfSize.Y:F4}), contacts {_body.Contacts}");
+            _body.Body.AddImpulse(new Vector2(_body.Mass * _speed, 0));
+            GD.Print($"  at rest: y = {_restY:F4} (box bottom {_restY - _body.Body.HalfSize.Y:F4}), contacts {_body.Body.Contacts}");
             return false;
         }
 
         // What drag alone leaves of last tick's speed.
-        _expectedSpeed *= 1 - _body.Drag / _body.Mass * dt;
+        _expectedSpeed *= 1 - _body.Body.Drag / _body.Mass * dt;
         Vector3 velocity = _body.LinearVelocity;
         _maxSpeedLoss = Mathf.Max(_maxSpeedLoss, _expectedSpeed - velocity.X);
         _expectedSpeed = velocity.X;
         _maxRise = Mathf.Max(_maxRise, Mathf.Abs(_body.Position.Y - _restY));
         _maxVerticalSpeed = Mathf.Max(_maxVerticalSpeed, Mathf.Abs(velocity.Y));
-        if (!_body.OnGround)
+        if (!_body.Body.OnGround)
         {
             _ticksOffGround++;
         }

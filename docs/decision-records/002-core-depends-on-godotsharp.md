@@ -14,11 +14,12 @@ Constraint: GodotSharp's types are of two kinds. Value types such as `Vector3` w
   - Option A: move them to `game/`. Core keeps only what needs no engine: rooms, the tile grid, tuning records, the LDtk loader.
   - Option B (Neil): Core depends on GodotSharp and keeps the controllers.
   - Rationale: Core stays the home of the game's rules, and uses one set of vector types, with no conversion at the boundary.
-- [x] 1.2 How do controllers in Core reach a body, when nodes don't work outside the engine? Decision: through a body interface in Core, which the game's body node implements.
+- [x] 1.2 How do controllers in Core reach a body, when nodes don't work outside the engine? Decision: through a body type in Core that the game's body node feeds. First decided as an interface that the node implements; built as a class that the node owns, for the reasons at the end of this item.
   - The interface offers what the controllers use now: velocity, contacts, support, traction, and adding a force or an impulse.
   - It has no way to apply a force straight to the engine, so a controller can't bypass traction. That mistake was made twice in the spike (`001 §2.1`).
   - The traction stage is arithmetic over bodies' velocities and needs no engine, so it moves to Core too, and gets plain unit tests with fake bodies.
   - Tests of what a controller achieves (jump height, riding) need real contacts, and stay in `BodyCheck.Game.Tests`.
+  - As built (Claude, 2026-10-12): `Body` is a plain class in Core. The game's `BodyNode` owns one, copies the engine's position, velocity and contacts into it each tick, and gives the engine the impulse that `World.Step` works out. Reasons for a class over an interface: the step needs members that controllers shouldn't see, which an interface would have to expose or split in two; and a unit test can use a real `Body` instead of a fake one.
 - [x] 1.3 Where do node classes live? Decision: in `game/`. To be checked: Claude's belief that the editor can attach a script to a scene only when the script is in the Godot project itself.
 
 ## 2. How Core gets GodotSharp
@@ -32,4 +33,7 @@ Constraint: GodotSharp's types are of two kinds. Value types such as `Vector3` w
 
 ## 3. Order of work
 
-- [ ] 3.1 Core's old simulation uses the names `Body`, `World` and `Traction`, which the new code wants. Options: delete the old simulation first, which leaves the main scene broken until the new one replaces it; or build the new code under other names and rename at the end.
+- [x] 3.1 Core's old simulation uses the names `Body`, `World` and `Traction`, which the new code wants. Decision (Neil): delete the old simulation first. Nobody else is working on the project, so nothing is interrupted. Options: delete the old simulation first, which leaves the main scene broken until the new one replaces it; or build the new code under other names and rename at the end.
+- [x] 3.2 Vectors in Core are Godot's `Vector2`, not `Vector3`: the rules work in the XY plane, and a controller then can't push a body along Z. `BodyNode` converts. (Claude, as built; the spike's controllers used `Vector3`.)
+
+Closed on 2026-10-12. Outcomes are in [high-level-design.md](../designs/high-level-design.md).

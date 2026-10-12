@@ -1,29 +1,31 @@
 using System;
 using System.Threading.Tasks;
 
+using BodyCheck.Core;
+
 using GdUnit4;
 
 using Godot;
 
 using static GdUnit4.Assertions;
 
-namespace BodyCheck.Spike.Tests;
+namespace BodyCheck.Game.Tests;
 
 /// <summary>
-/// The player riding a patrolling robot, as Core's RidingTests has it, but simulated by the engine.
+/// The player riding a patrolling robot.
 /// </summary>
 [TestSuite]
 [RequireGodotRuntime]
 public class RidingTest
 {
-    private static readonly JoltPlayerInput Idle = new(0, false);
-    private static readonly JoltPlayerInput Jump = new(0, true);
+    private static readonly PlayerInput Idle = new(0, false);
+    private static readonly PlayerInput Jump = new(0, true);
 
-    private JoltSpike _scene = null!;
-    private JoltPlayerInput _input;
+    private RoomNode _room = null!;
+    private PlayerInput _input;
 
-    private JoltBody Player => _scene.Player;
-    private JoltBody Robot => _scene.Controllers[0].Body;
+    private Body Player => _room.PlayerController.Body;
+    private Body Robot => _room.Characters[0].Body;
 
     private static SceneTree Tree => (SceneTree)Engine.GetMainLoop();
 
@@ -31,15 +33,15 @@ public class RidingTest
     private async Task Start()
     {
         _input = Idle;
-        _scene = new JoltSpike { RoomOverride = JoltSpike.RobotRidingRoom, InputOverride = () => _input };
-        Tree.Root.AddChild(_scene);
+        _room = new RoomNode(TestRooms.RobotRiding) { PlayerInput = () => _input };
+        Tree.Root.AddChild(_room);
         await Tick(Idle, 120);
     }
 
     [AfterTest]
-    public void TearDown() => _scene.Free();
+    public void TearDown() => _room.Free();
 
-    private async Task Tick(JoltPlayerInput input, int ticks = 1)
+    private async Task Tick(PlayerInput input, int ticks = 1)
     {
         _input = input;
         for (int i = 0; i < ticks; i++)
@@ -84,12 +86,12 @@ public class RidingTest
     public async Task A_jump_from_a_robot_keeps_the_robots_speed()
     {
         await Start();
-        float robotSpeed = Robot.LinearVelocity.X;
+        float robotSpeed = Robot.Velocity.X;
 
         await Tick(Jump);
         await Tick(Idle, 2);
 
         AssertThat(robotSpeed).IsGreater(1f);
-        AssertThat(Player.LinearVelocity.X).IsEqualApprox(robotSpeed, 0.1f);
+        AssertThat(Player.Velocity.X).IsEqualApprox(robotSpeed, 0.1f);
     }
 }
