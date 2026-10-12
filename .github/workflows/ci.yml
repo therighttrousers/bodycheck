@@ -29,11 +29,13 @@ jobs:
       - name: Run dev setup
         run: .\dev-setup.ps1
 
+      # Debug, because gdUnit4Net rebuilds the game's test project in Debug before it starts Godot, without
+      # building what that project references.
       - name: Build
-        run: dotnet build --no-restore --configuration Release
+        run: dotnet build --no-restore --configuration Debug
 
       - name: Test
-        run: dotnet test --no-build --verbosity normal --configuration Release
+        run: dotnet test --no-build --verbosity normal --configuration Debug
 
       - name: Ensure no repo changes
         run: |

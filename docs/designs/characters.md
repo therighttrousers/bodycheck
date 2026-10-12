@@ -1,10 +1,10 @@
-# Enemies
+# Characters
 
-All enemies can be phased through.
+All NPCs can be phased through.
 
 ## Class: turret
 
-Larger and heavier than the player. If not benign, has a single glowing red eye.
+Larger and heavier than the player. If not benign, has red eyes.
 
 - Types: Benign, laser, rocket.
 - Movement: Immovable.
@@ -22,29 +22,29 @@ About the size and weight of the player. (The player might be one; TBD, depends 
 
 ## Class: rocket
 
-Fired by rocket enemies. Travel in a straight line. Inflict splash damage to enemies and player.
+Travel in a straight line. Inflict splash damage to all characters.
 
 ## Type: benign
 
-These enemies can only damage the player incidentally; e.g. by falling on the player (if we decide that does damage).
+These NPCs can only damage the player incidentally; e.g. by falling on the player (if we decide that does damage).
 
 ## Type: laser
 
-These enemies fire a powerful directed beam at the player, and possibly critters.
+These NPCs fire a powerful directed beam at the player, and possibly critters.
 
 Possible firing timeline:
-- 0 ms: Enemy stops moving (if applicable). A thin laser appears and follows the target. No damage yet.
+- 0 ms: NPC stops moving (if applicable). A thin laser appears and follows the target. No damage yet.
 - 500 ms: The laser thickens and stops following the target. No damage yet.
 - 750 ms: The laser greatly thickens, and does per-tick damage to anything it passes through.
 - 1000 ms: The laser disappears. Firing cooldown starts.
-- 2000 ms: Cooldown done. Enemy may fire again, resume regular patrol loop, etc.
+- 2000 ms: Cooldown done. NPC may fire again, resume regular patrol loop, etc.
 
-If the enemy loses targeting for a short time (100 ms?), they enter firing cooldown.
+If the NPC loses targeting for a short time (100 ms?), they enter firing cooldown.
 
 The timeline should be adjusted to allow the player to avoid taking damage by jumping, with a generous timing window.
 
 ## Type: rocket
 
-These enemies fire rockets at the player.
+These NPCs fire rockets at the player.
 
 Timeline and targeting rules TBD.

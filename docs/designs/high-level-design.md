@@ -9,11 +9,14 @@ Relevant decision records:
 
 The player is a maintenance robot whose job is to activate all of a facility's defenses. The world gets more dangerous as the player progresses, because the facilities and its characters regard the player as an enemy.
 
-## Story
+## World and story
 
-- The guardian robots are intelligent.
 - Themes are existential: purpose and agency.
-- Enemies are robots and turrets, and the critters that the defenses fire at.
+- Everything that moves is intelligent.
+- There are no *enemies* per se - just characters, many of which are dangerous.
+- NPCs: robots, turrets, heavy projectiles, platforms.
+- NPCs don't always control their actions.
+- Some NPCs are willing to converse.
 
 ## Art direction
 
@@ -39,15 +42,15 @@ The player is a maintenance robot whose job is to activate all of a facility's d
 
 ### No contact damage by default
 
-- Objects and enemies that do contact damage always show it, e.g. with red spikes.
-- Some do contact damage from one direction only, e.g. an enemy that must be hit with a boost from behind, or after a duck and slide.
+- Objects and NPCs that do contact damage always show it, e.g. with red spikes.
+- Some do contact damage from one direction only, e.g. an NPC that must be hit with a boost from behind, or after a duck and slide.
 
-### Player and enemies can't occupy the same space
+### Characters can't occupy the same space
 
-- Passing through any enemy requires using a special ability.
+- Passing through any NPC requires using a special ability.
 - Bodies collide without bouncing and share momentum, so each can push the other. Boost adds the bounce.
-- The player can stand on enemies, and is carried by them.
-- Enemies can stand on and be carried by the player.
+- The player can stand on NPCs and be carried by them.
+- NPCs can stand on and be carried by the player.
 
 ### Simple Newtonian movement and combat
 
@@ -55,8 +58,8 @@ The player is a maintenance robot whose job is to activate all of a facility's d
 - Momentum is properly tracked. A feel cheat is always a force or an impulse, never a direct edit to velocity.
   - Contact with immovable objects is an exception; e.g. ground tiles absorb momentum without moving.
 - A force between two bodies pushes both. Jumping off a robot pushes it down; running on one pushes it back.
-- Mass matters: phase throws lighter enemies farther, and boost knockback depends on the masses of both.
-- Bodies are axis-aligned boxes. Rotation and mass distribution of players, enemies and projectiles are not modelled.
+- Mass matters: phase throws lighter NPCs farther, and boost knockback depends on the masses of both.
+- Bodies are axis-aligned boxes. Rotation and mass distribution of characters are not modelled.
 
 See [movement.md](movement.md).
 
@@ -90,7 +93,7 @@ See [progression.md](progression.md).
 
 - [movement.md](movement.md): how the player and other bodies move, collide and grip.
 - [progression.md](progression.md): abilities, world changes, water, in the order the player meets them.
-- [enemies.md](enemies.md): enemies, projectiles and enemy weapons.
+- [characters.md](characters.md): characters that populate the game world.
 
 ## Open questions
 
@@ -101,11 +104,11 @@ Story:
 
 Failure and saving:
 - How are saves between the stages of a multi-stage challenge done? Options: explicit save points spread out in space, so the player walks to the next stage; or restoring to the current stage after death.
-- Is there damage from falling, and does it apply to enemies?
+- Is there damage from falling, and does it apply to NPCs?
 
 World:
-- On one seamless map, when do world and enemy scripts run?
-- What is the respawn policy for enemies, characters, and other entities?
+- On one seamless map, when do world and NPC scripts run?
+- What is the respawn policy for NPCs and other entities; e.g. free-falling blocks?
 
 Tech:
 - Low-resolution rendering is untried. First to try: render at twice the target size (e.g. 640x480), average 2x2 blocks down to the target (e.g. 320x240), quantize to a fixed palette or a fixed number of bits per color channel, then upscale with nearest-neighbour. Hardware anti-aliasing may be a better way to get the first two steps.

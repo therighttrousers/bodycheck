@@ -28,7 +28,7 @@ Rationale: decision record `000 §2.2` and `000 §2.5`.
 - Jumps from a body are as high as jumps from tiles.
 - In the air there is no traction. Air drive is a plain force with nothing pushing back.
 
-# Enemy movement
+# NPC movement
 
 TODO
 
