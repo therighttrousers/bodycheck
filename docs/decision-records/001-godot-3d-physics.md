@@ -6,6 +6,8 @@ Inciting event: `000 §1.1` left a work item to investigate running the game on 
 
 Goal: decide whether to switch, by trying it.
 
+Closed on 2026-10-12 with the decision to switch (item 6.1). Outcomes and unresolved items are in the design docs: [high-level-design.md](../designs/high-level-design.md) and [movement.md](../designs/movement.md).
+
 For switching:
 - We get the features, work and bug fixes that have gone into the engine. A new physics-based puzzle idea is less likely to need our own engine extended first.
 
@@ -29,11 +31,11 @@ Facts checked on 2026-10-11:
   - Its moving-platform support carries the rider kinematically, with no force on the platform. That is `000 §2.2.1` option B, which was rejected.
   - It conflicts with three principles: momentum is tracked and never edited, a force between two bodies pushes both, and enemies can push and stand on the player.
   - So the candidate is `RigidBody3D`: linear Z and all rotation locked, a box shape, and our controllers applying forces and impulses from `_IntegrateForces`. This is `000 §1.5` option A.
-- [ ] 1.2 Tile colliders. A box sliding over a seam between two tile bodies can catch on it. Options: all tiles as shapes of one static body, relying on Jolt's internal edge removal; merge runs of tiles into larger boxes; one concave mesh for the level.
+- [x] 1.2 Tile colliders. Decision: all tiles are shapes of one static body, merged along rows. Wall seams are left open. A box sliding over a seam between two tile bodies can catch on it. Options: all tiles as shapes of one static body, relying on Jolt's internal edge removal; merge runs of tiles into larger boxes; one concave mesh for the level.
   - Seam probe, 2026-10-11 (`--probe=seams`): a player-sized box slid at 16 tiles per second over 25 tiles of flat floor, with no friction. On Jolt, with all tiles as shapes of one static body, nothing disturbs it, whether each tile is its own shape or runs are merged into larger boxes. On Godot Physics the same single-tile layout catches: the box lost 5.2 tiles per second in one tick and hopped 0.16 tiles. Merged boxes slide cleanly on both.
   - Wall seams (Neil, 2026-10-11): the player can land on a seam partway down a vertical wall. Not yet reproduced by a probe. The merge joins tiles along rows first, so every seam it leaves is horizontal and ends on a wall. Boxes can't fix this: splitting an L-shaped region into boxes always leaves a seam that ends on a flat face, and the merge order only chooses whether that face is a wall or a floor. The candidate fix is the third option above, one concave mesh made of the exposed tile faces. Not to be fixed yet.
   - The spike merges runs by default. Still to be tried: walls, ceilings, landing on a seam, and seams between tiles and other bodies.
-- [~] 1.3 Corners and ledges. Leaning: Jolt's collision margin set to zero, which the spike branch does. Landing on a ledge is still unreliable.
+- [x] 1.3 Corners and ledges. Decision: the settings Neil found on 2026-10-12, listed below. Landing on a ledge after a short fall is still unreliable, and is left open.
   - Report (Neil, 2026-10-11): after running into a two-tile wall and doing a full jump beside it, the player is sometimes knocked left by the wall's top corner on the way down.
   - Drop probe (`--probe=drop`): drops the player onto the wall's top corner with its edge overhanging the wall by 0.01 to 0.32 tiles, from six heights. With Jolt's defaults there are three outcomes: it lands; it is thrown left at 6 to 8 tiles per second; or it sinks past the corner and is eased out sideways with no speed.
   - Cause of the throw: Jolt rounds the corners of every box by its collision margin, 8% of the box's smallest side, which is 0.064 tiles for the player. With an overhang below about 0.08, a round corner lands on a round corner and slides off.
@@ -52,7 +54,7 @@ Facts checked on 2026-10-11:
   - By hand (Neil), same settings: no ghost collisions seen; no snag on a shared edge even with one collider per tile; the player no longer falls into a one-tile gap at top speed; landings and wall strikes look more solid. Concerns to watch over longer testing: body stability and simulation time.
   - Core lands on any overhang, because it moves along x and then y and stops at the first face.
   - Still open: making ledge landings reliable. Not yet tried: more physics ticks per second; a cap on falling speed; our own downward sweep before the step. To be watched: Jolt's documentation ties the margin to the speed and robustness of its collision detection.
-- [~] 1.4 Which bodies get which treatment. Proposed by Neil, 2026-10-12; Claude agrees, with the two additions below.
+- [x] 1.4 Which bodies get which treatment. Decision: as proposed by Neil on 2026-10-12, with Claude's two additions below.
   - Walking entities get continuous collision detection and engine friction 0, and manage their own grip through traction.
   - Other bodies, such as stacks to topple or rocks to push onto platforms, use engine friction and ordinary collision detection.
   - Addition (Claude): no body is ever `Rough`. The engine takes the smaller of two bodies' friction unless one is rough, so a walker's zero then wins on every contact it has, and the wall and landing problems of item 2.1 can't come back through a rock.
@@ -62,7 +64,7 @@ Facts checked on 2026-10-11:
 
 ## 2. Movement feel
 
-- [~] 2.1 Traction (`000 §2.5`). Leaning B, as built on 2026-10-11; see the end of this item. Today it is a stage inside the step, after forces are integrated, and it cancels relative velocity exactly. An engine has no place to insert such a stage.
+- [x] 2.1 Traction (`000 §2.5`). Decision: B, as built on 2026-10-11; see the end of this item. Today it is a stage inside the step, after forces are integrated, and it cancels relative velocity exactly. An engine has no place to insert such a stage.
   - Option A: engine friction through physics materials. Grip then depends on load, which answers an open question in movement.md. It can't express a target speed, so running stays a separate force and can fight friction again.
   - Option B: keep our traction, applied from `_IntegrateForces` using the last step's contacts, with engine friction set to zero. To stay exact it must come after every other horizontal force, so we would apply drag ourselves instead of using the engine's damping. Impulses from the contact solver in the same tick would still be unaccounted for.
   - Tried on 2026-10-11 (Neil): A, with friction 4 on the player (`Rough`, so the larger coefficient wins), 0.5 on tiles, and a ground drive raised by friction × weight to cancel it. On open floor it feels very close to the Core version, and top speed is the same 15 tiles per second (drive against drag; `TopSpeed` is where the drive reaches zero).
@@ -80,14 +82,14 @@ Facts checked on 2026-10-11:
     - Platform: settles 0.250 tiles low under the rider (Core: 0.25), dips 0.38 on a landing from 3.2 tiles (Core: 0.5 from 3), and doesn't overshoot (Core: about 0.1). The rider slides up to 0.19 tiles when the platform is stopped dead by a wall, and ends 30 seconds within 0.003 tiles of where it stood.
     - The platform controller first passed its thrust straight to the engine. Traction then couldn't see it: the rider lagged the platform by 0.03 tiles per second and slid 0.4 tiles at each turn. Using `AddForce` fixed both.
   - The floor contact that the engine reports lags by a tick more than Core's: it is still reported on the first tick after take-off. Traction aims at a target speed, so it can't overshoot because of this.
-- [ ] 2.2 Exactness. Engine contacts are soft: resting bodies overlap slightly and are corrected over several ticks. "Never overlap" and "exactly where it started after 30 seconds" become tolerances. How loose is acceptable?
+- [x] 2.2 Exactness. Outcome: under the settings of item 1.3 bodies rest with no measurable overlap, and a rider doesn't drift, so no tolerance had to be chosen. Engine contacts are soft: resting bodies overlap slightly and are corrected over several ticks. "Never overlap" and "exactly where it started after 30 seconds" become tolerances. How loose is acceptable?
   - First data, from the seam probe: on Jolt a resting box sits at exactly the floor's height (to four decimals). On Godot Physics it sits 0.01 tiles inside the floor.
   - That exactness came from placing the box exactly on the floor. After landing from a jump, the box rests 0.02 tiles inside the floor on Jolt, and stays there. To be checked: whether this is Jolt's allowed penetration, and whether its setting can be lowered safely.
-- [ ] 2.3 Do the player controller's numbers carry over? Run, jump and coyote logic are forces and impulses on a body already, so the controllers should port with few changes. To be measured: jump heights, top speed, the one-tile gap.
+- [x] 2.3 Do the player controller's numbers carry over? Outcome: yes. The tuning is unchanged, top speed is the same, and a tap jump reaches 2.21 tiles. The one change: an impulse doesn't show in the body's velocity until the engine's step, so the jump thrust starts a tick after the impulse. Run, jump and coyote logic are forces and impulses on a body already, so the controllers should port with few changes. To be measured: jump heights, top speed, the one-tile gap.
 
 ## 3. Testing
 
-- [~] 3.1 How are physics-dependent tests run? Leaning A, gdUnit4Net, which works on the spike branch as of 2026-10-12.
+- [x] 3.1 How are physics-dependent tests run? Decision: A, gdUnit4Net, in a test project of its own.
   - Option A: gdUnit4Net. Version 5 runs plain tests without Godot and starts the engine only for tests that ask for it. Works with `dotnet test`.
   - Option B: Chickensoft GoDotTest. Runs C# tests inside Godot. Not tried.
   - Option C: our own. A headless Godot run of a test scene that reports through its exit code. The spike's probes are this, without the exit code.
@@ -110,7 +112,7 @@ Facts checked on 2026-10-11:
 
 ## 4. Alternatives to Godot 3D physics
 
-- [ ] 4.1 Godot's 2D physics, drawn in 3D as now. Removes the 2.5D fit risk. It is a different engine from Jolt, and has the same testing cost. Held in reserve in case the 3D engine fits 2.5D poorly.
+- [x] 4.1 Godot's 2D physics, drawn in 3D as now. Not pursued: the 3D engine fits well enough. Removes the 2.5D fit risk. It is a different engine from Jolt, and has the same testing cost. Held in reserve in case the 3D engine fits 2.5D poorly.
   - Untested belief (Claude): it is not cumbersome. Godot runs its 2D and 3D physics servers side by side, so 2D bodies can sit in the same scene as the 3D nodes that draw them, which copy their positions as they copy Core's today. Differences to absorb: y points down, and the defaults assume pixels as units.
 - [x] 4.2 Jolt used directly from `BodyCheck.Core` through C# bindings, with no Godot. Keeps plain unit tests and stepping by hand. Loses Godot's physics nodes, editor support and debug drawing, and adds a native dependency. To be checked: the state of the bindings.
   - Decision: not unless Jolt's own interface turns out to give us something that Godot's doesn't.
@@ -122,3 +124,12 @@ Facts checked on 2026-10-11:
   2. Riding (`000 §2.2` criteria): drift of an idle rider over 30 seconds, jump height from a robot, robot velocity kept on leaving, pushing from either side.
   3. Hovering platform: sag under a rider, dip on landing (`000 §2.4` numbers).
   4. Test harness: one riding test under each of 3.1's options, with its run time.
+
+## 6. Decision
+
+- [x] 6.1 Switch to Godot's 3D physics engine (Jolt)? Decision (Neil, 2026-10-12): yes.
+  - Movement feel was recovered with the tuning unchanged, by keeping our own traction on top of the engine (2.1, 2.3).
+  - Tests run inside Godot faster than real time, with plain `dotnet test`, locally and in CI (3.1).
+  - The 2.5D fit needed four engine settings and a rule for which bodies get which treatment (1.3, 1.4).
+  - Already gained: robots can push the player, which `000 §2.2.3` asked for and Core's simulation doesn't do.
+  - Known costs accepted: ledge landings after short falls are unreliable (1.3); wall seams can be landed on (1.2); gdUnit4Net is used outside its stated version support (3.1).
