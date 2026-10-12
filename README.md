@@ -25,7 +25,7 @@ Steps:
 - `src/BodyCheck.Core/`: game rules as a plain C# library with no Godot dependency
 - `tests/BodyCheck.Core.Tests/`: xUnit tests for the library
 - `docs/`: design docs and decision records
-- `Godot/`: the engine, installed by `install_godot.ps1` (not in Git)
+- `Godot/`: the engine, installed by `dev-setup.ps1` (not in Git)
 
 # Common tasks
 
