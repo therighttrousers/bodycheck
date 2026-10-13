@@ -11,9 +11,10 @@ public partial class ColorPass : CanvasLayer
 {
     private readonly ShaderMaterial _material = new() { Shader = GD.Load<Shader>("res://look/mode_x.gdshader") };
 
-    private readonly ColorRect _paletteCard = new()
+    private readonly TextureRect _paletteCard = new()
     {
-        Material = new ShaderMaterial { Shader = GD.Load<Shader>("res://look/palette_card.gdshader") },
+        StretchMode = TextureRect.StretchModeEnum.Scale,
+        TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
         MouseFilter = Control.MouseFilterEnum.Ignore,
         Visible = false,
     };
@@ -24,14 +25,21 @@ public partial class ColorPass : CanvasLayer
     public ColorPass()
     {
         Image palette = Palette.CreateImage();
-        _material.SetShaderParameter("palette", ImageTexture.CreateFromImage(palette));
-        _material.SetShaderParameter("palette_lab", ImageTexture.CreateFromImage(Palette.ToOklab(palette)));
-        LightnessSpread = _lightnessSpread;
-        ChromaSpread = _chromaSpread;
+        Image paletteLab = Palette.ToOklab(palette);
 
-        // Added first, so that it is drawn before the rectangle that reads the screen.
+        ImageTexture paletteTexture = ImageTexture.CreateFromImage(palette);
+        ImageTexture paletteLabTexture = ImageTexture.CreateFromImage(paletteLab);
+
+        // Palette card added first, so that it is drawn before the rectangle that reads the screen
+        // (it'll get quantized and dithered).
+        _paletteCard.Texture = paletteTexture;
         _paletteCard.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         AddChild(_paletteCard);
+
+        _material.SetShaderParameter("palette", paletteTexture);
+        _material.SetShaderParameter("palette_lab", paletteLabTexture);
+        LightnessSpread = _lightnessSpread;
+        ChromaSpread = _chromaSpread;
 
         var rect = new ColorRect { Material = _material, MouseFilter = Control.MouseFilterEnum.Ignore };
         rect.SetAnchorsPreset(Control.LayoutPreset.FullRect);
