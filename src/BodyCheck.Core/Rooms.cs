@@ -54,5 +54,30 @@ public static class Rooms
         ################################
         """);
 
-    public static IReadOnlyList<Room> All { get; } = [Playground, RobotRide];
+    /// <summary>
+    /// A room the shape of the screen, for judging the rendering. The game adds turning shapes to its
+    /// upper half.
+    /// </summary>
+    public static readonly Room Look = new("Look", """
+        ########################
+        #......................#
+        #......................#
+        #......................#
+        #......................#
+        #......................#
+        #......................#
+        #......................#
+        #......................#
+        #......................#
+        #......................#
+        #......####............#
+        #..................H...#
+        #......................#
+        #...........###........#
+        #......................#
+        #..P......R.......B....#
+        ########################
+        """);
+
+    public static IReadOnlyList<Room> All { get; } = [Playground, RobotRide, Look];
 }

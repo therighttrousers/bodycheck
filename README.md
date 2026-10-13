@@ -39,7 +39,17 @@ Steps:
 
 - Move: A/D, arrow keys, or gamepad left stick or D-pad
 - Jump: Space, or gamepad A. Hold to jump higher.
-- Next or previous test room: Page Down or Page Up, or gamepad right or left shoulder button
+- Previous or next test room: ','/'.' or gamepad left/right shoulder button
+
+Rendering switches, for judging the look. The window's title shows their state. The room named "Look" has shapes to judge it on.
+
+- 1: low resolution on or off
+- 2: next low-resolution size
+- 3: next anti-aliasing level
+- 4: colour pass on or off
+- 5: dither on or off
+- 6: the palette, in place of the game, on or off
+- 7: shadows; 8: ambient occlusion; 9: reflections; 0: glow
 
 # Test rooms
 

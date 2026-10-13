@@ -6,6 +6,7 @@ Relevant decision records:
 - [000: Initial design](../decision-records/000-initial-design.md)
 - [001: Godot's 3D physics engine](../decision-records/001-godot-3d-physics.md)
 - [002: `BodyCheck.Core` depends on GodotSharp](../decision-records/002-core-depends-on-godotsharp.md)
+- [003: Rendering pipeline for the Star Fox SNES look](../decision-records/003-snes-3d-look.md)
 
 ## Vision
 
@@ -25,7 +26,8 @@ The player is a maintenance robot whose job is to activate all of a facility's d
 - 3D models, 3D tiles and 3D rendering, drawn at low resolution so that it looks a lot like pixel art (and might contain some).
 - Solid geometry and interesting lighting matter more than texturing: physically based lighting, reflection, refraction.
 - Inspiration: Tron.
-- The target look is Star Fox era SNES 3D with modern rendering features: anti-aliasing, shadows, transparency, ambient occlusion, refraction, reflection, subsurface scattering. It should look like something that would have astonished a teenager in 1993, while still passing as somewhat believable 1993 technology.
+- The target look is mid-1990s 3D games such as Star Fox, Quake and Descent, but with modern rendering features: anti-aliasing, shadows, transparency, ambient occlusion, refraction, reflection, subsurface scattering. It should look like something that would have astonished a teenager in the mid-1990s, while still passing as somewhat believable mid-1990s technology.
+- The image is Mode X: 320x240 and 256 colours, with dither. See [rendering.md](rendering.md).
 - Art is basic shapes until the mechanics are proven.
 
 ## Principles
@@ -91,6 +93,7 @@ See [progression.md](progression.md).
   - `BodyNode` is the engine's side of a `Body`. Each tick it copies the engine's position, velocity and contacts into the body, and gives the engine the body's impulse.
   - `RoomNode` is one room, simulated: tiles, bodies and controllers, with no camera, lights or input of its own, so tests use it as it is.
   - `Main` adds the camera, the lights and the player's input to a `RoomNode`, and switches rooms.
+  - `look/` holds the colour pass and the tools for judging the rendering. See [rendering.md](rendering.md).
   - `probes/` holds scripted measurements, run headless with `--probe=` and a name.
 - **`tests/BodyCheck.Core.Tests`:** unit tests for the library, in xUnit. They run without the engine, and stand in for it where a test needs one.
 - **`tests/BodyCheck.Game.Tests`:** tests that need the engine, run inside Godot through gdUnit4Net by plain `dotnet test`. Godot runs headless at a fixed frame rate, so physics ticks faster than real time. The project is a Godot project of its own, whose settings are copied from the game's on every build. It can't load the game's scenes or assets by `res://` path.
@@ -104,6 +107,7 @@ See [progression.md](progression.md).
 - [movement.md](movement.md): how the player and other bodies move, collide and grip.
 - [progression.md](progression.md): abilities, world changes, water, in the order the player meets them.
 - [characters.md](characters.md): characters that populate the game world.
+- [rendering.md](rendering.md): the low-resolution pipeline, the palette, and the tools for judging them.
 
 ## Open questions
 
@@ -121,7 +125,6 @@ World:
 - What is the respawn policy for NPCs and other entities; e.g. free-falling blocks?
 
 Tech:
-- Low-resolution rendering is untried. First to try: render at twice the target size (e.g. 640x480), average 2x2 blocks down to the target (e.g. 320x240), quantize to a fixed palette or a fixed number of bits per color channel, then upscale with nearest-neighbour. Hardware anti-aliasing may be a better way to get the first two steps.
 - Phantom Camera is unverified for this project: use from C#, and camera limits in 3D. Its limit, lookahead and newer framed-follow features are described for its 2D camera only.
 - Can the Godot editor attach a script to a scene only when the script is in the Godot project itself? Believed so, which is why node classes stay in `game/`.
 - gdUnit4Net is used outside its stated support (.NET 8 and 9, Godot 4.4 to 4.5), and `gdUnit4.api` is a prerelease. To be revisited when it releases.
