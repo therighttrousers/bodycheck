@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 
 using BodyCheck.Core;
+using BodyCheck.Look;
 using BodyCheck.Probes;
 
 using Godot;
@@ -10,7 +11,8 @@ namespace BodyCheck;
 
 /// <summary>
 /// Plays one room from the <see cref="Rooms"/> library, drawn as gray boxes: it adds the camera, the
-/// lights and the player's input to a <see cref="RoomNode"/>.
+/// lights and the player's input to a <see cref="RoomNode"/>, and the rendering pipeline's switches
+/// (see <see cref="LookSwitches"/>).
 /// <para>
 /// User arguments, after "--" on the command line: a room name; "--tiles=single" for one collider per
 /// tile instead of merged boxes; "--probe=" and a probe's name to run that probe and quit.
@@ -22,12 +24,13 @@ public partial class Main : Node3D
     private bool _mergeTiles = true;
     private RoomNode _room = null!;
     private Camera3D _camera = null!;
+    private LookSwitches _look = null!;
     private IProbe? _probe;
 
     public override void _Ready()
     {
         AddInputActions();
-        AddLights();
+        AddLook();
 
         string? roomName = null;
         string? probeName = null;
@@ -94,17 +97,23 @@ public partial class Main : Node3D
     private RoomNode LoadRoom(Room room)
     {
         _room?.QueueFree();
-        _camera?.QueueFree();
-
-        GetWindow().Title = $"Body Check: {room.Name}";
         _room = new RoomNode(room, _mergeTiles);
+        if (room == Rooms.Look)
+        {
+            _room.AddChild(new LookProps(_room.Tiles));
+        }
         AddChild(_room);
         AddCamera();
+        ShowTitle();
         return _room;
     }
 
+    private void ShowTitle() => GetWindow().Title = $"Body Check: {_room.Room.Name} ({_look.Summary})";
+
     private void AddCamera()
     {
+        _camera?.QueueFree();
+
         // Far enough back to fit the whole room, whichever of its width and height is the tighter fit.
         TileGrid tiles = _room.Tiles;
         const float fov = 50;
@@ -120,26 +129,42 @@ public partial class Main : Node3D
         AddChild(_camera);
     }
 
-    private void AddLights()
+    /// <summary>Adds the lights, the colour pass, and the switches that turn parts of the pipeline on and off.</summary>
+    private void AddLook()
     {
-        AddChild(new DirectionalLight3D
+        var light = new DirectionalLight3D
         {
             RotationDegrees = new Vector3(-35, -25, 0),
             LightEnergy = 0.6f,
             ShadowEnabled = true,
-        });
+        };
+        AddChild(light);
 
-        AddChild(new WorldEnvironment
+        var environment = new Godot.Environment
         {
-            Environment = new Godot.Environment
-            {
-                BackgroundMode = Godot.Environment.BGMode.Color,
-                BackgroundColor = new Color(0.02f, 0.02f, 0.04f),
-                AmbientLightSource = Godot.Environment.AmbientSource.Color,
-                AmbientLightColor = new Color(0.5f, 0.55f, 0.7f),
-                AmbientLightEnergy = 0.3f,
-            },
-        });
+            BackgroundMode = Godot.Environment.BGMode.Color,
+            BackgroundColor = new Color(0.02f, 0.02f, 0.04f),
+            AmbientLightSource = Godot.Environment.AmbientSource.Color,
+            AmbientLightColor = new Color(0.5f, 0.55f, 0.7f),
+            AmbientLightEnergy = 0.3f,
+            SsaoEnabled = true,
+            SsrEnabled = true,
+            GlowEnabled = true,
+        };
+        AddChild(new WorldEnvironment { Environment = environment });
+
+        var colorPass = new ColorPass();
+        AddChild(colorPass);
+
+        _look = new LookSwitches(light, environment, colorPass);
+        AddChild(_look);
+
+        // A change of size changes the shape of the view, so the camera has to fit the room again.
+        _look.Changed += () =>
+        {
+            AddCamera();
+            ShowTitle();
+        };
     }
 
     private static void AddInputActions()
