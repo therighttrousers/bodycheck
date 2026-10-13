@@ -8,8 +8,8 @@ namespace BodyCheck.Look;
 
 /// <summary>
 /// Shapes to judge the rendering pipeline on, which gray boxes don't show: curved and slanted faces,
-/// smooth and flat shading, a mirror finish, glow, glass and a grayscale ramp. They turn, because dither
-/// and aliasing are judged in motion. They have no colliders.
+/// smooth and flat shading, a mirror finish, glow, glass, a yellow lamp and a grayscale ramp. The shapes turn,
+/// because dither and aliasing are judged in motion. They have no colliders.
 /// </summary>
 public partial class LookProps : Node3D
 {
@@ -48,6 +48,28 @@ public partial class LookProps : Node3D
                 EmissionEnergyMultiplier = 2,
             });
         torus.AddChild(new OmniLight3D { LightColor = glow, LightEnergy = 2, OmniRange = 6 });
+
+        // A pure yellow lamp, out of reach of the torus's light. Its falloff over the gray wall is where bands
+        // and false colours in the colour pass show first (decision record 004).
+        var yellow = new Color(1, 1, 0);
+        var lamp = new MeshInstance3D
+        {
+            Mesh = new SphereMesh
+            {
+                Radius = 0.3f,
+                Height = 0.6f,
+                Material = new StandardMaterial3D
+                {
+                    AlbedoColor = yellow,
+                    EmissionEnabled = true,
+                    Emission = yellow,
+                    EmissionEnergyMultiplier = 2,
+                },
+            },
+            Position = new Vector3(spacing, 5, 0.5f),
+        };
+        lamp.AddChild(new OmniLight3D { LightColor = yellow, LightEnergy = 2, OmniRange = 6 });
+        AddChild(lamp);
 
         // Glass, in front of something to see through it.
         MeshInstance3D glass = AddSpinner(5 * spacing, y,

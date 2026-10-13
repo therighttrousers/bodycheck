@@ -7,7 +7,7 @@ namespace BodyCheck.Look;
 
 /// <summary>
 /// Switches for each part of the rendering pipeline, on the number keys, so that the look can be judged
-/// by eye (decision record 003):
+/// by eye (decision records 003 and 004):
 /// <list type="bullet">
 /// <item>1: low resolution on or off</item>
 /// <item>2: next low-resolution size</item>
@@ -16,6 +16,8 @@ namespace BodyCheck.Look;
 /// <item>5: dither on or off</item>
 /// <item>6: the palette, in place of the game, on or off</item>
 /// <item>7: shadows, 8: ambient occlusion, 9: reflections, 0: glow</item>
+/// <item>[ and ]: the dither's lightness spread, down and up</item>
+/// <item>; and ': the dither's chroma spread, down and up</item>
 /// </list>
 /// </summary>
 public partial class LookSwitches : Node
@@ -52,7 +54,9 @@ public partial class LookSwitches : Node
             {
                 _lowRes ? $"{Sizes[_size].X}x{Sizes[_size].Y}" : "native",
                 MsaaLevels[_msaa] == Viewport.Msaa.Disabled ? "no AA" : $"MSAA {1 << (int)MsaaLevels[_msaa]}x",
-                _colorPass.Visible ? (_dither ? " dithered" : "") : "full colour",
+                _colorPass.Visible
+                    ? (_dither ? $"dither {_colorPass.LightnessSpread:0.00}/{_colorPass.ChromaSpread:0.000}" : "no dither")
+                    : "full colour",
             };
             if (_light.ShadowEnabled)
             {
@@ -95,6 +99,10 @@ public partial class LookSwitches : Node
             case Key.Key8: _environment.SsaoEnabled = !_environment.SsaoEnabled; break;
             case Key.Key9: _environment.SsrEnabled = !_environment.SsrEnabled; break;
             case Key.Key0: _environment.GlowEnabled = !_environment.GlowEnabled; break;
+            case Key.Bracketleft: _colorPass.LightnessSpread -= 0.01f; break;
+            case Key.Bracketright: _colorPass.LightnessSpread += 0.01f; break;
+            case Key.Semicolon: _colorPass.ChromaSpread -= 0.005f; break;
+            case Key.Apostrophe: _colorPass.ChromaSpread += 0.005f; break;
             default: return;
         }
         Apply();
