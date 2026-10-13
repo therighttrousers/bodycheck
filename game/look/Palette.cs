@@ -11,20 +11,22 @@ namespace BodyCheck.Look;
 /// </summary>
 public static class Palette
 {
-    private const int Width = 4;
+    private const int Width = 8;
     private const int Height = 32;
 
+    // The values of the coloured ramps: evenly spaced lightness, by CIE L*, turned into the luminance that has
+    // it. That puts more of a ramp's colours in the dark, where evenly spaced values left too few (decision
+    // record 004).
     private static float ValueRamp(float v)
     {
-        // CIE L* to linear
         float l = v * 100.0f;
         return l <= 8.0f ? l / 903.3f : MathF.Pow((l + 16.0f) / 116.0f, 3.0f);
     }
 
     /// <summary>
-    /// The palette as a 16x16 image in sRGB. It is defined in HSV. The top row is gray, from black to white.
-    /// Each row below it holds two ramps of 8 values, darkest first: 6 hues at a saturation of 1/3, then 12
-    /// hues at 2/3, then 12 hues at 1.
+    /// The palette as an image in sRGB, 8 wide and 32 high. It is defined in HSV. The top two rows are gray,
+    /// from black to white. Each row below is one ramp of 8 values, darkest first, so that a row has one hue
+    /// and one saturation: 6 hues at the lowest saturation, then 12 at the middle one, then 12 at full.
     /// </summary>
     public static Image CreateImage()
     {
@@ -38,17 +40,17 @@ public static class Palette
             data[index++] = (byte)color.B8;
         }
 
-        for (int value = 0; value < 8; value++)
+        for (int value = 0; value < 16; value++)
         {
-            Add(Color.FromHsv(0, 0, value / 7f));
+            Add(Color.FromHsv(0, 0, value / 15f));
         }
         foreach ((int saturation, int hues) in new[] { (1, 6), (2, 12), (3, 12) })
         {
             for (int hue = 0; hue < hues; hue++)
             {
-                for (int value = 2; value <= 5; value++)
+                for (int value = 2; value <= 9; value++)
                 {
-                    Add(Color.FromHsv((float)hue / hues, MathF.Pow(saturation / 3f, 1.5f), ValueRamp(value / 5f)));
+                    Add(Color.FromHsv((float)hue / hues, MathF.Pow(saturation / 3f, 1.5f), ValueRamp(value / 9f)));
                 }
             }
         }

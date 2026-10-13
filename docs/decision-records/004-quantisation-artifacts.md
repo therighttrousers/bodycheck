@@ -10,7 +10,7 @@ Anti-goals:
 - Throwing away the HSV pass while options are compared. It stays in the code until then, to go back to and to compare against.
 - `palette_card.gdshader` stays as it is for now. Neil wants to see it under each shader.
 
-Closed on 2026-10-13. The decision is 2.10: a stored palette, the nearest colour in Oklab by search, and dither by an offset. Outcomes and unresolved items are in [rendering.md](../designs/rendering.md).
+Closed on 2026-10-13. The decision is 2.10: a stored palette, the nearest colour in Oklab by search, and dither by an offset. Outcomes and unresolved items are in [rendering.md](../designs/rendering.md). Section 4 was added the same day, before the record landed: with the pass settled, Neil reworked the palette.
 
 Items 1.1 to 1.3 are about the HSV shader, which is gone. They were not settled and need no answer.
 
@@ -88,3 +88,28 @@ Claims about `game/look/mode_x.gdshader`, from reading it unless marked measured
 - [x] 3.2 Cycling shaders. Decision: `ColorPass` lists the shaders, and the minus key switches to the next. The window's title names the one in use.
 - [x] 3.3 Shared shader code is in `game/look/color_pass.gdshaderinc`.
 - [x] 3.4 Keys for a shader's own settings, down and up: `[` and `]` for the first, `;` and `'` for the second, K and L for the third. The offset shader has a lightness spread and a chroma spread, and the lattice shader has levels of lightness, a and b. The window's title shows them.
+
+## 4. The palette, once the pass was settled
+
+Measurements here are of one frame of the "Look" room, as in section 2: the error of 2x2 block averages against the undithered source, as sRGB of 255 a channel, then Oklab lightness, then Oklab chroma. GPU times are whole frames at 320x240, averaged over 40 frames, and vary by about 0.1 ms between runs.
+
+- [x] 4.1 The palette card. Decision (Neil): draw the palette's own image, stretched over the screen, in place of sweeps through HSV. `palette_card.gdshader` is gone. The image shows the colours there are; the sweeps showed what the pass did with colours there aren't.
+- [x] 4.2 Baseline: the palette of `003 §3.1`, with the pass of 2.10. Error 3.21, 0.0055, 0.0099. Lightness is off by -0.0003 on average where the source is darker than 0.25, and by -0.0037 where it is lighter. 128 of the 256 colours appear in the frame. About 2.1 ms.
+- [x] 4.3 A palette of 128 (Neil), to speed up the search and to suit pixel art drawn by hand: 8 grays, 4 evenly spaced values to a ramp, saturations raised to the power 1.5 to tell them apart, and a lightness spread doubled to 0.14. Rejected for 4.4.
+  - Error 5.74, 0.0178, 0.0102. Chroma held, and lightness error tripled, to worse than the search of 2.6.
+  - Nearly all of that is one bias: dark areas come out too bright, by 0.0239 on average, against 0.0022 in light ones.
+  - Likely cause, not checked directly: the step from black to the first level is large, the dither mixes two colours in equal steps of perceived lightness, and the eye averages light, so a few fairly bright pixels on black read as brighter than was meant. 4.4 fits this.
+  - About 1.7 ms, close to what a pass with no search takes.
+- [x] 4.4 The same 128 with the values moved (Neil): a ramp's values are steps 2 to 5 of 5 evenly spaced lightnesses, by CIE L*, each turned into luminance. The grays stay as they were. Neil found it looked best with a lightness spread of 0.12, not the 0.14 that the grays' step suggests. Kept in the history as a commit; set aside for 4.6.
+  - Error 4.56, 0.0088, 0.0138. Lightness error halved against 4.3, and the bias in dark areas went, to 0.0010.
+  - Light areas now come out a little dark, by 0.0109, and chroma error rose by a third. The cause of neither was looked into.
+  - About 1.6 ms.
+- [x] 4.5 The lightness spread from the palette. Decision: `Palette.LightnessSpread` works it out, and the keys change it from there. For each colour it takes the step of lightness to the nearest colour up or down the lightness axis, that is, one that differs less than half as much in a and b together as in lightness. The spread is three quarters of the mean step.
+  - Where 0.07 came from (2.10): one step of the gray ramp, 1/15, which sat in the middle of the coloured ramps' steps. That rule fails when the grays and the ramps have different steps, as in 4.4.
+  - The three quarters was fitted to Neil's two choices by eye: it gives 0.068 for the palette of 4.2 and 0.121 for that of 4.4. Two points are few, so it is a starting value.
+  - The chroma spread stays at 0.015, set by hand. There is one choice by eye to go on.
+- [x] 4.6 Back to 256, with what the smaller palettes showed. Decision (Neil, 2026-10-13): 16 evenly spaced grays as before, the saturations of 4.3, and ramps of 8 values, steps 2 to 9 of 9 lightnesses by the rule of 4.4. The image is 8 wide and 32 high, one ramp to a row, so that a row has one hue and one saturation.
+  - Error 2.49, 0.0032, 0.0078: the best of any palette or pass in this record. Against 4.2, lightness error is down by about 40% and chroma error by about 20%.
+  - Both lightness biases are under 0.001, and 173 of the 256 colours appear in the frame.
+  - The computed lightness spread is 0.07. About 2.0 ms.
+  - So where the levels sit matters more than how many there are, and against this palette the 128 of 4.4 costs about 80% more sRGB error and nearly three times the lightness error, for about 0.4 ms and half as many colours to draw with.
