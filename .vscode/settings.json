@@ -17,6 +17,7 @@
     "explorer.fileNesting.expand": false,
     "explorer.fileNesting.patterns": {
         "*.cs": "${basename}.cs.uid",
+        "*.gdshader": "${basename}.gdshader.uid",
     },
 
     "json.format.keepLines": true,
