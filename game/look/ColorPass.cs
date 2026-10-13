@@ -18,8 +18,17 @@ public partial class ColorPass : CanvasLayer
         Visible = false,
     };
 
+    private float _lightnessSpread = 0.07f;
+    private float _chromaSpread = 0.015f;
+
     public ColorPass()
     {
+        Image palette = Palette.CreateImage();
+        _material.SetShaderParameter("palette", ImageTexture.CreateFromImage(palette));
+        _material.SetShaderParameter("palette_lab", ImageTexture.CreateFromImage(Palette.ToOklab(palette)));
+        LightnessSpread = _lightnessSpread;
+        ChromaSpread = _chromaSpread;
+
         // Added first, so that it is drawn before the rectangle that reads the screen.
         _paletteCard.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         AddChild(_paletteCard);
@@ -38,5 +47,27 @@ public partial class ColorPass : CanvasLayer
     public bool Dither
     {
         set => _material.SetShaderParameter("dither", value);
+    }
+
+    /// <summary>How far the dither reaches along lightness, in Oklab.</summary>
+    public float LightnessSpread
+    {
+        get => _lightnessSpread;
+        set
+        {
+            _lightnessSpread = Mathf.Max(value, 0);
+            _material.SetShaderParameter("lightness_spread", _lightnessSpread);
+        }
+    }
+
+    /// <summary>How far the dither reaches along each of a and b, in Oklab.</summary>
+    public float ChromaSpread
+    {
+        get => _chromaSpread;
+        set
+        {
+            _chromaSpread = Mathf.Max(value, 0);
+            _material.SetShaderParameter("chroma_spread", _chromaSpread);
+        }
     }
 }
