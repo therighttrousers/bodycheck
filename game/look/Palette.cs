@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 using Godot;
 
@@ -10,7 +11,15 @@ namespace BodyCheck.Look;
 /// </summary>
 public static class Palette
 {
-    private const int Side = 16;
+    private const int Width = 4;
+    private const int Height = 32;
+
+    private static float ValueRamp(float v)
+    {
+        // CIE L* to linear
+        float l = v * 100.0f;
+        return l <= 8.0f ? l / 903.3f : MathF.Pow((l + 16.0f) / 116.0f, 3.0f);
+    }
 
     /// <summary>
     /// The palette as a 16x16 image in sRGB. It is defined in HSV. The top row is gray, from black to white.
@@ -20,7 +29,7 @@ public static class Palette
     public static Image CreateImage()
     {
         // Bytes, rounded here, because Image.SetPixel rounds down.
-        byte[] data = new byte[Side * Side * 3];
+        byte[] data = new byte[Width * Height * 3];
         int index = 0;
         void Add(Color color)
         {
@@ -29,21 +38,21 @@ public static class Palette
             data[index++] = (byte)color.B8;
         }
 
-        for (int value = 0; value < 16; value++)
+        for (int value = 0; value < 8; value++)
         {
-            Add(Color.FromHsv(0, 0, value / 15f));
+            Add(Color.FromHsv(0, 0, value / 7f));
         }
         foreach ((int saturation, int hues) in new[] { (1, 6), (2, 12), (3, 12) })
         {
             for (int hue = 0; hue < hues; hue++)
             {
-                for (int value = 1; value <= 8; value++)
+                for (int value = 2; value <= 5; value++)
                 {
-                    Add(Color.FromHsv((float)hue / hues, saturation / 3f, value / 8f));
+                    Add(Color.FromHsv((float)hue / hues, MathF.Pow(saturation / 3f, 1.5f), ValueRamp(value / 5f)));
                 }
             }
         }
-        return Image.CreateFromData(Side, Side, false, Image.Format.Rgb8, data);
+        return Image.CreateFromData(Width, Height, false, Image.Format.Rgb8, data);
     }
 
     /// <summary>The same colours in the same places, in Oklab: lightness, a and b in red, green and blue.</summary>
@@ -58,6 +67,46 @@ public static class Palette
             }
         }
         return image;
+    }
+
+    /// <summary>
+    /// A lightness spread for the dither that suits a palette, given its Oklab image: three quarters of the
+    /// mean step of lightness between a colour and its neighbour up or down the lightness axis. The neighbour
+    /// is the colour nearest in lightness among those that differ less than half as much in a and b together
+    /// as in lightness. The three quarters matches what Neil chose by eye for two palettes (0.07 and 0.12).
+    /// </summary>
+    public static float LightnessSpread(Image lab)
+    {
+        var colors = new List<Color>();
+        for (int y = 0; y < lab.GetHeight(); y++)
+        {
+            for (int x = 0; x < lab.GetWidth(); x++)
+            {
+                colors.Add(lab.GetPixel(x, y));
+            }
+        }
+
+        float sum = 0;
+        int count = 0;
+        foreach (Color color in colors)
+        {
+            float step = float.MaxValue;
+            foreach (Color other in colors)
+            {
+                float lightness = Mathf.Abs(other.R - color.R);
+                float chroma = new Vector2(other.G - color.G, other.B - color.B).Length();
+                if (lightness > 0 && chroma < 0.5f * lightness)
+                {
+                    step = Mathf.Min(step, lightness);
+                }
+            }
+            if (step < float.MaxValue)
+            {
+                sum += step;
+                count++;
+            }
+        }
+        return count > 0 ? 0.75f * sum / count : 0;
     }
 
     // Oklab with Ottosson's toe on lightness. The same function as linear_to_oklab in mode_x.gdshader,

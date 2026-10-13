@@ -19,8 +19,8 @@ public partial class ColorPass : CanvasLayer
         Visible = false,
     };
 
-    private float _lightnessSpread = 0.07f;
-    private float _chromaSpread = 0.015f;
+    private float _lightnessSpread; // Calculated from the palette
+    private float _chromaSpread = 0.015f; // Set by hand, from experimentation
 
     public ColorPass()
     {
@@ -38,7 +38,8 @@ public partial class ColorPass : CanvasLayer
 
         _material.SetShaderParameter("palette", paletteTexture);
         _material.SetShaderParameter("palette_lab", paletteLabTexture);
-        LightnessSpread = _lightnessSpread;
+        // A starting point that follows the palette. The keys in LookSwitches change it from there.
+        LightnessSpread = Palette.LightnessSpread(paletteLab);
         ChromaSpread = _chromaSpread;
 
         var rect = new ColorRect { Material = _material, MouseFilter = Control.MouseFilterEnum.Ignore };

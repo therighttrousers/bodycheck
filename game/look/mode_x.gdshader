@@ -15,8 +15,8 @@ uniform sampler2D palette_lab : filter_nearest;
 // How far the dither offsets reach from end to end, in Oklab: along lightness, and along each of a and b. On a
 // lattice this would be one step of the lattice. The palette is not one, so these are about the distance
 // between neighbouring colours: too small leaves bands, and too large mixes colours that are far apart.
-uniform float lightness_spread = 0.07;
-uniform float chroma_spread = 0.015;
+uniform float lightness_spread;
+uniform float chroma_spread;
 
 // Returns one of [-0.375, -0.125, 0.125, 0.375], by the 2x2 Bayer pattern:
 // [ 0 2 ]
