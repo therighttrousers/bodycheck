@@ -1,8 +1,12 @@
-# Unnamed 2D Metroidvania
+# Unnamed 2.5D Metroidvania
 
-TODO: Write
+A metroidvania in low-resolution 3D, in the style of mid-1990s games, in which the player is a maintenance robot whose job is to switch on all of a facility's defenses, so the world grows more dangerous with each one. Gameplay emphasizes physics-based movement and physics puzzles.
 
-# Initial dev setup
+See [docs/designs/high-level-design.md](docs/designs/high-level-design.md) for more details.
+
+This README is written for game developers, not players.
+
+## Initial dev setup
 
 Prerequisites:
 - Windows
@@ -16,26 +20,23 @@ Prerequisites:
 Steps:
 1. Run `git clone <repo-url>`.
 2. `cd` to the repo directory.
-3. Run `.\dev-setup.ps1`.
+3. Run `.\dev-setup.ps1` to install Godot locally, restore dependencies, and set up pre-commit hooks.
 4. Open the repo folder in VS Code and install the extensions recommended for this repository.
+5. Press Ctrl+`` ` `` (Ctrl+backtick) to open a terminal in VS Code.
+6. Run `dotnet build && dotnet test` to build everything and run the tests.
 
-# Layout
+See [docs/designs/architecture.md](docs/designs/architecture.md) for tech details, directory structure, and system components.
 
-- `game/`: the Godot project (scenes, node scripts, levels, assets)
-- `src/BodyCheck.Core/`: game rules as a C# library
-- `tests/BodyCheck.Core.Tests/`: xUnit tests for the library
-- `tests/BodyCheck.Game.Tests/`: tests that run inside Godot, through gdUnit4Net
-- `docs/`: design docs and decision records
-- `Godot/`: the engine, installed by `dev-setup.ps1` (not in Git)
-
-# Common tasks
+## Common tasks
 
 - Build everything: `dotnet build`
 - Run the unit tests: `dotnet test`
-- Open the editor: `.\Godot\Godot.exe --path game --editor`
-- Run the game: `dotnet build`, then `.\Godot\Godot.exe --path game`. Running from the command line doesn't build the C# code first; pressing Play in the editor does.
+- Run the game from the terminal: `dotnet build && .\Godot\Godot.exe --path game` - note that building first is required
+- Run the game from Godot's editor: `.\Godot\Godot.exe --path game --editor`, then press the `▶` button to build and run
 
-# Controls
+Development doesn't make much use of Godot's editor because the game world is programmatically generated from tile-based maps, and because agents are much better at writing config files and code than using the editor.
+
+## Controls
 
 - Move: A/D, arrow keys, or gamepad left stick or D-pad
 - Jump: Space, or gamepad A. Hold to jump higher.
@@ -49,11 +50,10 @@ Rendering switches, for judging the look. The window's title shows their state. 
 - 4: colour pass on or off
 - 5: dither on or off
 - 6: the palette, in place of the game, on or off
-- 7: shadows; 8: ambient occlusion; 9: reflections; 0: glow
 - [ and ]: the dither's lightness spread, down and up
 - ; and ': the dither's chroma spread, down and up
 
-# Test rooms
+## Test rooms
 
 The named test rooms are in `src/BodyCheck.Core/Rooms.cs`. To start in a particular room, pass its name after `--`:
 `.\Godot\Godot.exe --path game -- "Robot ride"`

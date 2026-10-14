@@ -16,7 +16,7 @@ public sealed record PlatformTuning
     public float MaxVerticalThrustFrac { get; init; } = 1.5f;
 }
 
-public sealed class PlatformController : ICharacterController<PlatformEntity>
+public sealed class PlatformController : ICharacterController<SimpleControlledEntity>
 {
     private readonly float _startHeight;
     private float _move = 1;
@@ -30,7 +30,7 @@ public sealed class PlatformController : ICharacterController<PlatformEntity>
 
     public PlatformTuning Tuning { get; }
 
-    public void Apply(PlatformEntity entity, float dt)
+    public void Apply(SimpleControlledEntity entity, float dt)
     {
         // Patrol. Bounce off of anything solid (including the player).
         if (_move < 0 && entity.Contacts.HasFlag(Contacts.Left))
@@ -46,7 +46,7 @@ public sealed class PlatformController : ICharacterController<PlatformEntity>
         ApplyVerticalThrust(entity);
     }
 
-    private void ApplyHorizontalThrust(PlatformEntity entity, float move)
+    private void ApplyHorizontalThrust(SimpleControlledEntity entity, float move)
     {
         float speed = entity.LinearVelocity.X;
         // The drive fades out as the entity nears top speed in the input direction.
@@ -56,7 +56,7 @@ public sealed class PlatformController : ICharacterController<PlatformEntity>
         entity.ApplyCentralForce(new Vector3(move * Tuning.HorizontalDriveForce * headroom, 0, 0));
     }
 
-    private void ApplyVerticalThrust(PlatformEntity entity)
+    private void ApplyVerticalThrust(SimpleControlledEntity entity)
     {
         // PD controller: correction = K_p * (target - current) + K_d * -rate
         float weight = entity.Weight;

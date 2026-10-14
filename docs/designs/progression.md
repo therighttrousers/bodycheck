@@ -1,9 +1,9 @@
 # Progression
 
-Abilities and world changes, in the order the player meets them.
-
 Relevant decision records:
 - [000: Initial design](../decision-records/000-initial-design.md)
+
+Abilities and world changes, in the order the player meets them.
 
 ## Starter abilities
 
@@ -86,6 +86,7 @@ Phase:
 - Phasing straight down through a grounded target puts the player on the floor and sends the target up. What is that good for? Idea: a short fall stuns the target.
 - Should a phase launch the player faster off heavy or immovable targets? That would make turrets give bigger launches in general, and make phasing upward off a robot stronger than phasing sideways.
 - Should dead NPCs remain as objects that can be phased through and boosted off?
+- Can the player phase through a hovering platform? [characters.md](characters.md) says every NPC can be phased through, and platforms became NPCs when everything that moves became intelligent. Phasing would throw the platform and leave its riders behind.
 
 Boost:
 - How is boost kept from becoming flight? Option: a long enough cooldown. Option: boost must always be against a designated object.

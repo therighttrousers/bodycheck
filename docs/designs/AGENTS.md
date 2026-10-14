@@ -2,7 +2,7 @@
 
 The `docs/designs` directory describes the **current** design. When a design doc and a decision record disagree, the design doc wins; the record is history.
 
-Start with [high-level-design.md](high-level-design.md). It has the vision, principles, goals, architecture overview and a map of the other design docs.
+Start with [high-level-design.md](high-level-design.md). It has the vision, principles, an architecture overview and a map of the other design docs; [architecture.md](architecture.md) has the code's structure.
 
 ## Design doc format
 
@@ -18,5 +18,5 @@ Start with [high-level-design.md](high-level-design.md). It has the vision, prin
 
 ## Cross-references
 
-- **Between design docs:** Markdown links, with a heading anchor where useful, e.g. [state docs](state.md#documents).
+- **Between design docs:** Markdown links, with a heading anchor where useful, e.g. [physics engine](movement.md#physics-engine).
 - **To decision records:** `NNN §x.y`, e.g. `000 §1.4`, meaning record `000-*.md`, item 1.4. Record items are list entries rather than headings, so they have no link anchors. Link the record file itself in the doc's "Relevant decision records" list.

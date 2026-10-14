@@ -14,7 +14,7 @@ Art is basic shapes until the mechanics are proven.
 
 Names: this record uses the abilities' original names throughout. Item 4.4 renamed them: what is called "boost" here is now "phase", and what is called "bash" here is now "boost".
 
-Closed on 2026-10-11. Outcomes and unresolved items are in the design docs: [high-level-design.md](../designs/high-level-design.md), [movement.md](../designs/movement.md), [progression.md](../designs/progression.md) and [enemies.md](../designs/enemies.md).
+Closed on 2026-10-11. Outcomes and unresolved items are in the design docs: [high-level-design.md](../designs/high-level-design.md), [movement.md](../designs/movement.md), [progression.md](../designs/progression.md) and [characters.md](../designs/characters.md) (then named `enemies.md`).
 
 ## 1. Tech
 

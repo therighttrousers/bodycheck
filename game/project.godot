@@ -37,8 +37,8 @@ text_editor/behavior/indent/type=1
 
 common/physics_jitter_fix=0
 3d/physics_engine="Jolt Physics"
-3d/default_gravity=50.0
 jolt_physics_3d/simulation/penetration_slop=0.0
 jolt_physics_3d/simulation/continuous_cd_max_penetration=0.0
 jolt_physics_3d/collisions/collision_margin_fraction=0.005
+3d/default_gravity=50.0
 common/physics_interpolation=true
