@@ -20,7 +20,7 @@ Prerequisites:
 Steps:
 1. Run `git clone <repo-url>`.
 2. `cd` to the repo directory.
-3. Run `.\dev-setup.ps1`.
+3. Run `.\dev-setup.ps1` to install Godot locally, restore dependencies, and set up pre-commit hooks.
 4. Open the repo folder in VS Code and install the extensions recommended for this repository.
 5. Press Ctrl+`` ` `` (Ctrl+backtick) to open a terminal in VS Code.
 6. Run `dotnet build && dotnet test` to build everything and run the tests.
