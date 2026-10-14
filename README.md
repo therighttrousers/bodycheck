@@ -22,7 +22,7 @@ Steps:
 # Layout
 
 - `game/`: the Godot project (scenes, node scripts, levels, assets)
-- `src/BodyCheck.Core/`: game rules as a C# library that runs without the engine
+- `src/BodyCheck.Core/`: game rules as a C# library
 - `tests/BodyCheck.Core.Tests/`: xUnit tests for the library
 - `tests/BodyCheck.Game.Tests/`: tests that run inside Godot, through gdUnit4Net
 - `docs/`: design docs and decision records

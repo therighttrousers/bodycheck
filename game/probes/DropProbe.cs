@@ -20,12 +20,12 @@ public sealed class DropProbe : IProbe
     private static readonly float[] Overhangs = [0.01f, 0.02f, 0.04f, 0.08f, 0.16f, 0.32f];
     private static readonly float[] Heights = [2.0f, 2.1f, 2.2f, 2.3f, 4.5f, 8.0f];
 
-    private readonly BodyNode _body;
+    private readonly Entity _body;
     private int _tick;
     private float _maxLeftSpeed;
     private string _row = "";
 
-    public DropProbe(BodyNode body)
+    public DropProbe(Entity body)
     {
         _body = body;
         GD.Print("  each column is a drop height; L = landed on the wall, number = fastest leftward speed when pushed off");
@@ -45,7 +45,7 @@ public sealed class DropProbe : IProbe
         {
             float height = Heights[drop % Heights.Length];
             _body.Position = new Vector3(
-                WallFace + overhang - _body.Body.HalfSize.X, WallTop + height + _body.Body.HalfSize.Y, 0);
+                WallFace + overhang - _body.HalfSize.X, WallTop + height + _body.HalfSize.Y, 0);
             _body.LinearVelocity = Vector3.Zero;
             _maxLeftSpeed = 0;
             return;
@@ -54,7 +54,7 @@ public sealed class DropProbe : IProbe
         _maxLeftSpeed = Mathf.Max(_maxLeftSpeed, -_body.LinearVelocity.X);
         if (phase == TicksPerDrop - 1)
         {
-            bool landed = _body.Position.Y - _body.Body.HalfSize.Y > WallTop - 0.1f;
+            bool landed = _body.Position.Y - _body.HalfSize.Y > WallTop - 0.1f;
             _row += landed ? "      L" : $" {_maxLeftSpeed,6:F2}";
             if (drop % Heights.Length == Heights.Length - 1)
             {

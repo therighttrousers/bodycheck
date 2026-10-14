@@ -15,14 +15,14 @@ public sealed class PlayerProbe : IProbe
     private static readonly PlayerInput Left = new(-1, false);
     private static readonly PlayerInput Right = new(1, false);
 
-    private readonly BodyNode _body;
+    private readonly Entity _body;
     private int _tick;
 
     private float _restY;
     private float _apex;
     private int _airTicks;
 
-    public PlayerProbe(BodyNode body)
+    public PlayerProbe(Entity body)
     {
         _body = body;
     }
@@ -69,7 +69,7 @@ public sealed class PlayerProbe : IProbe
         }
         if (t < 396)
         {
-            GD.Print($"  jump at top speed, tick {t - 390}: vx {v.X:F3}, vy {v.Y:F3}, on ground {_body.Body.OnGround}");
+            GD.Print($"  jump at top speed, tick {t - 390}: vx {v.X:F3}, vy {v.Y:F3}, on ground {_body.OnGround}");
             return new PlayerInput(1, t == 390);
         }
         if (t < 450)
@@ -101,7 +101,7 @@ public sealed class PlayerProbe : IProbe
         }
 
         _apex = Mathf.Max(_apex, _body.Position.Y);
-        if (!_body.Body.OnGround)
+        if (!_body.OnGround)
         {
             _airTicks++;
         }

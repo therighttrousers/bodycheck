@@ -16,7 +16,7 @@ public sealed class CornerProbe : IProbe
     // The x of the wall's left face.
     private const float WallFace = 9;
 
-    private readonly BodyNode _body;
+    private readonly Entity _body;
     private readonly bool _holdRight;
     private int _tick;
 
@@ -26,7 +26,7 @@ public sealed class CornerProbe : IProbe
     private float _maxLeftSpeed;
 
     /// <param name="holdRight">Whether to keep pushing into the wall during the jump.</param>
-    public CornerProbe(BodyNode body, bool holdRight)
+    public CornerProbe(Entity body, bool holdRight)
     {
         _body = body;
         _holdRight = holdRight;
@@ -53,7 +53,7 @@ public sealed class CornerProbe : IProbe
         if (t == JumpTick)
         {
             _restX = p.X;
-            GD.Print($"  stopped at the wall: right edge {p.X + _body.Body.HalfSize.X - WallFace:F4} past its face, contacts {_body.Body.Contacts}");
+            GD.Print($"  stopped at the wall: right edge {p.X + _body.HalfSize.X - WallFace:F4} past its face, contacts {_body.Contacts}");
         }
 
         _apex = Mathf.Max(_apex, p.Y);
@@ -62,13 +62,13 @@ public sealed class CornerProbe : IProbe
         {
             _maxLeftSpeed = -v.X;
             GD.Print($"  tick {t - JumpTick}: pushed left, vx {v.X:F3}, vy {v.Y:F3}, "
-                + $"bottom {p.Y - _body.Body.HalfSize.Y:F3}, right edge {p.X + _body.Body.HalfSize.X - WallFace:F4} past the face");
+                + $"bottom {p.Y - _body.HalfSize.Y:F3}, right edge {p.X + _body.HalfSize.X - WallFace:F4} past the face");
         }
 
         if (t == EndTick)
         {
-            GD.Print($"  apex {_apex - _body.Body.HalfSize.Y - 1:F3} tiles above the floor; moved left by at most {_restX - _minX:F4}; "
-                + $"ends at x {p.X:F4}, bottom {p.Y - _body.Body.HalfSize.Y:F3}");
+            GD.Print($"  apex {_apex - _body.HalfSize.Y - 1:F3} tiles above the floor; moved left by at most {_restX - _minX:F4}; "
+                + $"ends at x {p.X:F4}, bottom {p.Y - _body.HalfSize.Y:F3}");
         }
         return new PlayerInput(_holdRight ? 1 : 0, t < JumpTick + 40);
     }

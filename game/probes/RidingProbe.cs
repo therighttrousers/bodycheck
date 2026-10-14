@@ -15,8 +15,8 @@ public sealed class RidingProbe : IProbe
     private const int RideTicks = 1800;
     private const int JumpTicks = 120;
 
-    private readonly BodyNode _rider;
-    private readonly BodyNode _carrier;
+    private readonly Entity _rider;
+    private readonly Entity _carrier;
     private readonly float _carrierStartY;
     private int _tick;
 
@@ -30,7 +30,7 @@ public sealed class RidingProbe : IProbe
     private float _jumpStartY;
     private float _apex;
 
-    public RidingProbe(BodyNode rider, BodyNode carrier)
+    public RidingProbe(Entity rider, Entity carrier)
     {
         _rider = rider;
         _carrier = carrier;
@@ -48,7 +48,7 @@ public sealed class RidingProbe : IProbe
     {
         int t = _tick++;
         float offset = _rider.Position.X - _carrier.Position.X;
-        float overlap = _carrier.Position.Y + _carrier.Body.HalfSize.Y - (_rider.Position.Y - _rider.Body.HalfSize.Y);
+        float overlap = _carrier.Position.Y + _carrier.HalfSize.Y - (_rider.Position.Y - _rider.HalfSize.Y);
 
         if (t < SettleTicks)
         {
@@ -76,7 +76,7 @@ public sealed class RidingProbe : IProbe
         {
             _largestOverlap = Mathf.Max(_largestOverlap, overlap);
             _largestOffsetChange = Mathf.Max(_largestOffsetChange, Mathf.Abs(offset - _offsetAtStart));
-            if (_rider.Body.Support != _carrier.Body)
+            if (_rider.Support != _carrier)
             {
                 _ticksOffCarrier++;
             }

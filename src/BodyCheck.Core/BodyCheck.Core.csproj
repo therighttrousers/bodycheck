@@ -20,4 +20,20 @@
     </Reference>
   </ItemGroup>
 
+  <!--
+    Godot calls a node class's overrides, such as _IntegrateForces, through code that its source generators
+    write. Without them the overrides are silently never called. The version is the engine's.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Godot.SourceGenerators" Version="4.7.2" PrivateAssets="all" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <GodotSourceGenerators>true</GodotSourceGenerators>
+    <GodotProjectDir>$(MSBuildProjectDirectory)\</GodotProjectDir>
+    <GodotProjectDirBase64>$([MSBuild]::ConvertToBase64('$(GodotProjectDir)'))</GodotProjectDirBase64>
+    <!-- This library is outside the Godot project, so its classes have no res:// path to record. -->
+    <GodotDisabledSourceGenerators>ScriptPathAttribute</GodotDisabledSourceGenerators>
+  </PropertyGroup>
+
 </Project>

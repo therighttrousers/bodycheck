@@ -7,10 +7,6 @@ public readonly record struct PlayerInput(float Move, bool JumpHeld);
 
 public sealed record PlayerTuning
 {
-    public Vector2 HalfSize { get; init; } = new(0.4f, 0.8f);
-    public float Mass { get; init; } = 1.0f;
-    public float Drag { get; init; } = 0.5f;
-
     /// <summary>Speed at which the run drive force falls to zero.</summary>
     public float TopSpeed { get; init; } = 16;
 
@@ -47,53 +43,55 @@ public sealed record PlayerTuning
 }
 
 /// <summary>
-/// Turns player input into forces and impulses on the player's body.
-/// Call <see cref="Apply"/> once per tick, before <see cref="World.Step"/>.
+/// Turns player input into forces, impulses and traction on the entity it controls.
 /// </summary>
-public sealed class PlayerController
+public sealed class PlayerController : ICharacterController<WalkerEntity>
 {
-    public PlayerTuning Tuning { get; }
-    public Body Body { get; }
+    private readonly Func<PlayerInput> _input;
 
     private bool _jumpWasHeld;
     private int _groundTicksLeft;
-    private Vector2 _lastGroundVelocity = Vector2.Zero;
+    private Vector3 _lastGroundVelocity = Vector3.Zero;
     private int _thrustTicksLeft;
 
-    public PlayerController(PlayerTuning tuning)
+    /// <param name="input">Supplies the player's input, once per tick.</param>
+    public PlayerController(PlayerTuning tuning, Func<PlayerInput> input)
     {
         Tuning = tuning;
-        Body = new Body(Tuning.HalfSize, Tuning.Mass) { Drag = Tuning.Drag };
+        _input = input;
     }
 
-    public void Apply(PlayerInput input, World world, float dt)
+    public PlayerTuning Tuning { get; }
+
+    public void Apply(WalkerEntity entity, float dt)
     {
-        if (Body.OnGround)
+        PlayerInput input = _input();
+        if (entity.OnGround)
         {
             _groundTicksLeft = Tuning.CoyoteTicks + 1; // +1 to include this frame in remaining ground ticks
-            _lastGroundVelocity = Body.Velocity;
+            _lastGroundVelocity = entity.LinearVelocity;
         }
 
-        float weight = Body.Mass * world.Gravity;
-        ApplyRun(Math.Clamp(input.Move, -1, 1), weight);
-        ApplyJump(input.JumpHeld, weight);
+        float weight = entity.Weight;
+        ApplyRun(entity, Math.Clamp(input.Move, -1, 1), weight);
+        ApplyJump(entity, input.JumpHeld, weight);
 
         _groundTicksLeft = Math.Max(0, _groundTicksLeft - 1);
         _thrustTicksLeft = Math.Max(0, _thrustTicksLeft - 1);
         _jumpWasHeld = input.JumpHeld;
     }
 
-    private void ApplyRun(float move, float weight)
+    private void ApplyRun(WalkerEntity entity, float move, float weight)
     {
-        // Speed is relative to whatever the body stands on, so running on a robot works like running on tiles.
-        float speed = Body.Velocity.X - Body.GroundVelocity.X;
+        // Speed is relative to whatever the entity stands on, so running on a robot works like running on tiles.
+        float speed = entity.LinearVelocity.X - entity.GroundVelocity.X;
         bool reverse = speed != 0 && move * speed <= 0;
 
         float drive = 0;
         if (move != 0)
         {
-            // The drive fades out as the body nears top speed in the input direction.
-            // It never slows a body that is already faster than that.
+            // The drive fades out as the entity nears top speed in the input direction.
+            // It never slows an entity that is already faster than that.
             float headroom = Math.Clamp(1 - speed * MathF.Sign(move) / Tuning.TopSpeed, 0, 1);
             float driveForce =
                 _groundTicksLeft > 0
@@ -102,22 +100,21 @@ public sealed class PlayerController
             drive = MathF.Abs(move) * driveForce * headroom;
         }
 
-        if (Body.OnGround)
+        if (entity.OnGround)
         {
-            // On the ground the drive is traction: the world applies it, and pushes back on the support.
-            // Friction adds to it unless the body is driving the way it is already going, so it holds an
-            // idle body still on its support, and can stop a moving one but can't reverse it.
+            // On the ground the drive is traction: the engine applies it, and pushes back on the support.
+            // Friction adds to it unless the entity is driving the way it is already going, so it holds an
+            // idle entity still on its support, and can stop a moving one but can't reverse it.
             float friction = move == 0 || reverse ? Tuning.GroundFriction * weight : 0;
-            Body.Traction = new Traction(MathF.Sign(move) * Tuning.TopSpeed, drive + friction);
+            entity.ApplyTraction(MathF.Sign(move) * Tuning.TopSpeed, drive + friction);
         }
         else
         {
-            Body.Traction = default;
-            Body.AddForce(new Vector2(MathF.Sign(move) * drive, 0));
+            entity.ApplyCentralForce(new Vector3(MathF.Sign(move) * drive, 0, 0));
         }
     }
 
-    private void ApplyJump(bool jumpHeld, float weight)
+    private void ApplyJump(WalkerEntity entity, bool jumpHeld, float weight)
     {
         if (!jumpHeld)
         {
@@ -128,10 +125,10 @@ public sealed class PlayerController
         {
             // From jump speed, subtract the delta-Y accumulated during coyote frames (which should be negative), to
             // allow coyote jumps to go just as high as jumps from the ground.
-            var coyoteVelocityY = Body.Velocity.Y - _lastGroundVelocity.Y;
-            var impulse = new Vector2(0, Body.Mass * (Tuning.JumpSpeed - coyoteVelocityY));
-            Body.AddImpulse(impulse);
-            Body.Support?.AddImpulse(-impulse);
+            var coyoteVelocityY = entity.LinearVelocity.Y - _lastGroundVelocity.Y;
+            var impulse = new Vector3(0, entity.Mass * (Tuning.JumpSpeed - coyoteVelocityY), 0);
+            entity.ApplyCentralImpulse(impulse);
+            entity.Support?.ApplyCentralImpulse(-impulse);
             _groundTicksLeft = 0;
             _thrustTicksLeft = Tuning.JumpThrustTicks + 1;
 
@@ -140,16 +137,16 @@ public sealed class PlayerController
         }
 
         // If stopped rising (e.g. hit a ceiling), cancel thrust.
-        if (Body.Velocity.Y <= 0)
+        if (entity.LinearVelocity.Y <= 0)
         {
             _thrustTicksLeft = 0;
         }
 
         if (_thrustTicksLeft > 0)
         {
-            var force = new Vector2(0, Tuning.JumpThrustFrac * weight);
-            Body.AddForce(force);
-            Body.Support?.AddForce(-force);
+            var force = new Vector3(0, Tuning.JumpThrustFrac * weight, 0);
+            entity.ApplyCentralForce(force);
+            entity.Support?.ApplyCentralForce(-force);
         }
     }
 }
