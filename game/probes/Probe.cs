@@ -36,7 +36,7 @@ public static class Probe
                 // Nothing may brake the sliding body, so the controllers are off.
                 room.ControllersEnabled = false;
                 GD.Print($"Seam probe: tiles {(mergeTiles ? "merged" : "single")}");
-                probe = new SeamProbe(room.Player, speed: room.PlayerController.Tuning.TopSpeed);
+                probe = new SeamProbe(room.Player, speed: room.PlayerTuning.TopSpeed);
                 break;
             case "player":
                 room = load(TestRooms.Seams);
@@ -56,7 +56,7 @@ public static class Probe
             case "ride-robot" or "ride-platform":
                 room = load(name == "ride-robot" ? TestRooms.RobotRiding : TestRooms.PlatformRiding);
                 GD.Print($"Riding probe, {room.Room.Name}:");
-                probe = new RidingProbe(room.Player, room.BodyNodes[1]);
+                probe = new RidingProbe(room.Player, room.Entities[1]);
                 break;
             case "landing":
                 room = load(TestRooms.Seams);
@@ -66,12 +66,12 @@ public static class Probe
             case "push":
                 room = load(TestRooms.RobotPush);
                 GD.Print("Push probe:");
-                probe = new PushProbe(room.Player, room.BodyNodes[1]);
+                probe = new PushProbe(room.Player, room.Entities[1]);
                 break;
             case "run-off":
                 room = load(TestRooms.RobotRiding);
                 GD.Print("Run-off probe:");
-                probe = new RunOffProbe(room.Player, room.BodyNodes[1]);
+                probe = new RunOffProbe(room.Player, room.Entities[1]);
                 break;
             default:
                 throw new ArgumentException($"There is no probe named '{name}'.");

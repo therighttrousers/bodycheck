@@ -24,30 +24,30 @@ public class PlayerControllerTest
     private static readonly PlayerInput Right = new(1, false);
     private static readonly PlayerInput Jump = new(0, true);
 
-    private static readonly PlayerTuning NoDrag = new() { Drag = 0 };
-    private static readonly PlayerTuning NoDragFullThrust = new() { Drag = 0, JumpThrustFrac = 1 };
+    private static readonly BodyTuning NoDrag = BodyTuning.Player with { Drag = 0 };
+    private static readonly PlayerTuning FullThrust = new() { JumpThrustFrac = 1 };
 
     private RoomNode? _room;
     private PlayerInput _input;
 
-    private Body Player => _room!.PlayerController.Body;
-    private PlayerTuning Tuning => _room!.PlayerController.Tuning;
-    private float Gravity => _room!.World.Gravity;
+    private const float Gravity = Room.Gravity;
 
-    // The engine's own velocity. The body's copy is a tick older at the points where a test looks.
-    private Vector3 Velocity => _room!.Player.LinearVelocity;
+    private Entity Player => _room!.Player;
+    private PlayerTuning Tuning => _room!.PlayerTuning;
+    private Vector3 Velocity => Player.LinearVelocity;
 
     private static SceneTree Tree => (SceneTree)Engine.GetMainLoop();
 
     /// <summary>Loads an empty room, replacing the one loaded before, and by default waits for the player to settle.</summary>
     /// <param name="settleTicks">How long to wait before returning. Pass 0 for a player that starts in the air.</param>
     private async Task Start(
-        PlayerTuning? tuning = null, int height = 20, int playerX = 1, int playerY = 1, int settleTicks = 30)
+        PlayerTuning? tuning = null, BodyTuning? body = null,
+        int height = 20, int playerX = 1, int playerY = 1, int settleTicks = 30)
     {
         _room?.Free();
         _input = Idle;
         Room frame = TestRooms.EmptyFrame(60, height, playerX, playerY);
-        _room = new RoomNode(frame, playerController: new PlayerController(tuning ?? new PlayerTuning()))
+        _room = new RoomNode(frame, playerTuning: tuning, playerBody: body)
         {
             PlayerInput = () => _input,
         };
@@ -81,7 +81,7 @@ public class PlayerControllerTest
         for (int tick = 0; tick < 600; tick++)
         {
             await Tick(tick < ticksHeld ? Jump : Idle);
-            apex = MathF.Max(apex, Player.Position.Y - Tuning.HalfSize.Y - 1);
+            apex = MathF.Max(apex, Player.Position.Y - Player.HalfSize.Y - 1);
 
             // The floor contact is still reported for a tick or two after take-off.
             if (!Player.OnGround)
@@ -101,7 +101,7 @@ public class PlayerControllerTest
     {
         await Start();
         float drive = Tuning.GroundForwardDriveForce;
-        float balance = drive / (drive / Tuning.TopSpeed + Tuning.Drag);
+        float balance = drive / (drive / Tuning.TopSpeed + Player.Tuning.Drag);
 
         await Tick(Right, 120);
 
@@ -111,7 +111,7 @@ public class PlayerControllerTest
     [TestCase]
     public async Task Running_without_drag_approaches_top_speed_without_passing_it()
     {
-        await Start(NoDrag);
+        await Start(body: NoDrag);
 
         await Tick(Right, 120);
 
@@ -131,8 +131,8 @@ public class PlayerControllerTest
     [TestCase]
     public async Task Driving_does_not_slow_a_body_that_is_over_top_speed()
     {
-        await Start(NoDrag);
-        Player.AddImpulse(new Vector2(20, 0) * Player.Mass);
+        await Start(body: NoDrag);
+        Player.ApplyCentralImpulse(new Vector3(20, 0, 0) * Player.Mass);
 
         await Tick(Right, 30);
 
@@ -143,7 +143,7 @@ public class PlayerControllerTest
     public async Task Friction_stops_the_body_without_reversing_it()
     {
         await Start();
-        Player.AddImpulse(new Vector2(5, 0));
+        Player.ApplyCentralImpulse(new Vector3(5, 0, 0));
 
         await Tick(Idle, 30);
 
@@ -153,8 +153,8 @@ public class PlayerControllerTest
     [TestCase]
     public async Task There_is_no_friction_in_the_air()
     {
-        await Start(NoDrag, playerX: 5, playerY: 15, settleTicks: 0);
-        Player.AddImpulse(new Vector2(5, 0));
+        await Start(body: NoDrag, playerX: 5, playerY: 15, settleTicks: 0);
+        Player.ApplyCentralImpulse(new Vector3(5, 0, 0));
 
         await Tick(Idle, 10);
 
@@ -165,7 +165,7 @@ public class PlayerControllerTest
     [TestCase]
     public async Task Jumping_gives_an_upward_impulse()
     {
-        await Start(new PlayerTuning { Mass = 3 });
+        await Start(body: BodyTuning.Player with { Mass = 3 });
 
         await Tick(Jump);
 
@@ -176,7 +176,7 @@ public class PlayerControllerTest
     [TestCase]
     public async Task Thrust_equal_to_weight_holds_the_rise_at_constant_speed()
     {
-        await Start(NoDragFullThrust);
+        await Start(FullThrust, NoDrag);
 
         await Tick(Jump);
         float speedAfterImpulse = Velocity.Y;
@@ -199,7 +199,7 @@ public class PlayerControllerTest
     [TestCase]
     public async Task A_tap_without_drag_jumps_about_as_high_as_the_impulse_alone()
     {
-        await Start(NoDrag);
+        await Start(body: NoDrag);
         float impulseOnly = Tuning.JumpSpeed * Tuning.JumpSpeed / (2 * Gravity);
 
         float apex = await ApexOfJump(ticksHeld: 1);
@@ -210,13 +210,13 @@ public class PlayerControllerTest
     [TestCase]
     public async Task Holding_jump_adds_the_distance_risen_under_thrust()
     {
-        await Start(NoDragFullThrust);
+        await Start(FullThrust, NoDrag);
         float tap = await ApexOfJump(ticksHeld: 1);
 
         // Thrust starts the tick after the impulse, by when gravity has acted once. A tap gets none.
         float risenUnderThrust = Tuning.JumpThrustTicks * (Tuning.JumpSpeed - Gravity * Dt) * Dt;
 
-        await Start(NoDragFullThrust);
+        await Start(FullThrust, NoDrag);
         float held = await ApexOfJump(ticksHeld: 600);
 
         AssertThat(held - tap).IsEqualApprox(risenUnderThrust, 0.01f);
@@ -274,7 +274,7 @@ public class PlayerControllerTest
     public async Task Thrust_ends_when_the_body_hits_a_ceiling()
     {
         // A ceiling 1.4 tiles above the player's head, and thrust that would otherwise hold it there for 10 seconds.
-        await Start(NoDragFullThrust with { JumpThrustTicks = 600 }, height: 5);
+        await Start(FullThrust with { JumpThrustTicks = 600 }, NoDrag, height: 5);
 
         await Tick(Jump, 60);
 

@@ -14,7 +14,7 @@ public sealed class LandingProbe : IProbe
 {
     private const int RunTicks = 70;
 
-    private readonly BodyNode _body;
+    private readonly Entity _body;
     private readonly List<float> _speeds = [];
     private int _tick;
     private int _phaseStart;
@@ -22,7 +22,7 @@ public sealed class LandingProbe : IProbe
     private bool _wasInAir;
     private float _lastAirSpeed;
 
-    public LandingProbe(BodyNode body)
+    public LandingProbe(Entity body)
     {
         _body = body;
     }
@@ -43,7 +43,7 @@ public sealed class LandingProbe : IProbe
 
         float held = _second ? 0 : 1;
         Input = new PlayerInput(held, t == RunTicks);
-        if (!_body.Body.OnGround)
+        if (!_body.OnGround)
         {
             _wasInAir = true;
             _lastAirSpeed = vx;
@@ -75,15 +75,15 @@ public sealed class PushProbe : IProbe
 {
     private const int Ticks = 600;
 
-    private readonly BodyNode _player;
-    private readonly BodyNode _robot;
+    private readonly Entity _player;
+    private readonly Entity _robot;
     private readonly float _playerStartX;
     private int _tick;
     private float _largestOverlap;
     private float _largestMove;
     private int _firstTouch = -1;
 
-    public PushProbe(BodyNode player, BodyNode robot)
+    public PushProbe(Entity player, Entity robot)
     {
         _player = player;
         _robot = robot;
@@ -95,7 +95,7 @@ public sealed class PushProbe : IProbe
     public void Tick(float dt)
     {
         int t = _tick++;
-        float overlap = _robot.Position.X + _robot.Body.HalfSize.X - (_player.Position.X - _player.Body.HalfSize.X);
+        float overlap = _robot.Position.X + _robot.HalfSize.X - (_player.Position.X - _player.HalfSize.X);
         _largestOverlap = Mathf.Max(_largestOverlap, overlap);
         _largestMove = Mathf.Max(_largestMove, Mathf.Abs(_player.Position.X - _playerStartX));
         if (_firstTouch < 0 && overlap > -0.001f)
@@ -125,11 +125,11 @@ public sealed class RunOffProbe : IProbe
     private const int SettleTicks = 120;
     private const int TraceTicks = 50;
 
-    private readonly BodyNode _player;
-    private readonly BodyNode _robot;
+    private readonly Entity _player;
+    private readonly Entity _robot;
     private int _tick;
 
-    public RunOffProbe(BodyNode player, BodyNode robot)
+    public RunOffProbe(Entity player, Entity robot)
     {
         _player = player;
         _robot = robot;
@@ -148,7 +148,7 @@ public sealed class RunOffProbe : IProbe
         }
 
         Input = new PlayerInput(1, false);
-        string ground = !_player.Body.OnGround ? "air" : _player.Body.Support is null ? "tiles" : "robot";
+        string ground = !_player.OnGround ? "air" : _player.Support is null ? "tiles" : "robot";
         GD.Print($"  tick {t,2}: player vx {_player.LinearVelocity.X,7:F3} vy {_player.LinearVelocity.Y,7:F3} on {ground,-5} "
             + $"robot vx {_robot.LinearVelocity.X,7:F3}");
     }

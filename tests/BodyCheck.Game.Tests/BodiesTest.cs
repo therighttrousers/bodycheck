@@ -48,9 +48,9 @@ public class BodiesTest
         }
     }
 
-    private RoomRun Start(Room room, PlayerTuning? playerTuning = null, bool controllersEnabled = true)
+    private RoomRun Start(Room room, BodyTuning? playerBody = null, bool controllersEnabled = true)
     {
-        _run = new RoomRun(room, playerTuning, controllersEnabled);
+        _run = new RoomRun(room, playerBody, controllersEnabled);
         return _run;
     }
 
@@ -72,12 +72,12 @@ public class BodiesTest
                 "#..............................#",
                 "#....P.....R...................#",
                 "################################"),
-            new PlayerTuning { Mass = movingMass },
+            BodyTuning.Player with { Mass = movingMass },
             controllersEnabled: false);
-        BodyNode moving = run.Player;
-        BodyNode resting = run.Node.BodyNodes[1];
+        Entity moving = run.Player;
+        Entity resting = run.Node.Entities[1];
         await run.Tick(Idle, 10);
-        moving.Body.AddImpulse(new Vector2(8 * moving.Mass, 0));
+        moving.ApplyCentralImpulse(new Vector3(8 * moving.Mass, 0, 0));
 
         float momentumBefore = 0;
         float momentumAfter = 0;
@@ -115,7 +115,7 @@ public class BodiesTest
             "#..........#",
             "#..P.....R.#",
             "############"));
-        BodyNode robot = run.Node.BodyNodes[1];
+        Entity robot = run.Node.Entities[1];
         const float wallFace = 11;
 
         float deepestInWall = float.MinValue;
@@ -143,7 +143,7 @@ public class BodiesTest
             "#" + new string('.', 98) + "#",
             "#..P....R" + new string('.', 90) + "#",
             new string('#', 100)));
-        BodyNode robot = run.Node.BodyNodes[1];
+        Entity robot = run.Node.Entities[1];
         float robotTopSpeed = new RobotTuning().TopSpeed;
 
         var overlap = new Overlap();
@@ -163,7 +163,7 @@ public class BodiesTest
             "#..............................#",
             "#....R.....P...................#",
             "################################"));
-        BodyNode robot = run.Node.BodyNodes[1];
+        Entity robot = run.Node.Entities[1];
         float playerStart = run.Player.Position.X;
 
         var overlap = new Overlap();
@@ -198,8 +198,8 @@ public class BodiesTest
             "#" + new string('.', 38) + "#",
             "#" + new string('.', 38) + "#",
             new string('#', 40)));
-        BodyNode platform = run.Node.BodyNodes[1];
-        BodyNode block = run.Node.Blocks[0];
+        Entity platform = run.Node.Entities[1];
+        Entity block = run.Node.Blocks[0];
 
         float platformStart = platform.Position.X;
         float farthestFromStart = 0;
@@ -214,7 +214,7 @@ public class BodiesTest
         // little each time a wall stops the platform dead.
         AssertThat(farthestFromStart).IsGreater(10f);
         AssertThat(block.Bottom()).IsEqualApprox(platform.Top(), 0.01f);
-        AssertThat(greatestOffset).IsLess(platform.Body.HalfSize.X);
+        AssertThat(greatestOffset).IsLess(platform.HalfSize.X);
     }
 
     [TestCase]
@@ -225,7 +225,7 @@ public class BodiesTest
             "#..............................#",
             "#....P.B.......................#",
             "################################"));
-        BodyNode block = run.Node.Blocks[0];
+        Entity block = run.Node.Blocks[0];
         float blockStart = block.Position.X;
 
         var overlap = new Overlap();
@@ -251,11 +251,11 @@ public class BodiesTest
             "#....P.........................#",
             "#....B.........................#",
             "################################"));
-        BodyNode block = run.Node.Blocks[0];
+        Entity block = run.Node.Blocks[0];
         await run.Tick(Idle, 30);
         float blockStart = block.Position.X;
         float start = run.Player.Position.Y;
-        AssertThat(run.Player.Body.Support).IsSame(block.Body);
+        AssertThat(run.Player.Support).IsSame(block);
 
         float apex = start;
         await run.Tick(Jump);
@@ -289,7 +289,7 @@ public class BodiesTest
                 .. Enumerable.Repeat(air, 3),
                 new string('#', 120),
             ]),
-            new PlayerTuning { Drag = drag });
+            BodyTuning.Player with { Drag = drag });
         const float floorTop = 5;
 
         float lowest = float.MaxValue;

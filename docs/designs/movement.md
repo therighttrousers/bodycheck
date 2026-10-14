@@ -22,7 +22,7 @@ Note: As we develop, we will create test rooms and refer to them here; e.g. "pla
 
 Rationale: decision record `001`.
 
-- Bodies are simulated by Godot's 3D physics engine, Jolt. Each is a `RigidBody3D` with a box shape, with movement along Z and all rotation locked.
+- Bodies are simulated by Godot's 3D physics engine, Jolt. Each is an `Entity`: a `RigidBody3D` with a box shape, with movement along Z and all rotation locked.
 - The player is not a `CharacterBody3D`: that kind of body has no mass and can't be pushed (`001 §1.1`).
 - Walking entities have engine friction 0 and continuous collision detection, and get their grip from traction, below. With engine friction they grip walls and lose their speed on landing (`001 §2.1`).
 - Other bodies use engine friction and ordinary collision detection: blocks, which have no controller and are only pushed, carried and stood on, and hovering platforms, so that what rests on them is carried. A body is a walker exactly when its engine friction is 0.
@@ -30,15 +30,17 @@ Rationale: decision record `001`.
 - Bounce is 0 on everything. Drag is our own force, not the engine's damping, which gives lower jumps under the same tuning (`005 §2.1`).
 - All solid tiles are shapes of one static body, merged along rows into larger boxes, so that a floor seam can't catch a sliding body (`001 §1.2`).
 - Four project settings make contacts exact and corners sharp (`001 §1.3`): collision margin fraction 0.005, penetration slop 0, continuous collision detection's maximum penetration 0, and 60 physics ticks per second.
-- Controllers give a body its forces and impulses through `AddForce` and `AddImpulse`. Once per tick, after every controller has run, `World.Step` adds drag and hands the engine one impulse per body.
-- A body's velocity, as controllers see it, includes the impulses added this tick. Forces don't show in it until the engine's next step.
+- Once per tick, before the engine's step, the room steps every entity: its controller runs, then its drag is applied and its traction is handed to the engine (`005 §3.3`).
+- A controller pushes its entity with the engine's own forces and impulses, and with `ApplyTraction`.
+- Controllers decide by `Entity.Velocity`, which includes the impulses applied this tick. The node's own `LinearVelocity` doesn't show those until the engine's next step. Neither shows this tick's forces.
+- An entity's weight uses the room's gravity, a constant. The engine's own figure for the gravity on a body is its default, 9.8, on the body's first tick (`005 §3.4`).
 
 # Ground contact and traction
 
 Rationale: decision record `000 §2.2`, `000 §2.5`, `001 §2.1` and `005`.
 
 - Traction is a motor inside the engine's solver (`005 §1.1`). Each walker has a joint with every limit off, so that its only effect is a motor along X. The joint connects the walker to the body it stands on, or to the world when it stands on tiles.
-- Each tick, after the controllers have run, the motor is given the walker's target speed and maximum force. It is off in the air.
+- Traction lasts one tick, like a force: a controller applies it on each tick that it wants grip. After the controller has run, the motor is given the target speed and maximum force. It is off in the air, and when no traction was applied.
 - The engine solves the motor together with the tick's contacts, so traction takes account of every force on the body, and of what other bodies do to it in the same tick.
 
 - A character's speed is measured relative to what it stands on: tiles, or another body.
@@ -64,5 +66,6 @@ TODO
 - Sprinting on a patrolling robot stalls it within a couple of ticks, because the robot's drive is far weaker than the player's. Should a robot hold its patrol speed more firmly when something pushes on it?
 - Not yet measured for the traction motor (`005 §1.4`): what it costs to move the joint when a walker changes what it stands on, for a body that does so every few ticks; a stack of three or more; and what happens when a body is freed while a walker stands on it.
 - An idle rider on a platform ends 30 seconds 0.04 tiles from where it stood, having slid up to 0.19 each time a wall stops the platform dead. Our own traction stage ended within 0.003. Not investigated (`005 §1.3`).
-- `Body` and `World.Step` now only collect forces and add drag. Whether controllers should talk to the engine's bodies directly is `005 §3.1`.
+- The platform's vertical thrust is a PD controller of our own. Could a joint motor or spring replace it? Neil's to try (`005 §3.6`).
+- What happens to `Entity.Support`, and to the traction joint, when the entity stood on is freed. Nothing is freed during play yet.
 - Traction limits come from each character's tuning, not from the load on the contact, so a robot carrying the player grips the floor no harder than one carrying nothing. Is that worth changing?

@@ -45,12 +45,38 @@ Tensions:
   - Jumps are lower: a tap jump reaches 2.175 tiles against 2.210, and `Jumping_gives_an_upward_impulse` fails. Likely cause: the engine damps the velocity after adding the tick's forces to it, and we damp the velocity from before them. Not confirmed.
   - It would need a retune for no gain. A controller can apply `-drag × velocity` to the engine itself.
 
-## 3. What follows if we adopt it
+## 3. Removing the proxy
 
-- [ ] 3.1 Does `Body` go? With the motor, nothing needs every force to pass through `World.Step`, so controllers could hold a `RigidBody3D` and call the engine directly. `World`, `Body.AddForce` and the copying in `BodyNode` would go. The spike didn't do this: it kept `Body` so that both ways could be measured with the same controllers.
-  - This supersedes part of `002`: Core's rules would use nodes, and couldn't run outside the engine.
-- [ ] 3.2 Where do the tests go? `TractionTests` would be deleted with the stage it tests; `RidingTest` and `PlayerControllerTest` already state the same goals in the engine. Neil is fine with gdUnit4Net for Core's tests.
-- [ ] 3.3 The generalisation. The joint gives axis (X, Y), anchor (`node_a`), gate (the enable flag) and limit (`force_limit`) directly. Limits to know:
+Part two, decided in conversation on 2026-10-13 and built the same night by Claude.
+
+- [x] 3.1 Does `Body` go? Decision (Neil): yes. With the motor, nothing needs every force to pass through `World.Step`. `Body`, `World`, `BodyNode` and `Block` are deleted, and controllers push the engine's bodies directly.
+  - This supersedes part of `002`: Core's rules use nodes, and can't run outside the engine.
+- [x] 3.2 Can a node class live in Core? Outcome: yes, with Godot's source generators. Tried on 2026-10-13 with a throwaway `RigidBody3D` subclass.
+  - As a plain library: the node is created and simulated, but `_Ready`, `_PhysicsProcess` and `_IntegrateForces` are never called, and nothing warns.
+  - With a package reference to `Godot.SourceGenerators` and four properties in `BodyCheck.Core.csproj`: all three are called. Core stays a plain class library and keeps referencing the installed engine's `GodotSharp.dll`.
+  - The generator that records each script's `res://` path is off, because Core is outside the Godot project. So a Core node class is created in code and can't be attached to a scene in the editor.
+  - Consequence for art: a character made as a scene would be a visuals-only scene, loaded by the game and handed to the entity as a child.
+- [x] 3.3 How entities and controllers are wired. Neil proposed a base class for game entities that are drawn, have physics and run code each tick, held in one list and stepped from `_PhysicsProcess`. Decisions, each Neil's after discussion:
+  - `Entity` is the rigid body, not a holder of one, so that contacts and joints lead straight to entities. If that goes wrong, we back out and contain instead.
+  - The room holds the list and steps it, not `Main`: tests build a `RoomNode` with no `Main`.
+  - The player's input stays injected, as tests and probes need. `PlayerController` is given its input source when constructed, since `Apply` no longer receives it.
+  - Controllers stay separate from entities. Swapping an entity's controller isn't planned, and isn't ruled out. `Apply` is passed the entity, which costs nothing and keeps that possible.
+  - `ICharacterController` is the interface for every controller, the player's included, so that an NPC can be made as capable as the player.
+  - One `Entity` class to start, with no `Player` or `Robot` subclass: they differ only in tuning, looks and controller. Subclass when it gets painful in a way subclassing fixes.
+  - Tuning is split. `BodyTuning` has the body's values (half-size, mass, drag, engine friction), with one preset per kind of body. `PlayerTuning`, `RobotTuning` and `PlatformTuning` keep the controller's values.
+  - Looks are handed to the entity, not loaded by it. The test projects can't see the game's files (`001 §3.1`), so an entity that loaded its own model would fail there.
+- [x] 3.4 As built.
+  - `Entity.Step` runs the controller, applies drag, and hands the tick's traction to the motor. Traction is applied each tick, like a force, with `ApplyTraction(targetSpeed, maxForce)`.
+  - `Entity.Velocity` reads the velocity from the physics server, which includes impulses applied this tick. The node's `LinearVelocity` doesn't, and with it `Driving_does_not_slow_a_body_that_is_over_top_speed` failed: the controller drove a body that an impulse had just put over top speed.
+  - Weight uses a constant, `Room.Gravity`. `RigidBody3D.GetGravity` returns the engine's default 9.8 on a body's first tick, before the room's gravity has reached it. With it the platform started with a fifth of its thrust and dipped 0.385 tiles on the rider's landing, against 0.382.
+  - Results: all ten probes print what they did before the rewrite, apart from the last digit of one figure and the sign of a zero. 30 of 30 in-engine tests pass, with changes only to how they build rooms and name things.
+  - Not built: looks supplied by `Main`. `RoomNode` still makes the box for each entity itself.
+- [ ] 3.5 Where do the tests go? Not changed: `BodyCheck.Core.Tests` is still xUnit, with only the tile-grid tests, and everything that needs the engine is in `BodyCheck.Game.Tests`.
+  - Tried: converting `BodyCheck.Core.Tests` to the Game tests' setup (Godot SDK, gdUnit4Net, a copied `project.godot`). A Core node gets its callbacks there, and the xUnit tests keep running in the same project.
+  - Open: whether two test projects still earn their keep, now that Core's rules need the engine.
+- [ ] 3.6 A joint motor or spring in place of the platform's PD controller. Deferred until the rest is done. Neil wants to do it himself.
+  - To be checked first: whether the joint's linear spring has a force limit, which `MaxVerticalThrustFrac` needs.
+- [ ] 3.7 The generalisation that started this record: grip on other axes, against other anchors, with other gates. The joint gives axis (X, Y), anchor (`node_a`), gate (the enable flag) and limit (`force_limit`) directly. Limits to know:
   - Godot exposes one symmetric force limit per axis. Jolt has separate minimum and maximum, which Godot doesn't expose, so a grip that pushes harder than it pulls isn't available.
   - The reaction always goes to the anchor in full. A push that nothing pays for stays a plain force, as air drive is now.
   - A second motor on the same axis against a different anchor needs a second joint.
@@ -60,7 +86,7 @@ Tensions:
 
 - [x] 4.1 Replace the traction stage with joint motors? Decision (Neil, 2026-10-13): yes, with drag kept as our own force (2.1). Claude recommended it. The remaining items of 1.4 are open questions in [movement.md](../designs/movement.md).
   - Done in two parts, in one pull request. Part one removes the traction stage: `World.ApplyTraction` and `TractionTests` are deleted, the motor is the only way, and `World.Step` only adds drag and passes on each body's impulse. The in-engine tests already state the goals that `TractionTests` did.
-  - Part two is section 3, to be discussed after Neil has read part one's diff. It includes trying a motor in place of the platform's PD controller (Neil).
+  - Part two is section 3, discussed after Neil had read part one's diff.
 
 ## Notes
 

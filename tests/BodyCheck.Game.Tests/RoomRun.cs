@@ -19,9 +19,9 @@ public sealed class RoomRun
 
     private PlayerInput _input = Idle;
 
-    public RoomRun(Room room, PlayerTuning? playerTuning = null, bool controllersEnabled = true)
+    public RoomRun(Room room, BodyTuning? playerBody = null, bool controllersEnabled = true)
     {
-        Node = new RoomNode(room, playerController: new PlayerController(playerTuning ?? new PlayerTuning()))
+        Node = new RoomNode(room, playerBody: playerBody)
         {
             PlayerInput = () => _input,
             ControllersEnabled = controllersEnabled,
@@ -31,7 +31,7 @@ public sealed class RoomRun
 
     public RoomNode Node { get; }
 
-    public BodyNode Player => Node.Player;
+    public Entity Player => Node.Player;
 
     private static SceneTree Tree => (SceneTree)Engine.GetMainLoop();
 
@@ -53,13 +53,11 @@ public sealed class RoomRun
     }
 }
 
-public static class BodyNodeExtensions
+public static class EntityExtensions
 {
-    // These read the engine's own state. A Body's copy is a tick older at the points where a test looks.
-
-    public static float Left(this BodyNode node) => node.Position.X - node.Body.HalfSize.X;
-    public static float Right(this BodyNode node) => node.Position.X + node.Body.HalfSize.X;
-    public static float Bottom(this BodyNode node) => node.Position.Y - node.Body.HalfSize.Y;
-    public static float Top(this BodyNode node) => node.Position.Y + node.Body.HalfSize.Y;
-    public static float MomentumX(this BodyNode node) => node.Mass * node.LinearVelocity.X;
+    public static float Left(this Entity node) => node.Position.X - node.HalfSize.X;
+    public static float Right(this Entity node) => node.Position.X + node.HalfSize.X;
+    public static float Bottom(this Entity node) => node.Position.Y - node.HalfSize.Y;
+    public static float Top(this Entity node) => node.Position.Y + node.HalfSize.Y;
+    public static float MomentumX(this Entity node) => node.Mass * node.LinearVelocity.X;
 }

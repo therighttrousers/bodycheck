@@ -24,8 +24,8 @@ public class RidingTest
     private RoomNode _room = null!;
     private PlayerInput _input;
 
-    private Body Player => _room.PlayerController.Body;
-    private Body Robot => _room.Characters[0].Body;
+    private Entity Player => _room.Player;
+    private Entity Robot => _room.Characters[0];
 
     private static SceneTree Tree => (SceneTree)Engine.GetMainLoop();
 
@@ -86,12 +86,12 @@ public class RidingTest
     public async Task A_jump_from_a_robot_keeps_the_robots_speed()
     {
         await Start();
-        float robotSpeed = Robot.Velocity.X;
+        float robotSpeed = Robot.LinearVelocity.X;
 
         await Tick(Jump);
         await Tick(Idle, 2);
 
         AssertThat(robotSpeed).IsGreater(1f);
-        AssertThat(Player.Velocity.X).IsEqualApprox(robotSpeed, 0.1f);
+        AssertThat(Player.LinearVelocity.X).IsEqualApprox(robotSpeed, 0.1f);
     }
 }

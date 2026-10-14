@@ -8,9 +8,9 @@ using Godot;
 namespace BodyCheck;
 
 /// <summary>
-/// One room, simulated: its tiles, the player, the robots and the platforms, with their controllers.
-/// Each physics tick it runs the controllers, steps the <see cref="World"/>, and hands the result to the
-/// engine. It has no camera, lights or input of its own, so that tests can use it as it is.
+/// One room, simulated: its tiles, and the entities in it with their controllers. Each physics tick it
+/// steps every entity, before the engine's own step. It has no camera, lights or input of its own, so
+/// that tests can use it as it is.
 /// </summary>
 public partial class RoomNode : Node3D
 {
@@ -19,12 +19,12 @@ public partial class RoomNode : Node3D
     private static readonly Color PlatformColor = new(0.9f, 0.1f, 0.7f);
     private static readonly Color BlockColor = new(0.6f, 0.65f, 0.3f);
 
-    private readonly List<BodyNode> _bodyNodes = [];
-    private readonly List<ICharacterController> _characters = [];
-    private readonly List<BodyNode> _blocks = [];
+    private readonly List<Entity> _entities = [];
+    private readonly List<Entity> _characters = [];
+    private readonly List<Entity> _blocks = [];
 
     /// <param name="mergeTiles">Whether to merge tiles into larger colliders, or give each tile its own.</param>
-    public RoomNode(Room room, bool mergeTiles = true, PlayerController? playerController = null)
+    public RoomNode(Room room, bool mergeTiles = true, PlayerTuning? playerTuning = null, BodyTuning? playerBody = null)
     {
         Room = room;
         Tiles = room.CreateTiles();
@@ -41,96 +41,99 @@ public partial class RoomNode : Node3D
             Position = new Vector3(Tiles.Width / 2f, Tiles.Height / 2f, -0.6f),
         });
 
-        PlayerController = playerController ?? new PlayerController(new PlayerTuning());
-        Player = AddBody(PlayerController.Body, room.PlayerStart, PlayerColor, glows: true);
+        PlayerTuning = playerTuning ?? new PlayerTuning();
+        Player = AddEntity(playerBody ?? BodyTuning.Player, room.PlayerStart, PlayerColor, glows: true);
+        Player.Controller = new PlayerController(PlayerTuning, () => PlayerInput?.Invoke() ?? default);
 
         var robotTuning = new RobotTuning();
         foreach (Vector2 start in room.RobotStarts)
         {
-            var robot = new RobotController(robotTuning);
+            Entity robot = AddEntity(BodyTuning.Robot, start, RobotColor, glows: false);
+            robot.Controller = new RobotController(robotTuning);
             _characters.Add(robot);
-            AddBody(robot.Body, start, RobotColor, glows: false);
         }
 
         var platformTuning = new PlatformTuning();
         foreach (Vector2 start in room.PlatformStarts)
         {
-            var platform = new PlatformController(start.Y + platformTuning.HalfSize.Y, platformTuning);
+            Entity platform = AddEntity(BodyTuning.Platform, start, PlatformColor, glows: false);
+            platform.Controller = new PlatformController(platform.Position.Y, platformTuning);
             _characters.Add(platform);
-            AddBody(platform.Body, start, PlatformColor, glows: false);
         }
 
-        var blockTuning = new BlockTuning();
         foreach (Vector2 start in room.BlockStarts)
         {
-            _blocks.Add(AddBody(blockTuning.CreateBody(), start, BlockColor, glows: false));
+            _blocks.Add(AddEntity(BodyTuning.Block, start, BlockColor, glows: false));
         }
     }
 
     public Room Room { get; }
     public TileGrid Tiles { get; }
-    public World World { get; } = new();
 
-    public BodyNode Player { get; }
-    public PlayerController PlayerController { get; }
+    public Entity Player { get; }
+    public PlayerTuning PlayerTuning { get; }
 
-    /// <summary>The robots' and platforms' controllers, robots first.</summary>
-    public IReadOnlyList<ICharacterController> Characters => _characters;
+    /// <summary>The robots and the platforms, robots first.</summary>
+    public IReadOnlyList<Entity> Characters => _characters;
 
-    /// <summary>The blocks' nodes. A block has no controller: it is only pushed, carried and stood on.</summary>
-    public IReadOnlyList<BodyNode> Blocks => _blocks;
+    /// <summary>The blocks. A block has no controller: it is only pushed, carried and stood on.</summary>
+    public IReadOnlyList<Entity> Blocks => _blocks;
 
-    /// <summary>The node of every body in the room, in the order of <see cref="World.Bodies"/>.</summary>
-    public IReadOnlyList<BodyNode> BodyNodes => _bodyNodes;
+    /// <summary>Every entity in the room, in the order they are stepped: the player, the robots, the platforms, the blocks.</summary>
+    public IReadOnlyList<Entity> Entities => _entities;
 
     /// <summary>Supplies the player's input, once per tick. The player stands idle if this is null.</summary>
     public Func<PlayerInput>? PlayerInput { get; set; }
 
-    /// <summary>Whether the controllers run. With this off, bodies only coast, under drag and gravity.</summary>
+    /// <summary>Whether the controllers run. With this off, entities only coast, under drag and gravity.</summary>
     public bool ControllersEnabled { get; set; } = true;
 
     public override void _Ready()
     {
-        // The rules' gravity, on the default space. This lasts only as long as the run.
-        PhysicsServer3D.AreaSetParam(GetWorld3D().Space, PhysicsServer3D.AreaParameter.Gravity, World.Gravity);
+        // The room's gravity, on the default space. This lasts only as long as the run.
+        PhysicsServer3D.AreaSetParam(GetWorld3D().Space, PhysicsServer3D.AreaParameter.Gravity, Room.Gravity);
     }
 
     public override void _PhysicsProcess(double delta)
     {
-        float dt = (float)delta;
-        foreach (BodyNode node in _bodyNodes)
+        foreach (Entity entity in _entities)
         {
-            node.PullMotion();
-        }
-
-        if (ControllersEnabled)
-        {
-            PlayerController.Apply(PlayerInput?.Invoke() ?? default, World, dt);
-            foreach (ICharacterController character in _characters)
-            {
-                character.Apply(World, dt);
-            }
-        }
-
-        World.Step(dt);
-        foreach (BodyNode node in _bodyNodes)
-        {
-            node.PushImpulse();
-            node.PushTraction();
+            entity.Step((float)delta, ControllersEnabled);
         }
     }
 
-    /// <summary>Adds a node for a body, with the middle of the body's base at <paramref name="start"/>.</summary>
-    private BodyNode AddBody(Body body, Vector2 start, Color color, bool glows)
+    /// <summary>Adds an entity drawn as a box, with the middle of its base at <paramref name="start"/>.</summary>
+    private Entity AddEntity(BodyTuning body, Vector2 start, Color color, bool glows)
     {
-        var node = new BodyNode(body, color, glows)
+        var entity = new Entity(body, BoxVisual(body.HalfSize, color, glows))
         {
             Position = new Vector3(start.X, start.Y + body.HalfSize.Y, 0),
         };
-        AddChild(node);
-        node.PullMotion();
-        _bodyNodes.Add(node);
-        World.Bodies.Add(body);
-        return node;
+        AddChild(entity);
+        _entities.Add(entity);
+        return entity;
+    }
+
+    private static MeshInstance3D BoxVisual(Vector2 halfSize, Color color, bool glows)
+    {
+        var mesh = new MeshInstance3D
+        {
+            Mesh = new BoxMesh
+            {
+                Size = new Vector3(2 * halfSize.X, 2 * halfSize.Y, Entity.Depth),
+                Material = new StandardMaterial3D
+                {
+                    AlbedoColor = color,
+                    EmissionEnabled = glows,
+                    Emission = color,
+                    EmissionEnergyMultiplier = 1.5f,
+                },
+            },
+        };
+        if (glows)
+        {
+            mesh.AddChild(new OmniLight3D { LightColor = color, LightEnergy = 2, OmniRange = 6 });
+        }
+        return mesh;
     }
 }
