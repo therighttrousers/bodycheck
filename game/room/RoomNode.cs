@@ -57,8 +57,8 @@ public partial class RoomNode : Node3D
         var platformTuning = new PlatformTuning();
         foreach (Vector2 start in room.PlatformStarts)
         {
-            PlatformEntity platform = Add(
-                new PlatformEntity(BodyTuning.Platform, BoxVisual(BodyTuning.Platform, PlatformColor)), start);
+            SimpleControlledEntity platform = Add(
+                new SimpleControlledEntity(BodyTuning.Platform, BoxVisual(BodyTuning.Platform, PlatformColor)), start);
             platform.Controller = new PlatformController(platform.Position.Y, platformTuning);
             _characters.Add(platform);
         }
