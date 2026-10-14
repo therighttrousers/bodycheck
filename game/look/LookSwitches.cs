@@ -15,7 +15,6 @@ namespace BodyCheck.Look;
 /// <item>4: colour pass on or off</item>
 /// <item>5: dither on or off</item>
 /// <item>6: the palette, in place of the game, on or off</item>
-/// <item>7: shadows, 8: ambient occlusion, 9: reflections, 0: glow</item>
 /// <item>[ and ]: the dither's lightness spread, down and up</item>
 /// <item>; and ': the dither's chroma spread, down and up</item>
 /// </list>
@@ -95,10 +94,6 @@ public partial class LookSwitches : Node
             case Key.Key4: _colorPass.Visible = !_colorPass.Visible; break;
             case Key.Key5: _dither = !_dither; break;
             case Key.Key6: _colorPass.PaletteShown = !_colorPass.PaletteShown; break;
-            case Key.Key7: _light.ShadowEnabled = !_light.ShadowEnabled; break;
-            case Key.Key8: _environment.SsaoEnabled = !_environment.SsaoEnabled; break;
-            case Key.Key9: _environment.SsrEnabled = !_environment.SsrEnabled; break;
-            case Key.Key0: _environment.GlowEnabled = !_environment.GlowEnabled; break;
             case Key.Bracketleft: _colorPass.LightnessSpread -= 0.01f; break;
             case Key.Bracketright: _colorPass.LightnessSpread += 0.01f; break;
             case Key.Semicolon: _colorPass.ChromaSpread -= 0.005f; break;

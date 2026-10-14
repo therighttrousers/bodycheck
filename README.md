@@ -49,7 +49,6 @@ Rendering switches, for judging the look. The window's title shows their state. 
 - 4: colour pass on or off
 - 5: dither on or off
 - 6: the palette, in place of the game, on or off
-- 7: shadows; 8: ambient occlusion; 9: reflections; 0: glow
 - [ and ]: the dither's lightness spread, down and up
 - ; and ': the dither's chroma spread, down and up
 
