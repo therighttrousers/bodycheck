@@ -32,6 +32,7 @@ Rationale: decision record `001`.
 - Four project settings make contacts exact and corners sharp (`001 §1.3`): collision margin fraction 0.005, penetration slop 0, continuous collision detection's maximum penetration 0, and 60 physics ticks per second.
 - Once per tick, before the engine's step, the room steps every entity: its controller runs, then its drag is applied (`005 §3.3`).
 - A controller pushes its entity with the engine's own forces and impulses, and with the motors that its kind of body has. A walker's is traction, below.
+- A motor earns its place when its target speed binds, as in braking or holding against pushes, or when its push must land on another body. Otherwise a plain force does the same with less. So a platform moves itself with forces, and holds its height with a PD controller of our own, whose thrust is capped so that enough load sinks it, and which sags under a rider (`005 §3.6`).
 - A controller sees the world as of the engine's last step. Neither the forces nor the impulses applied this tick show in any entity's velocity until the next step, so what a controller decides doesn't depend on the order in which entities are stepped (`005 §3.4`).
 - Gravity is set in one place: the project setting `physics/3d/default_gravity`, which the test project copies. An entity's weight uses the engine's figure for the gravity on it.
 
@@ -66,7 +67,6 @@ TODO
 - Sprinting on a patrolling robot stalls it within a couple of ticks, because the robot's drive is far weaker than the player's. Should a robot hold its patrol speed more firmly when something pushes on it?
 - Not yet measured for the traction motor (`005 §1.4`): what it costs to move the joint when a walker changes what it stands on, for a body that does so every few ticks; a stack of three or more; and what happens when a body is freed while a walker stands on it.
 - An idle rider on a platform ends 30 seconds 0.04 tiles from where it stood, having slid up to 0.19 each time a wall stops the platform dead. Our own traction stage ended within 0.003. Not investigated (`005 §1.3`).
-- The platform's vertical thrust is a PD controller of our own. Could a joint motor or spring in `PlatformEntity` replace it? Neil's to try (`005 §3.6`).
 - What happens to `Entity.Support`, and to the traction joint, when the entity stood on is freed. Nothing is freed during play yet.
 - Traction limits come from each character's tuning, not from the load on the contact, so a robot carrying the player grips the floor no harder than one carrying nothing. Is that worth changing?
 - Traction is one use of a joint motor: along X, against what the entity stands on, while it is on the ground. Grip on other axes, against other anchors and with other gates is wanted, for more ways to cheat physics than walking and running. What the joint offers and where it stops is in `005 §3.7`. Each such motor belongs to a kind of body (`005 §3.8`).

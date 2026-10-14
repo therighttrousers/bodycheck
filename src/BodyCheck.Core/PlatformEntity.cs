@@ -3,8 +3,8 @@ using Godot;
 namespace BodyCheck.Core;
 
 /// <summary>
-/// A body that hovers: a platform. It has no motor yet. Its controller holds it up and moves it with
-/// plain forces.
+/// A body that hovers: a platform. It has no motors. Its controller holds it up and moves it with plain
+/// forces.
 /// </summary>
 public partial class PlatformEntity : Entity
 {
