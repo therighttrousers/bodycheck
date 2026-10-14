@@ -7,7 +7,7 @@ using Godot;
 namespace BodyCheck.Probes;
 
 /// <summary>
-/// Spike (decision record 005). Runs to speed in the "Seams" room and jumps twice: once holding the run
+/// Runs to speed in the "Seams" room and jumps twice: once holding the run
 /// through the landing, once letting go at take-off. Prints the horizontal speed around each landing.
 /// </summary>
 public sealed class LandingProbe : IProbe
@@ -68,7 +68,7 @@ public sealed class LandingProbe : IProbe
 }
 
 /// <summary>
-/// Spike (decision record 005). A robot patrols into an idle player. Prints how far the player is moved
+/// A robot patrols into an idle player. Prints how far the player is moved
 /// and how deep the two overlap.
 /// </summary>
 public sealed class PushProbe : IProbe
@@ -117,9 +117,8 @@ public sealed class PushProbe : IProbe
 }
 
 /// <summary>
-/// Spike (decision record 005). The player lands on a patrolling robot, sprints along it, runs off its
-/// front and lands on tiles, so that its grip changes from the robot to nothing to the tiles. Prints a
-/// trace of every tick, to compare between ways of applying traction.
+/// The player lands on a patrolling robot, sprints along it, runs off its front and lands on tiles, so
+/// that its grip changes from the robot to nothing to the tiles. Prints a trace of every tick.
 /// </summary>
 public sealed class RunOffProbe : IProbe
 {
@@ -152,9 +151,5 @@ public sealed class RunOffProbe : IProbe
         string ground = !_player.Body.OnGround ? "air" : _player.Body.Support is null ? "tiles" : "robot";
         GD.Print($"  tick {t,2}: player vx {_player.LinearVelocity.X,7:F3} vy {_player.LinearVelocity.Y,7:F3} on {ground,-5} "
             + $"robot vx {_robot.LinearVelocity.X,7:F3}");
-        if (t == TraceTicks)
-        {
-            GD.Print($"  motor anchor changes: {_player.MotorAnchorChanges}");
-        }
     }
 }

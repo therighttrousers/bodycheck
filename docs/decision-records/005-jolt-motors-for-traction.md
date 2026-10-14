@@ -16,7 +16,7 @@ Tensions:
 
 ## 1. Does a joint motor reproduce traction?
 
-- [x] 1.1 How the spike applies it. Branch `spike/jolt-motors`. Switched on by `--traction=motor` after `--`, or the environment variable `BODYCHECK_TRACTION=motor`, so that the same probes and tests run both ways.
+- [x] 1.1 How the spike applies it. Branch `spike/jolt-motors`, first commit. Switched on by `--traction=motor` after `--`, or the environment variable `BODYCHECK_TRACTION=motor`, so that the same probes and tests run both ways. The switches were removed when item 4.1 was decided.
   - Each walker's `BodyNode` has a child `Generic6DOFJoint3D` with every linear and angular limit off, so the joint constrains nothing and only its X motor acts. `exclude_nodes_from_collision` is off, or the rider would fall through its support.
   - The walker is `node_b`. `node_a` is the support's node, or empty for tiles, which anchors the joint to the world.
   - Controllers are unchanged: they still set `Body.Traction`. Each tick, after the controllers, the node copies the target speed and maximum force to the motor, enables it only on the ground, and moves the joint when the support changes. `World.Step` skips its traction stage and still passes on forces, impulses and drag.
@@ -35,12 +35,12 @@ Tensions:
 - [ ] 1.4 Not yet measured.
   - The cost of moving the joint. Setting `node_a` rebuilds the joint in the engine. Two moves showed no glitch in the trace; time wasn't measured, and neither was a body that changes support every few ticks.
   - A stack of three or more, where our stage settles approximately over eight passes and Jolt solves the motors together with the contacts.
-  - Feel, by hand. Run with `.\Godot\Godot.exe --path game -- --traction=motor`.
+  - Feel, by hand. Done (Neil, 2026-10-13): he can't tell the difference.
   - What happens to the joint when its anchor is freed while the walker stands on it.
 
 ## 2. Can drag be the engine's damping?
 
-- [~] 2.1 Leaning: no; keep drag as an explicit force. Tried with `--damping=engine` (`BODYCHECK_DAMPING=engine`), which sets each body's linear damping to drag ÷ mass and drops our drag force.
+- [x] 2.1 Decision (Neil, 2026-10-13): no; drag stays an explicit force. Tried with `--damping=engine` (`BODYCHECK_DAMPING=engine`), which sets each body's linear damping to drag ÷ mass and drops our drag force.
   - Riding is still exact, so the motor does cancel the engine's damping.
   - Jumps are lower: a tap jump reaches 2.175 tiles against 2.210, and `Jumping_gives_an_upward_impulse` fails. Likely cause: the engine damps the velocity after adding the tick's forces to it, and we damp the velocity from before them. Not confirmed.
   - It would need a retune for no gain. A controller can apply `-drag × velocity` to the engine itself.
@@ -58,7 +58,9 @@ Tensions:
 
 ## 4. Decision
 
-- [ ] 4.1 Replace the traction stage with joint motors? Claude recommends yes, after Neil has tried the feel by hand (1.4), with drag kept as our own force (2.1). The remaining items of 1.4 can be measured during the migration.
+- [x] 4.1 Replace the traction stage with joint motors? Decision (Neil, 2026-10-13): yes, with drag kept as our own force (2.1). Claude recommended it. The remaining items of 1.4 are open questions in [movement.md](../designs/movement.md).
+  - Done in two parts, in one pull request. Part one removes the traction stage: `World.ApplyTraction` and `TractionTests` are deleted, the motor is the only way, and `World.Step` only adds drag and passes on each body's impulse. The in-engine tests already state the goals that `TractionTests` did.
+  - Part two is section 3, to be discussed after Neil has read part one's diff. It includes trying a motor in place of the platform's PD controller (Neil).
 
 ## Notes
 

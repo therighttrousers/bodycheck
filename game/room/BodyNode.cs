@@ -9,10 +9,12 @@ namespace BodyCheck;
 /// <summary>
 /// The engine's side of a <see cref="Core.Body"/>: a box that can only move in the XY plane and can't
 /// rotate. The engine moves it and resolves its contacts. Bounce and damping are off in the engine, and so
-/// is friction for a walker: drag and a walker's grip are the rules' own, worked out by <see cref="World.Step"/>.
+/// is friction for a walker. Drag is the rules' own, worked out by <see cref="World.Step"/>. A walker's
+/// grip is its <see cref="Traction"/>, which the engine applies as the motor of a joint between the
+/// walker and whatever it stands on.
 /// <para>
-/// Each tick, <see cref="RoomNode"/> calls <see cref="PullMotion"/> before the controllers run and
-/// <see cref="PushImpulse"/> after the world has stepped.
+/// Each tick, <see cref="RoomNode"/> calls <see cref="PullMotion"/> before the controllers run, and
+/// <see cref="PushImpulse"/> and <see cref="PushTraction"/> after the world has stepped.
 /// </para>
 /// </summary>
 public partial class BodyNode : RigidBody3D
@@ -36,7 +38,7 @@ public partial class BodyNode : RigidBody3D
         // Never rough: where two bodies touch, the smaller friction has to win, so that a walker's zero does.
         PhysicsMaterialOverride = new PhysicsMaterial { Friction = body.EngineFriction, Bounce = 0, Rough = false };
         LinearDampMode = DampMode.Replace;
-        LinearDamp = Spike.EngineDamping ? body.Drag / body.Mass : 0;
+        LinearDamp = 0;
         CanSleep = false;
         ContactMonitor = true;
         MaxContactsReported = 8;
@@ -67,9 +69,10 @@ public partial class BodyNode : RigidBody3D
         }
         AddChild(mesh);
 
-        if (Spike.MotorTraction && body.IsWalker)
+        if (body.IsWalker)
         {
-            // A joint that constrains nothing: every limit is off, so its only effect is the X motor.
+            // A joint that constrains nothing: every limit is off, so its only effect is the X motor. The
+            // walker is the joint's second body. The first is what it stands on, or nothing for tiles.
             _motor = new Generic6DofJoint3D { NodeB = new NodePath(".."), ExcludeNodesFromCollision = false };
             foreach (var flag in (ReadOnlySpan<Generic6DofJoint3D.Flag>)
                 [Generic6DofJoint3D.Flag.EnableLinearLimit, Generic6DofJoint3D.Flag.EnableAngularLimit])
@@ -91,11 +94,11 @@ public partial class BodyNode : RigidBody3D
     /// <summary>The node of the body this one stood on during the engine's last step, if any.</summary>
     public BodyNode? SupportNode { get; private set; }
 
-    /// <summary>Spike: how many times the motor's joint was moved to another anchor.</summary>
-    public int MotorAnchorChanges { get; private set; }
-
-    /// <summary>Spike (decision record 005): hands the body's traction to the engine as a motor.</summary>
-    public void UpdateMotor()
+    /// <summary>
+    /// Gives the engine a walker's traction, as the motor's target speed and force limit. The motor is off
+    /// in the air, and for a body with no grip.
+    /// </summary>
+    public void PushTraction()
     {
         if (_motor is null)
         {
@@ -110,9 +113,8 @@ public partial class BodyNode : RigidBody3D
             {
                 _motorAnchor = SupportNode;
                 _motor.NodeA = _motorAnchor is null ? new NodePath() : _motor.GetPathTo(_motorAnchor);
-                MotorAnchorChanges++;
             }
-            _motor.SetParamX(Generic6DofJoint3D.Param.LinearMotorTargetVelocity, Spike.MotorSign * traction.TargetSpeed);
+            _motor.SetParamX(Generic6DofJoint3D.Param.LinearMotorTargetVelocity, traction.TargetSpeed);
             _motor.SetParamX(Generic6DofJoint3D.Param.LinearMotorForceLimit, traction.MaxForce);
         }
         if (on != _motorOn)

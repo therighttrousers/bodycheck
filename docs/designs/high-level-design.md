@@ -7,6 +7,7 @@ Relevant decision records:
 - [001: Godot's 3D physics engine](../decision-records/001-godot-3d-physics.md)
 - [002: `BodyCheck.Core` depends on GodotSharp](../decision-records/002-core-depends-on-godotsharp.md)
 - [003: Rendering pipeline for the Star Fox SNES look](../decision-records/003-snes-3d-look.md)
+- [005: Jolt's joint motors for traction](../decision-records/005-jolt-motors-for-traction.md)
 
 ## Vision
 
@@ -85,17 +86,17 @@ See [progression.md](progression.md).
 
 - **Engine:** Godot 4.7.2, .NET build, Forward+ renderer, desktop only. The engine is installed into the repository by a script and is not on the PATH.
 - **Language:** C# on .NET 10.
-- **Physics:** Godot's 3D physics engine, Jolt, with gameplay locked to the XY plane. The engine detects collisions, resolves contacts and moves bodies. Grip and drag are ours, applied on top of it each tick. See [movement.md](movement.md#physics-engine).
+- **Physics:** Godot's 3D physics engine, Jolt, with gameplay locked to the XY plane. The engine detects collisions, resolves contacts and moves bodies. A walker's grip is a motor inside the engine, which our rules set each tick (`005`). Drag is ours, applied on top of the engine each tick. See [movement.md](movement.md#physics-engine).
 - **`src/BodyCheck.Core`:** the game's rules, as a class library: bodies, traction, character controllers, tuning, rooms and tiles. It uses Godot's value types, such as vectors, but no nodes, so it runs outside the engine. It references the GodotSharp assembly of the installed engine, so `dev-setup.ps1` has to be run before it builds (`002`).
   - A `Body` is the rules' view of one box. Controllers change its motion only by adding forces and impulses and by setting its traction.
-  - `World.Step` turns each body's forces, impulses, drag and traction into one impulse for the engine.
+  - `World.Step` turns each body's forces, impulses and drag into one impulse for the engine.
 - **`game/`:** the Godot project, which holds the nodes.
-  - `BodyNode` is the engine's side of a `Body`. Each tick it copies the engine's position, velocity and contacts into the body, and gives the engine the body's impulse.
+  - `BodyNode` is the engine's side of a `Body`. Each tick it copies the engine's position, velocity and contacts into the body, and gives the engine the body's impulse and, for a walker, its traction.
   - `RoomNode` is one room, simulated: tiles, bodies and controllers, with no camera, lights or input of its own, so tests use it as it is.
   - `Main` adds the camera, the lights and the player's input to a `RoomNode`, and switches rooms.
   - `look/` holds the colour pass and the tools for judging the rendering. See [rendering.md](rendering.md).
   - `probes/` holds scripted measurements, run headless with `--probe=` and a name.
-- **`tests/BodyCheck.Core.Tests`:** unit tests for the library, in xUnit. They run without the engine, and stand in for it where a test needs one.
+- **`tests/BodyCheck.Core.Tests`:** unit tests for the library, in xUnit. They run without the engine.
 - **`tests/BodyCheck.Game.Tests`:** tests that need the engine, run inside Godot through gdUnit4Net by plain `dotnet test`. Godot runs headless at a fixed frame rate, so physics ticks faster than real time. The project is a Godot project of its own, whose settings are copied from the game's on every build. It can't load the game's scenes or assets by `res://` path.
 - **Levels:** authored in 2D in LDtk, in `game/levels/`, and turned into 3D at load. The LDtk JSON will be read at runtime at first, and moved to an asset pipeline only if the loading code proves too slow, too complex or too fragile. No loader exists yet.
 - **Test rooms:** a library of named rooms, described as text. `Rooms.cs` has the ones to play in; `TestRooms.cs` has the ones that tests and probes measure in. Design docs and tests refer to them by name.

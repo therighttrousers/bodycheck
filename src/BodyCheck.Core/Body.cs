@@ -25,7 +25,7 @@ public readonly record struct Traction(float TargetSpeed, float MaxForce);
 /// and <see cref="SetContacts"/>, and passes <see cref="TakeEngineImpulse"/> back to the engine.
 /// <para>
 /// Controllers change a body's motion only through <see cref="AddForce"/>, <see cref="AddImpulse"/> and
-/// <see cref="Traction"/>, so that <see cref="World.Step"/> sees everything that acts on it.
+/// <see cref="Traction"/>.
 /// </para>
 /// </summary>
 public sealed class Body
@@ -61,8 +61,9 @@ public sealed class Body
     public bool IsWalker => EngineFriction == 0;
 
     /// <summary>
-    /// The grip this body applies while it stands on something. <see cref="World.Step"/> turns it into
-    /// equal and opposite impulses on this body and its <see cref="Support"/>. It has no effect in the air.
+    /// The grip this body applies while it stands on something. The owning node hands it to the engine as
+    /// a motor between this body and its <see cref="Support"/>, which pushes the two equally and in
+    /// opposite directions. It has no effect in the air.
     /// </summary>
     public Traction Traction { get; set; }
 
@@ -88,9 +89,6 @@ public sealed class Body
     public Vector2 GroundVelocity => Support?.Velocity ?? Vector2.Zero;
 
     public bool OnGround => Contacts.HasFlag(Contacts.Floor);
-
-    /// <summary>This body's velocity as <see cref="World.Step"/> works it out, before the engine has it.</summary>
-    internal Vector2 StepVelocity { get; set; }
 
     /// <summary>Adds a force that acts for the duration of the next step.</summary>
     public void AddForce(Vector2 force) => _force += force;

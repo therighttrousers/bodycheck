@@ -104,7 +104,7 @@ public sealed class PlayerController
 
         if (Body.OnGround)
         {
-            // On the ground the drive is traction: the world applies it, and pushes back on the support.
+            // On the ground the drive is traction: the engine applies it, and pushes back on the support.
             // Friction adds to it unless the body is driving the way it is already going, so it holds an
             // idle body still on its support, and can stop a moving one but can't reverse it.
             float friction = move == 0 || reverse ? Tuning.GroundFriction * weight : 0;

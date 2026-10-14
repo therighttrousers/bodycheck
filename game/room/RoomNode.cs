@@ -69,7 +69,7 @@ public partial class RoomNode : Node3D
 
     public Room Room { get; }
     public TileGrid Tiles { get; }
-    public World World { get; } = new() { TractionInEngine = Spike.MotorTraction, DragInEngine = Spike.EngineDamping };
+    public World World { get; } = new();
 
     public BodyNode Player { get; }
     public PlayerController PlayerController { get; }
@@ -116,7 +116,7 @@ public partial class RoomNode : Node3D
         foreach (BodyNode node in _bodyNodes)
         {
             node.PushImpulse();
-            node.UpdateMotor();
+            node.PushTraction();
         }
     }
 
