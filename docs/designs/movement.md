@@ -30,17 +30,17 @@ Rationale: decision record `001`.
 - Bounce is 0 on everything. Drag is our own force, not the engine's damping, which gives lower jumps under the same tuning (`005 §2.1`).
 - All solid tiles are shapes of one static body, merged along rows into larger boxes, so that a floor seam can't catch a sliding body (`001 §1.2`).
 - Four project settings make contacts exact and corners sharp (`001 §1.3`): collision margin fraction 0.005, penetration slop 0, continuous collision detection's maximum penetration 0, and 60 physics ticks per second.
-- Once per tick, before the engine's step, the room steps every entity: its controller runs, then its drag is applied and its traction is handed to the engine (`005 §3.3`).
+- Once per tick, before the engine's step, the room steps every entity: its controller runs, then its drag is applied (`005 §3.3`).
 - A controller pushes its entity with the engine's own forces and impulses, and with `ApplyTraction`.
-- Controllers decide by `Entity.Velocity`, which includes the impulses applied this tick. The node's own `LinearVelocity` doesn't show those until the engine's next step. Neither shows this tick's forces.
-- An entity's weight uses the room's gravity, a constant. The engine's own figure for the gravity on a body is its default, 9.8, on the body's first tick (`005 §3.4`).
+- A controller sees the world as of the engine's last step. Neither the forces nor the impulses applied this tick show in any entity's velocity until the next step, so what a controller decides doesn't depend on the order in which entities are stepped (`005 §3.4`).
+- Gravity is set in one place: the project setting `physics/3d/default_gravity`, which the test project copies. An entity's weight uses the engine's figure for the gravity on it.
 
 # Ground contact and traction
 
 Rationale: decision record `000 §2.2`, `000 §2.5`, `001 §2.1` and `005`.
 
 - Traction is a motor inside the engine's solver (`005 §1.1`). Each walker has a joint with every limit off, so that its only effect is a motor along X. The joint connects the walker to the body it stands on, or to the world when it stands on tiles.
-- Traction lasts one tick, like a force: a controller applies it on each tick that it wants grip. After the controller has run, the motor is given the target speed and maximum force. It is off in the air, and when no traction was applied.
+- Traction lasts one tick, like a force: a controller applies it on each tick that it wants grip. The motor is switched off at the start of each entity's step, and `ApplyTraction` sets its target speed and maximum force and switches it on. In the air it stays off.
 - The engine solves the motor together with the tick's contacts, so traction takes account of every force on the body, and of what other bodies do to it in the same tick.
 
 - A character's speed is measured relative to what it stands on: tiles, or another body.

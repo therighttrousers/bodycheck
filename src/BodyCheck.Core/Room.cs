@@ -14,9 +14,6 @@ namespace BodyCheck.Core;
 /// </summary>
 public sealed class Room
 {
-    /// <summary>The downward acceleration of everything in a room.</summary>
-    public const float Gravity = 50;
-
     private readonly string[] _rows;
 
     public Room(string name, string text)

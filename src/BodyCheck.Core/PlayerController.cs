@@ -69,7 +69,7 @@ public sealed class PlayerController : ICharacterController
         if (entity.OnGround)
         {
             _groundTicksLeft = Tuning.CoyoteTicks + 1; // +1 to include this frame in remaining ground ticks
-            _lastGroundVelocity = entity.Velocity;
+            _lastGroundVelocity = entity.LinearVelocity;
         }
 
         float weight = entity.Weight;
@@ -84,7 +84,7 @@ public sealed class PlayerController : ICharacterController
     private void ApplyRun(Entity entity, float move, float weight)
     {
         // Speed is relative to whatever the entity stands on, so running on a robot works like running on tiles.
-        float speed = entity.Velocity.X - entity.GroundVelocity.X;
+        float speed = entity.LinearVelocity.X - entity.GroundVelocity.X;
         bool reverse = speed != 0 && move * speed <= 0;
 
         float drive = 0;
@@ -125,7 +125,7 @@ public sealed class PlayerController : ICharacterController
         {
             // From jump speed, subtract the delta-Y accumulated during coyote frames (which should be negative), to
             // allow coyote jumps to go just as high as jumps from the ground.
-            var coyoteVelocityY = entity.Velocity.Y - _lastGroundVelocity.Y;
+            var coyoteVelocityY = entity.LinearVelocity.Y - _lastGroundVelocity.Y;
             var impulse = new Vector3(0, entity.Mass * (Tuning.JumpSpeed - coyoteVelocityY), 0);
             entity.ApplyCentralImpulse(impulse);
             entity.Support?.ApplyCentralImpulse(-impulse);
@@ -137,7 +137,7 @@ public sealed class PlayerController : ICharacterController
         }
 
         // If stopped rising (e.g. hit a ceiling), cancel thrust.
-        if (entity.Velocity.Y <= 0)
+        if (entity.LinearVelocity.Y <= 0)
         {
             _thrustTicksLeft = 0;
         }

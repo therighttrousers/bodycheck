@@ -58,7 +58,7 @@ public sealed class RobotController : ICharacterController
     private void ApplyRun(Entity entity, float move)
     {
         // Speed is relative to whatever the entity stands on.
-        float speed = entity.Velocity.X - entity.GroundVelocity.X;
+        float speed = entity.LinearVelocity.X - entity.GroundVelocity.X;
         bool reverse = speed != 0 && move * speed <= 0;
 
         float drive = 0;

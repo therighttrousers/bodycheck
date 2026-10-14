@@ -48,7 +48,7 @@ public sealed class PlatformController : ICharacterController
 
     private void ApplyHorizontalThrust(Entity entity, float move)
     {
-        float speed = entity.Velocity.X;
+        float speed = entity.LinearVelocity.X;
         // The drive fades out as the entity nears top speed in the input direction.
         // It never slows an entity that is already faster than that.
         float headroom = Math.Clamp(1 - speed * MathF.Sign(move) / Tuning.TopSpeed, 0, 1);
@@ -61,7 +61,7 @@ public sealed class PlatformController : ICharacterController
         // PD controller: correction = K_p * (target - current) + K_d * -rate
         float weight = entity.Weight;
         var damping = 2 * MathF.Sqrt(Tuning.VerticalStiffness * entity.Mass);
-        var correction = Tuning.VerticalStiffness * (_startHeight - entity.Position.Y) + damping * -entity.Velocity.Y;
+        var correction = Tuning.VerticalStiffness * (_startHeight - entity.Position.Y) + damping * -entity.LinearVelocity.Y;
 
         var thrust = Math.Clamp(weight + correction, 0, weight * Tuning.MaxVerticalThrustFrac);
         entity.ApplyCentralForce(new Vector3(0, thrust, 0));

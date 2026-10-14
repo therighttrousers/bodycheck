@@ -66,10 +66,16 @@ Part two, decided in conversation on 2026-10-13 and built the same night by Clau
   - Tuning is split. `BodyTuning` has the body's values (half-size, mass, drag, engine friction), with one preset per kind of body. `PlayerTuning`, `RobotTuning` and `PlatformTuning` keep the controller's values.
   - Looks are handed to the entity, not loaded by it. The test projects can't see the game's files (`001 §3.1`), so an entity that loaded its own model would fail there.
 - [x] 3.4 As built.
-  - `Entity.Step` runs the controller, applies drag, and hands the tick's traction to the motor. Traction is applied each tick, like a force, with `ApplyTraction(targetSpeed, maxForce)`.
-  - `Entity.Velocity` reads the velocity from the physics server, which includes impulses applied this tick. The node's `LinearVelocity` doesn't, and with it `Driving_does_not_slow_a_body_that_is_over_top_speed` failed: the controller drove a body that an impulse had just put over top speed.
-  - Weight uses a constant, `Room.Gravity`. `RigidBody3D.GetGravity` returns the engine's default 9.8 on a body's first tick, before the room's gravity has reached it. With it the platform started with a fifth of its thrust and dipped 0.385 tiles on the rider's landing, against 0.382.
-  - Results: all ten probes print what they did before the rewrite, apart from the last digit of one figure and the sign of a zero. 30 of 30 in-engine tests pass, with changes only to how they build rooms and name things.
+  - Traction is applied each tick, like a force, with `ApplyTraction(targetSpeed, maxForce)`. `Entity.Step` switches the motor off, runs the controller, and applies drag.
+    - First built with `ApplyTraction` storing the two values and `Step` passing them to the motor afterwards. Neil asked whether the delay had a reason. Its only one was switching the motor off on a tick when no traction is applied, which switching it off first does with three fewer fields.
+  - Controllers read the node's `LinearVelocity`, which shows neither the forces nor the impulses applied this tick.
+    - First built with an `Entity.Velocity` that asked the physics server, which does include this tick's impulses, as `Body.Velocity` had. One test needed it: `Driving_does_not_slow_a_body_that_is_over_top_speed` pushes the player with an impulse and drives it in the same tick.
+    - Neil called it a smell, and pointed out that forces don't show either. Removed: no probe changes without it, and the test now gives the push a tick of its own. A gain: what a controller decides no longer depends on the order entities are stepped in.
+    - Cost: a controller reacts a tick late to an impulse from elsewhere. Driving forward on the tick of a boost can take up to one tick of drive off it.
+  - Gravity is the project setting `physics/3d/default_gravity`, and weight uses `RigidBody3D.GetGravity`.
+    - First built with the room setting the space's gravity when it loads, as before. `GetGravity` then returns the engine's default 9.8 on a body's first tick, so the platform started with a fifth of its thrust and dipped 0.385 tiles on the rider's landing, against 0.382. Worked around with a constant in Core.
+    - Neil asked for gravity in one place. With the project setting, the engine has it before any body exists, the first tick is right, and neither the constant nor the room's call is needed. The test project copies the game's settings, so tests get it too.
+  - Results: all ten probes print what they did before the rewrite, apart from the sign of a zero. 30 of 30 in-engine tests pass, with changes only to how they build rooms and name things.
   - Not built: looks supplied by `Main`. `RoomNode` still makes the box for each entity itself.
 - [ ] 3.5 Where do the tests go? Not changed: `BodyCheck.Core.Tests` is still xUnit, with only the tile-grid tests, and everything that needs the engine is in `BodyCheck.Game.Tests`.
   - Tried: converting `BodyCheck.Core.Tests` to the Game tests' setup (Godot SDK, gdUnit4Net, a copied `project.godot`). A Core node gets its callbacks there, and the xUnit tests keep running in the same project.

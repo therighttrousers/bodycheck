@@ -37,9 +37,6 @@ public partial class Entity : RigidBody3D
 
     private readonly Generic6DofJoint3D? _motor;
     private Entity? _motorAnchor;
-    private bool _motorOn;
-    private float _tractionTargetSpeed;
-    private float _tractionMaxForce;
 
     /// <param name="visual">What to draw for the entity, centered on the middle of its box.</param>
     public Entity(BodyTuning tuning, Node3D? visual = null)
@@ -102,42 +99,51 @@ public partial class Entity : RigidBody3D
 
     public bool OnGround => Contacts.HasFlag(Contacts.Floor);
 
-    /// <summary>
-    /// The velocity now: as of the engine's last step, plus the impulses applied since. Controllers decide
-    /// by this one. <see cref="RigidBody3D.LinearVelocity"/> doesn't show those impulses until the next step.
-    /// </summary>
-    public Vector3 Velocity =>
-        PhysicsServer3D.BodyGetState(GetRid(), PhysicsServer3D.BodyState.LinearVelocity).AsVector3();
-
     /// <summary>The velocity of whatever this entity stands on: zero for tiles, and in the air.</summary>
-    public Vector3 GroundVelocity => Support?.Velocity ?? Vector3.Zero;
+    public Vector3 GroundVelocity => Support?.LinearVelocity ?? Vector3.Zero;
 
-    /// <summary>The force that gravity puts on the entity.</summary>
-    public float Weight => Mass * Room.Gravity;
+    /// <summary>The force that gravity puts on the entity where it is.</summary>
+    public float Weight => Mass * -GetGravity().Y;
 
     /// <summary>
     /// Uses the entity's grip on whatever it stands on, for the next step: pushes against the ground to
     /// bring the entity's horizontal speed, relative to the ground, towards <paramref name="targetSpeed"/>,
     /// with at most <paramref name="maxForce"/>, and pushes the ground the other way equally. A target of
     /// zero is braking. It has no effect in the air, or on an entity that isn't a walker.
+    /// <para>
+    /// The engine applies it, as the motor's target speed and force limit.
+    /// </para>
     /// </summary>
     public void ApplyTraction(float targetSpeed, float maxForce)
     {
-        _tractionTargetSpeed = targetSpeed;
-        _tractionMaxForce = maxForce;
+        if (_motor is null || !OnGround || maxForce <= 0)
+        {
+            return;
+        }
+
+        if (Support != _motorAnchor)
+        {
+            _motorAnchor = Support;
+            _motor.NodeA = _motorAnchor is null ? new NodePath() : _motor.GetPathTo(_motorAnchor);
+        }
+        _motor.SetParamX(Generic6DofJoint3D.Param.LinearMotorTargetVelocity, targetSpeed);
+        _motor.SetParamX(Generic6DofJoint3D.Param.LinearMotorForceLimit, maxForce);
+        _motor.SetFlagX(Generic6DofJoint3D.Flag.EnableLinearMotor, true);
     }
 
     /// <summary>Call once per physics tick, before the engine's step.</summary>
     /// <param name="controlled">Whether the controller runs. Without it, the entity only coasts, under drag and gravity.</param>
     public void Step(float dt, bool controlled = true)
     {
+        // Traction lasts one tick, like a force: the motor is off unless the controller applies it again.
+        _motor?.SetFlagX(Generic6DofJoint3D.Flag.EnableLinearMotor, false);
+
         if (controlled)
         {
             Controller?.Apply(this, dt);
         }
 
         ApplyCentralForce(-Tuning.Drag * LinearVelocity);
-        PushTraction();
     }
 
     public override void _IntegrateForces(PhysicsDirectBodyState3D state)
@@ -168,38 +174,5 @@ public partial class Entity : RigidBody3D
         }
         Contacts = contacts;
         Support = support;
-    }
-
-    /// <summary>
-    /// Gives the engine this tick's traction, as the motor's target speed and force limit, and clears it.
-    /// The motor is off in the air, and when no traction was applied.
-    /// </summary>
-    private void PushTraction()
-    {
-        float targetSpeed = _tractionTargetSpeed;
-        float maxForce = _tractionMaxForce;
-        _tractionTargetSpeed = 0;
-        _tractionMaxForce = 0;
-        if (_motor is null)
-        {
-            return;
-        }
-
-        bool on = OnGround && maxForce > 0;
-        if (on)
-        {
-            if (Support != _motorAnchor)
-            {
-                _motorAnchor = Support;
-                _motor.NodeA = _motorAnchor is null ? new NodePath() : _motor.GetPathTo(_motorAnchor);
-            }
-            _motor.SetParamX(Generic6DofJoint3D.Param.LinearMotorTargetVelocity, targetSpeed);
-            _motor.SetParamX(Generic6DofJoint3D.Param.LinearMotorForceLimit, maxForce);
-        }
-        if (on != _motorOn)
-        {
-            _motorOn = on;
-            _motor.SetFlagX(Generic6DofJoint3D.Flag.EnableLinearMotor, on);
-        }
     }
 }

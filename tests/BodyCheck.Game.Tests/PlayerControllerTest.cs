@@ -30,7 +30,7 @@ public class PlayerControllerTest
     private RoomNode? _room;
     private PlayerInput _input;
 
-    private const float Gravity = Room.Gravity;
+    private static readonly float Gravity = (float)ProjectSettings.GetSetting("physics/3d/default_gravity");
 
     private Entity Player => _room!.Player;
     private PlayerTuning Tuning => _room!.PlayerTuning;
@@ -132,7 +132,12 @@ public class PlayerControllerTest
     public async Task Driving_does_not_slow_a_body_that_is_over_top_speed()
     {
         await Start(body: NoDrag);
+
+        // A controller sees an impulse only after the engine's next step, so the push gets a tick of its own.
+        _room!.ControllersEnabled = false;
         Player.ApplyCentralImpulse(new Vector3(20, 0, 0) * Player.Mass);
+        await Tick(Idle);
+        _room!.ControllersEnabled = true;
 
         await Tick(Right, 30);
 

@@ -88,12 +88,6 @@ public partial class RoomNode : Node3D
     /// <summary>Whether the controllers run. With this off, entities only coast, under drag and gravity.</summary>
     public bool ControllersEnabled { get; set; } = true;
 
-    public override void _Ready()
-    {
-        // The room's gravity, on the default space. This lasts only as long as the run.
-        PhysicsServer3D.AreaSetParam(GetWorld3D().Space, PhysicsServer3D.AreaParameter.Gravity, Room.Gravity);
-    }
-
     public override void _PhysicsProcess(double delta)
     {
         foreach (Entity entity in _entities)
