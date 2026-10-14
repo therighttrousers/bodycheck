@@ -64,7 +64,7 @@ Part two, decided in conversation on 2026-10-13 and built the same night by Clau
   - The player's input stays injected, as tests and probes need. `PlayerController` is given its input source when constructed, since `Apply` no longer receives it.
   - Controllers stay separate from entities. Swapping an entity's controller isn't planned, and isn't ruled out. `Apply` is passed the entity, which costs nothing and keeps that possible.
   - `ICharacterController` is the interface for every controller, the player's included, so that an NPC can be made as capable as the player.
-  - One `Entity` class to start, with no `Player` or `Robot` subclass: they differ only in tuning, looks and controller. Subclass when it gets painful in a way subclassing fixes.
+  - One `Entity` class to start, with no `Player` or `Robot` subclass: they differ only in tuning, looks and controller. Subclass when it gets painful in a way subclassing fixes. Item 3.8 then subclassed by kind of body, which still leaves the player and a robot the same class.
   - Tuning is split. `BodyTuning` has the body's values (half-size, mass, drag, engine friction), with one preset per kind of body. `PlayerTuning`, `RobotTuning` and `PlatformTuning` keep the controller's values.
   - Looks are handed to the entity, not loaded by it. The test projects can't see the game's files (`001 §3.1`), so an entity that loaded its own model would fail there.
 - [x] 3.4 As built.
@@ -79,10 +79,21 @@ Part two, decided in conversation on 2026-10-13 and built the same night by Clau
     - Neil asked for gravity in one place. With the project setting, the engine has it before any body exists, the first tick is right, and neither the constant nor the room's call is needed. The test project copies the game's settings, so tests get it too.
   - Results: all ten probes print what they did before the rewrite, apart from the sign of a zero. 30 of 30 in-engine tests pass, with changes only to how they build rooms and name things.
   - Not built: looks supplied by `Main`. `RoomNode` still makes the box for each entity itself.
+- [x] 3.8 Who owns a motor? Decision (Neil): the entity, with a subclass of `Entity` for each kind of body that has motors. Reopened for this on 2026-10-13, after closing, while the record was still on its branch.
+  - The question (Neil): a motor's joint has to be a child of the entity, but a controller is meant to be swappable and doesn't hold its entity. Traction avoids this only because one motor serves every walking action.
+  - Option A: the entity owns its motors, and controllers use them through methods such as `ApplyTraction`.
+  - Option B: the controller creates the joint and attaches it, with hooks called when an entity's controller is set.
+  - Option C: controllers become nodes, children of the entity, with their joints as their own children.
+  - A, because the lifetimes of an entity and its motors match, and nothing has to manage them. Neil would rather not write lifetime-management code, which is hard to make robust. It also keeps the one-tick rule uniform: the entity switches off every motor it owns before its controller runs, so a silent or replaced controller leaves nothing running.
+  - To keep `Entity` from growing a method per motor (Neil): the base `Entity` has no motors and no controller, and is what a block is. `WalkerEntity` has the traction motor and `ApplyTraction`. `PlatformEntity` is for the platform's thruster; for now it has no motor, and its controller uses plain forces.
+  - A walker is now a `WalkerEntity`, which sets its own engine friction to zero. Before, a body was a walker when its tuning's engine friction was zero.
+  - The controller interface is generic, `ICharacterController<in TEntity>`, and each subclass has a `Controller` of its own type. A walker's controller in a platform's body doesn't compile (checked). Neil strongly prefers invariants checked statically; the alternative was a cast inside each controller. Because of `in`, a controller written for any `Entity` fits every kind.
+  - Known weak spot: a body that needs two kinds of motor, such as a walker with a thruster, has no place in a tree with single inheritance. Not designed for. The way out would be to make each motor a child node that an entity has, which keeps the lifetimes matched.
+  - Results: all ten probes print the same as before the split, and 30 of 30 in-engine tests pass unchanged.
 - [ ] 3.5 Where do the tests go? Not changed: `BodyCheck.Core.Tests` is still xUnit, with only the tile-grid tests, and everything that needs the engine is in `BodyCheck.Game.Tests`.
   - Tried: converting `BodyCheck.Core.Tests` to the Game tests' setup (Godot SDK, gdUnit4Net, a copied `project.godot`). A Core node gets its callbacks there, and the xUnit tests keep running in the same project.
   - Open: whether two test projects still earn their keep, now that Core's rules need the engine.
-- [ ] 3.6 A joint motor or spring in place of the platform's PD controller. Deferred until the rest is done. Neil wants to do it himself.
+- [ ] 3.6 A joint motor or spring in place of the platform's PD controller. Deferred until the rest is done. Neil wants to do it himself. It goes in `PlatformEntity` (3.8).
   - To be checked first: whether the joint's linear spring has a force limit, which `MaxVerticalThrustFrac` needs.
 - [ ] 3.7 The generalisation that started this record: grip on other axes, against other anchors, with other gates. The joint gives axis (X, Y), anchor (`node_a`), gate (the enable flag) and limit (`force_limit`) directly. Limits to know:
   - Godot exposes one symmetric force limit per axis. Jolt has separate minimum and maximum, which Godot doesn't expose, so a grip that pushes harder than it pulls isn't available.

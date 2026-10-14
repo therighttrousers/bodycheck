@@ -42,13 +42,14 @@ public partial class RoomNode : Node3D
         });
 
         PlayerTuning = playerTuning ?? new PlayerTuning();
-        Player = AddEntity(playerBody ?? BodyTuning.Player, room.PlayerStart, PlayerColor, glows: true);
+        BodyTuning body = playerBody ?? BodyTuning.Player;
+        Player = Add(new WalkerEntity(body, BoxVisual(body, PlayerColor, glows: true)), room.PlayerStart);
         Player.Controller = new PlayerController(PlayerTuning, () => PlayerInput?.Invoke() ?? default);
 
         var robotTuning = new RobotTuning();
         foreach (Vector2 start in room.RobotStarts)
         {
-            Entity robot = AddEntity(BodyTuning.Robot, start, RobotColor, glows: false);
+            WalkerEntity robot = Add(new WalkerEntity(BodyTuning.Robot, BoxVisual(BodyTuning.Robot, RobotColor)), start);
             robot.Controller = new RobotController(robotTuning);
             _characters.Add(robot);
         }
@@ -56,21 +57,22 @@ public partial class RoomNode : Node3D
         var platformTuning = new PlatformTuning();
         foreach (Vector2 start in room.PlatformStarts)
         {
-            Entity platform = AddEntity(BodyTuning.Platform, start, PlatformColor, glows: false);
+            PlatformEntity platform = Add(
+                new PlatformEntity(BodyTuning.Platform, BoxVisual(BodyTuning.Platform, PlatformColor)), start);
             platform.Controller = new PlatformController(platform.Position.Y, platformTuning);
             _characters.Add(platform);
         }
 
         foreach (Vector2 start in room.BlockStarts)
         {
-            _blocks.Add(AddEntity(BodyTuning.Block, start, BlockColor, glows: false));
+            _blocks.Add(Add(new Entity(BodyTuning.Block, BoxVisual(BodyTuning.Block, BlockColor)), start));
         }
     }
 
     public Room Room { get; }
     public TileGrid Tiles { get; }
 
-    public Entity Player { get; }
+    public WalkerEntity Player { get; }
     public PlayerTuning PlayerTuning { get; }
 
     /// <summary>The robots and the platforms, robots first.</summary>
@@ -96,20 +98,20 @@ public partial class RoomNode : Node3D
         }
     }
 
-    /// <summary>Adds an entity drawn as a box, with the middle of its base at <paramref name="start"/>.</summary>
-    private Entity AddEntity(BodyTuning body, Vector2 start, Color color, bool glows)
+    /// <summary>Adds an entity to the room, with the middle of its base at <paramref name="start"/>.</summary>
+    private T Add<T>(T entity, Vector2 start)
+        where T : Entity
     {
-        var entity = new Entity(body, BoxVisual(body.HalfSize, color, glows))
-        {
-            Position = new Vector3(start.X, start.Y + body.HalfSize.Y, 0),
-        };
+        entity.Position = new Vector3(start.X, start.Y + entity.HalfSize.Y, 0);
         AddChild(entity);
         _entities.Add(entity);
         return entity;
     }
 
-    private static MeshInstance3D BoxVisual(Vector2 halfSize, Color color, bool glows)
+    /// <summary>A box the size of a body, to draw an entity as.</summary>
+    private static MeshInstance3D BoxVisual(BodyTuning body, Color color, bool glows = false)
     {
+        Vector2 halfSize = body.HalfSize;
         var mesh = new MeshInstance3D
         {
             Mesh = new BoxMesh

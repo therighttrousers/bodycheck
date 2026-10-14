@@ -17,7 +17,7 @@ public sealed record RobotTuning
     public float GroundFriction { get; init; } = 4;
 }
 
-public sealed class RobotController : ICharacterController
+public sealed class RobotController : ICharacterController<WalkerEntity>
 {
     private float _facing = 1;
     private float _move = 0;
@@ -29,7 +29,7 @@ public sealed class RobotController : ICharacterController
 
     public RobotTuning Tuning { get; }
 
-    public void Apply(Entity entity, float dt)
+    public void Apply(WalkerEntity entity, float dt)
     {
         // Patrol if on tiles. Bounce off of anything solid (including the player).
         if (entity.OnGround && entity.Support is null)
@@ -55,7 +55,7 @@ public sealed class RobotController : ICharacterController
         ApplyRun(entity, _move);
     }
 
-    private void ApplyRun(Entity entity, float move)
+    private void ApplyRun(WalkerEntity entity, float move)
     {
         // Speed is relative to whatever the entity stands on.
         float speed = entity.LinearVelocity.X - entity.GroundVelocity.X;

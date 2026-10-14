@@ -45,7 +45,7 @@ public sealed record PlayerTuning
 /// <summary>
 /// Turns player input into forces, impulses and traction on the entity it controls.
 /// </summary>
-public sealed class PlayerController : ICharacterController
+public sealed class PlayerController : ICharacterController<WalkerEntity>
 {
     private readonly Func<PlayerInput> _input;
 
@@ -63,7 +63,7 @@ public sealed class PlayerController : ICharacterController
 
     public PlayerTuning Tuning { get; }
 
-    public void Apply(Entity entity, float dt)
+    public void Apply(WalkerEntity entity, float dt)
     {
         PlayerInput input = _input();
         if (entity.OnGround)
@@ -81,7 +81,7 @@ public sealed class PlayerController : ICharacterController
         _jumpWasHeld = input.JumpHeld;
     }
 
-    private void ApplyRun(Entity entity, float move, float weight)
+    private void ApplyRun(WalkerEntity entity, float move, float weight)
     {
         // Speed is relative to whatever the entity stands on, so running on a robot works like running on tiles.
         float speed = entity.LinearVelocity.X - entity.GroundVelocity.X;
@@ -114,7 +114,7 @@ public sealed class PlayerController : ICharacterController
         }
     }
 
-    private void ApplyJump(Entity entity, bool jumpHeld, float weight)
+    private void ApplyJump(WalkerEntity entity, bool jumpHeld, float weight)
     {
         if (!jumpHeld)
         {

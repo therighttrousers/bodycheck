@@ -15,18 +15,14 @@ public sealed record BodyTuning
     public float Drag { get; init; } = 0.5f;
 
     /// <summary>
-    /// The engine's coefficient of friction for this body. Leave it at 0 for anything that walks: a walker
-    /// grips through traction, and with engine friction it would grip walls too, and lose its speed on
-    /// landing. Other bodies, which have no traction, need it to rest on things and be carried.
+    /// The engine's coefficient of friction for this body, which lets it rest on things and be carried.
+    /// A <see cref="WalkerEntity"/> has none, whatever this says: it grips through traction.
     /// <para>
     /// Where two bodies touch, the engine uses the smaller of their coefficients, so a walker slides
     /// freely against everything.
     /// </para>
     /// </summary>
     public float EngineFriction { get; init; }
-
-    /// <summary>Whether this body grips through traction rather than through the engine's friction.</summary>
-    public bool IsWalker => EngineFriction == 0;
 
     public static BodyTuning Player { get; } = new() { HalfSize = new(0.4f, 0.8f), Mass = 1 };
 
