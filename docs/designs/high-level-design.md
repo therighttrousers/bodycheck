@@ -131,3 +131,4 @@ Tech:
 - Can the Godot editor attach a script to a scene only when the script is in the Godot project itself? Believed so. Core's node classes are created in code, which doesn't need it (`005 §3.2`).
 - gdUnit4Net is used outside its stated support (.NET 8 and 9, Godot 4.4 to 4.5), and `gdUnit4.api` is a prerelease. To be revisited when it releases.
 - Would Godot's 3D physics, with gameplay locked to one plane, serve better than our own simulation? To be investigated later.
+- Do two test projects still earn their keep, now that Core's rules need the engine? `BodyCheck.Core.Tests` holds only the tile-grid tests. It can be given the Game tests' setup and keep its xUnit tests running beside gdUnit4Net ones (`005 §3.5`).

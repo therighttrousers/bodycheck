@@ -10,6 +10,8 @@ Neil's position: traction feels overly specific, and it forces a proxy for the e
 
 Goal: decide whether a walker's grip becomes a motor inside the engine's solver, by trying it.
 
+Closed on 2026-10-13 with the decisions to use the motor (item 4.1) and to remove the proxy (item 3.1). Outcomes and unresolved items are in the design docs: [high-level-design.md](../designs/high-level-design.md) and [movement.md](../designs/movement.md).
+
 Tensions:
 - Record `002` put the rules in Core behind `Body` so that they run outside the engine. Without traction, the main reason for `Body` goes.
 - The generalisation Neil asked for (grip on other axes, against other anchors, with other gates) is still wanted, whichever way traction is applied.

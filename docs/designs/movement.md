@@ -69,3 +69,4 @@ TODO
 - The platform's vertical thrust is a PD controller of our own. Could a joint motor or spring replace it? Neil's to try (`005 §3.6`).
 - What happens to `Entity.Support`, and to the traction joint, when the entity stood on is freed. Nothing is freed during play yet.
 - Traction limits come from each character's tuning, not from the load on the contact, so a robot carrying the player grips the floor no harder than one carrying nothing. Is that worth changing?
+- Traction is one use of a joint motor: along X, against what the entity stands on, while it is on the ground. Grip on other axes, against other anchors and with other gates is wanted, for more ways to cheat physics than walking and running. What the joint offers and where it stops is in `005 §3.7`. A first question is who owns such a motor: it has to be a child of the entity, and a controller doesn't hold its entity.
