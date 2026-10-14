@@ -21,6 +21,12 @@ public sealed class World
     /// <summary>The downward acceleration that the engine applies to every body.</summary>
     public float Gravity { get; init; } = 50;
 
+    /// <summary>Spike (decision record 005): traction is left to the engine's motors.</summary>
+    public bool TractionInEngine { get; set; }
+
+    /// <summary>Spike (decision record 005): drag is left to the engine's damping.</summary>
+    public bool DragInEngine { get; set; }
+
     /// <summary>Call once per tick, after every controller has run and before the engine's step.</summary>
     public void Step(float dt)
     {
@@ -28,12 +34,18 @@ public sealed class World
         // velocity doesn't change until its step, so a working copy is kept.
         foreach (Body body in Bodies)
         {
-            body.AddForce(-body.Drag * body.EngineVelocity);
+            if (!DragInEngine)
+            {
+                body.AddForce(-body.Drag * body.EngineVelocity);
+            }
             body.StepVelocity = body.EngineVelocity + body.TakePendingImpulse(dt) / body.Mass;
         }
 
         // Traction comes after every other force is in the velocities, so that it can cancel them exactly.
-        ApplyTraction(dt);
+        if (!TractionInEngine)
+        {
+            ApplyTraction(dt);
+        }
 
         foreach (Body body in Bodies)
         {

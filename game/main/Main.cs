@@ -40,6 +40,14 @@ public partial class Main : Node3D
             {
                 _mergeTiles = false;
             }
+            else if (arg == "--traction=motor")
+            {
+                Spike.MotorTraction = true;
+            }
+            else if (arg == "--damping=engine")
+            {
+                Spike.EngineDamping = true;
+            }
             else if (arg.StartsWith("--probe="))
             {
                 probeName = arg["--probe=".Length..];

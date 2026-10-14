@@ -39,6 +39,14 @@ public static class TestRooms
         new string('#', 400),
     ]));
 
+    /// <summary>A robot that patrols towards the player across a flat floor.</summary>
+    public static readonly Room RobotPush = new("Robot push", """
+        #......................#
+        #......................#
+        #..R.......P...........#
+        ########################
+        """);
+
     /// <summary>A hovering platform between two walls, with the player about 3 tiles above it.</summary>
     public static readonly Room PlatformRiding = new("Platform riding", string.Join('\n',
     [

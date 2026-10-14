@@ -1,3 +1,5 @@
+using System;
+
 using BodyCheck.Core;
 
 using Godot;
@@ -34,7 +36,7 @@ public partial class BodyNode : RigidBody3D
         // Never rough: where two bodies touch, the smaller friction has to win, so that a walker's zero does.
         PhysicsMaterialOverride = new PhysicsMaterial { Friction = body.EngineFriction, Bounce = 0, Rough = false };
         LinearDampMode = DampMode.Replace;
-        LinearDamp = 0;
+        LinearDamp = Spike.EngineDamping ? body.Drag / body.Mass : 0;
         CanSleep = false;
         ContactMonitor = true;
         MaxContactsReported = 8;
@@ -64,9 +66,61 @@ public partial class BodyNode : RigidBody3D
             mesh.AddChild(new OmniLight3D { LightColor = color, LightEnergy = 2, OmniRange = 6 });
         }
         AddChild(mesh);
+
+        if (Spike.MotorTraction && body.IsWalker)
+        {
+            // A joint that constrains nothing: every limit is off, so its only effect is the X motor.
+            _motor = new Generic6DofJoint3D { NodeB = new NodePath(".."), ExcludeNodesFromCollision = false };
+            foreach (var flag in (ReadOnlySpan<Generic6DofJoint3D.Flag>)
+                [Generic6DofJoint3D.Flag.EnableLinearLimit, Generic6DofJoint3D.Flag.EnableAngularLimit])
+            {
+                _motor.SetFlagX(flag, false);
+                _motor.SetFlagY(flag, false);
+                _motor.SetFlagZ(flag, false);
+            }
+            AddChild(_motor);
+        }
     }
 
+    private readonly Generic6DofJoint3D? _motor;
+    private BodyNode? _motorAnchor;
+    private bool _motorOn;
+
     public Body Body { get; }
+
+    /// <summary>The node of the body this one stood on during the engine's last step, if any.</summary>
+    public BodyNode? SupportNode { get; private set; }
+
+    /// <summary>Spike: how many times the motor's joint was moved to another anchor.</summary>
+    public int MotorAnchorChanges { get; private set; }
+
+    /// <summary>Spike (decision record 005): hands the body's traction to the engine as a motor.</summary>
+    public void UpdateMotor()
+    {
+        if (_motor is null)
+        {
+            return;
+        }
+
+        Traction traction = Body.Traction;
+        bool on = Body.OnGround && traction.MaxForce > 0;
+        if (on)
+        {
+            if (SupportNode != _motorAnchor)
+            {
+                _motorAnchor = SupportNode;
+                _motor.NodeA = _motorAnchor is null ? new NodePath() : _motor.GetPathTo(_motorAnchor);
+                MotorAnchorChanges++;
+            }
+            _motor.SetParamX(Generic6DofJoint3D.Param.LinearMotorTargetVelocity, Spike.MotorSign * traction.TargetSpeed);
+            _motor.SetParamX(Generic6DofJoint3D.Param.LinearMotorForceLimit, traction.MaxForce);
+        }
+        if (on != _motorOn)
+        {
+            _motorOn = on;
+            _motor.SetFlagX(Generic6DofJoint3D.Flag.EnableLinearMotor, on);
+        }
+    }
 
     /// <summary>Copies the engine's position and velocity into the body.</summary>
     public void PullMotion()
@@ -87,6 +141,7 @@ public partial class BodyNode : RigidBody3D
     {
         var contacts = Contacts.None;
         Body? support = null;
+        BodyNode? supportNode = null;
         for (int i = 0; i < state.GetContactCount(); i++)
         {
             // The normal points away from the other collider, towards this body.
@@ -94,7 +149,8 @@ public partial class BodyNode : RigidBody3D
             if (normal.Y > SideThreshold)
             {
                 contacts |= Contacts.Floor;
-                support ??= (state.GetContactColliderObject(i) as BodyNode)?.Body;
+                supportNode ??= state.GetContactColliderObject(i) as BodyNode;
+                support ??= supportNode?.Body;
             }
             else if (normal.Y < -SideThreshold)
             {
@@ -110,5 +166,6 @@ public partial class BodyNode : RigidBody3D
             }
         }
         Body.SetContacts(contacts, support);
+        SupportNode = supportNode;
     }
 }

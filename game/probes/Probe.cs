@@ -58,6 +58,21 @@ public static class Probe
                 GD.Print($"Riding probe, {room.Room.Name}:");
                 probe = new RidingProbe(room.Player, room.BodyNodes[1]);
                 break;
+            case "landing":
+                room = load(TestRooms.Seams);
+                GD.Print("Landing probe:");
+                probe = new LandingProbe(room.Player);
+                break;
+            case "push":
+                room = load(TestRooms.RobotPush);
+                GD.Print("Push probe:");
+                probe = new PushProbe(room.Player, room.BodyNodes[1]);
+                break;
+            case "run-off":
+                room = load(TestRooms.RobotRiding);
+                GD.Print("Run-off probe:");
+                probe = new RunOffProbe(room.Player, room.BodyNodes[1]);
+                break;
             default:
                 throw new ArgumentException($"There is no probe named '{name}'.");
         }
