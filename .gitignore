@@ -19,3 +19,5 @@ tests/BodyCheck.Game.Tests/project.godot
 
 # Godot writes an ID file for every script. Nothing refers to test classes by ID.
 tests/BodyCheck.Game.Tests/**/*.uid
+
+tmp/

@@ -1,0 +1,28 @@
+[gd_scene format=3 uid="uid://ctq5ypfqqc5op"]
+
+[ext_resource type="PackedScene" uid="uid://dfyyweqeug8hm" path="res://assets/bob_the_robot/scene.gltf" id="1_icuvs"]
+
+[node name="Sketchfab_Scene" unique_id=1679574890 instance=ExtResource("1_icuvs")]
+
+[node name="Skeleton3D" parent="Sketchfab_model/466f4e732ab24572a4bcf0fb382e93d7_fbx/Object_2/RootNode/bob_rig/Object_5" parent_id_path=PackedInt32Array(272568232) index="0" unique_id=1657079431]
+bones/2/position = Vector3(0.0065265005, 0.63688934, -0.015663609)
+bones/2/rotation = Quaternion(0.08394257, -0.068180665, 0.020418804, 0.99392563)
+bones/3/position = Vector3(0.072854996, -0.027091265, 0.018257512)
+bones/3/rotation = Quaternion(0.8603908, 0.16018695, 0.46352816, 0.13859837)
+bones/3/scale = Vector3(1.0000128, 1.0000013, 1.0000005)
+bones/4/rotation = Quaternion(0.019944197, 0.108617276, 0.21358791, 0.97066206)
+bones/5/rotation = Quaternion(0.47572914, 0.5015378, -0.46183187, 0.5557454)
+bones/6/position = Vector3(-0.07269701, -0.021751562, 0.017337907)
+bones/6/rotation = Quaternion(0.8549849, -0.20210007, -0.46177483, 0.12214903)
+bones/6/scale = Vector3(1.0000123, 1.0000015, 1.0000004)
+bones/7/rotation = Quaternion(0.019944191, -0.10861729, -0.21358794, 0.97066206)
+bones/8/rotation = Quaternion(0.47572914, -0.5015378, 0.46183187, 0.5557454)
+bones/9/rotation = Quaternion(-0.0948059, 5.4249067e-05, -0.013717026, 0.99540126)
+bones/10/rotation = Quaternion(0.15233336, 0.0006709856, -0.0052555082, 0.98831505)
+bones/11/rotation = Quaternion(-0.005567811, 0.9928667, -0.10154481, -0.062237084)
+bones/12/position = Vector3(0.17098111, 0.13450092, -0.054484073)
+bones/12/rotation = Quaternion(0.7178746, 0.018820884, 0.64484984, -0.26166892)
+bones/13/rotation = Quaternion(0.037393972, 0.002376975, -0.54189867, 0.8396082)
+bones/14/position = Vector3(-0.17098115, 0.13450097, -0.05448399)
+bones/14/rotation = Quaternion(0.7234636, -0.0043288395, -0.6434089, -0.25021344)
+bones/15/rotation = Quaternion(0.037394002, -0.0023769196, 0.5418987, 0.83960825)
