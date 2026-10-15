@@ -65,9 +65,13 @@ public partial class Entity : RigidBody3D
 
         if (visual is not null)
         {
+            visual.Position -= new Vector3(0, tuning.HalfSize.Y, 0);
+            Visual = visual;
             AddChild(visual);
         }
     }
+
+    public Node3D? Visual { get; }
 
     public BodyTuning Tuning { get; }
 

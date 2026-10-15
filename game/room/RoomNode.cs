@@ -43,13 +43,14 @@ public partial class RoomNode : Node3D
 
         PlayerTuning = playerTuning ?? new PlayerTuning();
         BodyTuning body = playerBody ?? BodyTuning.Player;
-        Player = Add(new WalkerEntity(body, BoxVisual(body, PlayerColor, glows: true)), room.PlayerStart);
+        Player = Add(new WalkerEntity(body, BobTheRobotVisual()), room.PlayerStart);
+        Player.AddChild(new OmniLight3D { OmniRange = 15, ShadowEnabled = true, Position = new Vector3(0, 0, 2) });
         Player.Controller = new PlayerController(PlayerTuning, () => PlayerInput?.Invoke() ?? default);
 
         var robotTuning = new RobotTuning();
         foreach (Vector2 start in room.RobotStarts)
         {
-            WalkerEntity robot = Add(new WalkerEntity(BodyTuning.Robot, BoxVisual(BodyTuning.Robot, RobotColor)), start);
+            WalkerEntity robot = Add(new WalkerEntity(BodyTuning.Robot, DalekVisual()), start);
             robot.Controller = new RobotController(robotTuning);
             _characters.Add(robot);
         }
@@ -65,7 +66,7 @@ public partial class RoomNode : Node3D
 
         foreach (Vector2 start in room.BlockStarts)
         {
-            _blocks.Add(Add(new Entity(BodyTuning.Block, BoxVisual(BodyTuning.Block, BlockColor)), start));
+            _blocks.Add(Add(new Entity(BodyTuning.Block, PortalCubeVisual()), start));
         }
     }
 
@@ -131,5 +132,15 @@ public partial class RoomNode : Node3D
             mesh.AddChild(new OmniLight3D { LightColor = color, LightEnergy = 2, OmniRange = 6 });
         }
         return mesh;
+    }
+
+    private static Node3D PortalCubeVisual() => InstantiateModel("res://assets/portal_cube/scene.tscn");
+    private static Node3D DalekVisual() => InstantiateModel("res://assets/dalek/scene.tscn");
+    private static Node3D BobTheRobotVisual() => InstantiateModel("res://assets/bob_the_robot/scene.tscn");
+
+    private static Node3D InstantiateModel(string path)
+    {
+        var scene = GD.Load<PackedScene>(path);
+        return scene.Instantiate<Node3D>();
     }
 }

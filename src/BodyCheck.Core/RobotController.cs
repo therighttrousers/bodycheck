@@ -1,5 +1,7 @@
 namespace BodyCheck.Core;
 
+using Godot;
+
 public sealed record RobotTuning
 {
     /// <summary>Speed at which the run drive force falls to zero.</summary>
@@ -29,6 +31,16 @@ public sealed class RobotController : ICharacterController<WalkerEntity>
 
     public RobotTuning Tuning { get; }
 
+    private void UpdateVisuals(Entity entity, float dt)
+    {
+        if (entity.Visual is null) return;
+
+        var rot = entity.Visual.Rotation;
+        var target = 0.5f * MathF.PI * _facing;
+        var newYaw = Mathf.MoveToward(rot.Y, target, 10 * dt);
+        entity.Visual.Rotation = new Vector3(rot.X, newYaw, rot.Z);
+    }
+
     public void Apply(WalkerEntity entity, float dt)
     {
         // Patrol if on tiles. Bounce off of anything solid (including the player).
@@ -53,6 +65,8 @@ public sealed class RobotController : ICharacterController<WalkerEntity>
         }
 
         ApplyRun(entity, _move);
+
+        UpdateVisuals(entity, dt);
     }
 
     private void ApplyRun(WalkerEntity entity, float move)
