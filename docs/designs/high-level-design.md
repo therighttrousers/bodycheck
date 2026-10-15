@@ -10,13 +10,12 @@ Relevant decision records:
 
 ## Vision
 
-The player is a maintenance robot whose job is to activate all of a facility's defenses. The world gets more dangerous as the player progresses, because the facility and its characters regard the player as an enemy.
+The player is a maintenance robot who has been asked by a mysterious Voice to repair and reactivate a facility. The world gets more dangerous as the player progresses, because the facility and its inhabitants regard the player as an enemy.
 
-## World and story
+## World
 
 - The whole game is one seamless, tile-based map, with no screen transitions.
 - The map is divided into sections, each with its own look and personality.
-- Themes are existential: purpose and agency.
 - Everything that moves is intelligent.
 - There are no *enemies* per se - just characters, many of which are dangerous.
 - NPCs: robots, turrets, heavy projectiles, platforms.
@@ -92,15 +91,11 @@ See [architecture.md](architecture.md).
 - [architecture.md](architecture.md): the tools, the code's structure, and the tests.
 - [movement.md](movement.md): how the player and other bodies move, collide and grip.
 - [progression.md](progression.md): abilities, world changes, water, in the order the player meets them.
-- [characters.md](characters.md): characters that populate the game world.
 - [rendering.md](rendering.md): the low-resolution pipeline, the palette, and the tools for judging them.
+- [story.md](story.md): story introduction, themes, tensions, setting, story beats, climax, and dialogue guidance.
+- [characters.md](characters.md): characters that populate the game world.
 
 ## Open questions
-
-Story:
-- Who are the other characters?
-- Do the guardians have to shoot the player, or do they want to? What do they think about it, and how does the player find out?
-- Why does the player keep activating defenses that hurt it? What is the facility defending against?
 
 Failure and saving:
 - How are saves between the stages of a multi-stage challenge done? Options: explicit save points spread out in space, so the player walks to the next stage; or restoring to the current stage after death.
