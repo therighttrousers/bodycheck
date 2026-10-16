@@ -251,6 +251,29 @@ public class PlayerControllerTest
     }
 
     [TestCase]
+    public async Task A_jump_at_full_running_speed_rises_at_about_45_degrees_while_thrust_lasts()
+    {
+        await Start();
+        await Tick(Right, 120);
+
+        // The take-off tick, then the thrust ticks.
+        float steepest = float.MinValue;
+        float shallowest = float.MaxValue;
+        for (int tick = 0; tick <= Tuning.JumpThrustTicks; tick++)
+        {
+            await Tick(new PlayerInput(1, true));
+            float angle = Mathf.RadToDeg(MathF.Atan2(Velocity.Y, Velocity.X));
+            steepest = MathF.Max(steepest, angle);
+            shallowest = MathF.Min(shallowest, angle);
+        }
+
+        // Thrust slows the rise less than gravity alone would, so the path stays close to straight.
+        // Measured: 45.7 degrees at take-off, falling to 42.6 when thrust ends.
+        AssertThat(steepest).IsBetween(42f, 48f);
+        AssertThat(shallowest).IsBetween(42f, 48f);
+    }
+
+    [TestCase]
     public async Task Holding_jump_after_landing_does_not_jump_again()
     {
         await Start();
