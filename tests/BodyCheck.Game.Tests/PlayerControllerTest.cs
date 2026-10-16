@@ -123,7 +123,7 @@ public class PlayerControllerTest
     {
         await Start();
 
-        await Tick(Right, 15);
+        await Tick(Right, 20);
 
         AssertThat(Velocity.X).IsGreater(0.8f * Tuning.TopSpeed);
     }

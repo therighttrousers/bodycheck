@@ -268,9 +268,9 @@ public class BodiesTest
 
     // Design goal: moving over a one-tile gap at top speed consistently skips over it. Different drags
     // give different top speeds, so that the ticks land at different places relative to the gaps.
-    [TestCase(0.3f)]
-    [TestCase(0.5f)]
-    [TestCase(0.7f)]
+    [TestCase(0.225f)]
+    [TestCase(0.375f)]
+    [TestCase(0.525f)]
     public async Task A_player_at_top_speed_runs_over_one_tile_gaps(float drag)
     {
         int[] gaps = [30, 47, 61, 78, 92, 105];
@@ -294,7 +294,7 @@ public class BodiesTest
 
         float lowest = float.MaxValue;
         float farthest = 0;
-        await run.Tick(Right, 600, () =>
+        await run.Tick(Right, 800, () =>
         {
             lowest = MathF.Min(lowest, run.Player.Bottom());
             farthest = MathF.Max(farthest, run.Player.Right());

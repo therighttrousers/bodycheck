@@ -5,13 +5,13 @@ namespace BodyCheck.Core;
 public sealed record PlatformTuning
 {
     /// <summary>Speed at which the horizontal drive force falls to zero.</summary>
-    public float TopSpeed { get; init; } = 8;
+    public float TopSpeed { get; init; } = 6;
 
     /// <summary>Force applied horizontally to move back and forth.</summary>
-    public float HorizontalDriveForce { get; init; } = 120;
+    public float HorizontalDriveForce { get; init; } = 67.5f;
 
     /// <summary>How much the platform thrusts vertically to get back to its original altitude. Higher -> less sag.</summary>
-    public float VerticalStiffness { get; init; } = 200;
+    public float VerticalStiffness { get; init; } = 112.5f;
     /// <summary>Maximum vertical thrust, as a fraction of weight. Should be > 1.</summary>
     public float MaxVerticalThrustFrac { get; init; } = 1.5f;
 }

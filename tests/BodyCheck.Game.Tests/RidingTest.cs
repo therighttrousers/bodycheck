@@ -59,7 +59,7 @@ public class RidingTest
 
         await Tick(Idle, 30 * 60);
 
-        AssertThat(Robot.Position.X - start).IsGreater(90f);
+        AssertThat(Robot.Position.X - start).IsGreater(67f);
         AssertThat(Player.Support).IsSame(Robot);
         AssertThat(Player.Position.X - Robot.Position.X).IsEqualApprox(offset, 0.01f);
     }

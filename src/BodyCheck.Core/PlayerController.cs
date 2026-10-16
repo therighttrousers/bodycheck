@@ -8,16 +8,16 @@ public readonly record struct PlayerInput(float Move, bool JumpHeld);
 public sealed record PlayerTuning
 {
     /// <summary>Speed at which the run drive force falls to zero.</summary>
-    public float TopSpeed { get; init; } = 16;
+    public float TopSpeed { get; init; } = 12;
 
     /// <summary>Force applied when on the ground and moving in the direction of input.</summary>
-    public float GroundForwardDriveForce { get; init; } = 120;
+    public float GroundForwardDriveForce { get; init; } = 67.5f;
     /// <summary>Force applied when on the ground and moving against the direction of input.</summary>
-    public float GroundReverseDriveForce { get; init; } = 240;
+    public float GroundReverseDriveForce { get; init; } = 135;
     /// <summary>Force applied when in the air and moving in the direction of input.</summary>
-    public float AirForwardDriveForce { get; init; } = 40;
+    public float AirForwardDriveForce { get; init; } = 22.5f;
     /// <summary>Force applied when in the air and moving against the direction of input.</summary>
-    public float AirReverseDriveForce { get; init; } = 80;
+    public float AirReverseDriveForce { get; init; } = 45;
 
     /// <summary>
     /// Coefficient of friction with the ground, whether tiles or another body. Applied when not driving in
@@ -26,7 +26,7 @@ public sealed record PlayerTuning
     public float GroundFriction { get; init; } = 4;
 
     /// <summary>Upward speed given by the jump impulse.</summary>
-    public float JumpSpeed { get; init; } = 16;
+    public float JumpSpeed { get; init; } = 12;
 
     /// <summary>
     /// Number of frames the jump thrust lasts while the button is held. Includes the frame with the initial jump impulse.
