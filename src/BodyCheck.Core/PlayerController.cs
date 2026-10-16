@@ -66,15 +66,27 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     public void Apply(WalkerEntity entity, float dt)
     {
         PlayerInput input = _input();
+        float weight = entity.Weight;
+        float move = Math.Clamp(input.Move, -1, 1);
+
         if (entity.OnGround)
         {
             _groundTicksLeft = Tuning.CoyoteTicks + 1; // +1 to include this frame in remaining ground ticks
             _lastGroundVelocity = entity.LinearVelocity;
         }
 
-        float weight = entity.Weight;
-        ApplyRun(entity, Math.Clamp(input.Move, -1, 1), weight);
+        ApplyRun(entity, move, weight);
         ApplyJump(entity, input.JumpHeld, weight);
+
+        // Set animation variables
+        entity.IsGrounded = _groundTicksLeft > 0;
+        entity.IsMoving = move != 0;
+        entity.IsJumping = _thrustTicksLeft > 0;
+        // Only change facing direction when on the ground or just after jumping (and allow setting to 0)
+        if (_groundTicksLeft > 0 || _thrustTicksLeft > 0)
+        {
+            entity.Facing = Math.Sign(move);
+        }
 
         _groundTicksLeft = Math.Max(0, _groundTicksLeft - 1);
         _thrustTicksLeft = Math.Max(0, _thrustTicksLeft - 1);
@@ -84,7 +96,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     private void ApplyRun(WalkerEntity entity, float move, float weight)
     {
         // Speed is relative to whatever the entity stands on, so running on a robot works like running on tiles.
-        float speed = entity.LinearVelocity.X - entity.GroundVelocity.X;
+        float speed = entity.GroundSpeed;
         bool reverse = speed != 0 && move * speed <= 0;
 
         float drive = 0;

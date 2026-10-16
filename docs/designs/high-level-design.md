@@ -8,6 +8,16 @@ Relevant decision records:
 - [003: Rendering pipeline for the Star Fox SNES look](../decision-records/003-snes-3d-look.md)
 - [005: Jolt's joint motors for traction](../decision-records/005-jolt-motors-for-traction.md)
 
+## Detailed design docs
+
+- [architecture.md](architecture.md): the tools, the code's structure, and the tests.
+- [movement.md](movement.md): how the player and other bodies move, collide and grip.
+- [progression.md](progression.md): abilities, world changes, water, in the order the player meets them.
+- [rendering.md](rendering.md): the low-resolution pipeline, the palette, and the tools for judging them.
+- [models.md](models.md): what a 3D model must be, how the game places it, and the animation interface between code and art.
+- [story.md](story.md): story introduction, themes, tensions, setting, story beats, climax, and dialogue guidance.
+- [characters.md](characters.md): characters that populate the game world.
+
 ## Vision
 
 The player is a maintenance robot who has been asked by a mysterious Voice to repair and reactivate a facility. The world gets more dangerous as the player progresses, because the facility and its inhabitants regard the player as an enemy.
@@ -85,15 +95,6 @@ See [progression.md](progression.md).
 - **Content:** levels are authored in 2D in LDtk and turned into 3D at load; models are made in Blender.
 
 See [architecture.md](architecture.md).
-
-## Design docs
-
-- [architecture.md](architecture.md): the tools, the code's structure, and the tests.
-- [movement.md](movement.md): how the player and other bodies move, collide and grip.
-- [progression.md](progression.md): abilities, world changes, water, in the order the player meets them.
-- [rendering.md](rendering.md): the low-resolution pipeline, the palette, and the tools for judging them.
-- [story.md](story.md): story introduction, themes, tensions, setting, story beats, climax, and dialogue guidance.
-- [characters.md](characters.md): characters that populate the game world.
 
 ## Open questions
 

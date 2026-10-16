@@ -1,5 +1,7 @@
 namespace BodyCheck.Core;
 
+using Godot;
+
 public sealed record RobotTuning
 {
     /// <summary>Speed at which the run drive force falls to zero.</summary>
@@ -53,12 +55,17 @@ public sealed class RobotController : ICharacterController<WalkerEntity>
         }
 
         ApplyRun(entity, _move);
+
+        // Set animation variables
+        entity.IsGrounded = entity.OnGround;
+        entity.IsMoving = _move != 0;
+        entity.Facing = _facing;
     }
 
     private void ApplyRun(WalkerEntity entity, float move)
     {
         // Speed is relative to whatever the entity stands on.
-        float speed = entity.LinearVelocity.X - entity.GroundVelocity.X;
+        float speed = entity.GroundSpeed;
         bool reverse = speed != 0 && move * speed <= 0;
 
         float drive = 0;

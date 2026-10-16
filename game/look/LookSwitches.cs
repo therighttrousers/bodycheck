@@ -57,22 +57,6 @@ public partial class LookSwitches : Node
                     ? (_dither ? $"dither {_colorPass.LightnessSpread:0.00}/{_colorPass.ChromaSpread:0.000}" : "no dither")
                     : "full colour",
             };
-            if (_light.ShadowEnabled)
-            {
-                parts.Add("shadows");
-            }
-            if (_environment.SsaoEnabled)
-            {
-                parts.Add("AO");
-            }
-            if (_environment.SsrEnabled)
-            {
-                parts.Add("reflections");
-            }
-            if (_environment.GlowEnabled)
-            {
-                parts.Add("glow");
-            }
             return string.Join(", ", parts);
         }
     }

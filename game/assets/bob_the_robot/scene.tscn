@@ -1,0 +1,142 @@
+[gd_scene format=3 uid="uid://ctq5ypfqqc5op"]
+
+[ext_resource type="PackedScene" uid="uid://dfyyweqeug8hm" path="res://assets/bob_the_robot/scene.gltf" id="1_icuvs"]
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_2h3ep"]
+animation = &"bob_rig|idle"
+use_custom_timeline = true
+timeline_length = 1.0
+stretch_time_scale = true
+start_offset = 0.0
+loop_mode = 1
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_e7l1j"]
+animation = &"bob_rig|in_air"
+use_custom_timeline = true
+timeline_length = 1.0
+stretch_time_scale = true
+start_offset = 0.0
+loop_mode = 1
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_elv8a"]
+animation = &"bob_rig|jump"
+use_custom_timeline = true
+timeline_length = 0.4
+stretch_time_scale = false
+start_offset = 0.0
+loop_mode = 0
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_512o4"]
+animation = &"bob_rig|walk"
+use_custom_timeline = true
+timeline_length = 1.5
+stretch_time_scale = true
+start_offset = 0.0
+loop_mode = 1
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_hvsop"]
+animation = &"bob_rig|run"
+use_custom_timeline = true
+timeline_length = 3.0
+stretch_time_scale = true
+start_offset = 0.0
+loop_mode = 1
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_a0sfp"]
+animation = &"bob_rig|idle"
+use_custom_timeline = true
+timeline_length = 1.0
+stretch_time_scale = true
+start_offset = 0.0
+loop_mode = 1
+
+[sub_resource type="AnimationNodeBlendSpace1D" id="AnimationNodeBlendSpace1D_a0sfp"]
+min_space = 0.0
+max_space = 15.0
+blend_point_0/node = SubResource("AnimationNodeAnimation_512o4")
+blend_point_0/pos = 4.0
+blend_point_0/name = &"bob_rig|walk"
+blend_point_1/node = SubResource("AnimationNodeAnimation_hvsop")
+blend_point_1/pos = 15.0
+blend_point_1/name = &"bob_rig|run"
+blend_point_2/node = SubResource("AnimationNodeAnimation_a0sfp")
+blend_point_2/pos = 0.0
+blend_point_2/name = &"bob_rig|idle"
+
+[sub_resource type="AnimationNodeTimeScale" id="AnimationNodeTimeScale_2h3ep"]
+
+[sub_resource type="AnimationNodeBlendTree" id="AnimationNodeBlendTree_uwn0d"]
+nodes/output/position = Vector2(656, 128)
+nodes/TimeScale/node = SubResource("AnimationNodeTimeScale_2h3ep")
+nodes/TimeScale/position = Vector2(448, 128)
+nodes/BlendSpace1D/node = SubResource("AnimationNodeBlendSpace1D_a0sfp")
+nodes/BlendSpace1D/position = Vector2(192, 128)
+node_connections = [&"output", 0, &"TimeScale", &"TimeScale", 0, &"BlendSpace1D"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_512o4"]
+advance_mode = 2
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_hvsop"]
+switch_mode = 2
+advance_mode = 2
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_a0sfp"]
+xfade_time = 0.25
+advance_mode = 2
+advance_expression = "IsGrounded && !(IsMoving && abs(GroundSpeed) > 0.01)"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_2h3ep"]
+xfade_time = 0.1
+advance_mode = 2
+advance_expression = "IsJumping"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_ik5y6"]
+xfade_time = 0.1
+advance_mode = 2
+advance_expression = "IsMoving && abs(GroundSpeed) > 0.01 && IsGrounded"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_a1pq2"]
+xfade_time = 0.1
+advance_mode = 2
+advance_expression = "!(IsMoving && abs(GroundSpeed) > 0.01)"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_00emu"]
+xfade_time = 0.1
+advance_mode = 2
+advance_expression = "!IsGrounded"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_kxahi"]
+xfade_time = 0.1
+advance_mode = 2
+advance_expression = "IsGrounded && IsMoving && abs(GroundSpeed) > 0.01"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_gvx1h"]
+xfade_time = 0.1
+advance_mode = 2
+advance_expression = "IsJumping"
+
+[sub_resource type="AnimationNodeStateMachine" id="AnimationNodeStateMachine_e8kf8"]
+states/End/position = Vector2(79.81445, 259.2)
+states/Idle/node = SubResource("AnimationNodeAnimation_2h3ep")
+states/Idle/position = Vector2(230.3794, 155.63533)
+states/InAir/node = SubResource("AnimationNodeAnimation_e7l1j")
+states/InAir/position = Vector2(421.91992, 33.093346)
+states/Jump/node = SubResource("AnimationNodeAnimation_elv8a")
+states/Jump/position = Vector2(230.40443, 32.8)
+states/Move/node = SubResource("AnimationNodeBlendTree_uwn0d")
+states/Move/position = Vector2(421.47513, 152.74728)
+states/Start/position = Vector2(79.96805, 155.69078)
+transitions = ["Start", "Idle", SubResource("AnimationNodeStateMachineTransition_512o4"), "Jump", "InAir", SubResource("AnimationNodeStateMachineTransition_hvsop"), "InAir", "Idle", SubResource("AnimationNodeStateMachineTransition_a0sfp"), "Idle", "Jump", SubResource("AnimationNodeStateMachineTransition_2h3ep"), "Idle", "Move", SubResource("AnimationNodeStateMachineTransition_ik5y6"), "Move", "Idle", SubResource("AnimationNodeStateMachineTransition_a1pq2"), "Move", "InAir", SubResource("AnimationNodeStateMachineTransition_00emu"), "InAir", "Move", SubResource("AnimationNodeStateMachineTransition_kxahi"), "Move", "Jump", SubResource("AnimationNodeStateMachineTransition_gvx1h")]
+graph_offset = Vector2(-80, -43.90295)
+
+[node name="Player" type="Node3D" unique_id=1679574890]
+
+[node name="Model" parent="." unique_id=1250731866 instance=ExtResource("1_icuvs")]
+
+[node name="AnimationTree" type="AnimationTree" parent="." unique_id=1030308632]
+tree_root = SubResource("AnimationNodeStateMachine_e8kf8")
+anim_player = NodePath("../Model/AnimationPlayer")
+parameters/Move/TimeScale/scale = 1.0
+parameters/Move/BlendSpace1D/blend_position = 0.0
+
+[editable path="Model"]

@@ -14,10 +14,7 @@ namespace BodyCheck;
 /// </summary>
 public partial class RoomNode : Node3D
 {
-    private static readonly Color PlayerColor = new(0.2f, 0.9f, 1.0f);
-    private static readonly Color RobotColor = new(1.0f, 0.45f, 0.15f);
     private static readonly Color PlatformColor = new(0.9f, 0.1f, 0.7f);
-    private static readonly Color BlockColor = new(0.6f, 0.65f, 0.3f);
 
     private readonly List<Entity> _entities = [];
     private readonly List<Entity> _characters = [];
@@ -43,13 +40,14 @@ public partial class RoomNode : Node3D
 
         PlayerTuning = playerTuning ?? new PlayerTuning();
         BodyTuning body = playerBody ?? BodyTuning.Player;
-        Player = Add(new WalkerEntity(body, BoxVisual(body, PlayerColor, glows: true)), room.PlayerStart);
+        Player = Add(new WalkerEntity(body, PlayerVisual()), room.PlayerStart);
+        Player.AddChild(new OmniLight3D { OmniRange = 15, ShadowEnabled = true, Position = new Vector3(0, 0, 2) });
         Player.Controller = new PlayerController(PlayerTuning, () => PlayerInput?.Invoke() ?? default);
 
         var robotTuning = new RobotTuning();
         foreach (Vector2 start in room.RobotStarts)
         {
-            WalkerEntity robot = Add(new WalkerEntity(BodyTuning.Robot, BoxVisual(BodyTuning.Robot, RobotColor)), start);
+            WalkerEntity robot = Add(new WalkerEntity(BodyTuning.Robot, RobotVisual()), start);
             robot.Controller = new RobotController(robotTuning);
             _characters.Add(robot);
         }
@@ -65,7 +63,7 @@ public partial class RoomNode : Node3D
 
         foreach (Vector2 start in room.BlockStarts)
         {
-            _blocks.Add(Add(new Entity(BodyTuning.Block, BoxVisual(BodyTuning.Block, BlockColor)), start));
+            _blocks.Add(Add(new Entity(BodyTuning.Block, BlockVisual()), start));
         }
     }
 
@@ -125,11 +123,22 @@ public partial class RoomNode : Node3D
                     EmissionEnergyMultiplier = 1.5f,
                 },
             },
+            Position = new Vector3(0, halfSize.Y, 0),
         };
         if (glows)
         {
             mesh.AddChild(new OmniLight3D { LightColor = color, LightEnergy = 2, OmniRange = 6 });
         }
         return mesh;
+    }
+
+    private static Node3D PlayerVisual() => InstantiateModel("res://assets/bob_the_robot/scene.tscn");
+    private static Node3D RobotVisual() => InstantiateModel("res://assets/bob_the_robot/robot.tscn");
+    private static Node3D BlockVisual() => InstantiateModel("res://assets/portal_cube/scene.tscn");
+
+    private static Node3D InstantiateModel(string path)
+    {
+        var scene = GD.Load<PackedScene>(path);
+        return scene.Instantiate<Node3D>();
     }
 }

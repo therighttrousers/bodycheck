@@ -4,6 +4,7 @@ Relevant decision records:
 - [001: Godot's 3D physics engine](../decision-records/001-godot-3d-physics.md)
 - [002: `BodyCheck.Core` depends on GodotSharp](../decision-records/002-core-depends-on-godotsharp.md)
 - [005: Jolt's joint motors for traction](../decision-records/005-jolt-motors-for-traction.md)
+- [006: Models, their base point, and animation](../decision-records/006-models-and-animation.md)
 
 ## Tools
 
@@ -28,6 +29,7 @@ Relevant decision records:
 The game's rules, as a class library: entities, character controllers, tuning, rooms and tiles. It defines node classes, so its rules need a running engine (`005 §3`, which supersedes that part of `002`). It references the GodotSharp assembly of the installed engine, so `dev-setup.ps1` has to be run before it builds (`002`), and Godot's source generators, without which the engine never calls a node class's overrides.
 
 - An `Entity` is one thing in a room that has a body: the player, a robot, a platform, a block. It is the engine's rigid body itself, so what the engine reports about bodies is about entities. Its body values are a `BodyTuning`, and it is given what to draw.
+- An entity's origin is the centre of its body, where its collision box is centred. What it draws has its origin at its base, and the entity lowers it by half the body's height (`006 §2.1`).
 - An entity owns its motors, so that they live exactly as long as it does. Each kind of body that has a controller is a subclass, which holds that body's motors: `WalkerEntity` has traction, and `SimpleControlledEntity`, which a platform is, has no motors (`005 §3.6`). A plain `Entity` has neither, and is what a block is (`005 §3.8`).
 - An `ICharacterController<TEntity>` decides what an entity does, using forces, impulses and the motors of that kind of body. The player and the NPCs use the same interface; the player's controller is given its source of input. The wrong controller for a body doesn't compile.
 - The player and a robot are the same class, `WalkerEntity`, with different tuning, looks and controller.
@@ -39,6 +41,7 @@ The game's rules, as a class library: entities, character controllers, tuning, r
 The Godot project, which holds the scenes and the other nodes.
 
 - `RoomNode` is one room, simulated: tiles and entities, with no camera, lights or input of its own, so tests use it as it is. It builds the entities, gives each its looks and its controller, and steps every one each physics tick.
+- A model is a wrapper scene in `assets/` around an imported glTF file, with its origin at its base. See [models.md](models.md).
 - `Main` adds the camera, the lights and the player's input to a `RoomNode`, and switches rooms.
 - `look/` holds the colour pass and the tools for judging the rendering. See [rendering.md](rendering.md).
 - `probes/` holds scripted measurements, run headless with `--probe=` and a name.
@@ -46,7 +49,7 @@ The Godot project, which holds the scenes and the other nodes.
 ## Tests
 
 - **`tests/BodyCheck.Core.Tests`:** unit tests for the parts of the library that need no engine, in xUnit. That is now only the tile grid (`005 §3.5`).
-- **`tests/BodyCheck.Game.Tests`:** tests that need the engine, run inside Godot through gdUnit4Net by plain `dotnet test`. Godot runs headless at a fixed frame rate, so physics ticks faster than real time. The project is a Godot project of its own, whose settings are copied from the game's on every build. It can't load the game's scenes or assets by `res://` path.
+- **`tests/BodyCheck.Game.Tests`:** tests that need the engine, run inside Godot through gdUnit4Net by plain `dotnet test`. Godot runs headless at a fixed frame rate, so physics ticks faster than real time. The project is a Godot project of its own, whose settings are copied from the game's on every build. It can't load the game's scenes by `res://` path. It can load the game's assets: its build links `game/assets` into it and runs Godot's import when an asset changes (`006 §5.1`).
 
 ## Open questions
 

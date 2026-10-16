@@ -24,6 +24,12 @@ public enum Contacts
 /// <para>
 /// Bounce and damping are off in the engine. Drag is the entity's own force.
 /// </para>
+/// <para>
+/// An entity is also the base node for advance expressions in the entity's visual; i.e. in the AnimationTree
+/// editor, while writing advance expressions for state machine transition conditions, the entity's public
+/// properties and fields whose types Godot understands are all available. For example, an advance expression
+/// may refer to `OnGround`.
+/// </para>
 /// </summary>
 public partial class Entity : RigidBody3D
 {
@@ -65,9 +71,21 @@ public partial class Entity : RigidBody3D
 
         if (visual is not null)
         {
+            visual.Position -= new Vector3(0, tuning.HalfSize.Y, 0);
+            Visual = visual;
             AddChild(visual);
+
+            // Resolve advancement expression variable references using this instance
+            if (visual.HasNode("AnimationTree"))
+            {
+                AnimationTree = visual.GetNode<AnimationTree>("AnimationTree");
+                AnimationTree.AdvanceExpressionBaseNode = AnimationTree.GetPathTo(this);
+            }
         }
     }
+
+    protected Node3D? Visual { get; }
+    protected AnimationTree? AnimationTree { get; }
 
     public BodyTuning Tuning { get; }
 

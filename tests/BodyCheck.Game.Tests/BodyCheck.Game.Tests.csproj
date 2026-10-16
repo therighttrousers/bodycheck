@@ -31,7 +31,7 @@
   <!--
     gdUnit4Net starts Godot in this directory, so it has to be a Godot project. Its project.godot is a copy of
     the game's with the assembly name changed, so that tests run under the game's settings (physics above all).
-    The game's own scenes and assets are not reachable by res:// paths from here.
+    The game's scenes are not reachable by res:// paths from here; its assets are, through a link (see below).
   -->
   <Target Name="CopyGameProjectSettings" BeforeTargets="BeforeBuild">
     <PropertyGroup>
@@ -42,5 +42,32 @@
     </PropertyGroup>
     <WriteLinesToFile File="$(MSBuildThisFileDirectory)project.godot" Lines="$(GameProjectSettings)" Overwrite="true" WriteOnlyWhenDifferent="true" />
   </Target>
+
+  <!--
+    The game's assets appear at res://assets/ here through a directory link, which the build makes because Git
+    on Windows can't store one. A junction needs no special rights. The .import files are shared through the
+    link, and their res:// paths are the same in both projects, so importing here changes no file in Git.
+  -->
+  <PropertyGroup>
+    <GameAssetsLink>$(MSBuildThisFileDirectory)assets</GameAssetsLink>
+    <GameAssetsDir>$(MSBuildThisFileDirectory)..\..\game\assets</GameAssetsDir>
+    <GameAssetsImportStamp>$(BaseIntermediateOutputPath)godot-import.stamp</GameAssetsImportStamp>
+  </PropertyGroup>
+
+  <Target Name="LinkGameAssets" BeforeTargets="BeforeBuild" Condition="!Exists('$(GameAssetsLink)')">
+    <Exec Condition="'$(OS)' == 'Windows_NT'" Command="mklink /J &quot;$(GameAssetsLink)&quot; &quot;$(GameAssetsDir)&quot;" />
+    <Exec Condition="'$(OS)' != 'Windows_NT'" Command="ln -s &quot;$(GameAssetsDir)&quot; &quot;$(GameAssetsLink)&quot;" />
+  </Target>
+
+  <!-- Godot imports assets only in its editor, so run the editor's import here when an asset has changed. -->
+  <Target Name="ImportGameAssets" AfterTargets="Build" DependsOnTargets="LinkGameAssets" Inputs="@(GameAsset)" Outputs="$(GameAssetsImportStamp)">
+    <!-- Godot's errors don't follow MSBuild's format; its exit code says whether the import failed. -->
+    <Exec Command="&quot;$(MSBuildThisFileDirectory)..\..\Godot\Godot_console.exe&quot; --headless --path &quot;$(MSBuildThisFileDirectory.TrimEnd('\'))&quot; --import" IgnoreStandardErrorWarningFormat="true" />
+    <Touch Files="$(GameAssetsImportStamp)" AlwaysCreate="true" />
+  </Target>
+
+  <ItemGroup>
+    <GameAsset Include="$(GameAssetsDir)\**\*" />
+  </ItemGroup>
 
 </Project>
