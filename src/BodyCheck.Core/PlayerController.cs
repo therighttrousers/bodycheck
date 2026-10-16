@@ -49,10 +49,16 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
 {
     private readonly Func<PlayerInput> _input;
 
-    private bool _jumpWasHeld;
-    private int _groundTicksLeft;
+    private readonly bool _jumpWasHeld;
+    private readonly int _groundTicksLeft;
     private Vector3 _lastGroundVelocity = Vector3.Zero;
-    private int _thrustTicksLeft;
+    private readonly int _thrustTicksLeft;
+
+    // The current time in the air, for telemetry: where the feet were on the last tick on the ground.
+    private readonly bool _inAir;
+    private Vector2 _takeOffFeet;
+    private readonly float _highestFeet;
+    private readonly int _airTicks;
 
     /// <param name="input">Supplies the player's input, once per tick.</param>
     public PlayerController(PlayerTuning tuning, Func<PlayerInput> input)
@@ -88,9 +94,55 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             entity.Facing = Math.Sign(move);
         }
 
+        Report(entity);
+
         _groundTicksLeft = Math.Max(0, _groundTicksLeft - 1);
         _thrustTicksLeft = Math.Max(0, _thrustTicksLeft - 1);
         _jumpWasHeld = input.JumpHeld;
+    }
+
+    /// <summary>Reports the player's measurements to <see cref="Telemetry"/>, as of the engine's last step.</summary>
+    private void Report(WalkerEntity entity)
+    {
+        var feet = new Vector2(entity.Position.X, entity.Position.Y - entity.HalfSize.Y);
+        var velocity = new Vector2(entity.LinearVelocity.X, entity.LinearVelocity.Y);
+        Telemetry.Report(Metric.Feet, feet);
+        Telemetry.Report(Metric.Velocity, velocity);
+        Telemetry.Report(Metric.Speed, velocity.Length());
+        Telemetry.Report(Metric.Angle, Mathf.RadToDeg(velocity.Angle()));
+        Telemetry.Report(Metric.GroundSpeed, entity.GroundSpeed);
+        Telemetry.Report(Metric.OnGround, entity.OnGround);
+        Telemetry.Report(Metric.CoyoteTicks, entity.OnGround ? 0 : _groundTicksLeft);
+        Telemetry.Report(Metric.ThrustTicks, _thrustTicksLeft);
+
+        if (!entity.OnGround)
+        {
+            if (!_inAir)
+            {
+                _inAir = true;
+                _highestFeet = _takeOffFeet.Y;
+                _airTicks = 0;
+            }
+            _highestFeet = MathF.Max(_highestFeet, feet.Y);
+            _airTicks++;
+            return;
+        }
+
+        if (_inAir)
+        {
+            _inAir = false;
+            Telemetry.Report(Metric.AirRise, _highestFeet - _takeOffFeet.Y);
+            Telemetry.Report(Metric.AirRun, MathF.Abs(feet.X - _takeOffFeet.X));
+            Telemetry.Report(Metric.AirLand, feet.Y - _takeOffFeet.Y);
+            Telemetry.Report(Metric.AirTicks, _airTicks);
+        }
+
+        // The engine still reports the floor contact for a tick after a jump, when the feet have already
+        // risen. Thrust ticks count from the jump, so they mark it.
+        if (_thrustTicksLeft == 0)
+        {
+            _takeOffFeet = feet;
+        }
     }
 
     private void ApplyRun(WalkerEntity entity, float move, float weight)

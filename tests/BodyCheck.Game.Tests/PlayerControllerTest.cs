@@ -71,29 +71,13 @@ public class PlayerControllerTest
         }
     }
 
-    /// <summary>
-    /// Jumps, runs until the body lands, and returns the greatest height its feet reached above the floor.
-    /// </summary>
+    /// <summary>Jumps, holding jump for a number of ticks, and returns how high the feet rose, as reported on landing.</summary>
     private async Task<float> ApexOfJump(int ticksHeld)
     {
-        float apex = 0;
-        bool leftTheGround = false;
-        for (int tick = 0; tick < 600; tick++)
-        {
-            await Tick(tick < ticksHeld ? Jump : Idle);
-            apex = MathF.Max(apex, Player.Position.Y - Player.HalfSize.Y - 1);
-
-            // The floor contact is still reported for a tick or two after take-off.
-            if (!Player.OnGround)
-            {
-                leftTheGround = true;
-            }
-            else if (leftTheGround)
-            {
-                return apex;
-            }
-        }
-        throw new InvalidOperationException("The body never landed.");
+        Telemetry.Reset();
+        await Tick(Jump, ticksHeld);
+        await Tick(Idle, 120);
+        return Telemetry.Get(Metric.AirRise)!.Value.X;
     }
 
     [TestCase]
@@ -277,7 +261,9 @@ public class PlayerControllerTest
     public async Task Holding_jump_after_landing_does_not_jump_again()
     {
         await Start();
-        await ApexOfJump(ticksHeld: 600);
+        Telemetry.Reset();
+        await Tick(Jump, 120);
+        AssertThat(Telemetry.Get(Metric.AirTicks)).IsNotNull(); // It has landed.
 
         await Tick(Jump, 10);
 

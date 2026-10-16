@@ -256,15 +256,14 @@ public class BodiesTest
         Entity block = run.Node.Blocks[0];
         await run.Tick(Idle, 30);
         float blockStart = block.Position.X;
-        float start = run.Player.Position.Y;
         AssertThat(run.Player.Support).IsSame(block);
 
-        float apex = start;
+        Telemetry.Reset();
         await run.Tick(Jump);
-        await run.Tick(Idle, 120, () => apex = MathF.Max(apex, run.Player.Position.Y));
+        await run.Tick(Idle, 120);
 
         // The shortest jump from tiles clears 2 tiles but not 3.
-        AssertThat(apex - start).IsBetween(2f, 3f);
+        AssertThat(Telemetry.Get(Metric.AirRise)!.Value.X).IsBetween(2f, 3f);
         AssertThat(block.Position.X).IsEqualApprox(blockStart, 0.01f);
     }
 }

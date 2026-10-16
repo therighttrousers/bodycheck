@@ -15,7 +15,8 @@ namespace BodyCheck;
 /// (see <see cref="LookSwitches"/>).
 /// <para>
 /// User arguments, after "--" on the command line: a room name; "--tiles=single" for one collider per
-/// tile instead of merged boxes; "--probe=" and a probe's name to run that probe and quit.
+/// tile instead of merged boxes; "--probe=" and a probe's name to run that probe and quit; "--overlay" to
+/// start with the <see cref="DebugOverlay"/> showing. F3 switches the overlay on and off.
 /// </para>
 /// </summary>
 public partial class Main : Node3D
@@ -25,12 +26,14 @@ public partial class Main : Node3D
     private RoomNode _room = null!;
     private Camera3D _camera = null!;
     private LookSwitches _look = null!;
+    private readonly DebugOverlay _overlay = new();
     private IProbe? _probe;
 
     public override void _Ready()
     {
         AddInputActions();
         AddLook();
+        AddChild(_overlay);
 
         string? roomName = null;
         string? probeName = null;
@@ -39,6 +42,10 @@ public partial class Main : Node3D
             if (arg == "--tiles=single")
             {
                 _mergeTiles = false;
+            }
+            else if (arg == "--overlay")
+            {
+                _overlay.Visible = true;
             }
             else if (arg.StartsWith("--probe="))
             {
@@ -86,6 +93,18 @@ public partial class Main : Node3D
         }
     }
 
+    public override void _Process(double delta) => ReportMouseTile();
+
+    /// <summary>Reports the tile under the mouse, where the camera's ray through it meets the plane of play.</summary>
+    private void ReportMouseTile()
+    {
+        Vector2 mouse = GetViewport().GetMousePosition();
+        Vector3 origin = _camera.ProjectRayOrigin(mouse);
+        Vector3 direction = _camera.ProjectRayNormal(mouse);
+        Vector3 point = origin + direction * (-origin.Z / direction.Z);
+        Telemetry.Report(Metric.MouseTile, new Vector2I(Mathf.FloorToInt(point.X), Mathf.FloorToInt(point.Y)));
+    }
+
     private void LoadRoom(int index)
     {
         Func<PlayerInput>? input = _room?.PlayerInput;
@@ -97,6 +116,7 @@ public partial class Main : Node3D
     private RoomNode LoadRoom(Room room)
     {
         _room?.QueueFree();
+        Telemetry.Reset();
         _room = new RoomNode(room, _mergeTiles);
         if (room == Rooms.Look)
         {
