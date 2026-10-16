@@ -1,5 +1,0 @@
-[gd_scene format=3 uid="uid://bn8dtmvnmegtj"]
-
-[ext_resource type="PackedScene" uid="uid://b5luygws1jeei" path="res://assets/dalek/scene.gltf" id="1_kqmi0"]
-
-[node name="Sketchfab_Scene" unique_id=847385311 instance=ExtResource("1_kqmi0")]
