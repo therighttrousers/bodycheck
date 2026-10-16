@@ -113,26 +113,29 @@ public class BodiesTest
         RoomRun run = Start(RoomOf(
             "#..........#",
             "#..........#",
-            "#..P.....R.#",
+            "#....P..B..#",
             "############"));
-        Entity robot = run.Node.Entities[1];
+        Entity block = run.Node.Blocks[0];
         const float wallFace = 11;
 
         float deepestInWall = float.MinValue;
         var overlap = new Overlap();
         await run.Tick(Right, 240, () =>
         {
-            deepestInWall = MathF.Max(deepestInWall, robot.Right() - wallFace);
-            overlap.Add(run.Player.Right() - robot.Left());
+            deepestInWall = MathF.Max(deepestInWall, block.Right() - wallFace);
+            overlap.Add(run.Player.Right() - block.Left());
         });
 
-        AssertThat(deepestInWall).IsLess(Slack);
+        // A body reaching a wall can sink into it for a tick before the engine pushes it out. Measured:
+        // at most 0.007 tiles, over a range of starting positions.
+        AssertThat(deepestInWall).IsLess(0.01f);
         AssertThat(overlap.Deepest).IsLess(MaxImpactOverlap);
         AssertThat(overlap.LongestTicks).IsLessEqual(MaxImpactOverlapTicks);
 
-        // The player has pinned the robot against the wall.
-        AssertThat(robot.Right()).IsEqualApprox(wallFace, 0.01f);
-        AssertThat(run.Player.Right()).IsEqualApprox(robot.Left(), 0.01f);
+        // The player has pinned the block against the wall, and is still pushing.
+        AssertThat(block.Right()).IsLessEqual(wallFace + Slack);
+        AssertThat(block.Right()).IsEqualApprox(wallFace, 0.01f);
+        AssertThat(run.Player.Right()).IsEqualApprox(block.Left(), 0.01f);
     }
 
     [TestCase]

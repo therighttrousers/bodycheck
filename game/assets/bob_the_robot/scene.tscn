@@ -52,12 +52,12 @@ loop_mode = 1
 
 [sub_resource type="AnimationNodeBlendSpace1D" id="AnimationNodeBlendSpace1D_a0sfp"]
 min_space = 0.0
-max_space = 15.0
+max_space = 11.25
 blend_point_0/node = SubResource("AnimationNodeAnimation_512o4")
-blend_point_0/pos = 4.0
+blend_point_0/pos = 3.0
 blend_point_0/name = &"bob_rig|walk"
 blend_point_1/node = SubResource("AnimationNodeAnimation_hvsop")
-blend_point_1/pos = 15.0
+blend_point_1/pos = 11.25
 blend_point_1/name = &"bob_rig|run"
 blend_point_2/node = SubResource("AnimationNodeAnimation_a0sfp")
 blend_point_2/pos = 0.0
