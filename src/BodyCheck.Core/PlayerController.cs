@@ -47,7 +47,6 @@ public sealed record PlayerTuning
 /// </summary>
 public sealed class PlayerController : ICharacterController<WalkerEntity>
 {
-    private float _facing = 1;
     private readonly Func<PlayerInput> _input;
 
     private bool _jumpWasHeld;
@@ -64,45 +63,6 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
 
     public PlayerTuning Tuning { get; }
 
-    private void UpdateVisuals(Entity entity, float move, float dt)
-    {
-        if (entity.Visual is null) return;
-
-        // TODO: This would be better done by a motor. Using a motor would:
-        // - Allow stacked walkers/entities to influence each other's facing direction
-        // - Require walker collision meshes to be cylinders
-        var rot = entity.Visual.Rotation;
-        var target = 0.5f * MathF.PI * _facing;
-        var newYaw = Mathf.MoveToward(rot.Y, target, 15 * dt);
-        entity.Visual.Rotation = new Vector3(rot.X, newYaw, rot.Z);
-
-        // TODO: Animation needs to be behind a new abstraction - these details are not the controller's job
-        if (!entity.Visual.HasNode("AnimationPlayer"))
-        {
-            return;
-        }
-        var animation = entity.Visual.GetNode<AnimationPlayer>("AnimationPlayer");
-        if (entity.OnGround)
-        {
-            float speed = Math.Abs(entity.LinearVelocity.X - entity.GroundVelocity.X);
-            if (move == 0 || speed < 0.1f)
-            {
-                animation.Play("bob_rig|idle");
-                animation.SpeedScale = 1.0f;
-            }
-            else if (move != 0)
-            {
-                animation.Play("bob_rig|run");
-                animation.SpeedScale = Math.Clamp(speed / 3.5f, 0, 8);
-            }
-        }
-        else if (_thrustTicksLeft > 0)
-        {
-            animation.Play("bob_rig|jump");
-            animation.SpeedScale = 1.0f;
-        }
-    }
-
     public void Apply(WalkerEntity entity, float dt)
     {
         PlayerInput input = _input();
@@ -114,15 +74,19 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             _groundTicksLeft = Tuning.CoyoteTicks + 1; // +1 to include this frame in remaining ground ticks
             _lastGroundVelocity = entity.LinearVelocity;
         }
-        if ((_groundTicksLeft > 0 || _thrustTicksLeft > 0) && move != 0)
-        {
-            _facing = Math.Sign(move);
-        }
 
         ApplyRun(entity, move, weight);
         ApplyJump(entity, input.JumpHeld, weight);
 
-        UpdateVisuals(entity, move, dt);
+        // Set animation variables
+        entity.IsGrounded = _groundTicksLeft > 0;
+        entity.IsMoving = move != 0;
+        entity.IsJumping = _thrustTicksLeft > 0;
+        // Only change facing direction when on the ground or just after jumping (and allow setting to 0)
+        if (_groundTicksLeft > 0 || _thrustTicksLeft > 0)
+        {
+            entity.Facing = Math.Sign(move);
+        }
 
         _groundTicksLeft = Math.Max(0, _groundTicksLeft - 1);
         _thrustTicksLeft = Math.Max(0, _thrustTicksLeft - 1);
@@ -132,7 +96,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     private void ApplyRun(WalkerEntity entity, float move, float weight)
     {
         // Speed is relative to whatever the entity stands on, so running on a robot works like running on tiles.
-        float speed = entity.LinearVelocity.X - entity.GroundVelocity.X;
+        float speed = entity.GroundSpeed;
         bool reverse = speed != 0 && move * speed <= 0;
 
         float drive = 0;

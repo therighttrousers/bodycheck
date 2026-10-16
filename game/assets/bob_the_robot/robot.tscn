@@ -1,0 +1,13 @@
+[gd_scene format=3 uid="uid://dfkowqhj77duo"]
+
+[ext_resource type="PackedScene" uid="uid://ctq5ypfqqc5op" path="res://assets/bob_the_robot/scene.tscn" id="1_8r1pt"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_2h3ep"]
+albedo_color = Color(0.217, 0.41825005, 0.7, 1)
+metallic = 0.8
+roughness = 0.5
+
+[node name="Sketchfab_Scene" unique_id=1679574890 instance=ExtResource("1_8r1pt")]
+
+[node name="Object_23" parent="Sketchfab_model/466f4e732ab24572a4bcf0fb382e93d7_fbx/Object_2/RootNode/bob_rig/Object_5/Skeleton3D" parent_id_path=PackedInt32Array(908787289) index="0" unique_id=884788224]
+surface_material_override/0 = SubResource("StandardMaterial3D_2h3ep")

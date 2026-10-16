@@ -31,16 +31,6 @@ public sealed class RobotController : ICharacterController<WalkerEntity>
 
     public RobotTuning Tuning { get; }
 
-    private void UpdateVisuals(Entity entity, float dt)
-    {
-        if (entity.Visual is null) return;
-
-        var rot = entity.Visual.Rotation;
-        var target = 0.5f * MathF.PI * _facing;
-        var newYaw = Mathf.MoveToward(rot.Y, target, 10 * dt);
-        entity.Visual.Rotation = new Vector3(rot.X, newYaw, rot.Z);
-    }
-
     public void Apply(WalkerEntity entity, float dt)
     {
         // Patrol if on tiles. Bounce off of anything solid (including the player).
@@ -66,13 +56,16 @@ public sealed class RobotController : ICharacterController<WalkerEntity>
 
         ApplyRun(entity, _move);
 
-        UpdateVisuals(entity, dt);
+        // Set animation variables
+        entity.IsGrounded = entity.OnGround;
+        entity.IsMoving = _move != 0;
+        entity.Facing = _facing;
     }
 
     private void ApplyRun(WalkerEntity entity, float move)
     {
         // Speed is relative to whatever the entity stands on.
-        float speed = entity.LinearVelocity.X - entity.GroundVelocity.X;
+        float speed = entity.GroundSpeed;
         bool reverse = speed != 0 && move * speed <= 0;
 
         float drive = 0;
