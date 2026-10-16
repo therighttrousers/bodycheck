@@ -41,6 +41,7 @@ Development doesn't make much use of Godot's editor because the game world is pr
 - Move: A/D, arrow keys, or gamepad left stick or D-pad
 - Jump: Space, or gamepad A. Hold to jump higher.
 - Previous or next test room: ','/'.' or gamepad left/right shoulder button
+- F3: debug overlay on or off, with measurements for tuning and level design. Pass `--overlay` after `--` to start with it on.
 
 Rendering switches, for judging the look. The window's title shows their state. The room named "Look" has shapes to judge it on.
 

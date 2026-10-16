@@ -5,6 +5,7 @@ Relevant decision records:
 - [002: `BodyCheck.Core` depends on GodotSharp](../decision-records/002-core-depends-on-godotsharp.md)
 - [005: Jolt's joint motors for traction](../decision-records/005-jolt-motors-for-traction.md)
 - [006: Models, their base point, and animation](../decision-records/006-models-and-animation.md)
+- [008: Telemetry, and a debug overlay drawn at the window's resolution](../decision-records/008-telemetry-and-overlay.md)
 
 ## Tools
 
@@ -33,6 +34,7 @@ The game's rules, as a class library: entities, character controllers, tuning, r
 - An entity owns its motors, so that they live exactly as long as it does. Each kind of body that has a controller is a subclass, which holds that body's motors: `WalkerEntity` has traction, and `SimpleControlledEntity`, which a platform is, has no motors (`005 §3.6`). A plain `Entity` has neither, and is what a block is (`005 §3.8`).
 - An `ICharacterController<TEntity>` decides what an entity does, using forces, impulses and the motors of that kind of body. The player and the NPCs use the same interface; the player's controller is given its source of input. The wrong controller for a body doesn't compile.
 - The player and a robot are the same class, `WalkerEntity`, with different tuning, looks and controller.
+- **Telemetry.** Game code pushes measurements to `Telemetry`, by `Metric`, an enum. Each metric keeps its last value until it is reported again or the telemetry is reset. Whatever wants the measurements reads them: the debug overlay, and tests. Nothing that reports knows what reads, so telemetry puts no constraint on how game code is divided up (`008 §1`).
 - Core's classes have no `res://` path, so they are created in code and can't be attached to a scene in the editor.
 - **Test rooms** are a library of named rooms, described as text. `Rooms.cs` has the ones to play in; `TestRooms.cs` has the ones that tests and probes measure in. Design docs and tests refer to them by name.
 
@@ -42,8 +44,9 @@ The Godot project, which holds the scenes and the other nodes.
 
 - `RoomNode` is one room, simulated: tiles and entities, with no camera, lights or input of its own, so tests use it as it is. It builds the entities, gives each its looks and its controller, and steps every one each physics tick.
 - A model is a wrapper scene in `assets/` around an imported glTF file, with its origin at its base. See [models.md](models.md).
-- `Main` adds the camera, the lights and the player's input to a `RoomNode`, and switches rooms.
-- `look/` holds the colour pass and the tools for judging the rendering. See [rendering.md](rendering.md).
+- `Main` adds the camera, the lights and the player's input to a `RoomNode`, and switches rooms. The game is drawn in a `LowResView`, a viewport of its own at low resolution, and `Main`'s other children are drawn at the window's resolution.
+- `DebugOverlay`, on F3, shows the frame rate and times and every telemetry value, at the window's resolution (`008 §2.3`).
+- `look/` holds the low-resolution view, the colour pass and the tools for judging the rendering. See [rendering.md](rendering.md).
 - `probes/` holds scripted measurements, run headless with `--probe=` and a name.
 
 ## Tests
