@@ -41,7 +41,7 @@ The game's rules, as a class library: entities, character controllers, tuning, r
 The Godot project, which holds the scenes and the other nodes.
 
 - `RoomNode` is one room, simulated: tiles and entities, with no camera, lights or input of its own, so tests use it as it is. It builds the entities, gives each its looks and its controller, and steps every one each physics tick.
-- A model is a scene in `assets/`, a wrapper around an imported glTF file. Its origin is the model's base, where it stands on the ground: between a character's feet, or the middle of a block's bottom face (`006 §1.1`).
+- A model is a wrapper scene in `assets/` around an imported glTF file, with its origin at its base. See [models.md](models.md).
 - `Main` adds the camera, the lights and the player's input to a `RoomNode`, and switches rooms.
 - `look/` holds the colour pass and the tools for judging the rendering. See [rendering.md](rendering.md).
 - `probes/` holds scripted measurements, run headless with `--probe=` and a name.

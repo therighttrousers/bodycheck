@@ -6,6 +6,8 @@ Inciting event (2026-10-15): issue #19, on branch `initial-models-animation`. Li
 
 Goal: decide early what the asset pipeline will ask of a model, before anyone models for it. Neil's son, who may make the 3D characters, is used to modelling Roblox characters. Neil's daughter may make the 2D art.
 
+Closed on 2026-10-16. Outcomes and unresolved items are in the design docs: [models.md](../designs/models.md) and [architecture.md](../designs/architecture.md).
+
 Overarching questions:
 - Where is a model's base, the point that sits on the ground? It should be standard, and easy for an artist to set or change in Blender or the Godot editor.
 - How do the body's collision shape and its model line up, without `HalfSize.Y` offsets all over the code?
@@ -25,11 +27,14 @@ Tensions:
   - `Humanoid.HipHeight` is the distance from the ground to the root part when the humanoid is standing. For an R15 rig the root part's centre stands at `0.5 * RootPart.Size.Y + HipHeight`, and the legs aren't used. For R6 it is an offset on top of the legs' height. Checked in Roblox's `Humanoid` reference, 2026-10-15.
   - So Roblox's physics root is at the middle of the body, and the ground comes from separate numbers. Ours is the same, with `HalfSize.Y` in place of half the root part's height plus the hip height (item 2.1).
   - Studio sets a model's pivot by hand with its Pivot Editor; that is the part of Roblox an artist would compare item 1.3 with.
-- [~] 1.3 Where the artist adjusts a model that doesn't have its base at its origin. Leaning: in the wrapper scene, whose root is a plain `Node3D` with no transform, and whose child is the imported glTF. The artist moves, scales and turns the child until the base is on the root's origin and the model faces +Z. Code moves and turns only the root.
+- [x] 1.3 Where the artist adjusts a model that doesn't have its base at its origin. Decision (Neil, 2026-10-16), after seeing the demonstration below: in the wrapper scene, whose root is a plain `Node3D` with no transform, and whose child is the imported glTF. The artist moves, scales and turns the child until the base is on the root's origin and the model faces +Z. Code moves and turns only the root.
   - Today `portal_cube/scene.tscn` puts its scale (0.25) and offset on the root, the node that code turns. Godot keeps a node's scale and position when its `Rotation` is set, so it works, but the artist and the code share one transform.
   - The child is an instance of the glTF scene, so reimporting the glTF keeps the wrapper's edits.
   - A model made for this game has its base at its origin in Blender (item 1.1) and needs no adjustment. The wrapper is for models from elsewhere.
   - The glTF importer's `nodes/root_scale` also scales a model (Bob is imported at 0.85). Whether scale belongs there or in the wrapper is not settled.
+  - 2026-10-16: the Portal cube's wrapper was rebuilt this way so that Neil could see it, with the root named `PortalCube` and the child `Model`. Loaded headless, the root is at identity and the cube's mesh spans y = 0.0025 to 1.164, so its base is on the origin. Bob's wrapper is unchanged.
+  - Why the layout matters: the child's transform applies before the root's, so the game's turn is about the root's origin, the base, whatever the glTF's own origin was. With one node, Godot applies scale, then rotation, then translation, so the turn was about the glTF's origin and the artist's offset was added after it. For the cube the two agree, because its glTF origin is on the vertical axis through its base.
+  - A wrapper with this layout can't be made with **New Inherited Scene** on the glTF, whose root is the glTF's own root. It is a new scene with the glTF instanced as a child. Neil rebuilt Bob that way as `joe_the_robot` and found one order that matters: **Editable Children** has to be on before the `AnimationTree` is added, or its `AnimationPlayer` can't be picked.
 
 ## 2. Lining up the body and its model
 
@@ -40,9 +45,10 @@ Tensions:
 
 ## 3. Facing
 
-- [~] 3.1 How does a walker turn to face the way it moves? Leaning: the model turns, the body doesn't. Each tick its yaw moves towards ±90° at a fixed rate with `Mathf.MoveToward`, so a model facing +Z (towards the camera) turns through the camera to face +X or -X.
+- [x] 3.1 How does a walker turn to face the way it moves? Decision (Neil, 2026-10-16): the model turns, the body doesn't. Each tick its yaw moves towards ±90° at a fixed rate with `Mathf.MoveToward`, so a model facing +Z (towards the camera) turns through the camera to face +X or -X.
   - Considered: a motor on the body's yaw, so that stacked walkers turn each other through friction. It would need yaw unlocked on bodies that are otherwise locked to the plane, and a cylinder in place of the box, whose corners would otherwise swing into Z. Jolt rounds a convex shape's edges, so the corner and seam probes would have to be run again. Whether riders should be turned by what they stand on is itself undecided.
-  - The player's controller and the robot's controller each have a copy of the turning code. Item 4.3 would make it one.
+  - The player's controller and the robot's controller each had a copy of the turning code. Item 4.3 made it one, in `WalkerEntity`.
+  - As built, a controller sets `WalkerEntity.Facing` to 1, -1 or 0, and 0 turns the model to face the camera. The player's controller sets 0 when the player is idle on the ground. `characters.md` requires a robot to face the player before it targets them, not the other way round, so the player's third value doesn't affect targeting.
 
 ## 4. Animation
 
@@ -51,12 +57,17 @@ The engine's pieces, for reference:
 - An `AnimationTree` decides what an `AnimationPlayer`'s clips do. Its root is a graph of nodes: a state machine, whose states are clips or other graphs and whose transitions are conditions or travel requests; a blend space, which mixes clips by a number, such as speed; a time scale, which speeds a clip up or slows it down. It is built in the editor's AnimationTree panel, and the graph is saved in the scene.
 - The graph's inputs are **parameters**, such as `parameters/conditions/on_ground` or `parameters/Run/blend_position`. Code sets them with `Set`, and the tree does the rest each frame.
 
-- [ ] 4.1 What is the interface between code and art? Leaning: the parameters of an `AnimationTree` in each character's wrapper scene. Code sets a few parameters each tick; the artist builds the graph, picks the clips and sets the blend times in the editor.
+- [x] 4.1 What is the interface between code and art? Decision (Neil, 2026-10-16), as built: the parameters of an `AnimationTree` in each character's wrapper scene. Code sets a few parameters each tick; the artist builds the graph, picks the clips and sets the blend times in the editor.
   - Today `PlayerController` plays clips by name, sets the playback speed, and checks that the visual has an `AnimationPlayer`. A model whose clips have other names, such as the Dalek's, can't be animated without changing the code.
   - With a tree, the clip names are in the scene, and two models with different rigs can share the code if they have the same parameters.
   - To decide: the names and meanings of the parameters. A first guess, from what the player plays today: `on_ground` (bool), `run_speed` (ground-relative speed, in tiles per second), `jumping` (bool, during the jump's thrust).
-- [ ] 4.2 Does the code set the parameters by name, or does the scene have a script that takes typed values? Setting by name has no C# wrapper and no second source for the engine's state, but a misspelt name fails silently. A Godot script would be in the scene, so it can be in the game project, not in Core.
-- [ ] 4.3 Who sets them? Leaning: `WalkerEntity`, from its body's state and from what its controller intends, so that the player and the robots share the code, as they must once robots have the player's model. A controller publishes its intent, such as its facing and whether it is jumping, and doesn't touch the visual. The same code turns the model (item 3.1).
+  - As built: transitions are advance expressions over the entity's properties (item 4.2). `WalkerEntity` publishes `IsGrounded`, `IsMoving`, `IsJumping`, `Facing` and `GroundSpeed`, beside `Entity`'s own, such as `OnGround`. Code sets two parameters by name, a blend space's position and a time scale, both the absolute ground speed in tiles per second. The list is in [models.md](../designs/models.md#animation).
+  - Bob's tree: a state machine of `Idle`, `Move`, `Jump` and `InAir`, where `Move` blends idle, walk and run by speed (at 0, 4 and 15 tiles per second) before a time scale. A first version with separate `Walk` and `Run` states needed 16 transitions; the blend space replaced them.
+- [x] 4.2 Does the code set the parameters by name, or does the scene have a script that takes typed values? Setting by name has no C# wrapper and no second source for the engine's state, but a misspelt name fails silently. A Godot script would be in the scene, so it can be in the game project, not in Core.
+  - Tried first: a script on the tree in the game project, `PlayerAnimationTree`, whose exported properties wrapped a state object from Core, which the controller found by reflection. It worked, but Core reached into game code by name.
+  - Decision (Neil, 2026-10-16): no script. `Entity` sets the tree's `advance_expression_base_node` to itself, so the tree's expressions read the entity's properties directly. Godot's source generators, which Core already uses (`005 §3.2`), register every public property of a Core node class with the engine, exported or not. Checked on 2026-10-15 with a throwaway test: `!OnGround` evaluated against a bare `WalkerEntity` gave `true`, and an unknown name failed with `Invalid named index`. Numbers that aren't expressions, for a blend space or a time scale, are still set by name.
+- [x] 4.3 Who sets them? Decision (Neil, 2026-10-16), as built: `WalkerEntity`, from its body's state and from what its controller intends, so that the player and the robots share the code, as they must once robots have the player's model. A controller publishes its intent, such as its facing and whether it is jumping, and doesn't touch the visual. The same code turns the model (item 3.1).
+- [ ] 4.4 Animation follows the body's ground speed, not what the walker is trying to do. Found by Neil, 2026-10-16: a walker pushed by something it faces walks backwards at the speed it is pushed, and an idle walker turned to the camera and pushed would walk towards the camera. Not fixed here; issue #25.
 
 ## 5. Tests and loaded models
 

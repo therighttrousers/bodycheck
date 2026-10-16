@@ -129,10 +129,14 @@ states/Start/position = Vector2(79.96805, 155.69078)
 transitions = ["Start", "Idle", SubResource("AnimationNodeStateMachineTransition_512o4"), "Jump", "InAir", SubResource("AnimationNodeStateMachineTransition_hvsop"), "InAir", "Idle", SubResource("AnimationNodeStateMachineTransition_a0sfp"), "Idle", "Jump", SubResource("AnimationNodeStateMachineTransition_2h3ep"), "Idle", "Move", SubResource("AnimationNodeStateMachineTransition_ik5y6"), "Move", "Idle", SubResource("AnimationNodeStateMachineTransition_a1pq2"), "Move", "InAir", SubResource("AnimationNodeStateMachineTransition_00emu"), "InAir", "Move", SubResource("AnimationNodeStateMachineTransition_kxahi"), "Move", "Jump", SubResource("AnimationNodeStateMachineTransition_gvx1h")]
 graph_offset = Vector2(-80, -43.90295)
 
-[node name="Sketchfab_Scene" unique_id=1679574890 instance=ExtResource("1_icuvs")]
+[node name="Player" type="Node3D" unique_id=1679574890]
 
-[node name="AnimationTree" type="AnimationTree" parent="." index="2" unique_id=1030308632]
+[node name="Model" parent="." unique_id=1250731866 instance=ExtResource("1_icuvs")]
+
+[node name="AnimationTree" type="AnimationTree" parent="." unique_id=1030308632]
 tree_root = SubResource("AnimationNodeStateMachine_e8kf8")
-anim_player = NodePath("../AnimationPlayer")
+anim_player = NodePath("../Model/AnimationPlayer")
 parameters/Move/TimeScale/scale = 1.0
 parameters/Move/BlendSpace1D/blend_position = 0.0
+
+[editable path="Model"]

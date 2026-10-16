@@ -2,5 +2,7 @@
 
 [ext_resource type="PackedScene" uid="uid://dqnlgiy5ea60j" path="res://assets/portal_cube/scene.gltf" id="1_esre8"]
 
-[node name="Sketchfab_Scene" unique_id=732300780 instance=ExtResource("1_esre8")]
+[node name="PortalCube" type="Node3D" unique_id=732300780]
+
+[node name="Model" parent="." unique_id=1418829547 instance=ExtResource("1_esre8")]
 transform = Transform3D(0.25, 0, 0, 0, 0.25, 0, 0, 0, 0.25, 0, 0.58317655, 0)
