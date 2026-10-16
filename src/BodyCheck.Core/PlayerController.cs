@@ -49,16 +49,16 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
 {
     private readonly Func<PlayerInput> _input;
 
-    private readonly bool _jumpWasHeld;
-    private readonly int _groundTicksLeft;
+    private bool _jumpWasHeld;
+    private int _groundTicksLeft;
     private Vector3 _lastGroundVelocity = Vector3.Zero;
-    private readonly int _thrustTicksLeft;
+    private int _thrustTicksLeft;
 
     // The current time in the air, for telemetry: where the feet were on the last tick on the ground.
-    private readonly bool _inAir;
+    private bool _inAir;
     private Vector2 _takeOffFeet;
-    private readonly float _highestFeet;
-    private readonly int _airTicks;
+    private float _highestFeet;
+    private int _airTicks;
 
     /// <param name="input">Supplies the player's input, once per tick.</param>
     public PlayerController(PlayerTuning tuning, Func<PlayerInput> input)
