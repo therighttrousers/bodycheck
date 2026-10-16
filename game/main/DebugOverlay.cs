@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
@@ -14,18 +15,35 @@ namespace BodyCheck;
 /// in the top right corner. F3 switches it on and off.
 /// <para>
 /// Numbers have a sign and a fixed number of digits, so that they don't shift as they change. It belongs in
-/// the window's own viewport, outside the <see cref="Look.LowResView"/>, where it is drawn at the window's
+/// the window's own viewport, outside the <see cref="Look.WorldViewportContainer"/>, where it is drawn at the window's
 /// full resolution and the colour pass doesn't touch it.
 /// </para>
 /// </summary>
 public partial class DebugOverlay : CanvasLayer
 {
-    private static readonly Metric[] Metrics = Enum.GetValues<Metric>();
-    private static readonly string[] Labels = Metrics.Select(metric => Words(metric.ToString())).ToArray();
-    private static readonly int LabelWidth = Math.Max(Labels.Max(label => label.Length), "Physics ms".Length);
+    private readonly record struct Item(string Label, string Content)
+    {
+        public string Render(int labelWidth) => Label.PadRight(labelWidth) + " | " + Content;
+    }
+
+    private static readonly HashSet<Metric> CustomRender = [
+        Metric.WorldRenderTime,
+        Metric.Velocity,
+        Metric.GroundSpeed,
+        Metric.AirRise,
+        Metric.AirRun,
+        Metric.AirLand,
+        Metric.AirTicks,
+        Metric.Feet,
+        Metric.OnGround,
+        Metric.CoyoteTicks,
+        Metric.ThrustTicks,
+    ];
+    private static readonly Metric[] Metrics = [.. Enum.GetValues<Metric>().Where(metric => !CustomRender.Contains(metric))];
+    private static readonly string[] Labels = [.. Metrics.Select(metric => Words(metric.ToString()))];
 
     private readonly Label _label = new();
-    private readonly StringBuilder _text = new();
+    private readonly List<Item> _items = [];
 
     public DebugOverlay()
     {
@@ -67,22 +85,42 @@ public partial class DebugOverlay : CanvasLayer
             return;
         }
 
-        _text.Clear();
-        Line("FPS", Signed((float)Engine.GetFramesPerSecond(), "0000"));
-        Line("Frame ms", Signed((float)delta * 1000));
-        Line("Physics ms", Signed((float)Performance.GetMonitor(Performance.Monitor.TimePhysicsProcess) * 1000));
-        for (int i = 0; i < Metrics.Length; i++)
-        {
-            if (Telemetry.Get(Metrics[i]) is { } value)
-            {
-                Line(Labels[i], Format(value));
-            }
-        }
-        _label.Text = _text.ToString().TrimEnd();
-    }
+        var fps = (float)Engine.GetFramesPerSecond();
+        var frameMs = (float)Performance.GetMonitor(Performance.Monitor.TimeProcess) * 1000;
+        var physicsMs = (float)Performance.GetMonitor(Performance.Monitor.TimePhysicsProcess) * 1000;
+        // If/when we add more views (e.g. UI), their respective render times should be vector-added here.
+        var renderMs = (Telemetry.GetVector2(Metric.WorldRenderTime) ?? Vector2.Zero) * 1000;
+        var velocity = Telemetry.GetVector2(Metric.Velocity) ?? Vector2.Zero;
+        var speed = velocity.Length();
+        var angle = Mathf.RadToDeg(velocity.Angle());
+        var ground = Telemetry.GetFloat(Metric.GroundSpeed) ?? 0;
+        var airRise = Telemetry.GetFloat(Metric.AirRise) ?? 0;
+        var airRun = Telemetry.GetFloat(Metric.AirRun) ?? 0;
+        var airLand = Telemetry.GetFloat(Metric.AirLand) ?? 0;
+        var airTicks = Telemetry.GetInt(Metric.AirTicks) ?? 0;
+        var feet = Telemetry.GetVector2(Metric.Feet) ?? Vector2.Zero;
+        var onGround = (Telemetry.GetBool(Metric.OnGround) ?? false) ? "true " : "false";
+        var coyoteTicks = Telemetry.GetInt(Metric.CoyoteTicks) ?? 0;
+        var thrustTicks = Telemetry.GetInt(Metric.ThrustTicks) ?? 0;
 
-    private void Line(string label, string value) =>
-        _text.Append(label.PadRight(LabelWidth)).Append(' ').Append(value).Append('\n');
+        _items.Clear();
+
+        _items.Add(new Item("Frame times", $"{Signed(fps, "000")}  All {Signed(frameMs, "00.00")}  Phys {Signed(physicsMs, "00.00")}  CPU {Signed(renderMs.X, "00.00")}  GPU {Signed(renderMs.Y, "00.00")}"));
+        _items.Add(new Item("Velocity", $"Vec {Signed(velocity.X, "00.00")} {Signed(velocity.Y, "00.00")}  Mag {Signed(speed, "00.00")}  Angle {Signed(angle, "000")}  Gnd {Signed(ground, "00.00")}"));
+        _items.Add(new Item("Last air", $"Rise {Signed(airRise, "00.00")}  Run {Signed(airRun, "00.00")}  Land {Signed(airLand, "00.00")}  Ticks {Signed(airTicks, "0000")}"));
+        _items.Add(new Item("Feet", $"Vec {Signed(feet.X, "0000.00")} {Signed(feet.Y, "0000.00")}  OnGround {onGround}"));
+        _items.Add(new Item("Leniency", $"Coyote {Signed(coyoteTicks, "0")}  Thrust {Signed(thrustTicks, "00")}"));
+
+        // Add all the leftover telemetry.
+        foreach (var (label, metric) in Labels.Zip(Metrics))
+        {
+            _items.Add(new Item(label, Format(Telemetry.Get(metric))));
+        }
+
+        var labelWidth = _items.Max(item => item.Label.Length);
+
+        _label.Text = string.Join('\n', _items.Select(item => item.Render(labelWidth)));
+    }
 
     /// <summary>A name as words: "GroundSpeed" is "Ground speed".</summary>
     private static string Words(string name)
@@ -99,13 +137,13 @@ public partial class DebugOverlay : CanvasLayer
         return words.ToString();
     }
 
-    private static string Format(TelemetryValue value) => value.Kind switch
+    private static string Format(TelemetryValue? value) => value?.Kind switch
     {
-        TelemetryKind.Number => Signed(value.X),
-        TelemetryKind.Count => Signed(value.X, "0000"),
-        TelemetryKind.Pair => $"{Signed(value.X)} {Signed(value.Y)}",
-        TelemetryKind.CountPair => $"{Signed(value.X, "0000")} {Signed(value.Y, "0000")}",
-        TelemetryKind.Flag => value.X != 0 ? "yes" : "no",
+        TelemetryKind.Float => Signed(value.Value.X),
+        TelemetryKind.Int => Signed(value.Value.X, "0000"),
+        TelemetryKind.Vector2 => $"{Signed(value.Value.X)} {Signed(value.Value.Y)}",
+        TelemetryKind.Vector2I => $"{Signed(value.Value.X, "0000")} {Signed(value.Value.Y, "0000")}",
+        TelemetryKind.Bool => value.Value.X != 0 ? " true" : "false",
         _ => "?",
     };
 

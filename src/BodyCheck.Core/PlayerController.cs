@@ -26,12 +26,12 @@ public sealed record PlayerTuning
     public float GroundFriction { get; init; } = 4;
 
     /// <summary>Upward speed given by the jump impulse.</summary>
-    public float JumpSpeed { get; init; } = 12;
+    public float JumpSpeed { get; init; } = 12.4f;
 
     /// <summary>
     /// Number of frames the jump thrust lasts while the button is held. Includes the frame with the initial jump impulse.
     /// </summary>
-    public int JumpThrustTicks { get; init; } = 13;
+    public int JumpThrustTicks { get; init; } = 15;
 
     /// <summary>Jump thrust as a fraction of the player's weight. At 1 it cancels gravity.</summary>
     public float JumpThrustFrac { get; init; } = 0.9f;
@@ -108,8 +108,6 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         var velocity = new Vector2(entity.LinearVelocity.X, entity.LinearVelocity.Y);
         Telemetry.Report(Metric.Feet, feet);
         Telemetry.Report(Metric.Velocity, velocity);
-        Telemetry.Report(Metric.Speed, velocity.Length());
-        Telemetry.Report(Metric.Angle, Mathf.RadToDeg(velocity.Angle()));
         Telemetry.Report(Metric.GroundSpeed, entity.GroundSpeed);
         Telemetry.Report(Metric.OnGround, entity.OnGround);
         Telemetry.Report(Metric.CoyoteTicks, entity.OnGround ? 0 : _groundTicksLeft);

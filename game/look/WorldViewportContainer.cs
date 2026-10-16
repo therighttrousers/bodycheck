@@ -1,3 +1,5 @@
+using BodyCheck.Core;
+
 using Godot;
 
 namespace BodyCheck.Look;
@@ -11,16 +13,20 @@ namespace BodyCheck.Look;
 /// the window's input on to it, with the mouse's position scaled to match.
 /// </para>
 /// </summary>
-public partial class LowResView : SubViewportContainer
+public partial class WorldViewportContainer : SubViewportContainer
 {
     private Vector2I? _resolution;
 
-    public LowResView()
+    public WorldViewportContainer()
     {
         // Without stretch, the container draws the viewport at the viewport's own size, and Scale enlarges it.
         Stretch = false;
         TextureFilter = TextureFilterEnum.Nearest;
         AddChild(World);
+
+        // Enable CPU/GPU rendering measurement.
+        var rid = World.GetViewportRid();
+        RenderingServer.ViewportSetMeasureRenderTime(rid, true);
     }
 
     /// <summary>The viewport the game is drawn in.</summary>
@@ -59,5 +65,18 @@ public partial class LowResView : SubViewportContainer
         Size = size;
         Scale = new Vector2(scale, scale);
         Position = (window - size * scale) / 2;
+    }
+
+    public override void _Process(double delta)
+    {
+        var rid = World.GetViewportRid();
+        // Report CPU/GPU measurements in seconds.
+        Telemetry.Report(
+            Metric.WorldRenderTime,
+            new Vector2(
+                (float)RenderingServer.ViewportGetMeasuredRenderTimeCpu(rid),
+                (float)RenderingServer.ViewportGetMeasuredRenderTimeGpu(rid)
+            ) / 1000
+        );
     }
 }
