@@ -126,6 +126,7 @@ public partial class RoomNode : Node3D
                     EmissionEnergyMultiplier = 1.5f,
                 },
             },
+            Position = new Vector3(0, halfSize.Y, 0),
         };
         if (glows)
         {
