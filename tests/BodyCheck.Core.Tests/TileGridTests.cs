@@ -1,3 +1,5 @@
+using BodyCheck.Core.Rooms;
+
 namespace BodyCheck.Core.Tests;
 
 public class TileGridTests

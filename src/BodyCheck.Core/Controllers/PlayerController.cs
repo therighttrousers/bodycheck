@@ -1,6 +1,8 @@
+using BodyCheck.Core.Entities;
+
 using Godot;
 
-namespace BodyCheck.Core;
+namespace BodyCheck.Core.Controllers;
 
 /// <param name="Move">Horizontal input, from -1 (left) to 1 (right).</param>
 /// <param name="Look">Vertical input, from -1 (down) to 1 (up).</param>

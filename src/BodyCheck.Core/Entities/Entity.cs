@@ -1,6 +1,6 @@
 using Godot;
 
-namespace BodyCheck.Core;
+namespace BodyCheck.Core.Entities;
 
 [Flags]
 public enum Contacts

@@ -1,6 +1,7 @@
 using System;
 
-using BodyCheck.Core;
+using BodyCheck.Core.Controllers;
+using BodyCheck.Core.Rooms;
 
 using Godot;
 
@@ -32,44 +33,44 @@ public static class Probe
         switch (name)
         {
             case "seams":
-                room = load(TestRooms.Seams);
+                room = load(TestRoomLibrary.Seams);
                 // Nothing may brake the sliding body, so the controllers are off.
                 room.ControllersEnabled = false;
                 GD.Print($"Seam probe: tiles {(mergeTiles ? "merged" : "single")}");
                 probe = new SeamProbe(room.Player, speed: room.PlayerTuning.TopSpeed);
                 break;
             case "player":
-                room = load(TestRooms.Seams);
+                room = load(TestRoomLibrary.Seams);
                 GD.Print("Player probe:");
                 probe = new PlayerProbe(room.Player);
                 break;
             case "corner" or "corner-hold":
-                room = load(TestRooms.Corner);
+                room = load(TestRoomLibrary.Corner);
                 GD.Print($"Corner probe, {(name == "corner" ? "not pushing" : "pushing")} during the jump:");
                 probe = new CornerProbe(room.Player, holdRight: name == "corner-hold");
                 break;
             case "drop":
-                room = load(TestRooms.Corner);
+                room = load(TestRoomLibrary.Corner);
                 GD.Print("Drop probe:");
                 probe = new DropProbe(room.Player);
                 break;
             case "ride-robot" or "ride-platform":
-                room = load(name == "ride-robot" ? TestRooms.RobotRiding : TestRooms.PlatformRiding);
+                room = load(name == "ride-robot" ? TestRoomLibrary.RobotRiding : TestRoomLibrary.PlatformRiding);
                 GD.Print($"Riding probe, {room.Room.Name}:");
                 probe = new RidingProbe(room.Player, room.Entities[1]);
                 break;
             case "landing":
-                room = load(TestRooms.Seams);
+                room = load(TestRoomLibrary.Seams);
                 GD.Print("Landing probe:");
                 probe = new LandingProbe(room.Player);
                 break;
             case "push":
-                room = load(TestRooms.RobotPush);
+                room = load(TestRoomLibrary.RobotPush);
                 GD.Print("Push probe:");
                 probe = new PushProbe(room.Player, room.Entities[1]);
                 break;
             case "run-off":
-                room = load(TestRooms.RobotRiding);
+                room = load(TestRoomLibrary.RobotRiding);
                 GD.Print("Run-off probe:");
                 probe = new RunOffProbe(room.Player, room.Entities[1]);
                 break;

@@ -22,7 +22,7 @@ The colour pass reads tone-mapped sRGB values, and its output reaches the screen
 
 ## Scale
 
-A tile's face is 16x16 pixels at 320x240, so a screen is 20x15 tiles, the size of an LDtk level. `World.TilePixels` holds the 16 (`009 §5.1`).
+A tile's face is 16x16 pixels at 320x240, so a screen is 20x15 tiles, the size of an LDtk level. `Constants.TilePixels` holds the 16 (`009 §5.1`).
 
 The camera is at the distance where a tile's front face is 16 pixels, whatever the size of the room (`009 §5.2`). At the other sizes the switches give, the view is the same 15 tiles high, so they show the same framing, not 16-pixel tiles.
 

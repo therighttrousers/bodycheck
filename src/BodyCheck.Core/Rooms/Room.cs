@@ -1,6 +1,6 @@
 using Godot;
 
-namespace BodyCheck.Core;
+namespace BodyCheck.Core.Rooms;
 
 /// <summary>The kinds of entity that a room says where to start.</summary>
 public enum EntityKind
@@ -13,7 +13,7 @@ public enum EntityKind
 
 /// <summary>
 /// A named room: its tiles, and where each of its entities starts. Rooms come from text (<see cref="FromText"/>)
-/// and from LDtk levels (<see cref="LdtkReader"/>).
+/// and from LDtk levels.
 /// </summary>
 public sealed class Room
 {

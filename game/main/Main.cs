@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 
 using BodyCheck.Core;
+using BodyCheck.Core.Controllers;
+using BodyCheck.Core.Levels;
+using BodyCheck.Core.Rooms;
 using BodyCheck.Look;
 using BodyCheck.Probes;
 
@@ -12,7 +15,7 @@ namespace BodyCheck;
 
 /// <summary>
 /// Plays one room, drawn as gray boxes: the levels of the LDtk project at <see cref="LevelsPath"/>, stitched into one
-/// world, or a room from the <see cref="Rooms"/> library. It adds the camera, the lights and the player's input to a <see cref="RoomNode"/>,
+/// world, or a room from the <see cref="RoomLibrary"/> library. It adds the camera, the lights and the player's input to a <see cref="RoomNode"/>,
 /// and the rendering pipeline's switches (see <see cref="LookSwitches"/>). The game is drawn in a <see cref="WorldViewportContainer"/>, and the overlay over
 /// it at the window's full resolution.
 /// <para>
@@ -50,7 +53,7 @@ public partial class Main : Node
         _shapes = new ShapeWireframes(_worldView);
         AddChild(_shapes);
         AddChild(_overlay);
-        _rooms = [LdtkReader.ReadWorld(LevelsPath, ReadFile), .. Rooms.All];
+        _rooms = [LdtkReader.ReadWorld(LevelsPath, ReadFile), .. RoomLibrary.All];
 
         string? roomName = null;
         string? probeName = null;
@@ -141,7 +144,7 @@ public partial class Main : Node
         _room?.QueueFree();
         Telemetry.Reset();
         _room = new RoomNode(room, _mergeTiles);
-        if (room == Rooms.Look)
+        if (room == RoomLibrary.Look)
         {
             _room.AddChild(new LookProps(_room.Tiles));
         }

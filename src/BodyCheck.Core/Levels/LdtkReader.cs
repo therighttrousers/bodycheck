@@ -1,9 +1,11 @@
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 
+using BodyCheck.Core.Rooms;
+
 using Godot;
 
-namespace BodyCheck.Core;
+namespace BodyCheck.Core.Levels;
 
 /// <summary>
 /// Reads the levels of an LDtk project, stitched together into one room, and checks everything it reads. Levels are
@@ -15,12 +17,6 @@ public static class LdtkReader
 {
     /// <summary>The LDtk versions whose JSON this reads: 1.5 and its patches.</summary>
     private const string JsonVersionPrefix = "1.5.";
-
-    /// <summary>A level's width, in tiles.</summary>
-    private const int LevelWidth = 20;
-
-    /// <summary>A level's height, in tiles.</summary>
-    private const int LevelHeight = 15;
 
     /// <summary>
     /// Reads every level of the project at <paramref name="projectPath"/> into one room, named after the project's file.
@@ -49,13 +45,13 @@ public static class LdtkReader
         var cells = new HashSet<(int X, int Y)>();
         foreach (LdtkLevel level in project.Levels)
         {
-            if (level.PxWid != LevelWidth * World.TilePixels
-                || level.PxHei != LevelHeight * World.TilePixels
+            if (level.PxWid != Constants.LevelWidth * Constants.TilePixels
+                || level.PxHei != Constants.LevelHeight * Constants.TilePixels
                 || level.WorldX % level.PxWid != 0
                 || level.WorldY % level.PxHei != 0
                 || level.WorldDepth != 0)
             {
-                throw Invalid(projectPath, $"Level '{level.Identifier}' isn't {LevelWidth}x{LevelHeight} tiles, on "
+                throw Invalid(projectPath, $"Level '{level.Identifier}' isn't {Constants.LevelWidth}x{Constants.LevelHeight} tiles, on "
                     + "a grid of that size, at depth 0.");
             }
             if (!cells.Add(Cell(level)))
@@ -67,8 +63,8 @@ public static class LdtkReader
         int bottom = cells.Max(cell => cell.Y);
 
         var tiles = new TileGrid(
-            (cells.Max(cell => cell.X) - left + 1) * LevelWidth,
-            (bottom - cells.Min(cell => cell.Y) + 1) * LevelHeight);
+            (cells.Max(cell => cell.X) - left + 1) * Constants.LevelWidth,
+            (bottom - cells.Min(cell => cell.Y) + 1) * Constants.LevelHeight);
         for (int y = 0; y < tiles.Height; y++)
         {
             for (int x = 0; x < tiles.Width; x++)
@@ -82,7 +78,7 @@ public static class LdtkReader
         foreach (LdtkLevel level in project.Levels)
         {
             (int x, int y) = Cell(level);
-            var origin = new Vector2I((x - left) * LevelWidth, (bottom - y) * LevelHeight);
+            var origin = new Vector2I((x - left) * Constants.LevelWidth, (bottom - y) * Constants.LevelHeight);
             if (level.ExternalRelPath is null)
             {
                 AddLevel(projectPath, level, origin, tiles, starts);
@@ -118,14 +114,14 @@ public static class LdtkReader
             ?? throw Invalid(path, $"Level '{level.Identifier}' has no layers.");
         foreach (LdtkLayerInstance layer in layers)
         {
-            if (layer.GridSize != World.TilePixels
-                || layer.CWid != LevelWidth
-                || layer.CHei != LevelHeight
+            if (layer.GridSize != Constants.TilePixels
+                || layer.CWid != Constants.LevelWidth
+                || layer.CHei != Constants.LevelHeight
                 || layer.PxTotalOffsetX != 0
                 || layer.PxTotalOffsetY != 0)
             {
                 throw Invalid(path, $"In level '{level.Identifier}', layer {layer.Identifier} isn't a grid of "
-                    + $"{World.TilePixels}-pixel cells that covers the level exactly.");
+                    + $"{Constants.TilePixels}-pixel cells that covers the level exactly.");
             }
         }
 
@@ -142,16 +138,16 @@ public static class LdtkReader
         LdtkLayerInstance solid = Layer(LdtkLayerName.SolidGeometry, LdtkLayerType.IntGrid);
         LdtkLayerInstance characters = Layer(LdtkLayerName.Characters, LdtkLayerType.Entities);
 
-        if (solid.IntGridCsv.Length != LevelWidth * LevelHeight)
+        if (solid.IntGridCsv.Length != Constants.LevelWidth * Constants.LevelHeight)
         {
             throw Invalid(path, $"In level '{level.Identifier}', {solid.Identifier} has {solid.IntGridCsv.Length} "
-                + $"values for {LevelWidth * LevelHeight} cells.");
+                + $"values for {Constants.LevelWidth * Constants.LevelHeight} cells.");
         }
-        for (int row = 0; row < LevelHeight; row++)
+        for (int row = 0; row < Constants.LevelHeight; row++)
         {
-            for (int x = 0; x < LevelWidth; x++)
+            for (int x = 0; x < Constants.LevelWidth; x++)
             {
-                tiles.SetSolid(origin.X + x, origin.Y + LevelHeight - 1 - row, solid.IntGridCsv[row * LevelWidth + x] != 0);
+                tiles.SetSolid(origin.X + x, origin.Y + Constants.LevelHeight - 1 - row, solid.IntGridCsv[row * Constants.LevelWidth + x] != 0);
             }
         }
 
@@ -175,8 +171,8 @@ public static class LdtkReader
             float left = entity.Px[0] - entity.Pivot[0] * entity.Width;
             float bottom = entity.Px[1] + (1 - entity.Pivot[1]) * entity.Height;
             starts.Add((kind, origin + new Vector2(
-                (left + entity.Width / 2f) / World.TilePixels,
-                LevelHeight - bottom / World.TilePixels)));
+                (left + entity.Width / 2f) / Constants.TilePixels,
+                Constants.LevelHeight - bottom / Constants.TilePixels)));
         }
     }
 

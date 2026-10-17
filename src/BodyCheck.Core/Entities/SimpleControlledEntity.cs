@@ -1,6 +1,6 @@
 using Godot;
 
-namespace BodyCheck.Core;
+namespace BodyCheck.Core.Entities;
 
 /// <summary>
 /// A body that has a controller and moves only by adding forces and impulses. (It has no motors.)

@@ -1,9 +1,9 @@
-namespace BodyCheck.Core;
+namespace BodyCheck.Core.Rooms;
 
 /// <summary>
 /// The library of test rooms. Design docs and tests refer to these by name.
 /// </summary>
-public static class Rooms
+public static class RoomLibrary
 {
     /// <summary>Ledges, walls and one-tile pits for trying out running and jumping.</summary>
     public static readonly Room Playground = Room.FromText("Playground", """

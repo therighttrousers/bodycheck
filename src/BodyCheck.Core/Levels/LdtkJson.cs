@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace BodyCheck.Core;
+namespace BodyCheck.Core.Levels;
 
 // The parts of LDtk's JSON that the loader reads, as records for System.Text.Json. Everything else in the file is
 // skipped. Every property here is required, a null is allowed only where the type has a '?', and a string that

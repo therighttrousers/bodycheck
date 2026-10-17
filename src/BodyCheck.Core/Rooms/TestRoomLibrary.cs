@@ -1,11 +1,11 @@
 using System.Diagnostics;
 
-namespace BodyCheck.Core;
+namespace BodyCheck.Core.Rooms;
 
 /// <summary>
 /// Rooms for tests and probes. They measure one thing each and aren't meant for playing.
 /// </summary>
-public static class TestRooms
+public static class TestRoomLibrary
 {
     /// <summary>A long flat floor with a high ceiling, for sliding a body over many tile seams.</summary>
     public static readonly Room Seams = Room.FromText("Seams", string.Join('\n',

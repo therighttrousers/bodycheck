@@ -2,6 +2,9 @@ using System;
 using System.Threading.Tasks;
 
 using BodyCheck.Core;
+using BodyCheck.Core.Controllers;
+using BodyCheck.Core.Entities;
+using BodyCheck.Core.Rooms;
 
 using GdUnit4;
 
@@ -46,7 +49,7 @@ public class PlayerControllerTest
     {
         _room?.Free();
         _input = Idle;
-        Room frame = TestRooms.EmptyFrame(60, height, playerX, playerY);
+        Room frame = TestRoomLibrary.EmptyFrame(60, height, playerX, playerY);
         _room = new RoomNode(frame, playerTuning: tuning, playerBody: body)
         {
             PlayerInput = () => _input,
