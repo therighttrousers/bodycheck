@@ -74,26 +74,26 @@ public static class LdtkReader
         }
 
         string directory = projectPath[..(projectPath.LastIndexOfAny(['/', '\\']) + 1)];
-        var starts = new List<(EntityKind, Vector2)>();
+        var entityConfigs = new List<EntityConfig>();
         foreach (LdtkLevel level in project.Levels)
         {
             (int x, int y) = Cell(level);
             var origin = new Vector2I((x - left) * Constants.LevelWidth, (bottom - y) * Constants.LevelHeight);
             if (level.ExternalRelPath is null)
             {
-                AddLevel(projectPath, level, origin, tiles, starts);
+                AddLevel(projectPath, level, origin, tiles, entityConfigs);
             }
             else
             {
                 string levelPath = directory + level.ExternalRelPath;
                 LdtkLevel external = Parse(levelPath, readFile(levelPath), LdtkJsonContext.Default.LdtkLevel);
-                AddLevel(levelPath, external, origin, tiles, starts);
+                AddLevel(levelPath, external, origin, tiles, entityConfigs);
             }
         }
 
         try
         {
-            return new Room(Path.GetFileNameWithoutExtension(projectPath), tiles, starts);
+            return new Room(Path.GetFileNameWithoutExtension(projectPath), tiles, entityConfigs);
         }
         catch (ArgumentException e)
         {
@@ -104,11 +104,11 @@ public static class LdtkReader
     private static (int X, int Y) Cell(LdtkLevel level) => (level.WorldX / level.PxWid, level.WorldY / level.PxHei);
 
     /// <summary>
-    /// Copies a level's tiles into <paramref name="tiles"/>, and its entities' starts into <paramref name="starts"/>,
+    /// Copies a level's tiles into <paramref name="tiles"/>, and its entities' configs into <paramref name="entityConfigs"/>,
     /// with the level's bottom left tile at <paramref name="origin"/>.
     /// </summary>
     private static void AddLevel(
-        string path, LdtkLevel level, Vector2I origin, TileGrid tiles, List<(EntityKind, Vector2)> starts)
+        string path, LdtkLevel level, Vector2I origin, TileGrid tiles, List<EntityConfig> entityConfigs)
     {
         LdtkLayerInstance[] layers = level.LayerInstances
             ?? throw Invalid(path, $"Level '{level.Identifier}' has no layers.");
@@ -158,21 +158,21 @@ public static class LdtkReader
                 throw Invalid(path, $"In level '{level.Identifier}', a {entity.Identifier} has a position or a pivot "
                     + "that isn't two numbers.");
             }
-            EntityKind kind = entity.Identifier switch
-            {
-                LdtkEntityName.PlayerStart => EntityKind.Player,
-                LdtkEntityName.RobotBasic => EntityKind.Robot,
-                LdtkEntityName.PlatformHorizontal => EntityKind.Platform,
-                LdtkEntityName.Block => EntityKind.Block,
-                _ => throw new ArgumentOutOfRangeException(nameof(level), entity.Identifier, null),
-            };
 
             // LDtk's y is down, from the top of the level, and the room's is up, from the bottom.
             float left = entity.Px[0] - entity.Pivot[0] * entity.Width;
             float bottom = entity.Px[1] + (1 - entity.Pivot[1]) * entity.Height;
-            starts.Add((kind, origin + new Vector2(
+            Vector2 start = origin + new Vector2(
                 (left + entity.Width / 2f) / Constants.TilePixels,
-                Constants.LevelHeight - bottom / Constants.TilePixels)));
+                Constants.LevelHeight - bottom / Constants.TilePixels
+            );
+            entityConfigs.Add(entity.Identifier switch
+            {
+                LdtkEntityName.PlayerStart => new EntityConfig.Player(start),
+                LdtkEntityName.RobotBasic => new EntityConfig.Robot(start),
+                LdtkEntityName.PlatformHorizontal => new EntityConfig.Platform(start),
+                LdtkEntityName.Block => new EntityConfig.Block(start),
+            });
         }
     }
 

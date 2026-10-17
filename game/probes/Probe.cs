@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 
 using BodyCheck.Core.Controllers;
 using BodyCheck.Core.Rooms;
@@ -58,7 +59,8 @@ public static class Probe
             case "ride-robot" or "ride-platform":
                 room = load(name == "ride-robot" ? TestRoomLibrary.RobotRiding : TestRoomLibrary.PlatformRiding);
                 GD.Print($"Riding probe, {room.Room.Name}:");
-                probe = new RidingProbe(room.Player, room.Entities[1]);
+                EntityKind carrier = name == "ride-robot" ? EntityKind.Robot : EntityKind.Platform;
+                probe = new RidingProbe(room.Player, room.EntitiesOf(carrier).Single());
                 break;
             case "landing":
                 room = load(TestRoomLibrary.Seams);
@@ -68,12 +70,12 @@ public static class Probe
             case "push":
                 room = load(TestRoomLibrary.RobotPush);
                 GD.Print("Push probe:");
-                probe = new PushProbe(room.Player, room.Entities[1]);
+                probe = new PushProbe(room.Player, room.EntitiesOf(EntityKind.Robot).Single());
                 break;
             case "run-off":
                 room = load(TestRoomLibrary.RobotRiding);
                 GD.Print("Run-off probe:");
-                probe = new RunOffProbe(room.Player, room.Entities[1]);
+                probe = new RunOffProbe(room.Player, room.EntitiesOf(EntityKind.Robot).Single());
                 break;
             default:
                 throw new ArgumentException($"There is no probe named '{name}'.");

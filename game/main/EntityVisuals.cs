@@ -17,7 +17,6 @@ public static class EntityVisuals
         EntityKind.Robot => InstantiateModel("res://assets/bob_the_robot/robot.tscn"),
         EntityKind.Platform => BoxVisual(body, PlatformColor),
         EntityKind.Block => InstantiateModel("res://assets/portal_cube/scene.tscn"),
-        _ => throw new System.ArgumentOutOfRangeException(nameof(kind), kind, null),
     };
 
     /// <summary>A box the size of a body, to draw an entity as.</summary>
