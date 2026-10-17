@@ -7,6 +7,7 @@ Relevant decision records:
 - [006: Models, their base point, and animation](../decision-records/006-models-and-animation.md)
 - [008: Telemetry, and a debug overlay drawn at the window's resolution](../decision-records/008-telemetry-and-overlay.md)
 - [009: The first level loader](../decision-records/009-level-loader.md)
+- [010: Camera framing](../decision-records/010-camera-framing.md)
 
 ## Tools
 
@@ -48,7 +49,7 @@ The Godot project, which holds the scenes and the other nodes.
 
 - `RoomNode` is one room, simulated: tiles and entities, with no camera, lights or input of its own, so tests use it as it is. It builds the entities, gives each its looks and its controller, and steps every one each physics tick.
 - A model is a wrapper scene in `assets/` around an imported glTF file, with its origin at its base. See [models.md](models.md).
-- `Main` adds the camera, the lights and the player's input to a `RoomNode`, and switches rooms. The camera is a `Camera3D` with a Phantom Camera host, which puts it where the one phantom camera is; the phantom camera follows the player of each room. Its rooms are the levels of `levels/main.ldtk`, then the library of text rooms; the first plays unless the command line names another (`009 §4.3`). The game is drawn in a `WorldViewportContainer`, a viewport of its own at low resolution, and `Main`'s other children are drawn at the window's resolution.
+- `Main` adds the camera, the lights and the player's input to a `RoomNode`, and switches rooms. `CameraRig` is the camera: a `Camera3D` with a Phantom Camera host, which puts it where the one phantom camera is, and a target that the phantom camera follows. The rig moves the target each frame, above the player and clamped to the room (`010 §2.1`). Its rooms are the levels of `levels/main.ldtk`, then the library of text rooms; the first plays unless the command line names another (`009 §4.3`). The game is drawn in a `WorldViewportContainer`, a viewport of its own at low resolution, and `Main`'s other children are drawn at the window's resolution.
 - `DebugOverlay`, on F3, shows the frame rate and times and every telemetry value, at the window's resolution (`008 §2.3`).
 - `ShapeWireframes`, on F4, draws every box collision shape in the game as a wireframe, at the window's resolution, for comparing bodies with their models. It reads the shapes and the camera from the engine each frame.
 - `look/` holds the low-resolution view, the colour pass and the tools for judging the rendering. See [rendering.md](rendering.md).
@@ -65,7 +66,7 @@ The Godot project, which holds the scenes and the other nodes.
 
 ## Open questions
 
-- Phantom Camera's limit, lookahead and newer framed-follow features are described for its 2D camera only, and are unverified in 3D.
+- Phantom Camera's lookahead and newer framed-follow features are described for its 2D camera only, and are unverified in 3D. Its limits are 2D only; `CameraRig` clamps instead (`010 §2.1`).
 - Exports will need `*.ldtk` and `*.ldtkl` in their filter of non-resource files, since Godot doesn't import them (`009 §4.1`). There are no exports yet.
 - Linking `game/levels` into the in-engine test project, for integration tests on real levels, is put off (`009 §4.2`).
 - Can the Godot editor attach a script to a scene only when the script is in the Godot project itself? Believed so. Core's node classes are created in code, which doesn't need it (`005 §3.2`).

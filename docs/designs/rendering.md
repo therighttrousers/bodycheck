@@ -6,6 +6,7 @@ Relevant decision records:
 - [004: Rings around lights in the colour pass](../decision-records/004-quantisation-artifacts.md)
 - [008: Telemetry, and a debug overlay drawn at the window's resolution](../decision-records/008-telemetry-and-overlay.md)
 - [009: The first level loader](../decision-records/009-level-loader.md)
+- [010: Camera framing](../decision-records/010-camera-framing.md)
 
 The image is Mode X with modern lighting: 320x240 and 256 colours, as on a VGA card in the mid-1990s, drawn with anti-aliasing, shadows, ambient occlusion, reflections and bloom. Star Fox, Quake and Descent are the references for the geometry, and Mode X for the image (`003`).
 
@@ -22,7 +23,9 @@ The colour pass reads tone-mapped sRGB values, and its output reaches the screen
 
 A tile's face is 16x16 pixels at 320x240, so a screen is 20x15 tiles, the size of an LDtk level. `World.TilePixels` holds the 16 (`009 §5.1`).
 
-The camera follows the player, centred, at the distance where a tile's front face is 16 pixels, whatever the size of the room (`009 §5.2`). A 20x15 room fills the screen only when the player is at its middle; elsewhere the view shows past its edge. At the other sizes the switches give, the view is the same 15 tiles high, so they show the same framing, not 16-pixel tiles.
+The camera is at the distance where a tile's front face is 16 pixels, whatever the size of the room (`009 §5.2`). At the other sizes the switches give, the view is the same 15 tiles high, so they show the same framing, not 16-pixel tiles.
+
+The camera follows the player with a lag, and its view is centred 3 tiles above the player, which puts the player 70% of the way down the screen (`010 §1`). It shows only the room: the view's centre is clamped so that the view at the tiles' front faces stays inside the room, and is centred on the room where the room is smaller than the view (`010 §2.1`, `§2.2`). A 20x15 room fills the view, so the camera doesn't move in it.
 
 ## Palette
 
@@ -64,9 +67,9 @@ Other ways of choosing colours were tried and set aside: quantising in HSV, a la
 - Flat or smooth shading for models and tiles. Flat shading comes from a mesh's normals, so it is a rule for modelling and not a pipeline setting. The "Look" room shows both (`003 §4.1`).
 - Transparency and refraction were not judged on their own (`003 §4.2`).
 - The resolution of game UI. It stays out of the colour pass, whose dither changes even colours taken from the palette. Whether it is drawn at the window's resolution or at 320x240, on a layer above the colour pass, is undecided. Text in system fonts is unreadable at 320x240; a 3x5 pixel font is readable (`008 §2.1`, `§2.6`).
-- How should the camera follow the player? Centring is a placeholder: the camera won't keep the player at the middle of the screen, and what it does instead is undecided. Neil is to play Ori for how a camera works well in a large, seamless 2D world. Things to decide: a dead zone, lookahead, following jumps or waiting for a landing, and what happens at the edge of an area. Phantom Camera's framed follow, which has a dead zone, has a 3D mode, untried here.
+- Framing by area: centring underwater and in platforming challenges, the player to one side on ledges in front of challenges, and camera distances that suit the geometry. Phantom Camera's way: a phantom camera per area, made active by trigger areas. Put off until there are areas (`010 §3.1`).
+- What the camera keeps inside in the seamless world. Leaning: the LDtk level the player is in (`010 §2.3`).
 - When should the camera leave the 16-pixel distance? Leaning: zooming out for cinematics, or to show something important that is hard to see at the usual distance. Contextual zoom may turn out better after trying both (`009 §5.2`).
-- Should the camera stop at the edge of the map, or of a room? Phantom Camera's limits are described for its 2D camera only.
 - On a 16:9 monitor the image has black bars at the sides. Whether to fill them, and with what, is undecided.
 - The palette as an asset. It is generated at startup until it is final; then it becomes a file, and the code that generates it becomes the first part of an asset pipeline (`004 §2.6`).
 - A smaller palette (Neil, 2026-10-13, thinking aloud). It would suit pixel art drawn by hand: 256 colours is a lot to draw with. A palette of 128, with 8 grays and 4 values to a ramp, was tried: it saves about 0.4 ms a frame and costs nearly three times the lightness error (`004 §4.3`, `§4.4`). Alternatives: a reduced palette for pixel art only, or high-fidelity drawings scaled down, with interpolation, before the colour pass.

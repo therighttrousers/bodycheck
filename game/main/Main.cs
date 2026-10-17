@@ -8,8 +8,6 @@ using BodyCheck.Probes;
 
 using Godot;
 
-using PhantomCamera;
-
 namespace BodyCheck;
 
 /// <summary>
@@ -36,8 +34,7 @@ public partial class Main : Node
     private int _roomIndex;
     private bool _mergeTiles = true;
     private RoomNode _room = null!;
-    private Camera3D _camera = null!;
-    private PhantomCamera3D _phantomCamera = null!;
+    private readonly CameraRig _cameraRig = new();
     private LookSwitches _look = null!;
     private readonly WorldViewportContainer _worldView = new();
     private readonly DebugOverlay _overlay = new();
@@ -49,7 +46,7 @@ public partial class Main : Node
         AddInputActions();
         AddChild(_worldView);
         AddLook();
-        AddCamera();
+        _worldView.World.AddChild(_cameraRig);
         _shapes = new ShapeWireframes(_worldView);
         AddChild(_shapes);
         AddChild(_overlay);
@@ -123,8 +120,8 @@ public partial class Main : Node
     private void ReportMouseTile()
     {
         Vector2 mouse = _worldView.World.GetMousePosition();
-        Vector3 origin = _camera.ProjectRayOrigin(mouse);
-        Vector3 direction = _camera.ProjectRayNormal(mouse);
+        Vector3 origin = _cameraRig.Camera.ProjectRayOrigin(mouse);
+        Vector3 direction = _cameraRig.Camera.ProjectRayNormal(mouse);
         Vector3 point = origin + direction * (-origin.Z / direction.Z);
         Telemetry.Report(Metric.MouseTile, new Vector2I(Mathf.FloorToInt(point.X), Mathf.FloorToInt(point.Y)));
     }
@@ -147,7 +144,7 @@ public partial class Main : Node
             _room.AddChild(new LookProps(_room.Tiles));
         }
         _worldView.World.AddChild(_room);
-        _phantomCamera.FollowTarget = _room.Player;
+        _cameraRig.Follow(_room);
         ShowTitle();
         return _room;
     }
@@ -160,34 +157,6 @@ public partial class Main : Node
     }
 
     private void ShowTitle() => GetWindow().Title = $"Body Check: {_room.Room.Name} ({_look.Summary})";
-
-    /// <summary>
-    /// Adds the camera, which Phantom Camera moves: its host on the <see cref="Camera3D"/> puts the camera where
-    /// the one phantom camera is, and the phantom camera follows the player.
-    /// </summary>
-    private void AddCamera()
-    {
-        // The view is as many tiles high as a 320x240 screen, at every size of the viewport, so a tile's face is
-        // TilePixels high at 320x240 and the other sizes show the same framing. The field of view is vertical.
-        const float fov = 50;
-        const float halfHeight = 240f / World.TilePixels / 2;
-        float distance = halfHeight / Mathf.Tan(Mathf.DegToRad(fov / 2));
-
-        _camera = new Camera3D { Fov = fov, Current = true };
-        _worldView.World.AddChild(_camera);
-        _camera.AddChild(NewPhantomCameraNode<Node>("phantom_camera_host/phantom_camera_host.gd"));
-
-        Node3D phantom = NewPhantomCameraNode<Node3D>("phantom_camera/phantom_camera_3d.gd");
-        phantom.Set("follow_mode", (int)FollowMode3D.Simple);
-        _worldView.World.AddChild(phantom);
-        _phantomCamera = phantom.AsPhantomCamera3D();
-        // From the player's centre to where a tile's front face, half a tile in front of it, is the right size.
-        _phantomCamera.FollowOffset = new Vector3(0, 0, distance + 0.5f);
-    }
-
-    /// <summary>Phantom Camera's nodes are GDScript classes, which the C# wrappers wrap but can't create.</summary>
-    private static T NewPhantomCameraNode<T>(string script) where T : Node =>
-        (T)GD.Load<GDScript>($"res://addons/phantom_camera/scripts/{script}").New();
 
     /// <summary>Adds the lights, the colour pass, and the switches that turn parts of the pipeline on and off.</summary>
     private void AddLook()
