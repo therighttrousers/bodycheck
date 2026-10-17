@@ -6,7 +6,7 @@ using Godot;
 namespace BodyCheck;
 
 /// <summary>What the game draws for each kind of entity: a model, or a box the size of its body.</summary>
-public static class EntityLooks
+public static class EntityVisuals
 {
     private static readonly Color PlatformColor = new(0.9f, 0.1f, 0.7f);
 

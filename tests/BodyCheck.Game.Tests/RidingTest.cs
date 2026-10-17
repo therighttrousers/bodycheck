@@ -37,7 +37,7 @@ public class RidingTest
     private async Task Start()
     {
         _input = Idle;
-        _room = new RoomNode(TestRoomLibrary.RobotRiding, EntityLooks.For) { PlayerInput = () => _input };
+        _room = new RoomNode(TestRoomLibrary.RobotRiding, EntityVisuals.For) { PlayerInput = () => _input };
         Tree.Root.AddChild(_room);
         await Tick(Idle, 120);
     }

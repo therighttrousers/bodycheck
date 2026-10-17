@@ -144,7 +144,7 @@ public partial class Main : Node
     {
         _room?.QueueFree();
         Telemetry.Reset();
-        _room = new RoomNode(room, EntityLooks.For, _mergeTiles);
+        _room = new RoomNode(room, EntityVisuals.For, _mergeTiles);
         if (room == RoomLibrary.Look)
         {
             _room.AddChild(new LookProps(_room.Tiles));

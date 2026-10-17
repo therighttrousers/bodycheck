@@ -20,14 +20,14 @@ public partial class RoomNode : Node3D
     private readonly List<Entity> _characters = [];
     private readonly List<Entity> _blocks = [];
 
-    /// <param name="looks">
+    /// <param name="visual">
     /// Makes what to draw for an entity of a kind, with the given body, with its origin at the middle of its base.
     /// It is called once for each entity.
     /// </param>
     /// <param name="mergeTiles">Whether to merge tiles into larger colliders, or give each tile its own.</param>
     public RoomNode(
         Room room,
-        Func<EntityKind, BodyTuning, Node3D> looks,
+        Func<EntityKind, BodyTuning, Node3D> visual,
         bool mergeTiles = true,
         PlayerTuning? playerTuning = null,
         BodyTuning? playerBody = null)
@@ -49,14 +49,14 @@ public partial class RoomNode : Node3D
 
         PlayerTuning = playerTuning ?? new PlayerTuning();
         BodyTuning body = playerBody ?? BodyTuning.Player;
-        Player = Add(new WalkerEntity(body, looks(EntityKind.Player, body)), room.PlayerStart);
+        Player = Add(new WalkerEntity(body, visual(EntityKind.Player, body)), room.PlayerStart);
         Player.AddChild(new OmniLight3D { OmniRange = 15, ShadowEnabled = true, Position = new Vector3(0, 0, 2) });
         Player.Controller = new PlayerController(PlayerTuning, () => PlayerInput?.Invoke() ?? default);
 
         var robotTuning = new RobotTuning();
         foreach (Vector2 start in room.RobotStarts)
         {
-            WalkerEntity robot = Add(new WalkerEntity(BodyTuning.Robot, looks(EntityKind.Robot, BodyTuning.Robot)), start);
+            WalkerEntity robot = Add(new WalkerEntity(BodyTuning.Robot, visual(EntityKind.Robot, BodyTuning.Robot)), start);
             robot.Controller = new RobotController(robotTuning);
             _characters.Add(robot);
         }
@@ -65,14 +65,14 @@ public partial class RoomNode : Node3D
         foreach (Vector2 start in room.PlatformStarts)
         {
             SimpleControlledEntity platform = Add(
-                new SimpleControlledEntity(BodyTuning.Platform, looks(EntityKind.Platform, BodyTuning.Platform)), start);
+                new SimpleControlledEntity(BodyTuning.Platform, visual(EntityKind.Platform, BodyTuning.Platform)), start);
             platform.Controller = new PlatformController(platform.Position.Y, platformTuning);
             _characters.Add(platform);
         }
 
         foreach (Vector2 start in room.BlockStarts)
         {
-            _blocks.Add(Add(new Entity(BodyTuning.Block, looks(EntityKind.Block, BodyTuning.Block), axisLockAngularZ: false), start));
+            _blocks.Add(Add(new Entity(BodyTuning.Block, visual(EntityKind.Block, BodyTuning.Block), axisLockAngularZ: false), start));
         }
     }
 
