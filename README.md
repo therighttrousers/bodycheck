@@ -40,7 +40,7 @@ Development doesn't make much use of Godot's editor because the game world is pr
 
 - Move: A/D, arrow keys, or gamepad left stick or D-pad
 - Jump: Space, or gamepad A. Hold to jump higher.
-- Previous or next test room: ','/'.' or gamepad left/right shoulder button
+- Previous or next room: ','/'.' or gamepad left/right shoulder button
 - F3: debug overlay on or off, with measurements for tuning and level design. Pass `--overlay` after `--` to start with it on.
 
 Rendering switches, for judging the look. The window's title shows their state. The room named "Look" has shapes to judge it on.
@@ -54,7 +54,7 @@ Rendering switches, for judging the look. The window's title shows their state. 
 - [ and ]: the dither's lightness spread, down and up
 - ; and ': the dither's chroma spread, down and up
 
-## Test rooms
+## Rooms
 
-The named test rooms are in `src/BodyCheck.Core/Rooms.cs`. To start in a particular room, pass its name after `--`:
+The game's rooms are the levels of `game/levels/main.ldtk`, made in [LDtk](https://ldtk.io/), followed by the named test rooms in `src/BodyCheck.Core/Rooms.cs`. The first level plays by default. To start in a particular room, pass its name after `--`:
 `.\Godot\Godot.exe --path game -- "Robot ride"`
