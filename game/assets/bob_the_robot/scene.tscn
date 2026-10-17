@@ -145,6 +145,7 @@ graph_offset = Vector2(-80, -43.90295)
 [node name="Player" type="Node3D" unique_id=1679574890]
 
 [node name="Model" parent="." unique_id=1250731866 instance=ExtResource("1_icuvs")]
+transform = Transform3D(1.23, 0, 0, 0, 1.23, 0, 0, 0, 1.23, 0, 0, 0)
 
 [node name="AnimationTree" type="AnimationTree" parent="." unique_id=1030308632]
 root_node = NodePath("../Model")

@@ -24,9 +24,9 @@ public sealed record BodyTuning
     /// </summary>
     public float EngineFriction { get; init; }
 
-    public static BodyTuning Player { get; } = new() { HalfSize = new(0.4f, 0.8f), Mass = 1 };
+    public static BodyTuning Player { get; } = new() { HalfSize = new(0.4f, 0.9f), Mass = 1 };
 
-    public static BodyTuning Robot { get; } = new() { HalfSize = new(0.4f, 0.8f), Mass = 1 };
+    public static BodyTuning Robot { get; } = new() { HalfSize = new(0.4f, 0.9f), Mass = 1 };
 
     /// <summary>A hovering platform. Its friction carries the things that rest on it.</summary>
     public static BodyTuning Platform { get; } = new() { HalfSize = new(1.4f, 0.4f), Mass = 5, EngineFriction = 1 };
