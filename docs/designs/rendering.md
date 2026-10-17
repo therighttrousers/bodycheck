@@ -5,6 +5,7 @@ Relevant decision records:
 - [003: Rendering pipeline for the Star Fox SNES look](../decision-records/003-snes-3d-look.md)
 - [004: Rings around lights in the colour pass](../decision-records/004-quantisation-artifacts.md)
 - [008: Telemetry, and a debug overlay drawn at the window's resolution](../decision-records/008-telemetry-and-overlay.md)
+- [009: The first level loader](../decision-records/009-level-loader.md)
 
 The image is Mode X with modern lighting: 320x240 and 256 colours, as on a VGA card in the mid-1990s, drawn with anti-aliasing, shadows, ambient occlusion, reflections and bloom. Star Fox, Quake and Descent are the references for the geometry, and Mode X for the image (`003`).
 
@@ -16,6 +17,10 @@ The image is Mode X with modern lighting: 320x240 and 256 colours, as on a VGA c
 4. **Scaling.** `WorldViewportContainer` scales the image to the window by the largest whole number that fits, with nearest-neighbour sampling, and fills the rest with black bars. The window starts at 1280x960, which is 4x.
 
 The colour pass reads tone-mapped sRGB values, and its output reaches the screen unconverted. This holds while the project's HDR 2D setting is off, which is the default (`003 §3.3`).
+
+## Scale
+
+A tile's face is 16x16 pixels at 320x240, so a screen is 20x15 tiles, the size of an LDtk level. `World.TilePixels` holds the 16 (`009 §5.1`). Today the camera fits the whole room, which gives 16-pixel tiles only because the room is 20x15.
 
 ## Palette
 
@@ -57,6 +62,7 @@ Other ways of choosing colours were tried and set aside: quantising in HSV, a la
 - Flat or smooth shading for models and tiles. Flat shading comes from a mesh's normals, so it is a rule for modelling and not a pipeline setting. The "Look" room shows both (`003 §4.1`).
 - Transparency and refraction were not judged on their own (`003 §4.2`).
 - The resolution of game UI. It stays out of the colour pass, whose dither changes even colours taken from the palette. Whether it is drawn at the window's resolution or at 320x240, on a layer above the colour pass, is undecided. Text in system fonts is unreadable at 320x240; a 3x5 pixel font is readable (`008 §2.1`, `§2.6`).
+- Should the camera keep tiles at 16 pixels? Leaning: most of the time, by setting its distance for that rather than fitting the room, and zooming out for cinematics, or to show something important that is hard to see at the usual distance. Contextual zoom may turn out better after trying both (`009 §5.2`).
 - On a 16:9 monitor the image has black bars at the sides. Whether to fill them, and with what, is undecided.
 - The palette as an asset. It is generated at startup until it is final; then it becomes a file, and the code that generates it becomes the first part of an asset pipeline (`004 §2.6`).
 - A smaller palette (Neil, 2026-10-13, thinking aloud). It would suit pixel art drawn by hand: 256 colours is a lot to draw with. A palette of 128, with 8 grays and 4 values to a ramp, was tried: it saves about 0.4 ms a frame and costs nearly three times the lightness error (`004 §4.3`, `§4.4`). Alternatives: a reduced palette for pixel art only, or high-fidelity drawings scaled down, with interpolation, before the colour pass.

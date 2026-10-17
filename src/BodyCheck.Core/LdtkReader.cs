@@ -15,9 +15,6 @@ public static class LdtkReader
     /// <summary>The LDtk versions whose JSON this reads: 1.5 and its patches.</summary>
     private const string JsonVersionPrefix = "1.5.";
 
-    /// <summary>The size of a tile, in LDtk's pixels.</summary>
-    private const int TileSize = 16;
-
     /// <summary>
     /// Reads every level of the project at <paramref name="projectPath"/>.
     /// </summary>
@@ -56,14 +53,14 @@ public static class LdtkReader
             ?? throw Invalid(path, $"Level '{level.Identifier}' has no layers.");
         foreach (LdtkLayerInstance layer in layers)
         {
-            if (layer.GridSize != TileSize
-                || layer.CWid * TileSize != level.PxWid
-                || layer.CHei * TileSize != level.PxHei
+            if (layer.GridSize != World.TilePixels
+                || layer.CWid * World.TilePixels != level.PxWid
+                || layer.CHei * World.TilePixels != level.PxHei
                 || layer.PxTotalOffsetX != 0
                 || layer.PxTotalOffsetY != 0)
             {
                 throw Invalid(path, $"In level '{level.Identifier}', layer {layer.Identifier} isn't a grid of "
-                    + $"{TileSize}-pixel cells that covers the level exactly.");
+                    + $"{World.TilePixels}-pixel cells that covers the level exactly.");
             }
         }
 
@@ -116,7 +113,7 @@ public static class LdtkReader
             // LDtk's y is down, from the top of the level, and the room's is up, from the bottom.
             float left = entity.Px[0] - entity.Pivot[0] * entity.Width;
             float bottom = entity.Px[1] + (1 - entity.Pivot[1]) * entity.Height;
-            starts.Add((kind, new Vector2((left + entity.Width / 2f) / TileSize, height - bottom / TileSize)));
+            starts.Add((kind, new Vector2((left + entity.Width / 2f) / World.TilePixels, height - bottom / World.TilePixels)));
         }
 
         try

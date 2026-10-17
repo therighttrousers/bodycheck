@@ -38,6 +38,7 @@ The game's rules, as a class library: entities, character controllers, tuning, r
 - **Telemetry.** Game code pushes measurements to `Telemetry`, by `Metric`, an enum. Each metric keeps its last value until it is reported again or the telemetry is reset. Whatever wants the measurements reads them: the debug overlay, and tests. Nothing that reports knows what reads, so telemetry puts no constraint on how game code is divided up (`008 §1`).
 - Core's classes have no `res://` path, so they are created in code and can't be attached to a scene in the editor.
 - A `Room` is a tile grid and where each entity starts. Rooms come from two sources: text, and LDtk levels (`009 §2.1`).
+- `World` holds constants of the game world, such as `World.TilePixels`, the size of a tile's face in pixels (`009 §5.1`).
 - **LDtk levels.** `LdtkReader` reads each level of an LDtk project into a `Room` (`009 §1.1`). Every non-zero value of the `SolidGeometry` layer is a solid tile, and what LDtk writes for auto-layering is ignored. Each entity in the `Characters` layer starts with the middle of its base at the middle of the bottom of its box in LDtk; entity fields are ignored (`009 §1`). The reader is given a function that reads files, so the game reads through Godot's `FileAccess` and tests through `System.IO`.
 - **Test rooms** are a library of named rooms, described as text. `Rooms.cs` has the ones to play in; `TestRooms.cs` has the ones that tests and probes measure in. Design docs and tests refer to them by name.
 
