@@ -7,6 +7,7 @@ Relevant decision records:
 - [008: Telemetry, and a debug overlay drawn at the window's resolution](../decision-records/008-telemetry-and-overlay.md)
 - [009: The first level loader](../decision-records/009-level-loader.md)
 - [010: Camera framing](../decision-records/010-camera-framing.md)
+- [011: Stitching LDtk levels into one world](../decision-records/011-stitched-levels.md)
 
 The image is Mode X with modern lighting: 320x240 and 256 colours, as on a VGA card in the mid-1990s, drawn with anti-aliasing, shadows, ambient occlusion, reflections and bloom. Star Fox, Quake and Descent are the references for the geometry, and Mode X for the image (`003`).
 
@@ -69,7 +70,7 @@ Other ways of choosing colours were tried and set aside: quantising in HSV, a la
 - The resolution of game UI. It stays out of the colour pass, whose dither changes even colours taken from the palette. Whether it is drawn at the window's resolution or at 320x240, on a layer above the colour pass, is undecided. Text in system fonts is unreadable at 320x240; a 3x5 pixel font is readable (`008 §2.1`, `§2.6`).
 - Framing by area: centring underwater and in platforming challenges, the player to one side on ledges in front of challenges, and camera distances that suit the geometry. Phantom Camera's way: a phantom camera per area, made active by trigger areas. Put off until there are areas (`010 §3.1`).
 - Looking when up and down mean something else too, such as doors, climbing or aiming. Perhaps a short hold before the view moves (`010 §1.3`).
-- What the camera keeps inside in the seamless world. Leaning: the LDtk level the player is in (`010 §2.3`).
+- What the camera keeps inside in the seamless world. For now, the world's bounding box (`011 §4.1`). Leaning: the LDtk level the player is in (`010 §2.3`).
 - When should the camera leave the 16-pixel distance? Leaning: zooming out for cinematics, or to show something important that is hard to see at the usual distance. Contextual zoom may turn out better after trying both (`009 §5.2`).
 - On a 16:9 monitor the image has black bars at the sides. Whether to fill them, and with what, is undecided.
 - The palette as an asset. It is generated at startup until it is final; then it becomes a file, and the code that generates it becomes the first part of an asset pipeline (`004 §2.6`).

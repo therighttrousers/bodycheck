@@ -11,7 +11,12 @@ namespace BodyCheck.Core;
 internal sealed record LdtkProject
 {
     public required string JsonVersion { get; init; }
+
+    /// <summary>The levels, when the project has one world. Empty when it has several.</summary>
     public required LdtkLevel[] Levels { get; init; }
+
+    /// <summary>The worlds, when the project has several. Empty when it has one.</summary>
+    public required JsonElement[] Worlds { get; init; }
 }
 
 /// <summary>
@@ -23,6 +28,16 @@ internal sealed record LdtkLevel
     public required string Identifier { get; init; }
     public required int PxWid { get; init; }
     public required int PxHei { get; init; }
+
+    /// <summary>Where the level's left edge is in the world, in pixels.</summary>
+    public required int WorldX { get; init; }
+
+    /// <summary>Where the level's top edge is in the world, in pixels, with y down.</summary>
+    public required int WorldY { get; init; }
+
+    /// <summary>Which of the world's stacked layers of levels the level is in.</summary>
+    public required int WorldDepth { get; init; }
+
     public required string? ExternalRelPath { get; init; }
     public required LdtkLayerInstance[]? LayerInstances { get; init; }
 }

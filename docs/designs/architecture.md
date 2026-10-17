@@ -8,6 +8,7 @@ Relevant decision records:
 - [008: Telemetry, and a debug overlay drawn at the window's resolution](../decision-records/008-telemetry-and-overlay.md)
 - [009: The first level loader](../decision-records/009-level-loader.md)
 - [010: Camera framing](../decision-records/010-camera-framing.md)
+- [011: Stitching LDtk levels into one world](../decision-records/011-stitched-levels.md)
 
 ## Tools
 
@@ -38,9 +39,9 @@ The game's rules, as a class library: entities, character controllers, tuning, r
 - The player and a robot are the same class, `WalkerEntity`, with different tuning, looks and controller.
 - **Telemetry.** Game code pushes measurements to `Telemetry`, by `Metric`, an enum. Each metric keeps its last value until it is reported again or the telemetry is reset. Whatever wants the measurements reads them: the debug overlay, and tests. Nothing that reports knows what reads, so telemetry puts no constraint on how game code is divided up (`008 §1`).
 - Core's classes have no `res://` path, so they are created in code and can't be attached to a scene in the editor.
-- A `Room` is a tile grid and where each entity starts. Rooms come from two sources: text, and LDtk levels (`009 §2.1`).
+- A `Room` is a tile grid and where each entity starts. Rooms come from two sources: text, and the levels of an LDtk project, stitched into one room (`009 §2.1`, `011 §2.1`).
 - `World` holds constants of the game world, such as `World.TilePixels`, the size of a tile's face in pixels (`009 §5.1`).
-- **LDtk levels.** `LdtkReader` reads each level of an LDtk project into a `Room` (`009 §1.1`). Every non-zero value of the `SolidGeometry` layer is a solid tile, and what LDtk writes for auto-layering is ignored. Each entity in the `Characters` layer starts with the middle of its base at the middle of the bottom of its box in LDtk; entity fields are ignored (`009 §1`). The reader is given a function that reads files, so the game reads through Godot's `FileAccess` and tests through `System.IO`.
+- **LDtk levels.** `LdtkReader` reads every level of an LDtk project into one `Room`, the world, named after the project's file (`011 §2.1`). Levels are 20x15 tiles, on a grid of that size, at depth 0, in a project with one world; grid cells with no level are solid, and LDtk's `__neighbours` are ignored (`011 §3`). The world has one player start. Every non-zero value of the `SolidGeometry` layer is a solid tile, and what LDtk writes for auto-layering is ignored. Each entity in the `Characters` layer starts with the middle of its base at the middle of the bottom of its box in LDtk; entity fields are ignored (`009 §1`). The reader is given a function that reads files, so the game reads through Godot's `FileAccess` and tests through `System.IO`.
 - **Test rooms** are a library of named rooms, described as text. `Rooms.cs` has the ones to play in; `TestRooms.cs` has the ones that tests and probes measure in. Design docs and tests refer to them by name.
 
 ## `game/`
@@ -49,7 +50,7 @@ The Godot project, which holds the scenes and the other nodes.
 
 - `RoomNode` is one room, simulated: tiles and entities, with no camera, lights or input of its own, so tests use it as it is. It builds the entities, gives each its looks and its controller, and steps every one each physics tick.
 - A model is a wrapper scene in `assets/` around an imported glTF file, with its origin at its base. See [models.md](models.md).
-- `Main` adds the camera, the lights and the player's input to a `RoomNode`, and switches rooms. `CameraRig` is the camera: a `Camera3D` with a Phantom Camera host, which puts it where the one phantom camera is, and a target that the phantom camera follows. The rig moves the target each frame, above the player, up or down by where the player looks, and clamped to the room (`010 §1.3`, `§2.1`). It reads the look from the room's `PlayerInput`, which the player's controller reads too, so that function must have no side effects. Its rooms are the levels of `levels/main.ldtk`, then the library of text rooms; the first plays unless the command line names another (`009 §4.3`). The game is drawn in a `WorldViewportContainer`, a viewport of its own at low resolution, and `Main`'s other children are drawn at the window's resolution.
+- `Main` adds the camera, the lights and the player's input to a `RoomNode`, and switches rooms. `CameraRig` is the camera: a `Camera3D` with a Phantom Camera host, which puts it where the one phantom camera is, and a target that the phantom camera follows. The rig moves the target each frame, above the player, up or down by where the player looks, and clamped to the room's tile grid, which for the world is its bounding box (`010 §1.3`, `§2.1`, `011 §4.1`). It reads the look from the room's `PlayerInput`, which the player's controller reads too, so that function must have no side effects. Its rooms are the world of `levels/main.ldtk`, then the library of text rooms; the first plays unless the command line names another (`009 §4.3`, `011 §3.2`). The game is drawn in a `WorldViewportContainer`, a viewport of its own at low resolution, and `Main`'s other children are drawn at the window's resolution.
 - `DebugOverlay`, on F3, shows the frame rate and times and every telemetry value, at the window's resolution (`008 §2.3`).
 - `ShapeWireframes`, on F4, draws every box collision shape in the game as a wireframe, at the window's resolution, for comparing bodies with their models. It reads the shapes and the camera from the engine each frame.
 - `look/` holds the low-resolution view, the colour pass and the tools for judging the rendering. See [rendering.md](rendering.md).
@@ -61,11 +62,12 @@ The Godot project, which holds the scenes and the other nodes.
 
 ## Tests
 
-- **`tests/BodyCheck.Core.Tests`:** unit tests for the parts of the library that need no engine, in xUnit: the tile grid (`005 §3.5`) and the LDtk reader. The game's levels are copied into its output, so a test checks that every level reads.
+- **`tests/BodyCheck.Core.Tests`:** unit tests for the parts of the library that need no engine, in xUnit: the tile grid (`005 §3.5`) and the LDtk reader. The game's levels are copied into its output, so a test checks that the world reads.
 - **`tests/BodyCheck.Game.Tests`:** tests that need the engine, run inside Godot through gdUnit4Net by plain `dotnet test`. Godot runs headless at a fixed frame rate, so physics ticks faster than real time. The project is a Godot project of its own, whose settings are copied from the game's on every build, without autoloads and editor plugins, since it doesn't have the game's addons. It can't load the game's scenes by `res://` path. It can load the game's assets: its build links `game/assets` into it and runs Godot's import when an asset changes (`006 §5.1`).
 
 ## Open questions
 
+- Next, in a PR of its own: `World` becomes a container of `Room`s, a step toward caching, respawn rules and culling, none of which it builds yet. Which class `World.TilePixels` moves to, so that `LdtkReader` doesn't depend on `World`, is undecided (`011 §2.2`).
 - Phantom Camera's lookahead and newer framed-follow features are described for its 2D camera only, and are unverified in 3D. Its limits are 2D only; `CameraRig` clamps instead (`010 §2.1`).
 - Exports will need `*.ldtk` and `*.ldtkl` in their filter of non-resource files, since Godot doesn't import them (`009 §4.1`). There are no exports yet.
 - Linking `game/levels` into the in-engine test project, for integration tests on real levels, is put off (`009 §4.2`).
