@@ -20,9 +20,9 @@ public class PlayerControllerTest
 {
     private const float Dt = 1f / 60;
 
-    private static readonly PlayerInput Idle = new(0, false);
-    private static readonly PlayerInput Right = new(1, false);
-    private static readonly PlayerInput Jump = new(0, true);
+    private static readonly PlayerInput Idle = new(0, 0, false);
+    private static readonly PlayerInput Right = new(1, 0, false);
+    private static readonly PlayerInput Jump = new(0, 0, true);
 
     private static readonly BodyTuning NoDrag = BodyTuning.Player with { Drag = 0 };
     private static readonly PlayerTuning FullThrust = new() { JumpThrustFrac = 1 };
@@ -245,7 +245,7 @@ public class PlayerControllerTest
         float shallowest = float.MaxValue;
         for (int tick = 0; tick <= Tuning.JumpThrustTicks; tick++)
         {
-            await Tick(new PlayerInput(1, true));
+            await Tick(new PlayerInput(1, 0, true));
             float angle = Mathf.RadToDeg(MathF.Atan2(Velocity.Y, Velocity.X));
             steepest = MathF.Max(steepest, angle);
             shallowest = MathF.Min(shallowest, angle);

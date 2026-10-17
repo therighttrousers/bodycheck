@@ -11,9 +11,9 @@ namespace BodyCheck.Probes;
 /// </summary>
 public sealed class PlayerProbe : IProbe
 {
-    private static readonly PlayerInput Idle = new(0, false);
-    private static readonly PlayerInput Left = new(-1, false);
-    private static readonly PlayerInput Right = new(1, false);
+    private static readonly PlayerInput Idle = new(0, 0, false);
+    private static readonly PlayerInput Left = new(-1, 0, false);
+    private static readonly PlayerInput Right = new(1, 0, false);
 
     private readonly Entity _body;
     private int _tick;
@@ -48,14 +48,14 @@ public sealed class PlayerProbe : IProbe
         if (t < 180)
         {
             TrackJump(t, 60, "jump pushing into a wall");
-            return new PlayerInput(-1, t == 60);
+            return new PlayerInput(-1, 0, t == 60);
         }
 
         // The same jump beside the wall, without pushing.
         if (t < 300)
         {
             TrackJump(t, 180, "jump beside a wall, no push");
-            return new PlayerInput(0, t == 180);
+            return new PlayerInput(0, 0, t == 180);
         }
 
         // Run right to top speed, then tap jump while running.
@@ -70,7 +70,7 @@ public sealed class PlayerProbe : IProbe
         if (t < 396)
         {
             GD.Print($"  jump at top speed, tick {t - 390}: vx {v.X:F3}, vy {v.Y:F3}, on ground {_body.OnGround}");
-            return new PlayerInput(1, t == 390);
+            return new PlayerInput(1, 0, t == 390);
         }
         if (t < 450)
         {

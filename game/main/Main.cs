@@ -88,7 +88,9 @@ public partial class Main : Node
             room => room.Name.Equals(roomName, StringComparison.OrdinalIgnoreCase));
         LoadRoom(Math.Max(index, 0));
         _room.PlayerInput = () => new PlayerInput(
-            Input.GetAxis("move_left", "move_right"), Input.IsActionPressed("jump"));
+            Input.GetAxis("move_left", "move_right"),
+            Input.GetAxis("move_down", "move_up"),
+            Input.IsActionPressed("jump"));
     }
 
     public override void _PhysicsProcess(double delta)
@@ -203,6 +205,16 @@ public partial class Main : Node
             new InputEventKey { PhysicalKeycode = Key.Right },
             new InputEventJoypadMotion { Axis = JoyAxis.LeftX, AxisValue = 1 },
             new InputEventJoypadButton { ButtonIndex = JoyButton.DpadRight });
+        AddAction("move_up",
+            new InputEventKey { PhysicalKeycode = Key.W },
+            new InputEventKey { PhysicalKeycode = Key.Up },
+            new InputEventJoypadMotion { Axis = JoyAxis.LeftY, AxisValue = -1 },
+            new InputEventJoypadButton { ButtonIndex = JoyButton.DpadUp });
+        AddAction("move_down",
+            new InputEventKey { PhysicalKeycode = Key.S },
+            new InputEventKey { PhysicalKeycode = Key.Down },
+            new InputEventJoypadMotion { Axis = JoyAxis.LeftY, AxisValue = 1 },
+            new InputEventJoypadButton { ButtonIndex = JoyButton.DpadDown });
         AddAction("jump",
             new InputEventKey { PhysicalKeycode = Key.Space },
             new InputEventJoypadButton { ButtonIndex = JoyButton.A });

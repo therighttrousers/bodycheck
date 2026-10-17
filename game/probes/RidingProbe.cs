@@ -91,7 +91,7 @@ public sealed class RidingProbe : IProbe
             _jumpStartY = _rider.Position.Y;
             _apex = _jumpStartY;
             GD.Print($"  before the jump: carrier vx {_carrier.LinearVelocity.X:F3}, rider vx {_rider.LinearVelocity.X:F3}");
-            return new PlayerInput(0, true);
+            return new PlayerInput(0, 0, true);
         }
 
         if (t == SettleTicks + RideTicks + 2)
