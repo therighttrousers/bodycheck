@@ -5,12 +5,12 @@ using Godot;
 public sealed record RobotTuning
 {
     /// <summary>Speed at which the run drive force falls to zero.</summary>
-    public float TopSpeed { get; init; } = 4;
+    public float TopSpeed { get; init; } = 3;
 
     /// <summary>Force applied when on the ground and moving in the direction of input.</summary>
-    public float ForwardDriveForce { get; init; } = 20;
+    public float ForwardDriveForce { get; init; } = 11.25f;
     /// <summary>Force applied when on the ground and moving against the direction of input.</summary>
-    public float ReverseDriveForce { get; init; } = 40;
+    public float ReverseDriveForce { get; init; } = 22.5f;
 
     /// <summary>
     /// Coefficient of friction with the ground, whether tiles or another body. Applied when not driving in

@@ -4,15 +4,16 @@ Relevant decision records:
 - [000: Initial design](../decision-records/000-initial-design.md)
 - [003: Rendering pipeline for the Star Fox SNES look](../decision-records/003-snes-3d-look.md)
 - [004: Rings around lights in the colour pass](../decision-records/004-quantisation-artifacts.md)
+- [008: Telemetry, and a debug overlay drawn at the window's resolution](../decision-records/008-telemetry-and-overlay.md)
 
 The image is Mode X with modern lighting: 320x240 and 256 colours, as on a VGA card in the mid-1990s, drawn with anti-aliasing, shadows, ambient occlusion, reflections and bloom. Star Fox, Quake and Descent are the references for the geometry, and Mode X for the image (`003`).
 
 ## Pipeline
 
-1. **Low resolution.** The project's stretch mode is `viewport` with a base size of 320x240, so the engine draws the whole game, UI included, at that size (`003 §1.1`, `§2.1`).
+1. **Low resolution.** `WorldViewportContainer` draws the game into a viewport of its own, 320x240 (`003 §1.1`, `§2.1`). The window's own viewport is the window's size, so what is drawn there, outside the game's viewport, is at full resolution and doesn't go through the colour pass, such as the debug overlay (`008 §2.3`).
 2. **Lighting.** MSAA 2x, shadows, ambient occlusion, screen-space reflections and glow, which is the engine's name for bloom. All were chosen by eye at the target size (`003 §2.2`, `§4.2`).
 3. **Colour pass.** `ColorPass` covers the screen with a rectangle whose shader, `game/look/mode_x.gdshader`, reads what is behind it and writes each pixel back as a colour of the palette, with dither (`003 §3.3`, `004 §2.10`).
-4. **Scaling.** The engine scales the image to the window by the largest whole number that fits, with nearest-neighbour sampling, and fills the rest with black bars. The window starts at 1280x960, which is 4x.
+4. **Scaling.** `WorldViewportContainer` scales the image to the window by the largest whole number that fits, with nearest-neighbour sampling, and fills the rest with black bars. The window starts at 1280x960, which is 4x.
 
 The colour pass reads tone-mapped sRGB values, and its output reaches the screen unconverted. This holds while the project's HDR 2D setting is off, which is the default (`003 §3.3`).
 
@@ -55,7 +56,7 @@ Other ways of choosing colours were tried and set aside: quantising in HSV, a la
 
 - Flat or smooth shading for models and tiles. Flat shading comes from a mesh's normals, so it is a rule for modelling and not a pipeline setting. The "Look" room shows both (`003 §4.1`).
 - Transparency and refraction were not judged on their own (`003 §4.2`).
-- UI is drawn at 320x240 and goes through the colour pass. Whether text is readable that way is untried.
+- The resolution of game UI. It stays out of the colour pass, whose dither changes even colours taken from the palette. Whether it is drawn at the window's resolution or at 320x240, on a layer above the colour pass, is undecided. Text in system fonts is unreadable at 320x240; a 3x5 pixel font is readable (`008 §2.1`, `§2.6`).
 - On a 16:9 monitor the image has black bars at the sides. Whether to fill them, and with what, is undecided.
 - The palette as an asset. It is generated at startup until it is final; then it becomes a file, and the code that generates it becomes the first part of an asset pipeline (`004 §2.6`).
 - A smaller palette (Neil, 2026-10-13, thinking aloud). It would suit pixel art drawn by hand: 256 colours is a lot to draw with. A palette of 128, with 8 grays and 4 values to a ramp, was tried: it saves about 0.4 ms a frame and costs nearly three times the lightness error (`004 §4.3`, `§4.4`). Alternatives: a reduced palette for pixel art only, or high-fidelity drawings scaled down, with interpolation, before the colour pass.

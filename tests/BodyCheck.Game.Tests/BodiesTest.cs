@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Threading.Tasks;
 
 using BodyCheck.Core;
@@ -113,26 +112,29 @@ public class BodiesTest
         RoomRun run = Start(RoomOf(
             "#..........#",
             "#..........#",
-            "#..P.....R.#",
+            "#....P..B..#",
             "############"));
-        Entity robot = run.Node.Entities[1];
+        Entity block = run.Node.Blocks[0];
         const float wallFace = 11;
 
         float deepestInWall = float.MinValue;
         var overlap = new Overlap();
         await run.Tick(Right, 240, () =>
         {
-            deepestInWall = MathF.Max(deepestInWall, robot.Right() - wallFace);
-            overlap.Add(run.Player.Right() - robot.Left());
+            deepestInWall = MathF.Max(deepestInWall, block.Right() - wallFace);
+            overlap.Add(run.Player.Right() - block.Left());
         });
 
-        AssertThat(deepestInWall).IsLess(Slack);
+        // A body reaching a wall can sink into it for a tick before the engine pushes it out. Measured:
+        // at most 0.007 tiles, over a range of starting positions.
+        AssertThat(deepestInWall).IsLess(0.01f);
         AssertThat(overlap.Deepest).IsLess(MaxImpactOverlap);
         AssertThat(overlap.LongestTicks).IsLessEqual(MaxImpactOverlapTicks);
 
-        // The player has pinned the robot against the wall.
-        AssertThat(robot.Right()).IsEqualApprox(wallFace, 0.01f);
-        AssertThat(run.Player.Right()).IsEqualApprox(robot.Left(), 0.01f);
+        // The player has pinned the block against the wall, and is still pushing.
+        AssertThat(block.Right()).IsLessEqual(wallFace + Slack);
+        AssertThat(block.Right()).IsEqualApprox(wallFace, 0.01f);
+        AssertThat(run.Player.Right()).IsEqualApprox(block.Left(), 0.01f);
     }
 
     [TestCase]
@@ -254,54 +256,14 @@ public class BodiesTest
         Entity block = run.Node.Blocks[0];
         await run.Tick(Idle, 30);
         float blockStart = block.Position.X;
-        float start = run.Player.Position.Y;
         AssertThat(run.Player.Support).IsSame(block);
 
-        float apex = start;
+        Telemetry.Reset();
         await run.Tick(Jump);
-        await run.Tick(Idle, 120, () => apex = MathF.Max(apex, run.Player.Position.Y));
+        await run.Tick(Idle, 120);
 
         // The shortest jump from tiles clears 2 tiles but not 3.
-        AssertThat(apex - start).IsBetween(2f, 3f);
+        AssertThat(Telemetry.Get(Metric.AirRise)!.Value.X).IsBetween(2f, 3f);
         AssertThat(block.Position.X).IsEqualApprox(blockStart, 0.01f);
-    }
-
-    // Design goal: moving over a one-tile gap at top speed consistently skips over it. Different drags
-    // give different top speeds, so that the ticks land at different places relative to the gaps.
-    [TestCase(0.3f)]
-    [TestCase(0.5f)]
-    [TestCase(0.7f)]
-    public async Task A_player_at_top_speed_runs_over_one_tile_gaps(float drag)
-    {
-        int[] gaps = [30, 47, 61, 78, 92, 105];
-        char[] floor = new string('#', 120).ToCharArray();
-        foreach (int gap in gaps)
-        {
-            floor[gap] = '.';
-        }
-        string air = "#" + new string('.', 118) + "#";
-        RoomRun run = Start(
-            RoomOf(
-            [
-                .. Enumerable.Repeat(air, 4),
-                "#.P" + new string('.', 117) + "#",
-                new string(floor),
-                .. Enumerable.Repeat(air, 3),
-                new string('#', 120),
-            ]),
-            BodyTuning.Player with { Drag = drag });
-        const float floorTop = 5;
-
-        float lowest = float.MaxValue;
-        float farthest = 0;
-        await run.Tick(Right, 600, () =>
-        {
-            lowest = MathF.Min(lowest, run.Player.Bottom());
-            farthest = MathF.Max(farthest, run.Player.Right());
-        });
-
-        // The player dips a little into a gap before the far edge lifts it out: 0.07 tiles at most, measured.
-        AssertThat(farthest).IsGreater(118f);
-        AssertThat(lowest).IsGreater(floorTop - 0.1f);
     }
 }

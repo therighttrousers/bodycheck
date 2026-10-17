@@ -25,6 +25,7 @@ public partial class LookSwitches : Node
     private static readonly Viewport.Msaa[] MsaaLevels =
         [Viewport.Msaa.Disabled, Viewport.Msaa.Msaa2X, Viewport.Msaa.Msaa4X, Viewport.Msaa.Msaa8X];
 
+    private readonly WorldViewportContainer _worldView;
     private readonly DirectionalLight3D _light;
     private readonly Godot.Environment _environment;
     private readonly ColorPass _colorPass;
@@ -34,8 +35,9 @@ public partial class LookSwitches : Node
     private int _msaa = 1;
     private bool _dither = true;
 
-    public LookSwitches(DirectionalLight3D light, Godot.Environment environment, ColorPass colorPass)
+    public LookSwitches(WorldViewportContainer view, DirectionalLight3D light, Godot.Environment environment, ColorPass colorPass)
     {
+        _worldView = view;
         _light = light;
         _environment = environment;
         _colorPass = colorPass;
@@ -89,11 +91,8 @@ public partial class LookSwitches : Node
 
     private void Apply()
     {
-        // The project settings start the window in this mode. Disabled draws at the window's own size.
-        Window window = GetWindow();
-        window.ContentScaleMode = _lowRes ? Window.ContentScaleModeEnum.Viewport : Window.ContentScaleModeEnum.Disabled;
-        window.ContentScaleSize = Sizes[_size];
-        window.Msaa3D = MsaaLevels[_msaa];
+        _worldView.Resolution = _lowRes ? Sizes[_size] : null;
+        _worldView.World.Msaa3D = MsaaLevels[_msaa];
 
         _colorPass.Dither = _dither;
 

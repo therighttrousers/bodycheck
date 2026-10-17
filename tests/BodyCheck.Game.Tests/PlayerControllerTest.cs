@@ -71,29 +71,13 @@ public class PlayerControllerTest
         }
     }
 
-    /// <summary>
-    /// Jumps, runs until the body lands, and returns the greatest height its feet reached above the floor.
-    /// </summary>
+    /// <summary>Jumps, holding jump for a number of ticks, and returns how high the feet rose, as reported on landing.</summary>
     private async Task<float> ApexOfJump(int ticksHeld)
     {
-        float apex = 0;
-        bool leftTheGround = false;
-        for (int tick = 0; tick < 600; tick++)
-        {
-            await Tick(tick < ticksHeld ? Jump : Idle);
-            apex = MathF.Max(apex, Player.Position.Y - Player.HalfSize.Y - 1);
-
-            // The floor contact is still reported for a tick or two after take-off.
-            if (!Player.OnGround)
-            {
-                leftTheGround = true;
-            }
-            else if (leftTheGround)
-            {
-                return apex;
-            }
-        }
-        throw new InvalidOperationException("The body never landed.");
+        Telemetry.Reset();
+        await Tick(Jump, ticksHeld);
+        await Tick(Idle, 120);
+        return Telemetry.Get(Metric.AirRise)!.Value.X;
     }
 
     [TestCase]
@@ -123,7 +107,7 @@ public class PlayerControllerTest
     {
         await Start();
 
-        await Tick(Right, 15);
+        await Tick(Right, 20);
 
         AssertThat(Velocity.X).IsGreater(0.8f * Tuning.TopSpeed);
     }
@@ -251,10 +235,35 @@ public class PlayerControllerTest
     }
 
     [TestCase]
+    public async Task A_jump_at_full_running_speed_rises_at_about_45_degrees_while_thrust_lasts()
+    {
+        await Start();
+        await Tick(Right, 120);
+
+        // The take-off tick, then the thrust ticks.
+        float steepest = float.MinValue;
+        float shallowest = float.MaxValue;
+        for (int tick = 0; tick <= Tuning.JumpThrustTicks; tick++)
+        {
+            await Tick(new PlayerInput(1, true));
+            float angle = Mathf.RadToDeg(MathF.Atan2(Velocity.Y, Velocity.X));
+            steepest = MathF.Max(steepest, angle);
+            shallowest = MathF.Min(shallowest, angle);
+        }
+
+        // Thrust slows the rise less than gravity alone would, so the path stays close to straight.
+        // Measured: 45.7 degrees at take-off, falling to 42.6 when thrust ends.
+        AssertThat(steepest).IsBetween(42f, 48f);
+        AssertThat(shallowest).IsBetween(42f, 48f);
+    }
+
+    [TestCase]
     public async Task Holding_jump_after_landing_does_not_jump_again()
     {
         await Start();
-        await ApexOfJump(ticksHeld: 600);
+        Telemetry.Reset();
+        await Tick(Jump, 120);
+        AssertThat(Telemetry.Get(Metric.AirTicks)).IsNotNull(); // It has landed.
 
         await Tick(Jump, 10);
 

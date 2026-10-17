@@ -12,7 +12,7 @@ public sealed record BodyTuning
     public required float Mass { get; init; }
 
     /// <summary>Linear drag coefficient: drag force is -Drag × velocity.</summary>
-    public float Drag { get; init; } = 0.5f;
+    public float Drag { get; init; } = 0.375f;
 
     /// <summary>
     /// The engine's coefficient of friction for this body, which lets it rest on things and be carried.

@@ -12,25 +12,31 @@ namespace BodyCheck;
 /// <summary>
 /// Plays one room from the <see cref="Rooms"/> library, drawn as gray boxes: it adds the camera, the
 /// lights and the player's input to a <see cref="RoomNode"/>, and the rendering pipeline's switches
-/// (see <see cref="LookSwitches"/>).
+/// (see <see cref="LookSwitches"/>). The game is drawn in a <see cref="WorldViewportContainer"/>, and the overlay over
+/// it at the window's full resolution.
 /// <para>
 /// User arguments, after "--" on the command line: a room name; "--tiles=single" for one collider per
-/// tile instead of merged boxes; "--probe=" and a probe's name to run that probe and quit.
+/// tile instead of merged boxes; "--probe=" and a probe's name to run that probe and quit; "--overlay" to
+/// start with the <see cref="DebugOverlay"/> showing. F3 switches the overlay on and off.
 /// </para>
 /// </summary>
-public partial class Main : Node3D
+public partial class Main : Node
 {
     private int _roomIndex;
     private bool _mergeTiles = true;
     private RoomNode _room = null!;
     private Camera3D _camera = null!;
     private LookSwitches _look = null!;
+    private readonly WorldViewportContainer _worldView = new();
+    private readonly DebugOverlay _overlay = new();
     private IProbe? _probe;
 
     public override void _Ready()
     {
         AddInputActions();
+        AddChild(_worldView);
         AddLook();
+        AddChild(_overlay);
 
         string? roomName = null;
         string? probeName = null;
@@ -39,6 +45,10 @@ public partial class Main : Node3D
             if (arg == "--tiles=single")
             {
                 _mergeTiles = false;
+            }
+            else if (arg == "--overlay")
+            {
+                _overlay.Visible = true;
             }
             else if (arg.StartsWith("--probe="))
             {
@@ -86,6 +96,18 @@ public partial class Main : Node3D
         }
     }
 
+    public override void _Process(double delta) => ReportMouseTile();
+
+    /// <summary>Reports the tile under the mouse, where the camera's ray through it meets the plane of play.</summary>
+    private void ReportMouseTile()
+    {
+        Vector2 mouse = _worldView.World.GetMousePosition();
+        Vector3 origin = _camera.ProjectRayOrigin(mouse);
+        Vector3 direction = _camera.ProjectRayNormal(mouse);
+        Vector3 point = origin + direction * (-origin.Z / direction.Z);
+        Telemetry.Report(Metric.MouseTile, new Vector2I(Mathf.FloorToInt(point.X), Mathf.FloorToInt(point.Y)));
+    }
+
     private void LoadRoom(int index)
     {
         Func<PlayerInput>? input = _room?.PlayerInput;
@@ -97,12 +119,13 @@ public partial class Main : Node3D
     private RoomNode LoadRoom(Room room)
     {
         _room?.QueueFree();
+        Telemetry.Reset();
         _room = new RoomNode(room, _mergeTiles);
         if (room == Rooms.Look)
         {
             _room.AddChild(new LookProps(_room.Tiles));
         }
-        AddChild(_room);
+        _worldView.World.AddChild(_room);
         AddCamera();
         ShowTitle();
         return _room;
@@ -117,7 +140,7 @@ public partial class Main : Node3D
         // Far enough back to fit the whole room, whichever of its width and height is the tighter fit.
         TileGrid tiles = _room.Tiles;
         const float fov = 50;
-        Vector2 view = GetViewport().GetVisibleRect().Size;
+        Vector2 view = _worldView.World.Size;
         float halfHeight = Mathf.Max(tiles.Height / 2f, tiles.Width / 2f * view.Y / view.X);
         float distance = halfHeight / Mathf.Tan(Mathf.DegToRad(fov / 2));
         _camera = new Camera3D
@@ -126,7 +149,7 @@ public partial class Main : Node3D
             Position = new Vector3(tiles.Width / 2f, tiles.Height / 2f, distance + 0.5f),
             Current = true,
         };
-        AddChild(_camera);
+        _worldView.World.AddChild(_camera);
     }
 
     /// <summary>Adds the lights, the colour pass, and the switches that turn parts of the pipeline on and off.</summary>
@@ -138,7 +161,7 @@ public partial class Main : Node3D
             LightEnergy = 0.6f,
             ShadowEnabled = true,
         };
-        AddChild(light);
+        _worldView.World.AddChild(light);
 
         var environment = new Godot.Environment
         {
@@ -151,12 +174,12 @@ public partial class Main : Node3D
             SsrEnabled = true,
             GlowEnabled = true,
         };
-        AddChild(new WorldEnvironment { Environment = environment });
+        _worldView.World.AddChild(new WorldEnvironment { Environment = environment });
 
         var colorPass = new ColorPass();
-        AddChild(colorPass);
+        _worldView.World.AddChild(colorPass);
 
-        _look = new LookSwitches(light, environment, colorPass);
+        _look = new LookSwitches(_worldView, light, environment, colorPass);
         AddChild(_look);
 
         // A change of size changes the shape of the view, so the camera has to fit the room again.

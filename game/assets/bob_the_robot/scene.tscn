@@ -50,18 +50,31 @@ stretch_time_scale = true
 start_offset = 0.0
 loop_mode = 1
 
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_ydmpv"]
+animation = &"bob_rig|walk"
+use_custom_timeline = true
+timeline_length = 1.5
+stretch_time_scale = true
+start_offset = 0.0
+loop_mode = 1
+
 [sub_resource type="AnimationNodeBlendSpace1D" id="AnimationNodeBlendSpace1D_a0sfp"]
 min_space = 0.0
-max_space = 15.0
+max_space = 6.0
+snap = 0.05
+sync_mode = 2
 blend_point_0/node = SubResource("AnimationNodeAnimation_512o4")
-blend_point_0/pos = 4.0
+blend_point_0/pos = 3.0
 blend_point_0/name = &"bob_rig|walk"
 blend_point_1/node = SubResource("AnimationNodeAnimation_hvsop")
-blend_point_1/pos = 15.0
+blend_point_1/pos = 6.0
 blend_point_1/name = &"bob_rig|run"
 blend_point_2/node = SubResource("AnimationNodeAnimation_a0sfp")
 blend_point_2/pos = 0.0
 blend_point_2/name = &"bob_rig|idle"
+blend_point_3/node = SubResource("AnimationNodeAnimation_ydmpv")
+blend_point_3/pos = 0.05
+blend_point_3/name = &"bob_rig|walk 2"
 
 [sub_resource type="AnimationNodeTimeScale" id="AnimationNodeTimeScale_2h3ep"]
 
@@ -93,22 +106,22 @@ advance_expression = "IsJumping"
 [sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_ik5y6"]
 xfade_time = 0.1
 advance_mode = 2
-advance_expression = "IsMoving && abs(GroundSpeed) > 0.01 && IsGrounded"
+advance_expression = "IsMoving && IsGrounded"
 
 [sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_a1pq2"]
 xfade_time = 0.1
 advance_mode = 2
-advance_expression = "!(IsMoving && abs(GroundSpeed) > 0.01)"
+advance_expression = "!IsMoving"
 
 [sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_00emu"]
 xfade_time = 0.1
 advance_mode = 2
-advance_expression = "!IsGrounded"
+advance_expression = "!IsGrounded && !IsJumping"
 
 [sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_kxahi"]
 xfade_time = 0.1
 advance_mode = 2
-advance_expression = "IsGrounded && IsMoving && abs(GroundSpeed) > 0.01"
+advance_expression = "IsGrounded && IsMoving"
 
 [sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_gvx1h"]
 xfade_time = 0.1
@@ -134,6 +147,7 @@ graph_offset = Vector2(-80, -43.90295)
 [node name="Model" parent="." unique_id=1250731866 instance=ExtResource("1_icuvs")]
 
 [node name="AnimationTree" type="AnimationTree" parent="." unique_id=1030308632]
+root_node = NodePath("../Model")
 tree_root = SubResource("AnimationNodeStateMachine_e8kf8")
 anim_player = NodePath("../Model/AnimationPlayer")
 parameters/Move/TimeScale/scale = 1.0

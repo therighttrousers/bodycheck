@@ -59,7 +59,7 @@ public class RidingTest
 
         await Tick(Idle, 30 * 60);
 
-        AssertThat(Robot.Position.X - start).IsGreater(90f);
+        AssertThat(Robot.Position.X - start).IsGreater(67f);
         AssertThat(Player.Support).IsSame(Robot);
         AssertThat(Player.Position.X - Robot.Position.X).IsEqualApprox(offset, 0.01f);
     }
@@ -68,18 +68,13 @@ public class RidingTest
     public async Task A_jump_from_a_robot_is_as_high_as_a_jump_from_tiles()
     {
         await Start();
-        float start = Player.Position.Y;
-        float apex = start;
+        Telemetry.Reset();
 
         await Tick(Jump);
-        for (int i = 0; i < 120; i++)
-        {
-            await Tick(Idle);
-            apex = MathF.Max(apex, Player.Position.Y);
-        }
+        await Tick(Idle, 120);
 
         // The shortest jump from tiles clears 2 tiles but not 3.
-        AssertThat(apex - start).IsBetween(2f, 3f);
+        AssertThat(Telemetry.Get(Metric.AirRise)!.Value.X).IsBetween(2f, 3f);
     }
 
     [TestCase]

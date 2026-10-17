@@ -4,6 +4,7 @@ Relevant decision records:
 - [000: Initial design](../decision-records/000-initial-design.md)
 - [001: Godot's 3D physics engine](../decision-records/001-godot-3d-physics.md)
 - [005: Jolt's joint motors for traction](../decision-records/005-jolt-motors-for-traction.md)
+- [007: Running over one-tile gaps is not a design goal](../decision-records/007-one-tile-gaps.md)
 
 ## Player movement
 
@@ -24,15 +25,15 @@ The player is 0.8 tiles wide and 1.6 tall.
 Rationale: decision record `000 §1.8`.
 
 - A jump is an upward impulse when jump is pressed, then an upward thrust, a little weaker than gravity, for as long as jump is held, up to a limit. A tap gives the lowest jump, and holding gives the highest. Thrust ends early if the player stops rising, e.g. at a ceiling.
-- The lowest jump clears a ledge 2 tiles up but not 3. The highest clears 4 tiles but not 5.
-- Jump speed is about top speed, so a jump at full running speed starts at about 45 degrees.
+- The lowest jump clears a ledge 2 tiles up but not 3, and the highest clears 4 tiles but not 5. Each aims at the middle, with room to spare at the ledge and no temptation to try the next: the feet rise about 2.5 tiles and about 4.5 (measured 2.50 and 4.57).
+- Jump speed is about top speed, so a jump at full running speed starts at about 45 degrees. Held, it stays within 3 degrees of 45 for as long as thrust lasts.
 - Jump acts on a press only: holding it through a landing doesn't jump again. There is no jump in the air.
 - The impulse and the thrust push down on what the player stands on, with equal force.
 
 ### Edges and gaps
 
 - For a few ticks after moving off an edge without jumping, the player can still jump, and drives as on the ground: coyote time. A coyote jump is as high as one from the ground.
-- At top speed, the player runs over a 1-tile gap without falling in. It dips into the gap by less than a tenth of a tile.
+- 1-tile gaps don't belong on running paths: at any speed, a running player may cross one or catch on its far edge and fall in, depending on where the ticks land (`007 §1.1`, `007 §1.2`).
 - Jumping up through a 1-tile gap doesn't need perfect alignment.
 
 ## Physics engine
@@ -74,7 +75,8 @@ TODO
 
 ## Open questions
 
-- Not yet checked: jumping up through a 1-tile gap without perfect alignment, and the 45-degree take-off at full running speed.
+- Not yet checked: jumping up through a 1-tile gap without perfect alignment.
+- For a level that wants a comb-shaped floor (1-tile gaps back to back) as a puzzle: how long must the comb be for the chance of crossing it to fall below 1%? What would make crossing reliable, such as bevelled bottom corners on the player's shape? (`007 §1.3`)
 - Landing on a ledge after a short fall is unreliable. With an overhang of 0.16 tiles or less and a fall of under about 3 tiles, the player sinks past the corner in most cases and is eased out sideways. Longer falls always land. Not yet tried: more physics ticks per second; a cap on falling speed; our own downward sweep before the step (`001 §1.3`).
 - The player can land on a seam partway down a vertical wall. Boxes can't avoid this. Candidate fix: one concave mesh made of the exposed tile faces (`001 §1.2`).
 - When two moving bodies meet, they overlap for a tick or two: by up to 0.15 tiles when the player runs into a robot at top speed. The engine tests collisions between moving bodies once per tick, and its continuous detection doesn't start until a body moves about 18 tiles per second. Is that acceptable, given the principle that player and NPCs can't occupy the same space? Bodies at rest against each other don't overlap.
