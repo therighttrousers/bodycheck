@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 using BodyCheck.Core;
@@ -77,7 +78,7 @@ public class BodiesTest
             BodyTuning.Player with { Mass = movingMass },
             controllersEnabled: false);
         Entity moving = run.Player;
-        Entity resting = run.Node.Entities[1];
+        Entity resting = run.Node.EntitiesOf(EntityKind.Robot).Single();
         await run.Tick(Idle, 10);
         moving.ApplyCentralImpulse(new Vector3(8 * moving.Mass, 0, 0));
 
@@ -117,7 +118,7 @@ public class BodiesTest
             "#..........#",
             "#....P..B..#",
             "############"));
-        Entity block = run.Node.Blocks[0];
+        Entity block = run.Node.EntitiesOf(EntityKind.Block).Single();
         const float wallFace = 11;
 
         float deepestInWall = float.MinValue;
@@ -148,7 +149,7 @@ public class BodiesTest
             "#" + new string('.', 98) + "#",
             "#..P....R" + new string('.', 90) + "#",
             new string('#', 100)));
-        Entity robot = run.Node.Entities[1];
+        Entity robot = run.Node.EntitiesOf(EntityKind.Robot).Single();
         float robotTopSpeed = new RobotTuning().TopSpeed;
 
         var overlap = new Overlap();
@@ -168,7 +169,7 @@ public class BodiesTest
             "#..............................#",
             "#....R.....P...................#",
             "################################"));
-        Entity robot = run.Node.Entities[1];
+        Entity robot = run.Node.EntitiesOf(EntityKind.Robot).Single();
         float playerStart = run.Player.Position.X;
 
         var overlap = new Overlap();
@@ -203,8 +204,8 @@ public class BodiesTest
             "#" + new string('.', 38) + "#",
             "#" + new string('.', 38) + "#",
             new string('#', 40)));
-        Entity platform = run.Node.Entities[1];
-        Entity block = run.Node.Blocks[0];
+        Entity platform = run.Node.EntitiesOf(EntityKind.Platform).Single();
+        Entity block = run.Node.EntitiesOf(EntityKind.Block).Single();
 
         float platformStart = platform.Position.X;
         float farthestFromStart = 0;
@@ -230,7 +231,7 @@ public class BodiesTest
             "#..............................#",
             "#....P.B.......................#",
             "################################"));
-        Entity block = run.Node.Blocks[0];
+        Entity block = run.Node.EntitiesOf(EntityKind.Block).Single();
         float blockStart = block.Position.X;
 
         var overlap = new Overlap();
@@ -256,7 +257,7 @@ public class BodiesTest
             "#....P.........................#",
             "#....B.........................#",
             "################################"));
-        Entity block = run.Node.Blocks[0];
+        Entity block = run.Node.EntitiesOf(EntityKind.Block).Single();
         await run.Tick(Idle, 30);
         float blockStart = block.Position.X;
         AssertThat(run.Player.Support).IsSame(block);

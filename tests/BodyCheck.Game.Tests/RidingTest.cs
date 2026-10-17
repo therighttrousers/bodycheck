@@ -1,4 +1,4 @@
-using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 using BodyCheck.Core;
@@ -29,7 +29,7 @@ public class RidingTest
     private PlayerInput _input;
 
     private Entity Player => _room.Player;
-    private Entity Robot => _room.Characters[0];
+    private Entity Robot => _room.EntitiesOf(EntityKind.Robot).Single();
 
     private static SceneTree Tree => (SceneTree)Engine.GetMainLoop();
 

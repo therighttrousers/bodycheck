@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 using BodyCheck.Core.Controllers;
 using BodyCheck.Core.Entities;
 using BodyCheck.Core.Rooms;
@@ -17,8 +19,6 @@ namespace BodyCheck.Core.Simulation;
 public partial class RoomNode : Node3D
 {
     private readonly List<Entity> _entities = [];
-    private readonly List<Entity> _characters = [];
-    private readonly List<Entity> _blocks = [];
 
     /// <param name="visual">
     /// Makes what to draw for an entity of a kind, with the given body, with its origin at the middle of its base.
@@ -48,48 +48,70 @@ public partial class RoomNode : Node3D
         });
 
         PlayerTuning = playerTuning ?? new PlayerTuning();
-        BodyTuning body = playerBody ?? BodyTuning.Player;
-        Player = Add(new WalkerEntity(body, visual(EntityKind.Player, body)), room.PlayerStart);
-        Player.AddChild(new OmniLight3D { OmniRange = 15, ShadowEnabled = true, Position = new Vector3(0, 0, 2) });
-        Player.Controller = new PlayerController(PlayerTuning, () => PlayerInput?.Invoke() ?? default);
+        PlayerInput Input() => PlayerInput?.Invoke() ?? default;
 
         var robotTuning = new RobotTuning();
-        foreach (Vector2 start in room.RobotStarts)
-        {
-            WalkerEntity robot = Add(new WalkerEntity(BodyTuning.Robot, visual(EntityKind.Robot, BodyTuning.Robot)), start);
-            robot.Controller = new RobotController(robotTuning);
-            _characters.Add(robot);
-        }
-
         var platformTuning = new PlatformTuning();
-        foreach (Vector2 start in room.PlatformStarts)
+
+        foreach (EntityConfig config in room.EntityConfigs)
         {
-            SimpleControlledEntity platform = Add(
-                new SimpleControlledEntity(BodyTuning.Platform, visual(EntityKind.Platform, BodyTuning.Platform)), start);
-            platform.Controller = new PlatformController(platform.Position.Y, platformTuning);
-            _characters.Add(platform);
+            Entity entity = config.Kind switch
+            {
+                EntityKind.Player => Player = CreatePlayer((EntityConfig.Player)config, visual(config.Kind, BodyTuning.Player), playerBody ?? BodyTuning.Player, PlayerTuning, Input),
+                EntityKind.Robot => CreateRobot((EntityConfig.Robot)config, visual(config.Kind, BodyTuning.Robot), robotTuning),
+                EntityKind.Platform => CreatePlatform((EntityConfig.Platform)config, visual(config.Kind, BodyTuning.Platform), platformTuning),
+                EntityKind.Block => CreateBlock((EntityConfig.Block)config, visual(config.Kind, BodyTuning.Block)),
+            };
+
+            entity.Position = new Vector3(config.Start.X, config.Start.Y + entity.HalfSize.Y, 0);
+            AddChild(entity);
+            _entities.Add(entity);
         }
 
-        foreach (Vector2 start in room.BlockStarts)
-        {
-            _blocks.Add(Add(new Entity(BodyTuning.Block, visual(EntityKind.Block, BodyTuning.Block), axisLockAngularZ: false), start));
-        }
+        // Redundant but harmless: the `Room` constructor also ensures this.
+        Debug.Assert(Player is not null);
+    }
+
+    private static WalkerEntity CreatePlayer(EntityConfig.Player config, Node3D visual, BodyTuning body, PlayerTuning tuning, Func<PlayerInput> input)
+    {
+        var player = new WalkerEntity(body, visual);
+        player.AddChild(new OmniLight3D { OmniRange = 15, ShadowEnabled = true, Position = new Vector3(0, 0, 2) });
+        player.Controller = new PlayerController(tuning, input);
+        return player;
+    }
+
+    private static WalkerEntity CreateRobot(EntityConfig.Robot config, Node3D visual, RobotTuning tuning)
+    {
+        return new WalkerEntity(BodyTuning.Robot, visual) { Controller = new RobotController(tuning) };
+    }
+
+    private static SimpleControlledEntity CreatePlatform(EntityConfig.Platform config, Node3D visual, PlatformTuning tuning)
+    {
+        var platform = new SimpleControlledEntity(BodyTuning.Platform, visual);
+        platform.Controller = new PlatformController(config.Start.Y + platform.HalfSize.Y, tuning);
+        return platform;
+    }
+
+    private static Entity CreateBlock(EntityConfig.Block config, Node3D visual)
+    {
+        return new Entity(BodyTuning.Block, visual, axisLockAngularZ: false);
     }
 
     public Room Room { get; }
     public TileGrid Tiles { get; }
 
-    public WalkerEntity Player { get; }
+    public WalkerEntity Player { get; } = null!;
     public PlayerTuning PlayerTuning { get; }
 
-    /// <summary>The robots and the platforms, robots first.</summary>
-    public IReadOnlyList<Entity> Characters => _characters;
-
-    /// <summary>The blocks. A block has no controller: it is only pushed, carried and stood on.</summary>
-    public IReadOnlyList<Entity> Blocks => _blocks;
-
-    /// <summary>Every entity in the room, in the order they are stepped: the player, the robots, the platforms, the blocks.</summary>
+    /// <summary>
+    /// Every entity in the room, in the order they are stepped, which is the order of the room's
+    /// <see cref="Room.EntityConfigs"/>: <c>Entities[i]</c> was built from <c>Room.EntityConfigs[i]</c>.
+    /// </summary>
     public IReadOnlyList<Entity> Entities => _entities;
+
+    /// <summary>The entities of one kind, in the order they are stepped.</summary>
+    public IEnumerable<Entity> EntitiesOf(EntityKind kind) =>
+        _entities.Where((entity, i) => Room.EntityConfigs[i].Kind == kind);
 
     /// <summary>Supplies the player's input, once per tick. The player stands idle if this is null.</summary>
     public Func<PlayerInput>? PlayerInput { get; set; }
@@ -103,15 +125,5 @@ public partial class RoomNode : Node3D
         {
             entity.Step((float)delta, ControllersEnabled);
         }
-    }
-
-    /// <summary>Adds an entity to the room, with the middle of its base at <paramref name="start"/>.</summary>
-    private T Add<T>(T entity, Vector2 start)
-        where T : Entity
-    {
-        entity.Position = new Vector3(start.X, start.Y + entity.HalfSize.Y, 0);
-        AddChild(entity);
-        _entities.Add(entity);
-        return entity;
     }
 }

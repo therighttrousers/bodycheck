@@ -67,8 +67,12 @@ public class LdtkReaderTests
         Assert.False(tiles.IsSolid(25, 5));
         Assert.True(tiles.IsSolid(25, 20)); // No level
         Assert.True(tiles.IsSolid(5, 5)); // No level
-        Assert.Equal(new Vector2(21.5f, 14), room.PlayerStart);
-        Assert.Equal(new Vector2(0.5f, 15), Assert.Single(room.RobotStarts));
+
+        var playerStart = room.EntityConfigs.First(c => c.Kind == EntityKind.Player).Start;
+        Assert.Equal(new Vector2(21.5f, 14), playerStart);
+
+        var robotStarts = room.EntityConfigs.Where(c => c.Kind == EntityKind.Robot).Select(c => c.Start);
+        Assert.Equal(new Vector2(0.5f, 15), Assert.Single(robotStarts));
     }
 
     [Theory]
