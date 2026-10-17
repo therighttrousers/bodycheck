@@ -63,7 +63,7 @@ public partial class RoomNode : Node3D
 
         foreach (Vector2 start in room.BlockStarts)
         {
-            _blocks.Add(Add(new Entity(BodyTuning.Block, BlockVisual()), start));
+            _blocks.Add(Add(new Entity(BodyTuning.Block, BlockVisual(), axisLockAngularZ: false), start));
         }
     }
 

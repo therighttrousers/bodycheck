@@ -40,14 +40,14 @@ public partial class Entity : RigidBody3D
     private const float SideThreshold = 0.7f;
 
     /// <param name="visual">What to draw for the entity, centered on the middle of its box.</param>
-    public Entity(BodyTuning tuning, Node3D? visual = null)
-        : this(tuning, visual, tuning.EngineFriction, continuousCd: false)
+    public Entity(BodyTuning tuning, Node3D? visual = null, bool axisLockAngularZ = true)
+        : this(tuning, visual, tuning.EngineFriction, continuousCd: false, axisLockAngularZ)
     {
     }
 
     /// <param name="engineFriction">The engine's coefficient of friction for this kind of body.</param>
     /// <param name="continuousCd">Whether the engine uses continuous collision detection for it.</param>
-    protected Entity(BodyTuning tuning, Node3D? visual, float engineFriction, bool continuousCd)
+    protected Entity(BodyTuning tuning, Node3D? visual, float engineFriction, bool continuousCd, bool axisLockAngularZ)
     {
         Tuning = tuning;
         Mass = tuning.Mass;
@@ -55,7 +55,7 @@ public partial class Entity : RigidBody3D
         AxisLockLinearZ = true;
         AxisLockAngularX = true;
         AxisLockAngularY = true;
-        AxisLockAngularZ = true;
+        AxisLockAngularZ = axisLockAngularZ;
 
         // Never rough: where two bodies touch, the smaller friction has to win, so that a walker's zero does.
         PhysicsMaterialOverride = new PhysicsMaterial { Friction = engineFriction, Bounce = 0, Rough = false };
