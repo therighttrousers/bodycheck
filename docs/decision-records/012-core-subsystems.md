@@ -34,5 +34,7 @@ What was there: the controllers and the entity classes refer to each other only 
 
 ## 3. `RoomNode`
 
-- [~] 3.1 Does `RoomNode` move into Core, as a `Simulation` subsystem that depends on `Rooms`, `Entities` and `Controllers`? It would bring `TileColliders` with it. The game would give it the entities' looks, so that Core doesn't know the game's asset paths. Neil wants to see it first: it is tried as a separate commit, after the rest.
+- [x] 3.1 Does `RoomNode` move into Core, as a `Simulation` subsystem that depends on `Rooms`, `Entities` and `Controllers`? It would bring `TileColliders` with it. The game would give it the entities' looks, so that Core doesn't know the game's asset paths. Decision (Neil): yes, after seeing it tried as a separate commit.
   - As tried (Claude): `RoomNode` and `TileColliders` move to `Simulation`. `RoomNode` takes a `Func<EntityKind, BodyTuning, Node3D>` for the looks, which is required, so the game and its tests draw the same; the game's is `EntityLooks.For`, in `game/main/`, with the model paths and the platform's box that were in `RoomNode`. `game/room/` is gone.
+
+Closed on 2026-10-17. Outcomes are in [architecture.md](../designs/architecture.md), and the rules for keeping the structure are in the root `AGENTS.md`.

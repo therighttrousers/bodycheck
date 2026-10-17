@@ -8,6 +8,7 @@ Relevant decision records:
 - [009: The first level loader](../decision-records/009-level-loader.md)
 - [010: Camera framing](../decision-records/010-camera-framing.md)
 - [011: Stitching LDtk levels into one world](../decision-records/011-stitched-levels.md)
+- [012: Subsystems in `BodyCheck.Core`](../decision-records/012-core-subsystems.md)
 
 The image is Mode X with modern lighting: 320x240 and 256 colours, as on a VGA card in the mid-1990s, drawn with anti-aliasing, shadows, ambient occlusion, reflections and bloom. Star Fox, Quake and Descent are the references for the geometry, and Mode X for the image (`003`).
 
