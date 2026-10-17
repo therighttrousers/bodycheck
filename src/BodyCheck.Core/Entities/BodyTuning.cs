@@ -1,6 +1,6 @@
 using Godot;
 
-namespace BodyCheck.Core;
+namespace BodyCheck.Core.Entities;
 
 /// <summary>
 /// What an entity's body is like, whatever controls it: its size, its mass, and how it meets the air and

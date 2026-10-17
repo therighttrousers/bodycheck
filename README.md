@@ -56,5 +56,5 @@ Rendering switches, for judging the look. The window's title shows their state. 
 
 ## Rooms
 
-The game's rooms are the levels of `game/levels/main.ldtk`, made in [LDtk](https://ldtk.io/), followed by the named test rooms in `src/BodyCheck.Core/Rooms.cs`. The first level plays by default. To start in a particular room, pass its name after `--`:
+The game's rooms are the levels of `game/levels/main.ldtk`, made in [LDtk](https://ldtk.io/), followed by the named test rooms in `src/BodyCheck.Core/Rooms/RoomLibrary.cs`. The first level plays by default. To start in a particular room, pass its name after `--`:
 `.\Godot\Godot.exe --path game -- "Robot ride"`

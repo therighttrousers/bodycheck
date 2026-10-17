@@ -2,6 +2,10 @@ using System;
 using System.Threading.Tasks;
 
 using BodyCheck.Core;
+using BodyCheck.Core.Controllers;
+using BodyCheck.Core.Entities;
+using BodyCheck.Core.Rooms;
+using BodyCheck.Core.Simulation;
 
 using GdUnit4;
 
@@ -33,7 +37,7 @@ public class RidingTest
     private async Task Start()
     {
         _input = Idle;
-        _room = new RoomNode(TestRooms.RobotRiding) { PlayerInput = () => _input };
+        _room = new RoomNode(TestRoomLibrary.RobotRiding, EntityVisuals.For) { PlayerInput = () => _input };
         Tree.Root.AddChild(_room);
         await Tick(Idle, 120);
     }

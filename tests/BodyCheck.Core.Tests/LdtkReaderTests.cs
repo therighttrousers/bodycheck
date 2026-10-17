@@ -1,3 +1,6 @@
+using BodyCheck.Core.Levels;
+using BodyCheck.Core.Rooms;
+
 using Godot;
 
 namespace BodyCheck.Core.Tests;

@@ -1,6 +1,8 @@
-namespace BodyCheck.Core;
+using BodyCheck.Core.Entities;
 
 using Godot;
+
+namespace BodyCheck.Core.Controllers;
 
 public sealed record RobotTuning
 {

@@ -1,6 +1,6 @@
 using Godot;
 
-namespace BodyCheck.Core;
+namespace BodyCheck.Core.Entities;
 
 /// <summary>
 /// A body that moves itself by its grip on what it stands on: the player, a robot. That grip is traction,

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 
-using BodyCheck.Core;
+using BodyCheck.Core.Controllers;
+using BodyCheck.Core.Entities;
 
 using Godot;
 

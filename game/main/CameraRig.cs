@@ -1,4 +1,6 @@
 using BodyCheck.Core;
+using BodyCheck.Core.Controllers;
+using BodyCheck.Core.Simulation;
 
 using Godot;
 
@@ -20,7 +22,7 @@ public partial class CameraRig : Node3D
     /// 320x240 screen, at every size of the viewport, so a tile's face is TilePixels high at 320x240 and the other
     /// sizes show the same framing.
     /// </summary>
-    private const float HalfHeight = 240f / World.TilePixels / 2;
+    private const float HalfHeight = 240f / Constants.TilePixels / 2;
 
     /// <summary>How far above the player's centre the view's centre is, in tiles, when the room allows it.</summary>
     private const float Lift = 3;

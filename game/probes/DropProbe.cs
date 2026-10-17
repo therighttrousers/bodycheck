@@ -1,4 +1,4 @@
-using BodyCheck.Core;
+using BodyCheck.Core.Entities;
 
 using Godot;
 

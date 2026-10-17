@@ -1,6 +1,8 @@
+using BodyCheck.Core.Entities;
+
 using Godot;
 
-namespace BodyCheck.Core;
+namespace BodyCheck.Core.Controllers;
 
 public sealed record PlatformTuning
 {
