@@ -15,6 +15,10 @@ run/main_scene="res://main/Main.tscn"
 config/features=PackedStringArray("4.7", "C#", "Forward Plus")
 run/max_fps=60
 
+[autoload]
+
+PhantomCameraManager="*res://addons/phantom_camera/scripts/managers/phantom_camera_manager.gd"
+
 [display]
 
 window/size/viewport_width=1280
@@ -28,6 +32,10 @@ project/solution_directory=".."
 [editor_overrides]
 
 text_editor/behavior/indent/type=1
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/phantom_camera/plugin.cfg")
 
 [physics]
 

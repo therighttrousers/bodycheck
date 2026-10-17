@@ -32,10 +32,12 @@
     gdUnit4Net starts Godot in this directory, so it has to be a Godot project. Its project.godot is a copy of
     the game's with the assembly name changed, so that tests run under the game's settings (physics above all).
     The game's scenes are not reachable by res:// paths from here; its assets are, through a link (see below).
+    Its addons are not, so the copy leaves out the sections that load them: autoloads and editor plugins.
   -->
   <Target Name="CopyGameProjectSettings" BeforeTargets="BeforeBuild">
     <PropertyGroup>
       <GameProjectSettings>$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)..\..\game\project.godot'))</GameProjectSettings>
+      <GameProjectSettings>$([System.Text.RegularExpressions.Regex]::Replace($(GameProjectSettings), '(?ms)^\[(autoload|editor_plugins)\]\r?\n.*?(?=^\[|\z)', ''))</GameProjectSettings>
       <GameProjectSettings>$(GameProjectSettings.Replace('project/assembly_name="BodyCheck"', 'project/assembly_name="BodyCheck.Game.Tests"'))</GameProjectSettings>
       <GameProjectSettings>$(GameProjectSettings.Replace('project/solution_directory=".."', 'project/solution_directory="../.."'))</GameProjectSettings>
       <GameProjectSettings>$(GameProjectSettings.Replace(';', '%3B'))</GameProjectSettings>

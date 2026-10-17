@@ -8,6 +8,8 @@ using BodyCheck.Probes;
 
 using Godot;
 
+using PhantomCamera;
+
 namespace BodyCheck;
 
 /// <summary>
@@ -35,6 +37,7 @@ public partial class Main : Node
     private bool _mergeTiles = true;
     private RoomNode _room = null!;
     private Camera3D _camera = null!;
+    private PhantomCamera3D _phantomCamera = null!;
     private LookSwitches _look = null!;
     private readonly WorldViewportContainer _worldView = new();
     private readonly DebugOverlay _overlay = new();
@@ -46,6 +49,7 @@ public partial class Main : Node
         AddInputActions();
         AddChild(_worldView);
         AddLook();
+        AddCamera();
         _shapes = new ShapeWireframes(_worldView);
         AddChild(_shapes);
         AddChild(_overlay);
@@ -132,7 +136,7 @@ public partial class Main : Node
         LoadRoom(_rooms[_roomIndex]).PlayerInput = input;
     }
 
-    /// <summary>Replaces the current room, if there is one, and points the camera at the new one.</summary>
+    /// <summary>Replaces the current room, if there is one, and has the camera follow the new one's player.</summary>
     private RoomNode LoadRoom(Room room)
     {
         _room?.QueueFree();
@@ -143,7 +147,7 @@ public partial class Main : Node
             _room.AddChild(new LookProps(_room.Tiles));
         }
         _worldView.World.AddChild(_room);
-        AddCamera();
+        _phantomCamera.FollowTarget = _room.Player;
         ShowTitle();
         return _room;
     }
@@ -157,24 +161,33 @@ public partial class Main : Node
 
     private void ShowTitle() => GetWindow().Title = $"Body Check: {_room.Room.Name} ({_look.Summary})";
 
+    /// <summary>
+    /// Adds the camera, which Phantom Camera moves: its host on the <see cref="Camera3D"/> puts the camera where
+    /// the one phantom camera is, and the phantom camera follows the player.
+    /// </summary>
     private void AddCamera()
     {
-        _camera?.QueueFree();
-
-        // Far enough back to fit the whole room, whichever of its width and height is the tighter fit.
-        TileGrid tiles = _room.Tiles;
+        // The view is as many tiles high as a 320x240 screen, at every size of the viewport, so a tile's face is
+        // TilePixels high at 320x240 and the other sizes show the same framing. The field of view is vertical.
         const float fov = 50;
-        Vector2 view = _worldView.World.Size;
-        float halfHeight = Mathf.Max(tiles.Height / 2f, tiles.Width / 2f * view.Y / view.X);
+        const float halfHeight = 240f / World.TilePixels / 2;
         float distance = halfHeight / Mathf.Tan(Mathf.DegToRad(fov / 2));
-        _camera = new Camera3D
-        {
-            Fov = fov,
-            Position = new Vector3(tiles.Width / 2f, tiles.Height / 2f, distance + 0.5f),
-            Current = true,
-        };
+
+        _camera = new Camera3D { Fov = fov, Current = true };
         _worldView.World.AddChild(_camera);
+        _camera.AddChild(NewPhantomCameraNode<Node>("phantom_camera_host/phantom_camera_host.gd"));
+
+        Node3D phantom = NewPhantomCameraNode<Node3D>("phantom_camera/phantom_camera_3d.gd");
+        phantom.Set("follow_mode", (int)FollowMode3D.Simple);
+        _worldView.World.AddChild(phantom);
+        _phantomCamera = phantom.AsPhantomCamera3D();
+        // From the player's centre to where a tile's front face, half a tile in front of it, is the right size.
+        _phantomCamera.FollowOffset = new Vector3(0, 0, distance + 0.5f);
     }
+
+    /// <summary>Phantom Camera's nodes are GDScript classes, which the C# wrappers wrap but can't create.</summary>
+    private static T NewPhantomCameraNode<T>(string script) where T : Node =>
+        (T)GD.Load<GDScript>($"res://addons/phantom_camera/scripts/{script}").New();
 
     /// <summary>Adds the lights, the colour pass, and the switches that turn parts of the pipeline on and off.</summary>
     private void AddLook()
@@ -206,12 +219,7 @@ public partial class Main : Node
         _look = new LookSwitches(_worldView, light, environment, colorPass);
         AddChild(_look);
 
-        // A change of size changes the shape of the view, so the camera has to fit the room again.
-        _look.Changed += () =>
-        {
-            AddCamera();
-            ShowTitle();
-        };
+        _look.Changed += ShowTitle;
     }
 
     private static void AddInputActions()
