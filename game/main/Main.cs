@@ -6,6 +6,7 @@ using BodyCheck.Core;
 using BodyCheck.Core.Controllers;
 using BodyCheck.Core.Levels;
 using BodyCheck.Core.Rooms;
+using BodyCheck.Core.Simulation;
 using BodyCheck.Look;
 using BodyCheck.Probes;
 
@@ -143,7 +144,7 @@ public partial class Main : Node
     {
         _room?.QueueFree();
         Telemetry.Reset();
-        _room = new RoomNode(room, _mergeTiles);
+        _room = new RoomNode(room, EntityLooks.For, _mergeTiles);
         if (room == RoomLibrary.Look)
         {
             _room.AddChild(new LookProps(_room.Tiles));

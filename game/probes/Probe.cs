@@ -2,6 +2,7 @@ using System;
 
 using BodyCheck.Core.Controllers;
 using BodyCheck.Core.Rooms;
+using BodyCheck.Core.Simulation;
 
 using Godot;
 

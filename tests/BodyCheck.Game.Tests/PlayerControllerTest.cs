@@ -5,6 +5,7 @@ using BodyCheck.Core;
 using BodyCheck.Core.Controllers;
 using BodyCheck.Core.Entities;
 using BodyCheck.Core.Rooms;
+using BodyCheck.Core.Simulation;
 
 using GdUnit4;
 
@@ -50,7 +51,7 @@ public class PlayerControllerTest
         _room?.Free();
         _input = Idle;
         Room frame = TestRoomLibrary.EmptyFrame(60, height, playerX, playerY);
-        _room = new RoomNode(frame, playerTuning: tuning, playerBody: body)
+        _room = new RoomNode(frame, EntityLooks.For, playerTuning: tuning, playerBody: body)
         {
             PlayerInput = () => _input,
         };

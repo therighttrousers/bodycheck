@@ -1,29 +1,36 @@
-using System;
-using System.Collections.Generic;
-
 using BodyCheck.Core.Controllers;
 using BodyCheck.Core.Entities;
 using BodyCheck.Core.Rooms;
 
 using Godot;
 
-namespace BodyCheck;
+namespace BodyCheck.Core.Simulation;
 
 /// <summary>
 /// One room, simulated: its tiles, and the entities in it with their controllers. Each physics tick it
 /// steps every entity, before the engine's own step. It has no camera, lights or input of its own, so
 /// that tests can use it as it is.
+/// <para>
+/// It is given what to draw for each kind of entity, so that it doesn't know the game's assets.
+/// </para>
 /// </summary>
 public partial class RoomNode : Node3D
 {
-    private static readonly Color PlatformColor = new(0.9f, 0.1f, 0.7f);
-
     private readonly List<Entity> _entities = [];
     private readonly List<Entity> _characters = [];
     private readonly List<Entity> _blocks = [];
 
+    /// <param name="looks">
+    /// Makes what to draw for an entity of a kind, with the given body, with its origin at the middle of its base.
+    /// It is called once for each entity.
+    /// </param>
     /// <param name="mergeTiles">Whether to merge tiles into larger colliders, or give each tile its own.</param>
-    public RoomNode(Room room, bool mergeTiles = true, PlayerTuning? playerTuning = null, BodyTuning? playerBody = null)
+    public RoomNode(
+        Room room,
+        Func<EntityKind, BodyTuning, Node3D> looks,
+        bool mergeTiles = true,
+        PlayerTuning? playerTuning = null,
+        BodyTuning? playerBody = null)
     {
         Room = room;
         Tiles = room.CreateTiles();
@@ -42,14 +49,14 @@ public partial class RoomNode : Node3D
 
         PlayerTuning = playerTuning ?? new PlayerTuning();
         BodyTuning body = playerBody ?? BodyTuning.Player;
-        Player = Add(new WalkerEntity(body, PlayerVisual()), room.PlayerStart);
+        Player = Add(new WalkerEntity(body, looks(EntityKind.Player, body)), room.PlayerStart);
         Player.AddChild(new OmniLight3D { OmniRange = 15, ShadowEnabled = true, Position = new Vector3(0, 0, 2) });
         Player.Controller = new PlayerController(PlayerTuning, () => PlayerInput?.Invoke() ?? default);
 
         var robotTuning = new RobotTuning();
         foreach (Vector2 start in room.RobotStarts)
         {
-            WalkerEntity robot = Add(new WalkerEntity(BodyTuning.Robot, RobotVisual()), start);
+            WalkerEntity robot = Add(new WalkerEntity(BodyTuning.Robot, looks(EntityKind.Robot, BodyTuning.Robot)), start);
             robot.Controller = new RobotController(robotTuning);
             _characters.Add(robot);
         }
@@ -58,14 +65,14 @@ public partial class RoomNode : Node3D
         foreach (Vector2 start in room.PlatformStarts)
         {
             SimpleControlledEntity platform = Add(
-                new SimpleControlledEntity(BodyTuning.Platform, BoxVisual(BodyTuning.Platform, PlatformColor)), start);
+                new SimpleControlledEntity(BodyTuning.Platform, looks(EntityKind.Platform, BodyTuning.Platform)), start);
             platform.Controller = new PlatformController(platform.Position.Y, platformTuning);
             _characters.Add(platform);
         }
 
         foreach (Vector2 start in room.BlockStarts)
         {
-            _blocks.Add(Add(new Entity(BodyTuning.Block, BlockVisual(), axisLockAngularZ: false), start));
+            _blocks.Add(Add(new Entity(BodyTuning.Block, looks(EntityKind.Block, BodyTuning.Block), axisLockAngularZ: false), start));
         }
     }
 
@@ -106,41 +113,5 @@ public partial class RoomNode : Node3D
         AddChild(entity);
         _entities.Add(entity);
         return entity;
-    }
-
-    /// <summary>A box the size of a body, to draw an entity as.</summary>
-    private static MeshInstance3D BoxVisual(BodyTuning body, Color color, bool glows = false)
-    {
-        Vector2 halfSize = body.HalfSize;
-        var mesh = new MeshInstance3D
-        {
-            Mesh = new BoxMesh
-            {
-                Size = new Vector3(2 * halfSize.X, 2 * halfSize.Y, Entity.Depth),
-                Material = new StandardMaterial3D
-                {
-                    AlbedoColor = color,
-                    EmissionEnabled = glows,
-                    Emission = color,
-                    EmissionEnergyMultiplier = 1.5f,
-                },
-            },
-            Position = new Vector3(0, halfSize.Y, 0),
-        };
-        if (glows)
-        {
-            mesh.AddChild(new OmniLight3D { LightColor = color, LightEnergy = 2, OmniRange = 6 });
-        }
-        return mesh;
-    }
-
-    private static Node3D PlayerVisual() => InstantiateModel("res://assets/bob_the_robot/scene.tscn");
-    private static Node3D RobotVisual() => InstantiateModel("res://assets/bob_the_robot/robot.tscn");
-    private static Node3D BlockVisual() => InstantiateModel("res://assets/portal_cube/scene.tscn");
-
-    private static Node3D InstantiateModel(string path)
-    {
-        var scene = GD.Load<PackedScene>(path);
-        return scene.Instantiate<Node3D>();
     }
 }

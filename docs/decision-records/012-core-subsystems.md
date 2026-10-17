@@ -30,8 +30,9 @@ What was there: the controllers and the entity classes refer to each other only 
 
 - [x] 2.1 Each subdirectory is a namespace, e.g. `BodyCheck.Core.Entities` (Neil). Every reference between subsystems is then a `using` directive, which is easy to audit; and `.editorconfig` already asks for namespaces that match folders.
 - [x] 2.2 A namespace can't usefully share a name with a type in it, so `Rooms`, the library of text rooms, becomes `RoomLibrary`, and `TestRooms` becomes `TestRoomLibrary` to match.
-- [x] 2.3 `World.TilePixels` moves to `Constants` in the root, with the level's size in tiles from `LdtkReader`, which `CameraRig` also needs (Neil). `World` is left empty and is deleted; the name is free for the container of rooms (`011 §2.2`). Other constants move into `Constants` when we come across them, not in a search now.
+- [x] 2.3 `World.TilePixels`, which `CameraRig` also uses, moves to `Constants` in the root, with the level's size in tiles from `LdtkReader` (Neil). `World` is left empty and is deleted; the name is free for the container of rooms (`011 §2.2`). Other constants move into `Constants` when we come across them, not in a search now.
 
 ## 3. `RoomNode`
 
 - [~] 3.1 Does `RoomNode` move into Core, as a `Simulation` subsystem that depends on `Rooms`, `Entities` and `Controllers`? It would bring `TileColliders` with it. The game would give it the entities' looks, so that Core doesn't know the game's asset paths. Neil wants to see it first: it is tried as a separate commit, after the rest.
+  - As tried (Claude): `RoomNode` and `TileColliders` move to `Simulation`. `RoomNode` takes a `Func<EntityKind, BodyTuning, Node3D>` for the looks, which is required, so the game and its tests draw the same; the game's is `EntityLooks.For`, in `game/main/`, with the model paths and the platform's box that were in `RoomNode`. `game/room/` is gone.

@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using BodyCheck.Core.Controllers;
 using BodyCheck.Core.Entities;
 using BodyCheck.Core.Rooms;
+using BodyCheck.Core.Simulation;
 
 using Godot;
 
@@ -23,7 +24,7 @@ public sealed class RoomRun
 
     public RoomRun(Room room, BodyTuning? playerBody = null, bool controllersEnabled = true)
     {
-        Node = new RoomNode(room, playerBody: playerBody)
+        Node = new RoomNode(room, EntityLooks.For, playerBody: playerBody)
         {
             PlayerInput = () => _input,
             ControllersEnabled = controllersEnabled,

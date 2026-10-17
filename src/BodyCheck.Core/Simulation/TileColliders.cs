@@ -1,10 +1,8 @@
-using System.Collections.Generic;
-
 using BodyCheck.Core.Rooms;
 
 using Godot;
 
-namespace BodyCheck;
+namespace BodyCheck.Core.Simulation;
 
 /// <summary>
 /// Builds the solid tiles of a grid as one static body. The engine removes ghost collisions at the seams
