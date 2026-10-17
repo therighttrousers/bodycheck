@@ -11,16 +11,16 @@ using Godot;
 namespace BodyCheck;
 
 /// <summary>
-/// Plays one room, drawn as gray boxes: a level of the LDtk project at <see cref="LevelsPath"/>, or a room from the
-/// <see cref="Rooms"/> library. It adds the camera, the lights and the player's input to a <see cref="RoomNode"/>,
+/// Plays one room, drawn as gray boxes: the levels of the LDtk project at <see cref="LevelsPath"/>, stitched into one
+/// world, or a room from the <see cref="Rooms"/> library. It adds the camera, the lights and the player's input to a <see cref="RoomNode"/>,
 /// and the rendering pipeline's switches (see <see cref="LookSwitches"/>). The game is drawn in a <see cref="WorldViewportContainer"/>, and the overlay over
 /// it at the window's full resolution.
 /// <para>
-/// The rooms are the levels first, then the library. The first room plays unless one is named. Comma and period
+/// The rooms are the world first, then the library. The first room plays unless one is named. Comma and period
 /// switch to the previous and next room.
 /// </para>
 /// <para>
-/// User arguments, after "--" on the command line: a room or level name; "--tiles=single" for one collider per
+/// User arguments, after "--" on the command line: a room name; "--tiles=single" for one collider per
 /// tile instead of merged boxes; "--probe=" and a probe's name to run that probe and quit; "--overlay" to
 /// start with the <see cref="DebugOverlay"/> showing; "--shapes" to start with the <see cref="ShapeWireframes"/> showing.
 /// F3 switches the overlay on and off, and F4 the shapes.
@@ -50,7 +50,7 @@ public partial class Main : Node
         _shapes = new ShapeWireframes(_worldView);
         AddChild(_shapes);
         AddChild(_overlay);
-        _rooms = [.. LdtkReader.ReadRooms(LevelsPath, ReadFile), .. Rooms.All];
+        _rooms = [LdtkReader.ReadWorld(LevelsPath, ReadFile), .. Rooms.All];
 
         string? roomName = null;
         string? probeName = null;
