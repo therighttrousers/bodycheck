@@ -34,7 +34,7 @@ public partial class Main : Node
     private int _roomIndex;
     private bool _mergeTiles = true;
     private RoomNode _room = null!;
-    private Camera3D _camera = null!;
+    private readonly CameraRig _cameraRig = new();
     private LookSwitches _look = null!;
     private readonly WorldViewportContainer _worldView = new();
     private readonly DebugOverlay _overlay = new();
@@ -46,6 +46,7 @@ public partial class Main : Node
         AddInputActions();
         AddChild(_worldView);
         AddLook();
+        _worldView.World.AddChild(_cameraRig);
         _shapes = new ShapeWireframes(_worldView);
         AddChild(_shapes);
         AddChild(_overlay);
@@ -119,8 +120,8 @@ public partial class Main : Node
     private void ReportMouseTile()
     {
         Vector2 mouse = _worldView.World.GetMousePosition();
-        Vector3 origin = _camera.ProjectRayOrigin(mouse);
-        Vector3 direction = _camera.ProjectRayNormal(mouse);
+        Vector3 origin = _cameraRig.Camera.ProjectRayOrigin(mouse);
+        Vector3 direction = _cameraRig.Camera.ProjectRayNormal(mouse);
         Vector3 point = origin + direction * (-origin.Z / direction.Z);
         Telemetry.Report(Metric.MouseTile, new Vector2I(Mathf.FloorToInt(point.X), Mathf.FloorToInt(point.Y)));
     }
@@ -132,7 +133,7 @@ public partial class Main : Node
         LoadRoom(_rooms[_roomIndex]).PlayerInput = input;
     }
 
-    /// <summary>Replaces the current room, if there is one, and points the camera at the new one.</summary>
+    /// <summary>Replaces the current room, if there is one, and has the camera follow the new one's player.</summary>
     private RoomNode LoadRoom(Room room)
     {
         _room?.QueueFree();
@@ -143,7 +144,7 @@ public partial class Main : Node
             _room.AddChild(new LookProps(_room.Tiles));
         }
         _worldView.World.AddChild(_room);
-        AddCamera();
+        _cameraRig.Follow(_room);
         ShowTitle();
         return _room;
     }
@@ -156,25 +157,6 @@ public partial class Main : Node
     }
 
     private void ShowTitle() => GetWindow().Title = $"Body Check: {_room.Room.Name} ({_look.Summary})";
-
-    private void AddCamera()
-    {
-        _camera?.QueueFree();
-
-        // Far enough back to fit the whole room, whichever of its width and height is the tighter fit.
-        TileGrid tiles = _room.Tiles;
-        const float fov = 50;
-        Vector2 view = _worldView.World.Size;
-        float halfHeight = Mathf.Max(tiles.Height / 2f, tiles.Width / 2f * view.Y / view.X);
-        float distance = halfHeight / Mathf.Tan(Mathf.DegToRad(fov / 2));
-        _camera = new Camera3D
-        {
-            Fov = fov,
-            Position = new Vector3(tiles.Width / 2f, tiles.Height / 2f, distance + 0.5f),
-            Current = true,
-        };
-        _worldView.World.AddChild(_camera);
-    }
 
     /// <summary>Adds the lights, the colour pass, and the switches that turn parts of the pipeline on and off.</summary>
     private void AddLook()
@@ -206,12 +188,7 @@ public partial class Main : Node
         _look = new LookSwitches(_worldView, light, environment, colorPass);
         AddChild(_look);
 
-        // A change of size changes the shape of the view, so the camera has to fit the room again.
-        _look.Changed += () =>
-        {
-            AddCamera();
-            ShowTitle();
-        };
+        _look.Changed += ShowTitle;
     }
 
     private static void AddInputActions()
