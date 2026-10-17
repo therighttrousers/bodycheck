@@ -22,7 +22,7 @@ The colour pass reads tone-mapped sRGB values, and its output reaches the screen
 
 A tile's face is 16x16 pixels at 320x240, so a screen is 20x15 tiles, the size of an LDtk level. `World.TilePixels` holds the 16 (`009 §5.1`).
 
-The camera follows the player, at the distance where a tile's front face is 16 pixels, whatever the size of the room (`009 §5.2`). A 20x15 room fills the screen only when the player is at its middle; elsewhere the view shows past its edge. At the other sizes the switches give, the view is the same 15 tiles high, so they show the same framing, not 16-pixel tiles.
+The camera follows the player, centred, at the distance where a tile's front face is 16 pixels, whatever the size of the room (`009 §5.2`). A 20x15 room fills the screen only when the player is at its middle; elsewhere the view shows past its edge. At the other sizes the switches give, the view is the same 15 tiles high, so they show the same framing, not 16-pixel tiles.
 
 ## Palette
 
@@ -64,6 +64,7 @@ Other ways of choosing colours were tried and set aside: quantising in HSV, a la
 - Flat or smooth shading for models and tiles. Flat shading comes from a mesh's normals, so it is a rule for modelling and not a pipeline setting. The "Look" room shows both (`003 §4.1`).
 - Transparency and refraction were not judged on their own (`003 §4.2`).
 - The resolution of game UI. It stays out of the colour pass, whose dither changes even colours taken from the palette. Whether it is drawn at the window's resolution or at 320x240, on a layer above the colour pass, is undecided. Text in system fonts is unreadable at 320x240; a 3x5 pixel font is readable (`008 §2.1`, `§2.6`).
+- How should the camera follow the player? Centring is a placeholder: the camera won't keep the player at the middle of the screen, and what it does instead is undecided. Neil is to play Ori for how a camera works well in a large, seamless 2D world. Things to decide: a dead zone, lookahead, following jumps or waiting for a landing, and what happens at the edge of an area. Phantom Camera's framed follow, which has a dead zone, has a 3D mode, untried here.
 - When should the camera leave the 16-pixel distance? Leaning: zooming out for cinematics, or to show something important that is hard to see at the usual distance. Contextual zoom may turn out better after trying both (`009 §5.2`).
 - Should the camera stop at the edge of the map, or of a room? Phantom Camera's limits are described for its 2D camera only.
 - On a 16:9 monitor the image has black bars at the sides. Whether to fill them, and with what, is undecided.
