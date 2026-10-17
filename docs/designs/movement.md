@@ -25,7 +25,7 @@ The player is 0.8 tiles wide and 1.6 tall.
 Rationale: decision record `000 §1.8`.
 
 - A jump is an upward impulse when jump is pressed, then an upward thrust, a little weaker than gravity, for as long as jump is held, up to a limit. A tap gives the lowest jump, and holding gives the highest. Thrust ends early if the player stops rising, e.g. at a ceiling.
-- The lowest jump clears a ledge 2 tiles up but not 3. The highest clears 4 tiles but not 5.
+- The lowest jump clears a ledge 2 tiles up but not 3, and the highest clears 4 tiles but not 5. Each aims at the middle, with room to spare at the ledge and no temptation to try the next: the feet rise about 2.5 tiles and about 4.5 (measured 2.50 and 4.57).
 - Jump speed is about top speed, so a jump at full running speed starts at about 45 degrees. Held, it stays within 3 degrees of 45 for as long as thrust lasts.
 - Jump acts on a press only: holding it through a landing doesn't jump again. There is no jump in the air.
 - The impulse and the thrust push down on what the player stands on, with equal force.
