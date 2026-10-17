@@ -25,6 +25,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The game's levels, so that a test can check that the reader reads them all. -->
+    <None Include="..\..\game\levels\**\*" LinkBase="levels" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\BodyCheck.Core\BodyCheck.Core.csproj" />
   </ItemGroup>
 

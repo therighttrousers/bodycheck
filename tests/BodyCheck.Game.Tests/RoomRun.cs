@@ -36,7 +36,7 @@ public sealed class RoomRun
     private static SceneTree Tree => (SceneTree)Engine.GetMainLoop();
 
     /// <summary>A room from text rows, top row first, with the name "Test".</summary>
-    public static Room RoomOf(params string[] rows) => new("Test", string.Join('\n', rows));
+    public static Room RoomOf(params string[] rows) => Room.FromText("Test", string.Join('\n', rows));
 
     public void Free() => Node.Free();
 
