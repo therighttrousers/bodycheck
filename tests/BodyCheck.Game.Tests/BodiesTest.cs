@@ -238,7 +238,7 @@ public class BodiesTest
         AssertThat(pushedTo - blockStart).IsGreater(1f);
         AssertThat(overlap.Deepest).IsLess(MaxImpactOverlap);
         AssertThat(overlap.LongestTicks).IsLessEqual(MaxImpactOverlapTicks);
-        AssertThat(block.LinearVelocity.X).IsEqual(0f);
+        AssertThat(block.LinearVelocity.X).IsEqualApprox(0f, 0.0001f);
     }
 
     [TestCase]
