@@ -3,7 +3,8 @@ using Godot;
 namespace BodyCheck.Core;
 
 /// <param name="Move">Horizontal input, from -1 (left) to 1 (right).</param>
-public readonly record struct PlayerInput(float Move, bool JumpHeld);
+/// <param name="Look">Vertical input, from -1 (down) to 1 (up).</param>
+public readonly record struct PlayerInput(float Move, float Look, bool JumpHeld);
 
 public sealed record PlayerTuning
 {

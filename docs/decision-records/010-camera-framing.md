@@ -19,6 +19,12 @@ Goal: a camera that feels good in a seamless world. Anti-goal: building per-area
 
 - [x] 1.1 Lag. Decision (Neil): Phantom Camera's follow damping, 0.2 in X and Y. At the player's top speed the camera trails by about 2 tiles.
 - [x] 1.2 Vertical position. Decision (Neil): the view's centre is 3 tiles above the player's centre, which puts the player 70% of the way down the screen. 4 tiles, about 77%, near Ori's 3/4 line, was tried first; Neil settled on 3 after playing.
+- [x] 1.3 Looking up and down (issue #36). Decisions (Neil, 2026-10-17):
+  - Keys: up and down, on the same inputs as moving: arrows, WASD, the left stick and the d-pad. The player needn't stand still, since there's no reason for the restriction.
+  - Looking moves the view's centre 5 tiles up or down, at once. The camera's damping (§1.1) smooths it, and the speed that gives is right.
+  - The look offset is added before the clamp (§2.1), so looking never shows outside the room. Near a room's floor or ceiling, looking that way does little or nothing.
+  - The left stick looks partway when it's pushed partway; the keys and the d-pad look the whole 5 tiles.
+  - Not decided: up and down will likely mean other things later, such as doors, climbing or aiming. A common answer is a short hold before the view moves.
 
 ## 2. Showing only the playable area
 

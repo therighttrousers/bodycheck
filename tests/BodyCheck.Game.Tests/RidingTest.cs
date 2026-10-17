@@ -18,8 +18,8 @@ namespace BodyCheck.Game.Tests;
 [RequireGodotRuntime]
 public class RidingTest
 {
-    private static readonly PlayerInput Idle = new(0, false);
-    private static readonly PlayerInput Jump = new(0, true);
+    private static readonly PlayerInput Idle = new(0, 0, false);
+    private static readonly PlayerInput Jump = new(0, 0, true);
 
     private RoomNode _room = null!;
     private PlayerInput _input;

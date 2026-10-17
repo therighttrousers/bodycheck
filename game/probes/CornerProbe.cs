@@ -47,7 +47,7 @@ public sealed class CornerProbe : IProbe
 
         if (t < JumpTick)
         {
-            return new PlayerInput(t < 30 ? 0 : 1, false);
+            return new PlayerInput(t < 30 ? 0 : 1, 0, false);
         }
 
         if (t == JumpTick)
@@ -70,6 +70,6 @@ public sealed class CornerProbe : IProbe
             GD.Print($"  apex {_apex - _body.HalfSize.Y - 1:F3} tiles above the floor; moved left by at most {_restX - _minX:F4}; "
                 + $"ends at x {p.X:F4}, bottom {p.Y - _body.HalfSize.Y:F3}");
         }
-        return new PlayerInput(_holdRight ? 1 : 0, t < JumpTick + 40);
+        return new PlayerInput(_holdRight ? 1 : 0, 0, t < JumpTick + 40);
     }
 }

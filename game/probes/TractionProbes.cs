@@ -37,12 +37,12 @@ public sealed class LandingProbe : IProbe
         float vx = _body.LinearVelocity.X;
         if (t < RunTicks)
         {
-            Input = new PlayerInput(t < 0 ? 0 : 1, false);
+            Input = new PlayerInput(t < 0 ? 0 : 1, 0, false);
             return;
         }
 
         float held = _second ? 0 : 1;
-        Input = new PlayerInput(held, t == RunTicks);
+        Input = new PlayerInput(held, 0, t == RunTicks);
         if (!_body.OnGround)
         {
             _wasInAir = true;
@@ -147,7 +147,7 @@ public sealed class RunOffProbe : IProbe
             return;
         }
 
-        Input = new PlayerInput(1, false);
+        Input = new PlayerInput(1, 0, false);
         string ground = !_player.OnGround ? "air" : _player.Support is null ? "tiles" : "robot";
         GD.Print($"  tick {t,2}: player vx {_player.LinearVelocity.X,7:F3} vy {_player.LinearVelocity.Y,7:F3} on {ground,-5} "
             + $"robot vx {_robot.LinearVelocity.X,7:F3}");

@@ -24,6 +24,8 @@ public partial class CameraRig : Node3D
 
     /// <summary>How far above the player's centre the view's centre is, in tiles, when the room allows it.</summary>
     private const float Lift = 3;
+    /// <summary>How far the camera target moves, in tiles, when the player looks up or down.</summary>
+    private const float Look = 5;
 
     private readonly Node3D _target = new() { PhysicsInterpolationMode = PhysicsInterpolationModeEnum.Off };
     private PhantomCamera3D _phantomCamera = null!;
@@ -67,13 +69,16 @@ public partial class CameraRig : Node3D
             return;
         }
 
+        PlayerInput? input = _room.PlayerInput?.Invoke();
+        float lookOffset = Look * (input?.Look ?? 0);
+
         // The player's interpolated position, since the target moves every frame and the player every physics tick.
         Vector3 player = _room.Player.GetGlobalTransformInterpolated().Origin;
         Vector2 viewport = GetViewport().GetVisibleRect().Size;
         float halfWidth = HalfHeight * viewport.X / viewport.Y;
         _target.GlobalPosition = new Vector3(
             Clamp(player.X, halfWidth, _room.Tiles.Width),
-            Clamp(player.Y + Lift, HalfHeight, _room.Tiles.Height),
+            Clamp(player.Y + Lift + lookOffset, HalfHeight, _room.Tiles.Height),
             0);
     }
 
