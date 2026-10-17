@@ -15,7 +15,7 @@ public enum Contacts
 /// <summary>
 /// Something in a room that has a body: the player, a robot, a platform, a block. It is the engine's rigid
 /// body itself, a box that can only move in the XY plane, so that what the engine reports about bodies
-/// (contacts, what stands on what) is about entities. Only a block can rotate, about Z.
+/// (contacts, what stands on what) is about entities. Entities may only rotate about Z (default off).
 /// <para>
 /// An entity is a body and its looks. This class is a body with nothing to move itself by, such as a
 /// block: it is only pushed, carried and stood on. A subclass is a kind of body that has motors, and a
