@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 using BodyCheck.Core;
@@ -10,18 +11,25 @@ using Godot;
 namespace BodyCheck;
 
 /// <summary>
-/// Plays one room from the <see cref="Rooms"/> library, drawn as gray boxes: it adds the camera, the
-/// lights and the player's input to a <see cref="RoomNode"/>, and the rendering pipeline's switches
-/// (see <see cref="LookSwitches"/>). The game is drawn in a <see cref="WorldViewportContainer"/>, and the overlay over
+/// Plays one room, drawn as gray boxes: a level of the LDtk project at <see cref="LevelsPath"/>, or a room from the
+/// <see cref="Rooms"/> library. It adds the camera, the lights and the player's input to a <see cref="RoomNode"/>,
+/// and the rendering pipeline's switches (see <see cref="LookSwitches"/>). The game is drawn in a <see cref="WorldViewportContainer"/>, and the overlay over
 /// it at the window's full resolution.
 /// <para>
-/// User arguments, after "--" on the command line: a room name; "--tiles=single" for one collider per
+/// The rooms are the levels first, then the library. The first room plays unless one is named. Comma and period
+/// switch to the previous and next room.
+/// </para>
+/// <para>
+/// User arguments, after "--" on the command line: a room or level name; "--tiles=single" for one collider per
 /// tile instead of merged boxes; "--probe=" and a probe's name to run that probe and quit; "--overlay" to
 /// start with the <see cref="DebugOverlay"/> showing. F3 switches the overlay on and off.
 /// </para>
 /// </summary>
 public partial class Main : Node
 {
+    private const string LevelsPath = "res://levels/main.ldtk";
+
+    private IReadOnlyList<Room> _rooms = null!;
     private int _roomIndex;
     private bool _mergeTiles = true;
     private RoomNode _room = null!;
@@ -37,6 +45,7 @@ public partial class Main : Node
         AddChild(_worldView);
         AddLook();
         AddChild(_overlay);
+        _rooms = [.. LdtkReader.ReadRooms(LevelsPath, ReadFile), .. Rooms.All];
 
         string? roomName = null;
         string? probeName = null;
@@ -66,7 +75,7 @@ public partial class Main : Node
             return;
         }
 
-        int index = Rooms.All.ToList().FindIndex(
+        int index = _rooms.ToList().FindIndex(
             room => room.Name.Equals(roomName, StringComparison.OrdinalIgnoreCase));
         LoadRoom(Math.Max(index, 0));
         _room.PlayerInput = () => new PlayerInput(
@@ -111,8 +120,8 @@ public partial class Main : Node
     private void LoadRoom(int index)
     {
         Func<PlayerInput>? input = _room?.PlayerInput;
-        _roomIndex = Mathf.PosMod(index, Rooms.All.Count);
-        LoadRoom(Rooms.All[_roomIndex]).PlayerInput = input;
+        _roomIndex = Mathf.PosMod(index, _rooms.Count);
+        LoadRoom(_rooms[_roomIndex]).PlayerInput = input;
     }
 
     /// <summary>Replaces the current room, if there is one, and points the camera at the new one.</summary>
@@ -129,6 +138,13 @@ public partial class Main : Node
         AddCamera();
         ShowTitle();
         return _room;
+    }
+
+    private static string ReadFile(string path)
+    {
+        using FileAccess file = FileAccess.Open(path, FileAccess.ModeFlags.Read)
+            ?? throw new System.IO.IOException($"Can't open {path}: {FileAccess.GetOpenError()}.");
+        return file.GetAsText();
     }
 
     private void ShowTitle() => GetWindow().Title = $"Body Check: {_room.Room.Name} ({_look.Summary})";

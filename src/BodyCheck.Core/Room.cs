@@ -2,57 +2,93 @@ using Godot;
 
 namespace BodyCheck.Core;
 
+/// <summary>The kinds of entity that a room says where to start.</summary>
+public enum EntityKind
+{
+    Player,
+    Robot,
+    Platform,
+    Block,
+}
+
 /// <summary>
-/// A named room described as text, top row first:
-/// <list type="bullet">
-/// <item>'#' is a solid tile</item>
-/// <item>'P' is where the player starts</item>
-/// <item>'R' is where a robot starts</item>
-/// <item>'H' is where a horizontal platform starts</item>
-/// <item>'B' is where a block starts</item>
-/// </list>
+/// A named room: its tiles, and where each of its entities starts. Rooms come from text (<see cref="FromText"/>)
+/// and from LDtk levels (<see cref="LdtkReader"/>).
 /// </summary>
 public sealed class Room
 {
-    private readonly string[] _rows;
+    private readonly TileGrid _tiles;
 
-    public Room(string name, string text)
+    /// <param name="tiles">The room's tiles. The room keeps it, so the caller must not change it afterwards.</param>
+    /// <param name="starts">Each entity's kind, and where the middle of its base starts. There must be one player.</param>
+    public Room(string name, TileGrid tiles, IEnumerable<(EntityKind Kind, Vector2 Start)> starts)
     {
         Name = name;
-        _rows = text.ReplaceLineEndings("\n").Split('\n');
+        _tiles = tiles;
 
+        var playerStarts = new List<Vector2>();
         var robotStarts = new List<Vector2>();
         var platformStarts = new List<Vector2>();
         var blockStarts = new List<Vector2>();
-        Vector2? playerStart = null;
-        for (int row = 0; row < _rows.Length; row++)
+        foreach ((EntityKind kind, Vector2 start) in starts)
         {
-            for (int x = 0; x < _rows[row].Length; x++)
+            List<Vector2> list = kind switch
             {
-                // The middle of the bottom edge of the tile.
-                var floorPoint = new Vector2(x + 0.5f, _rows.Length - 1 - row);
-                switch (_rows[row][x])
+                EntityKind.Player => playerStarts,
+                EntityKind.Robot => robotStarts,
+                EntityKind.Platform => platformStarts,
+                EntityKind.Block => blockStarts,
+                _ => throw new ArgumentOutOfRangeException(nameof(starts), kind, null),
+            };
+            list.Add(start);
+        }
+
+        if (playerStarts.Count != 1)
+        {
+            throw new ArgumentException($"Room '{name}' has {playerStarts.Count} player starts, not 1.", nameof(starts));
+        }
+        PlayerStart = playerStarts[0];
+        RobotStarts = robotStarts;
+        PlatformStarts = platformStarts;
+        BlockStarts = blockStarts;
+    }
+
+    /// <summary>
+    /// A room described as text, top row first:
+    /// <list type="bullet">
+    /// <item>'#' is a solid tile</item>
+    /// <item>'P' is where the player starts</item>
+    /// <item>'R' is where a robot starts</item>
+    /// <item>'H' is where a horizontal platform starts</item>
+    /// <item>'B' is where a block starts</item>
+    /// </list>
+    /// An entity starts with the middle of its base at the middle of the bottom edge of its tile.
+    /// </summary>
+    public static Room FromText(string name, string text)
+    {
+        string[] rows = text.ReplaceLineEndings("\n").Split('\n');
+
+        var starts = new List<(EntityKind, Vector2)>();
+        for (int row = 0; row < rows.Length; row++)
+        {
+            for (int x = 0; x < rows[row].Length; x++)
+            {
+                EntityKind? kind = rows[row][x] switch
                 {
-                    case 'P':
-                        playerStart = floorPoint;
-                        break;
-                    case 'R':
-                        robotStarts.Add(floorPoint);
-                        break;
-                    case 'H':
-                        platformStarts.Add(floorPoint);
-                        break;
-                    case 'B':
-                        blockStarts.Add(floorPoint);
-                        break;
+                    'P' => EntityKind.Player,
+                    'R' => EntityKind.Robot,
+                    'H' => EntityKind.Platform,
+                    'B' => EntityKind.Block,
+                    _ => null,
+                };
+                if (kind is not null)
+                {
+                    starts.Add((kind.Value, new Vector2(x + 0.5f, rows.Length - 1 - row)));
                 }
             }
         }
 
-        PlayerStart = playerStart ?? throw new ArgumentException($"Room '{name}' has no player start.");
-        RobotStarts = robotStarts;
-        PlatformStarts = platformStarts;
-        BlockStarts = blockStarts;
+        return new Room(name, TileGrid.FromText(rows), starts);
     }
 
     public string Name { get; }
@@ -70,5 +106,5 @@ public sealed class Room
     public IReadOnlyList<Vector2> BlockStarts { get; }
 
     /// <summary>Builds a fresh grid, so that one world's changes to its tiles don't reach another's.</summary>
-    public TileGrid CreateTiles() => TileGrid.FromText(_rows);
+    public TileGrid CreateTiles() => _tiles.Clone();
 }

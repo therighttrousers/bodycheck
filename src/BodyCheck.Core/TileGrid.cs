@@ -23,6 +23,13 @@ public sealed class TileGrid
 
     public void SetSolid(int x, int y, bool solid) => _solid[x, y] = solid;
 
+    public TileGrid Clone()
+    {
+        var grid = new TileGrid(Width, Height);
+        Array.Copy(_solid, grid._solid, _solid.Length);
+        return grid;
+    }
+
     /// <summary>
     /// Builds a grid from text rows, top row first. '#' is solid; anything else is empty.
     /// </summary>

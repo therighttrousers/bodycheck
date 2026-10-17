@@ -6,7 +6,7 @@ namespace BodyCheck.Core;
 public static class Rooms
 {
     /// <summary>Ledges, walls and one-tile pits for trying out running and jumping.</summary>
-    public static readonly Room Playground = new("Playground", """
+    public static readonly Room Playground = Room.FromText("Playground", """
         ################################
         #..............................#
         #..............................#
@@ -34,7 +34,7 @@ public static class Rooms
     /// A flat floor with one robot, and a ledge 5 tiles up: too high to reach from the floor,
     /// reachable from the robot's back.
     /// </summary>
-    public static readonly Room RobotRide = new("Robot ride", """
+    public static readonly Room RobotRide = Room.FromText("Robot ride", """
         ################################
         #..............................#
         #..............................#
@@ -58,7 +58,7 @@ public static class Rooms
     /// A room the shape of the screen, for judging the rendering. The game adds turning shapes to its
     /// upper half.
     /// </summary>
-    public static readonly Room Look = new("Look", """
+    public static readonly Room Look = Room.FromText("Look", """
         ########################
         #......................#
         #......................#

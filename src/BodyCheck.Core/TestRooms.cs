@@ -8,7 +8,7 @@ namespace BodyCheck.Core;
 public static class TestRooms
 {
     /// <summary>A long flat floor with a high ceiling, for sliding a body over many tile seams.</summary>
-    public static readonly Room Seams = new("Seams", string.Join('\n',
+    public static readonly Room Seams = Room.FromText("Seams", string.Join('\n',
     [
         new string('#', 64),
         .. Enumerable.Repeat("#" + new string('.', 62) + "#", 7),
@@ -17,7 +17,7 @@ public static class TestRooms
     ]));
 
     /// <summary>A two-tile wall on a floor, for jumping beside.</summary>
-    public static readonly Room Corner = new("Corner", """
+    public static readonly Room Corner = Room.FromText("Corner", """
         ............
         ............
         ............
@@ -30,7 +30,7 @@ public static class TestRooms
         """);
 
     /// <summary>A long floor with the player above a robot, which has room to patrol one way for a long time.</summary>
-    public static readonly Room RobotRiding = new("Robot riding", string.Join('\n',
+    public static readonly Room RobotRiding = Room.FromText("Robot riding", string.Join('\n',
     [
         .. Enumerable.Repeat(new string('.', 400), 8),
         new string('.', 20) + "P" + new string('.', 379),
@@ -40,7 +40,7 @@ public static class TestRooms
     ]));
 
     /// <summary>A robot that patrols towards the player across a flat floor.</summary>
-    public static readonly Room RobotPush = new("Robot push", """
+    public static readonly Room RobotPush = Room.FromText("Robot push", """
         #......................#
         #......................#
         #..R.......P...........#
@@ -48,7 +48,7 @@ public static class TestRooms
         """);
 
     /// <summary>A hovering platform between two walls, with the player about 3 tiles above it.</summary>
-    public static readonly Room PlatformRiding = new("Platform riding", string.Join('\n',
+    public static readonly Room PlatformRiding = Room.FromText("Platform riding", string.Join('\n',
     [
         .. Enumerable.Repeat("#" + new string('.', 38) + "#", 3),
         "#" + new string('.', 19) + "P" + new string('.', 18) + "#",
@@ -80,6 +80,6 @@ public static class TestRooms
         int row = height - 1 - playerY;
         rows[row] = rows[row][0..playerX] + "P" + rows[row][(playerX + 1)..width];
 
-        return new Room("Empty frame", string.Join('\n', rows));
+        return Room.FromText("Empty frame", string.Join('\n', rows));
     }
 }

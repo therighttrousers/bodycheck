@@ -118,6 +118,22 @@
 					],
 					"__worldX": 192,
 					"__worldY": 96
+				},
+				{
+					"__identifier": "Block",
+					"__grid": [16,3],
+					"__pivot": [0,0],
+					"__tags": [],
+					"__tile": null,
+					"__smartColor": "#BE4A2F",
+					"iid": "d5082d30-bde0-11f1-ab5d-13a9d0d0a829",
+					"width": 16,
+					"height": 16,
+					"defUid": 214,
+					"px": [256,48],
+					"fieldInstances": [],
+					"__worldX": 256,
+					"__worldY": 48
 				}
 			]
 		},
