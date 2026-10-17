@@ -74,7 +74,7 @@ The player is a maintenance robot who has been asked by a mysterious Voice to re
   - Contact with immovable objects is an exception; e.g. ground tiles absorb momentum without moving.
 - A force between two bodies pushes both. Jumping off a robot pushes it down; running on one pushes it back.
 - Mass matters: phase throws lighter NPCs farther, and boost knockback depends on the masses of both.
-- Bodies are axis-aligned boxes. Rotation and mass distribution of characters are not modelled.
+- Bodies are boxes. Characters are axis-aligned: their rotation and mass distribution are not modelled. Blocks can rotate in the plane of play, so they tip off ledges and spin when run on.
 
 See [movement.md](movement.md).
 

@@ -10,7 +10,7 @@ What the game asks of a 3D model, and how code and art meet in it. The models in
 - **Made in Blender**, exported as glTF, and imported by Godot. The import settings are in the `.import` file beside the glTF, and the Godot editor changes them in its Import dock.
 - **A wrapper scene** beside the glTF, `scene.tscn` in the model's folder in `game/assets/`, is what the game loads. It holds what Godot adds to the model: an animation tree, material overrides, and any adjustment to the model's position, size or direction.
 - **The wrapper's layout** (`006 §1.3`): its root is a plain `Node3D` with no transform, which the game moves and turns. The glTF is the root's child, named `Model`, which the artist moves, scales and turns. Each transform has one owner. The child's transform applies first, so the game turns the model about the root's origin, which is the model's base, wherever the glTF's own origin was.
-- **Units:** one unit is one tile. The player is 0.8 tiles wide and 1.6 tall ([movement.md](movement.md)).
+- **Units:** one unit is one tile. The player is 0.8 tiles wide and 1.8 tall ([movement.md](movement.md)).
 - **The base is the origin** (`006 §1.1`). The base is where the model stands on the ground: between a character's feet, or the middle of a block's bottom face. A model made for this game has its base at the origin in Blender. A model from elsewhere is adjusted in its wrapper scene until it does.
 - **It faces +Z**, towards the camera. The game turns it to face left or right.
 - **A variant**, such as a robot in the player's shape with another colour, is an inherited scene of the model's wrapper scene, with what differs set in the editor. `robot.tscn` beside Bob's wrapper scene overrides the body's material.
