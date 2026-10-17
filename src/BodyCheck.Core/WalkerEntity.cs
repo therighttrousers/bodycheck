@@ -30,7 +30,7 @@ public partial class WalkerEntity : Entity
     /// <param name="visual">What to draw for the entity, centered on the middle of its box.</param>
     public WalkerEntity(BodyTuning tuning, Node3D? visual = null)
         // Continuous detection keeps a walker's contacts exact, which its movement depends on.
-        : base(tuning, visual, engineFriction: 0, continuousCd: true)
+        : base(tuning, visual, engineFriction: 0, continuousCd: true, axisLockAngularZ: true)
     {
         // A joint that constrains nothing: every limit is off, so its only effect is the X motor. The
         // walker is the joint's second body. The first is what it stands on, or nothing for tiles.

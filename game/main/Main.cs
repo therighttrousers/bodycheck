@@ -22,7 +22,8 @@ namespace BodyCheck;
 /// <para>
 /// User arguments, after "--" on the command line: a room or level name; "--tiles=single" for one collider per
 /// tile instead of merged boxes; "--probe=" and a probe's name to run that probe and quit; "--overlay" to
-/// start with the <see cref="DebugOverlay"/> showing. F3 switches the overlay on and off.
+/// start with the <see cref="DebugOverlay"/> showing; "--shapes" to start with the <see cref="ShapeWireframes"/> showing.
+/// F3 switches the overlay on and off, and F4 the shapes.
 /// </para>
 /// </summary>
 public partial class Main : Node
@@ -37,6 +38,7 @@ public partial class Main : Node
     private LookSwitches _look = null!;
     private readonly WorldViewportContainer _worldView = new();
     private readonly DebugOverlay _overlay = new();
+    private ShapeWireframes _shapes = null!;
     private IProbe? _probe;
 
     public override void _Ready()
@@ -44,6 +46,8 @@ public partial class Main : Node
         AddInputActions();
         AddChild(_worldView);
         AddLook();
+        _shapes = new ShapeWireframes(_worldView);
+        AddChild(_shapes);
         AddChild(_overlay);
         _rooms = [.. LdtkReader.ReadRooms(LevelsPath, ReadFile), .. Rooms.All];
 
@@ -58,6 +62,10 @@ public partial class Main : Node
             else if (arg == "--overlay")
             {
                 _overlay.Visible = true;
+            }
+            else if (arg == "--shapes")
+            {
+                _shapes.Visible = true;
             }
             else if (arg.StartsWith("--probe="))
             {

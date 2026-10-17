@@ -14,8 +14,8 @@ public enum Contacts
 
 /// <summary>
 /// Something in a room that has a body: the player, a robot, a platform, a block. It is the engine's rigid
-/// body itself, a box that can only move in the XY plane and can't rotate, so that what the engine reports
-/// about bodies (contacts, what stands on what) is about entities.
+/// body itself, a box that can only move in the XY plane, so that what the engine reports about bodies
+/// (contacts, what stands on what) is about entities. Entities may only rotate about Z (default off).
 /// <para>
 /// An entity is a body and its looks. This class is a body with nothing to move itself by, such as a
 /// block: it is only pushed, carried and stood on. A subclass is a kind of body that has motors, and a
@@ -40,14 +40,14 @@ public partial class Entity : RigidBody3D
     private const float SideThreshold = 0.7f;
 
     /// <param name="visual">What to draw for the entity, centered on the middle of its box.</param>
-    public Entity(BodyTuning tuning, Node3D? visual = null)
-        : this(tuning, visual, tuning.EngineFriction, continuousCd: false)
+    public Entity(BodyTuning tuning, Node3D? visual = null, bool axisLockAngularZ = true)
+        : this(tuning, visual, tuning.EngineFriction, continuousCd: false, axisLockAngularZ)
     {
     }
 
     /// <param name="engineFriction">The engine's coefficient of friction for this kind of body.</param>
     /// <param name="continuousCd">Whether the engine uses continuous collision detection for it.</param>
-    protected Entity(BodyTuning tuning, Node3D? visual, float engineFriction, bool continuousCd)
+    protected Entity(BodyTuning tuning, Node3D? visual, float engineFriction, bool continuousCd, bool axisLockAngularZ)
     {
         Tuning = tuning;
         Mass = tuning.Mass;
@@ -55,7 +55,7 @@ public partial class Entity : RigidBody3D
         AxisLockLinearZ = true;
         AxisLockAngularX = true;
         AxisLockAngularY = true;
-        AxisLockAngularZ = true;
+        AxisLockAngularZ = axisLockAngularZ;
 
         // Never rough: where two bodies touch, the smaller friction has to win, so that a walker's zero does.
         PhysicsMaterialOverride = new PhysicsMaterial { Friction = engineFriction, Bounce = 0, Rough = false };

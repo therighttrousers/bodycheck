@@ -50,6 +50,7 @@ The Godot project, which holds the scenes and the other nodes.
 - A model is a wrapper scene in `assets/` around an imported glTF file, with its origin at its base. See [models.md](models.md).
 - `Main` adds the camera, the lights and the player's input to a `RoomNode`, and switches rooms. Its rooms are the levels of `levels/main.ldtk`, then the library of text rooms; the first plays unless the command line names another (`009 §4.3`). The game is drawn in a `WorldViewportContainer`, a viewport of its own at low resolution, and `Main`'s other children are drawn at the window's resolution.
 - `DebugOverlay`, on F3, shows the frame rate and times and every telemetry value, at the window's resolution (`008 §2.3`).
+- `ShapeWireframes`, on F4, draws every box collision shape in the game as a wireframe, at the window's resolution, for comparing bodies with their models. It reads the shapes and the camera from the engine each frame.
 - `look/` holds the low-resolution view, the colour pass and the tools for judging the rendering. See [rendering.md](rendering.md).
 - `probes/` holds scripted measurements, run headless with `--probe=` and a name.
 

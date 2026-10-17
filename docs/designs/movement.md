@@ -10,7 +10,7 @@ Relevant decision records:
 
 Quantities that are still being tuned, such as speeds and forces, are described by comparison. Distances in tiles and angles are design goals.
 
-The player is 0.8 tiles wide and 1.6 tall.
+The player is 0.8 tiles wide and 1.8 tall.
 
 ### Running
 
@@ -40,7 +40,7 @@ Rationale: decision record `000 §1.8`.
 
 Rationale: decision record `001`.
 
-- Bodies are simulated by Godot's 3D physics engine, Jolt. Each is an `Entity`: a `RigidBody3D` with a box shape, with movement along Z and all rotation locked.
+- Bodies are simulated by Godot's 3D physics engine, Jolt. Each is an `Entity`: a `RigidBody3D` with a box shape, with movement along Z and rotation locked, except that a block can rotate about Z.
 - The player is not a `CharacterBody3D`: that kind of body has no mass and can't be pushed (`001 §1.1`).
 - A walker is a `WalkerEntity`, which sets its own engine friction to 0 and uses continuous collision detection (`005 §3.8`). It gets its grip from traction, below. With engine friction, walkers grip walls and lose their speed on landing (`001 §2.1`).
 - Other bodies use engine friction and ordinary collision detection: blocks, which have no controller and are only pushed, carried and stood on, and hovering platforms, so that what rests on them is carried.
