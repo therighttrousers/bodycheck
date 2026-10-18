@@ -1,4 +1,4 @@
-# 014: The phase ability
+# 015: The phase ability
 
 ## Context
 
@@ -19,6 +19,7 @@ Anti-goals: visual or sound effects, animation, damage, stun, turrets, dead NPCs
 
 - [x] 1.1 Which input phases? Decision (Neil): as leaning. A new action, `phase`, acting on a press only, like jump: holding it doesn't phase again.
   - Leaning (Claude): Left Shift and J on the keyboard, X (the west face button) on a gamepad.
+  - Changed (Neil): Left Shift brought up Windows' offer to turn on Sticky Keys, after it was pressed many times in a row. Jump, phase and boost are now on three keys under each hand: J, K and L for the right, with the arrow keys, and C, X and Z for the left, with W, A, S and D. On a gamepad: A, X and the right trigger.
 - [x] 1.2 Which entity is the target? Decision (Neil): (b).
   - (a) Only one the player touches.
   - (b) The nearest one whose box is within a gap of the player's box, e.g. 1 tile.
@@ -28,7 +29,7 @@ Anti-goals: visual or sound effects, animation, damage, stun, turrets, dead NPCs
 
 ## 2. Where the player goes
 
-- [x] 2.1 The direction. Decision (Neil): (a). One of eight, from the move and look inputs, the stick's direction snapped to the nearest 45 degrees. With no direction held:
+- [x] 2.1 The direction. Decision (Neil): (a). One of eight, from the horizontal and vertical inputs, the stick's direction snapped to the nearest 45 degrees. With no direction held:
   - (a) The line from the player through the target's center, snapped to eight. This is "the other side" literally.
   - (b) The way the player faces.
   - (c) No phase.

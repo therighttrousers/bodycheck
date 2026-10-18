@@ -151,7 +151,7 @@ public partial class CameraRig : Node3D
                     .SetTrans(Tween.TransitionType.Quad)
                     .SetEase(Tween.EaseType.In);
             }
-            lookOffset = Mathf.Lerp(Lift, LookOffset * input.Value.Look, _lookAmount);
+            lookOffset = Mathf.Lerp(Lift, LookOffset * input.Value.YAxis, _lookAmount);
         }
         else
         {

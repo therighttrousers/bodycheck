@@ -5,7 +5,7 @@ Relevant decision records:
 - [001: Godot's 3D physics engine](../decision-records/001-godot-3d-physics.md)
 - [005: Jolt's joint motors for traction](../decision-records/005-jolt-motors-for-traction.md)
 - [007: Running over one-tile gaps is not a design goal](../decision-records/007-one-tile-gaps.md)
-- [014: The phase ability](../decision-records/014-phase.md)
+- [015: The phase ability](../decision-records/015-phase.md)
 
 ## Player movement
 
@@ -53,7 +53,7 @@ Rationale: decision record `001`.
 - A controller pushes its entity with the engine's own forces and impulses, and with the motors that its kind of body has. A walker's is traction, below.
 - A motor earns its place when its target speed binds, as in braking or holding against pushes, or when its push must land on another body. Otherwise a plain force does the same with less. So a platform moves itself with forces, and holds its height with a PD controller of our own, whose thrust is capped so that enough load sinks it, and which sags under a rider (`005 §3.6`).
 - A controller sees the world as of the engine's last step. Neither the forces nor the impulses applied this tick show in any entity's velocity until the next step, so what a controller decides doesn't depend on the order in which entities are stepped (`005 §3.4`).
-- A teleport, such as a phase's, waits until every entity has been stepped, and happens before the engine's step, so that it doesn't show to controllers stepped later in the same tick either. The entity's own `_PhysicsProcess` does it, since Godot processes a parent before its children. It resets physics interpolation, so the body isn't drawn sliding to where it went (`014 §4.2`).
+- A teleport, such as a phase's, waits until every entity has been stepped, and happens before the engine's step, so that it doesn't show to controllers stepped later in the same tick either. The entity's own `_PhysicsProcess` does it, since Godot processes a parent before its children. It resets physics interpolation, so the body isn't drawn sliding to where it went (`015 §4.2`).
 - Gravity is set in one place: the project setting `physics/3d/default_gravity`, which the test project copies. An entity's weight uses the engine's figure for the gravity on it.
 
 ## Ground contact and traction

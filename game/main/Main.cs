@@ -229,12 +229,17 @@ public partial class Main : Node
             new InputEventJoypadMotion { Axis = JoyAxis.LeftY, AxisValue = 1 },
             new InputEventJoypadButton { ButtonIndex = JoyButton.DpadDown });
         AddAction("jump",
-            new InputEventKey { PhysicalKeycode = Key.Space },
+            new InputEventKey { PhysicalKeycode = Key.J },
+            new InputEventKey { PhysicalKeycode = Key.C },
             new InputEventJoypadButton { ButtonIndex = JoyButton.A });
         AddAction("phase",
-            new InputEventKey { PhysicalKeycode = Key.Shift },
-            new InputEventKey { PhysicalKeycode = Key.J },
+            new InputEventKey { PhysicalKeycode = Key.K },
+            new InputEventKey { PhysicalKeycode = Key.X },
             new InputEventJoypadButton { ButtonIndex = JoyButton.X });
+        AddAction("boost",
+            new InputEventKey { PhysicalKeycode = Key.L },
+            new InputEventKey { PhysicalKeycode = Key.Z },
+            new InputEventJoypadMotion { Axis = JoyAxis.TriggerRight });
         AddAction("next_world",
             new InputEventKey { PhysicalKeycode = Key.Period },
             new InputEventJoypadButton { ButtonIndex = JoyButton.RightShoulder });

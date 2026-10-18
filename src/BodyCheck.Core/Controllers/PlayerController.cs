@@ -4,11 +4,11 @@ using Godot;
 
 namespace BodyCheck.Core.Controllers;
 
-/// <param name="Move">Horizontal input, from -1 (left) to 1 (right).</param>
-/// <param name="Look">Vertical input, from -1 (down) to 1 (up).</param>
-public readonly record struct PlayerInput(float Move, float Look, bool JumpHeld, bool PhaseHeld = false)
+/// <param name="XAxis">Horizontal input, from -1 (left) to 1 (right).</param>
+/// <param name="YAxis">Vertical input, from -1 (down) to 1 (up).</param>
+public readonly record struct PlayerInput(float XAxis, float YAxis, bool JumpHeld, bool PhaseHeld = false)
 {
-    public bool CanLook => Look != 0 && Move == 0 && !JumpHeld;
+    public bool CanLook => YAxis != 0 && XAxis == 0 && !JumpHeld;
 }
 
 /// <summary>What momentum a phase gives the entity phased through.</summary>
@@ -100,7 +100,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     {
         PlayerInput input = _input();
         float weight = entity.Weight;
-        float move = Math.Clamp(input.Move, -1, 1);
+        float move = Math.Clamp(input.XAxis, -1, 1);
 
         if (entity.OnGround)
         {
@@ -151,7 +151,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         }
 
         // With no direction held, the other side is straight through the target.
-        var held = new Vector2(input.Move, input.Look);
+        var held = new Vector2(input.XAxis, input.YAxis);
         Vector2 direction = EightWay(held.Length() >= 0.5f
             ? held
             : new Vector2(target.Position.X - entity.Position.X, target.Position.Y - entity.Position.Y));
