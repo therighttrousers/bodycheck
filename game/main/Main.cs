@@ -48,6 +48,7 @@ public partial class Main : Node
     private readonly WorldViewportContainer _worldView = new();
     private readonly DebugOverlay _overlay = new();
     private ShapeWireframes _shapes = null!;
+    private PhaseAimMarker _phaseAimMarker = null!;
     private IProbe? _probe;
 
     public override void _Ready()
@@ -58,6 +59,8 @@ public partial class Main : Node
         _worldView.World.AddChild(_cameraRig);
         _shapes = new ShapeWireframes(_worldView);
         AddChild(_shapes);
+        _phaseAimMarker = new PhaseAimMarker(_worldView);
+        AddChild(_phaseAimMarker);
         AddChild(_overlay);
         _worlds = [LdtkReader.ReadWorld(LevelsPath, ReadFile), .. RoomLibrary.All.Select(room => new World(room))];
 
@@ -93,6 +96,9 @@ public partial class Main : Node
         if (probeName is not null)
         {
             _probe = Probe.Start(probeName, world => LoadWorld(world), _mergeTiles);
+            // A probe's input comes from this node's physics tick, which stops while the game is paused, so nothing
+            // pauses for its player. Unpaused, the player aims a phase while the world runs.
+            _gameModeManager.World = null;
             return;
         }
 
@@ -160,6 +166,8 @@ public partial class Main : Node
         }
         _worldView.World.AddChild(_world);
         _cameraRig.Follow(_world);
+        _gameModeManager.World = _world;
+        _phaseAimMarker.World = _world;
         ShowTitle();
         return _world;
     }

@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 
 using BodyCheck.Core.Controllers;
 using BodyCheck.Core.Entities;
+using BodyCheck.Core.Simulation;
 using BodyCheck.Core.WorldData;
 
 using GdUnit4;
@@ -14,21 +15,26 @@ using static GdUnit4.Assertions;
 namespace BodyCheck.Game.Tests;
 
 /// <summary>
-/// The player phasing through a robot.
+/// The player phasing through a robot. Phase is aimed while it is held, and made when it is released. Nothing pauses
+/// the game here, so the player aims while it runs, except where a test pauses it as the game does.
 /// </summary>
 [TestSuite]
 [RequireGodotRuntime]
 public class PhaseTest
 {
-    private static readonly PlayerInput PhaseRight = new(1, 0, false, PhaseHeld: true);
-    private static readonly PlayerInput PhaseDown = new(0, -1, false, PhaseHeld: true);
-    private static readonly PlayerInput PhaseThrough = new(0, 0, false, PhaseHeld: true);
+    private static readonly PlayerInput AimRight = new(1, 0, false, PhaseHeld: true);
+    private static readonly PlayerInput AimDown = new(0, -1, false, PhaseHeld: true);
+    private static readonly PlayerInput AimNowhere = new(0, 0, false, PhaseHeld: true);
+    private static readonly PlayerInput Down = new(0, -1, false);
+
+    private static SceneTree Tree => (SceneTree)Engine.GetMainLoop();
 
     private RoomRun? _run;
 
     [AfterTest]
     public void TearDown()
     {
+        Tree.Paused = false;
         _run?.Free();
         _run = null;
     }
@@ -56,16 +62,17 @@ public class PhaseTest
         // The player and the robot have the same mass.
         float center = (player.Position.X + robot.Position.X) / 2;
 
-        // The teleport and the impulses take effect in the step after the press.
-        await _run.Tick(PhaseRight);
+        // The teleport and the impulses take effect in the step after the release.
+        await _run.Tick(AimRight);
+        await _run.Tick(RoomRun.Right);
         AssertFloat(player.Position.X).IsEqualApprox(center + tuning.PhaseMinSeparation / 2, 0.5f);
         AssertFloat(robot.Position.X).IsEqualApprox(center - tuning.PhaseMinSeparation / 2, 0.5f);
         AssertFloat(player.LinearVelocity.X).IsEqualApprox(tuning.PhaseSpeed, 0.5f);
         AssertFloat(player.LinearVelocity.Y).IsEqualApprox(0, 0.5f);
         AssertFloat(robot.LinearVelocity.X).IsLess(-1);
 
-        // Held, it doesn't phase again.
-        await _run.Tick(PhaseRight, 5);
+        // Running on, the player keeps its speed.
+        await _run.Tick(RoomRun.Right, 5);
         AssertFloat(player.LinearVelocity.X).IsGreater(tuning.PhaseSpeed - 1);
     }
 
@@ -83,7 +90,8 @@ public class PhaseTest
         float floor = player.Bottom();
 
         // There is no room below the robot, so the pair slides up until the player fits where the robot stood.
-        await _run!.Tick(PhaseDown);
+        await _run!.Tick(AimDown);
+        await _run.Tick(Down);
         AssertFloat(player.Bottom()).IsEqualApprox(floor, 0.5f);
         AssertFloat(robot.Bottom()).IsGreater(player.Top());
         AssertFloat(robot.LinearVelocity.Y).IsGreater(1);
@@ -101,23 +109,55 @@ public class PhaseTest
         Vector3 start = player.Position;
 
         // The player only starts to run.
-        await _run!.Tick(PhaseRight, 2);
+        await _run!.Tick(AimRight);
+        await _run.Tick(RoomRun.Right);
         AssertFloat(player.Position.DistanceTo(start)).IsLess(0.1f);
         AssertFloat(robot.LinearVelocity.Length()).IsLess(1);
     }
 
     [TestCase]
-    public async Task WithNoDirectionHeldPhaseGoesThroughTheTarget()
+    public async Task ReleasingWithNoDirectionHeldCancels()
     {
-        var (player, robot) = await Start(
+        var (player, _) = await Start(
             "##########",
             "#........#",
             "#........#",
             "#...RP...#",
             "##########");
+        Vector3 start = player.Position;
 
-        await _run!.Tick(PhaseThrough);
-        AssertFloat(player.Position.X).IsLess(robot.Position.X);
-        AssertFloat(player.LinearVelocity.X).IsLess(0);
+        await _run!.Tick(AimNowhere);
+        await _run.Tick(RoomRun.Idle, 2);
+        AssertFloat(player.Position.DistanceTo(start)).IsLess(0.01f);
+        AssertObject(_run.Node.PlayerController.Aim).IsNull();
+    }
+
+    [TestCase]
+    public async Task AimingWhilePausedPhasesOnTheTickAfterRelease()
+    {
+        var (player, robot) = await Start(
+            "####################",
+            "#..................#",
+            "#..................#",
+            "#..PR..............#",
+            "####################");
+        WorldNode world = _run!.Node;
+
+        // As the game does: paused while the world asks for it, stepping only the controllers.
+        await _run.Tick(AimRight);
+        AssertBool(world.PauseRequested).IsTrue();
+        Tree.Paused = true;
+        Vector3 start = player.Position;
+        await _run.PausedTick(AimNowhere, 10);
+        await _run.PausedTick(AimRight);
+        AssertThat(world.PlayerController.Aim?.Direction).IsEqual(Vector2.Right);
+        AssertFloat(player.Position.DistanceTo(start)).IsEqual(0);
+
+        await _run.PausedTick(RoomRun.Right);
+        AssertBool(world.PauseRequested).IsFalse();
+        Tree.Paused = false;
+        await _run.Tick(RoomRun.Right);
+        AssertFloat(player.Position.X).IsGreater(robot.Position.X);
+        AssertFloat(player.LinearVelocity.X).IsGreater(1);
     }
 }

@@ -20,6 +20,13 @@ public enum PhaseThrow
     Conserved,
 }
 
+/// <summary>A phase being aimed: its target, fixed when phase is pressed, and the direction held.</summary>
+/// <param name="Center">The center of mass of the player and the target, which the phase keeps.</param>
+/// <param name="Direction">
+/// One of the eight directions, as a unit vector, or zero if none is held. Released with none, the phase is cancelled.
+/// </param>
+public readonly record struct PhaseAim(Entity Target, Vector3 Center, Vector2 Direction);
+
 public sealed record PlayerTuning
 {
     /// <summary>Speed at which the run drive force falls to zero.</summary>
@@ -85,6 +92,8 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
 
     private bool _jumpWasHeld;
     private bool _phaseWasHeld;
+    // A phase released, to be made on the next tick of play.
+    private PhaseAim? _release;
     private int _groundTicksLeft;
     private Vector3 _lastGroundVelocity = Vector3.Zero;
     private int _thrustTicksLeft;
@@ -104,6 +113,24 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
 
     public PlayerTuning Tuning { get; }
 
+    /// <summary>The phase being aimed, from when phase is pressed with a target in reach until it is released.</summary>
+    public PhaseAim? Aim { get; private set; }
+
+    /// <summary>The game is paused while a phase is aimed, so that the player can take its time over the direction.</summary>
+    public bool RequestsPause => Aim is not null;
+
+    /// <summary>
+    /// Aims the phase while the game is paused for it. Releasing phase ends the aim, and the phase happens on the
+    /// next tick of play.
+    /// </summary>
+    public void ApplyPaused(WalkerEntity entity, float dt)
+    {
+        PlayerInput input = _input();
+        UpdateAim(entity, input);
+        _jumpWasHeld = input.JumpHeld;
+        _phaseWasHeld = input.PhaseHeld;
+    }
+
     public void Apply(WalkerEntity entity, float dt)
     {
         PlayerInput input = _input();
@@ -116,16 +143,24 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             _lastGroundVelocity = entity.GroundVelocity;
         }
 
-        if (input.PhaseHeld && !_phaseWasHeld && TryPhase(entity, input))
+        // If nothing pauses the game for the aim, the player aims while it runs.
+        if (Aim is null && input.PhaseHeld && !_phaseWasHeld && entity.NearestEntity(Tuning.PhaseReach) is Entity target)
+        {
+            Aim = new PhaseAim(target, Vector3.Zero, Vector2.Zero);
+        }
+        UpdateAim(entity, input);
+
+        if (_release is PhaseAim release && TryPhase(entity, release.Target, release.Direction))
         {
             _groundTicksLeft = 0;
             _thrustTicksLeft = 0;
         }
-        else
+        else if (Aim is null)
         {
             ApplyRun(entity, move, weight);
             ApplyJump(entity, input.JumpHeld, weight);
         }
+        _release = null;
 
         // Set animation variables
         entity.IsGrounded = _groundTicksLeft > 0;
@@ -146,30 +181,52 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     }
 
     /// <summary>
-    /// Phases through the nearest entity in reach, if they fit: the player and the entity teleport as a pair,
-    /// keeping their center of mass, onto the line through it in the direction of input, the player ahead of it and
-    /// the entity behind. If they don't fit there, they slide along the line, the nearest first. The player leaves
-    /// at a fixed speed in that direction, and the entity is thrown the other way.
+    /// Follows the direction held while a phase is aimed, and ends the aim when phase is released: with a direction
+    /// held, the phase is made on the next tick of play, and with none, it is cancelled.
     /// </summary>
-    /// <returns>Whether the player phased.</returns>
-    private bool TryPhase(WalkerEntity entity, PlayerInput input)
+    private void UpdateAim(WalkerEntity entity, PlayerInput input)
     {
-        Entity? target = entity.NearestEntity(Tuning.PhaseReach);
-        if (target is null)
+        if (Aim is not PhaseAim aim)
         {
-            return false;
+            return;
         }
 
-        // With no direction held, the other side is straight through the target.
         var held = new Vector2(input.XAxis, input.YAxis);
-        Vector2 direction = EightWay(held.Length() >= 0.5f
-            ? held
-            : new Vector2(target.Position.X - entity.Position.X, target.Position.Y - entity.Position.Y));
+        aim = aim with
+        {
+            Center = CenterOfMass(entity, aim.Target),
+            Direction = held.Length() >= 0.5f ? EightWay(held) : Vector2.Zero,
+        };
+        if (input.PhaseHeld)
+        {
+            Aim = aim;
+            return;
+        }
+
+        Aim = null;
+        if (aim.Direction != Vector2.Zero)
+        {
+            _release = aim;
+        }
+    }
+
+    private static Vector3 CenterOfMass(Entity entity, Entity target) =>
+        (entity.Mass * entity.Position + target.Mass * target.Position) / (entity.Mass + target.Mass);
+
+    /// <summary>
+    /// Phases through the target in a direction, if they fit: the player and the target teleport as a pair, keeping
+    /// their center of mass, onto the line through it in that direction, the player ahead of it and the target
+    /// behind. If they don't fit there, they slide along the line, the nearest first. The player leaves at a fixed
+    /// speed in that direction, and the target is thrown the other way.
+    /// </summary>
+    /// <returns>Whether the player phased.</returns>
+    private bool TryPhase(WalkerEntity entity, Entity target, Vector2 direction)
+    {
         var direction3 = new Vector3(direction.X, direction.Y, 0);
 
         // Each moves in proportion to the other's mass.
         float totalMass = entity.Mass + target.Mass;
-        Vector3 center = (entity.Mass * entity.Position + target.Mass * target.Position) / totalMass;
+        Vector3 center = CenterOfMass(entity, target);
         float separation = Separation(entity, target, direction);
         Vector3 playerOffset = target.Mass / totalMass * separation * direction3;
         Vector3 targetOffset = -entity.Mass / totalMass * separation * direction3;

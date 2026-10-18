@@ -54,6 +54,20 @@ public sealed class RoomRun
             eachTick?.Invoke();
         }
     }
+
+    /// <summary>
+    /// Runs the room's controllers for a number of physics ticks with the given input, as the game does while it is
+    /// paused because a controller asked. Pause the tree first.
+    /// </summary>
+    public async Task PausedTick(PlayerInput input, int ticks = 1)
+    {
+        _input = input;
+        for (int i = 0; i < ticks; i++)
+        {
+            await Tree.ToSignal(Tree, SceneTree.SignalName.PhysicsFrame);
+            Node.StepPaused(1f / Engine.PhysicsTicksPerSecond);
+        }
+    }
 }
 
 public static class EntityExtensions

@@ -207,6 +207,20 @@ public partial class Entity : RigidBody3D
         ApplyCentralForce(-Tuning.Drag * LinearVelocity);
     }
 
+    /// <summary>
+    /// Call once per physics tick while the game is paused because a controller asked (see
+    /// <see cref="RequestsPause"/>), instead of <see cref="Step"/>. It runs the controller's paused step only.
+    /// </summary>
+    public void StepPaused(float dt) => ControlPaused(dt);
+
+    /// <summary>Whether this entity's controller asks for the game to be paused.</summary>
+    public virtual bool RequestsPause => false;
+
+    /// <summary>Runs the paused step of the controller of this kind of body, if it has one.</summary>
+    protected virtual void ControlPaused(float dt)
+    {
+    }
+
     /// <summary>Switches off every motor this kind of body has.</summary>
     protected virtual void ReleaseMotors()
     {

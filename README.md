@@ -55,6 +55,8 @@ Development doesn't make much use of Godot's editor because the game world is pr
 
 Hold the jump button to jump higher.
 
+Phase goes through the robot, block or platform nearest the player. Pressing it with one in reach pauses the game, with an arrow to aim with; release it while holding a direction to phase that way, or with no direction to cancel.
+
 The debug overlay, the wireframes and the rendering switches below work while the game is paused.
 
 Rendering switches, for judging the look. The window's title shows their state. The room named "Look" has shapes to judge it on.

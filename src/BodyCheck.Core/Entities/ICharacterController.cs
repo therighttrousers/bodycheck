@@ -13,4 +13,19 @@ public interface ICharacterController<in TEntity>
 {
     /// <summary>Called once per physics tick, before the engine's step.</summary>
     public void Apply(TEntity entity, float dt);
+
+    /// <summary>
+    /// Whether the controller asks for the game to be paused, so that it can decide something with all else
+    /// standing still, such as which way to phase. Whatever pauses the game for it calls <see cref="ApplyPaused"/>
+    /// instead of <see cref="Apply"/> until the controller stops asking.
+    /// </summary>
+    public bool RequestsPause => false;
+
+    /// <summary>
+    /// Called once per physics tick while the game is paused because a controller asked. Nothing moves then:
+    /// the engine doesn't step, so forces and impulses wait until play resumes.
+    /// </summary>
+    public void ApplyPaused(TEntity entity, float dt)
+    {
+    }
 }

@@ -7,7 +7,7 @@ namespace BodyCheck.Probes;
 
 /// <summary>
 /// Drives the player in the "Phase" room: onto the bump beside the left robot's pen, then, when the robot
-/// comes near, a phase straight up through it, drifting left to the ledge that only a phase reaches.
+/// comes near, a phase aimed straight up through it, drifting left to the ledge that only a phase reaches.
 /// Prints where the player and the robot go.
 /// </summary>
 public sealed class PhaseProbe : IProbe
@@ -42,7 +42,8 @@ public sealed class PhaseProbe : IProbe
                     $"velocity {_player.LinearVelocity.X:F2}, {_player.LinearVelocity.Y:F2}, on ground {_player.OnGround}; " +
                     $"robot {_robot.Position.X:F2}, {_robot.Position.Y:F2}, velocity {_robot.LinearVelocity.X:F2}, {_robot.LinearVelocity.Y:F2}");
             }
-            return new PlayerInput(-1, 0, false);
+            // Released aiming up, then drifting left.
+            return t == _phaseTick + 1 ? new PlayerInput(0, 1, false) : new PlayerInput(-1, 0, false);
         }
 
         if (t < 30)

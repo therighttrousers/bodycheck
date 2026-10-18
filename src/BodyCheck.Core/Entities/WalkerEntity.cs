@@ -82,6 +82,10 @@ public partial class WalkerEntity : Entity
 
     protected override void ReleaseMotors() => _motor.SetFlagX(Generic6DofJoint3D.Flag.EnableLinearMotor, false);
 
+    public override bool RequestsPause => Controller?.RequestsPause ?? false;
+
+    protected override void ControlPaused(float dt) => Controller?.ApplyPaused(this, dt);
+
     protected override void Control(float dt)
     {
         Controller?.Apply(this, dt);

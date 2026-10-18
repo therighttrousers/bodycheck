@@ -10,5 +10,9 @@ public partial class SimpleControlledEntity(BodyTuning tuning, Node3D? visual = 
     /// <summary>What decides the entity's actions each tick.</summary>
     public ICharacterController<SimpleControlledEntity>? Controller { get; set; }
 
+    public override bool RequestsPause => Controller?.RequestsPause ?? false;
+
     protected override void Control(float dt) => Controller?.Apply(this, dt);
+
+    protected override void ControlPaused(float dt) => Controller?.ApplyPaused(this, dt);
 }

@@ -58,7 +58,7 @@ public partial class WorldNode : Node3D
         {
             Entity entity = config.Kind switch
             {
-                EntityKind.Player => Player = CreatePlayer((EntityConfig.Player)config, visual(config.Kind, BodyTuning.Player), playerBody ?? BodyTuning.Player, PlayerTuning, Input),
+                EntityKind.Player => Player = CreatePlayer((EntityConfig.Player)config, visual(config.Kind, BodyTuning.Player), playerBody ?? BodyTuning.Player, PlayerController = new PlayerController(PlayerTuning, Input)),
                 EntityKind.Robot => CreateRobot((EntityConfig.Robot)config, visual(config.Kind, BodyTuning.Robot), robotTuning),
                 EntityKind.Platform => CreatePlatform((EntityConfig.Platform)config, visual(config.Kind, BodyTuning.Platform), platformTuning),
                 EntityKind.Block => CreateBlock((EntityConfig.Block)config, visual(config.Kind, BodyTuning.Block)),
@@ -73,11 +73,11 @@ public partial class WorldNode : Node3D
         Debug.Assert(Player is not null);
     }
 
-    private static WalkerEntity CreatePlayer(EntityConfig.Player config, Node3D visual, BodyTuning body, PlayerTuning tuning, Func<PlayerInput> input)
+    private static WalkerEntity CreatePlayer(EntityConfig.Player config, Node3D visual, BodyTuning body, PlayerController controller)
     {
         var player = new WalkerEntity(body, visual);
         player.AddChild(new OmniLight3D { OmniRange = 15, ShadowEnabled = true, Position = new Vector3(0, 0, 2) });
-        player.Controller = new PlayerController(tuning, input);
+        player.Controller = controller;
         return player;
     }
 
@@ -103,6 +103,7 @@ public partial class WorldNode : Node3D
 
     public WalkerEntity Player { get; } = null!;
     public PlayerTuning PlayerTuning { get; }
+    public PlayerController PlayerController { get; } = null!;
 
     /// <summary>
     /// Every entity in the world, in the order they are stepped, which is the order of the world's
@@ -119,6 +120,28 @@ public partial class WorldNode : Node3D
 
     /// <summary>Whether the controllers run. With this off, entities only coast, under drag and gravity.</summary>
     public bool ControllersEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Whether any entity's controller asks for the game to be paused. Whatever pauses the game for it calls
+    /// <see cref="StepPaused"/> each physics tick until nothing asks.
+    /// </summary>
+    public bool PauseRequested => _entities.Any(entity => entity.RequestsPause);
+
+    /// <summary>
+    /// Steps every entity's controller while the game is paused because a controller asked: call once per physics
+    /// tick then, in place of the world's own step. Nothing moves.
+    /// </summary>
+    public void StepPaused(float dt)
+    {
+        if (!ControllersEnabled)
+        {
+            return;
+        }
+        foreach (Entity entity in _entities)
+        {
+            entity.StepPaused(dt);
+        }
+    }
 
     public override void _PhysicsProcess(double delta)
     {
