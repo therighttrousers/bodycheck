@@ -8,7 +8,7 @@ namespace BodyCheck.Core.Controllers;
 /// <param name="YAxis">Vertical input, from -1 (down) to 1 (up).</param>
 public readonly record struct PlayerInput(float XAxis, float YAxis, bool JumpHeld, bool PhaseHeld = false)
 {
-    public bool CanLook => YAxis != 0 && XAxis == 0 && !JumpHeld;
+    public bool CanLook => YAxis != 0 && XAxis == 0 && !JumpHeld && !PhaseHeld;
 }
 
 /// <summary>What momentum a phase gives the entity phased through.</summary>
