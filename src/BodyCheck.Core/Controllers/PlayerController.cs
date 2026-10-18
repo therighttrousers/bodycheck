@@ -94,6 +94,8 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     private bool _phaseWasHeld;
     // A phase released, to be made on the next tick of play.
     private PhaseAim? _release;
+    // Where the target was from the player when the aim began, which the grab holds.
+    private Vector3 _grabOffset;
     private int _groundTicksLeft;
     private Vector3 _lastGroundVelocity = Vector3.Zero;
     private int _thrustTicksLeft;
@@ -147,7 +149,11 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         if (Aim is null && input.PhaseHeld && !_phaseWasHeld && entity.NearestEntity(Tuning.PhaseReach) is Entity target)
         {
             Aim = new PhaseAim(target, Vector3.Zero, Vector2.Zero);
-            Grab(entity, target);
+            _grabOffset = target.Position - entity.Position;
+        }
+        if (Aim is PhaseAim aim)
+        {
+            Grab(entity, aim.Target, dt);
         }
         UpdateAim(entity, input);
 
@@ -212,16 +218,24 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     }
 
     /// <summary>
-    /// Gives the player and the target the velocity of their center of mass, as in a perfectly inelastic collision, so
-    /// that they move together while the game slows down to the pause for aiming. Without it, they can drift far
-    /// apart before the phase. Momentum is conserved.
+    /// Holds the player and the target where they were from each other when the aim began, while they move together
+    /// at the velocity of their center of mass, as in a perfectly inelastic collision. Done on every tick of play while
+    /// a phase is aimed, so that they keep together while the game slows down to the pause, whatever else pushes on
+    /// them, such as gravity on a player beside a hovering platform. Without it, they can drift far apart before the
+    /// phase. Momentum is conserved: the impulses on the two are equal and opposite.
     /// </summary>
-    private static void Grab(Entity entity, Entity target)
+    private void Grab(Entity entity, Entity target, float dt)
     {
-        Vector3 velocity = (entity.Mass * entity.LinearVelocity + target.Mass * target.LinearVelocity)
-            / (entity.Mass + target.Mass);
-        entity.ApplyCentralImpulse(entity.Mass * (velocity - entity.LinearVelocity));
-        target.ApplyCentralImpulse(target.Mass * (velocity - target.LinearVelocity));
+        float totalMass = entity.Mass + target.Mass;
+        Vector3 velocity = (entity.Mass * entity.LinearVelocity + target.Mass * target.LinearVelocity) / totalMass;
+
+        // The relative velocity that takes back, over this step, how far they have drifted since the last. A step
+        // is 0 long at the end of the slowdown.
+        Vector3 drift = target.Position - entity.Position - _grabOffset;
+        Vector3 closing = dt > 0 ? -drift / dt : Vector3.Zero;
+
+        entity.ApplyCentralImpulse(entity.Mass * (velocity - target.Mass / totalMass * closing - entity.LinearVelocity));
+        target.ApplyCentralImpulse(target.Mass * (velocity + entity.Mass / totalMass * closing - target.LinearVelocity));
     }
 
     private static Vector3 CenterOfMass(Entity entity, Entity target) =>

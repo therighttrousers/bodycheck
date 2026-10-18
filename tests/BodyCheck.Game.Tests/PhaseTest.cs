@@ -138,6 +138,27 @@ public class PhaseTest
     }
 
     [TestCase]
+    public async Task WhileAimingThePlayerDoesntFallAwayFromAHoveringPlatform()
+    {
+        // The player starts in the air beside the platform, and aims at once.
+        _run = new RoomRun(RoomRun.RoomOf(
+            "############",
+            "#..........#",
+            "#P.H.......#",
+            "#..........#",
+            "#..........#",
+            "#..........#",
+            "############"));
+        Entity player = _run.Player;
+        Entity platform = _run.Node.EntitiesOf(EntityKind.Platform).Single();
+
+        await _run.Tick(AimNowhere);
+        float height = player.Position.Y - platform.Position.Y;
+        await _run.Tick(AimNowhere, 30);
+        AssertFloat(player.Position.Y - platform.Position.Y).IsEqualApprox(height, 0.05f);
+    }
+
+    [TestCase]
     public async Task ReleasingWithNoDirectionHeldCancels()
     {
         var (player, _) = await Start(
