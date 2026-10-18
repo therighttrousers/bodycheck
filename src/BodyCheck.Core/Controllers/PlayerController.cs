@@ -64,10 +64,11 @@ public sealed record PlayerTuning
     public int CoyoteTicks { get; init; } = 4;
 
     /// <summary>
-    /// How far the box of the entity phased through may be from the player's center. More than half the player's
-    /// diagonal (0.985 tiles for the player's box), so that everything touching the player is in reach.
+    /// How far the box of the entity phased through may be beyond a sphere around the player's center that just
+    /// contains the player's box, whose radius is half the player's diagonal. At least 0, so that everything touching
+    /// the player is in reach.
     /// </summary>
-    public float PhaseReach { get; init; } = 1.15f;
+    public float PhaseReach { get; init; } = 0.165f;
 
     /// <summary>
     /// How far apart the player's box and the box of the entity phased through end up, along the phase's direction.
@@ -151,7 +152,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         }
 
         // If nothing pauses the game for the aim, the player aims while it runs.
-        if (Aim is null && input.PhaseHeld && _phaseCooldown <= 0 && entity.NearestEntity(Tuning.PhaseReach) is Entity target)
+        if (Aim is null && input.PhaseHeld && _phaseCooldown <= 0 && entity.NearestEntity(entity.HalfSize.Length() + Tuning.PhaseReach) is Entity target)
         {
             Aim = new PhaseAim(target, Vector3.Zero, Vector2.Zero);
             _grabOffset = target.Position - entity.Position;
