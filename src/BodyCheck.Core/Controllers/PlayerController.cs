@@ -64,7 +64,7 @@ public sealed record PlayerTuning
     public int CoyoteTicks { get; init; } = 4;
 
     /// <summary>How far the box of the entity phased through may be from the player's box.</summary>
-    public float PhaseReach { get; init; } = 1;
+    public float PhaseReach { get; init; } = 0.25f;
 
     /// <summary>
     /// How far apart the player's box and the box of the entity phased through end up, along the phase's direction.
@@ -80,6 +80,9 @@ public sealed record PlayerTuning
     /// <summary>The speed the player leaves a phase with.</summary>
     public float PhaseSpeed { get; init; } = 16;
 
+    /// <summary>The minimum time between phase uses, according to the game clock.</summary>
+    public float PhaseCooldownTime { get; init; } = 0.5f;
+
     public PhaseThrow PhaseThrow { get; init; } = PhaseThrow.Fixed;
 }
 
@@ -91,7 +94,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     private readonly Func<PlayerInput> _input;
 
     private bool _jumpWasHeld;
-    private bool _phaseWasHeld;
+    private float _phaseCooldown;
     // A phase released, to be made on the next tick of play.
     private PhaseAim? _release;
     // Where the target was from the player when the aim began, which the grab holds.
@@ -130,7 +133,6 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         PlayerInput input = _input();
         UpdateAim(entity, input);
         _jumpWasHeld = input.JumpHeld;
-        _phaseWasHeld = input.PhaseHeld;
     }
 
     public void Apply(WalkerEntity entity, float dt)
@@ -146,10 +148,11 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         }
 
         // If nothing pauses the game for the aim, the player aims while it runs.
-        if (Aim is null && input.PhaseHeld && !_phaseWasHeld && entity.NearestEntity(Tuning.PhaseReach) is Entity target)
+        if (Aim is null && input.PhaseHeld && _phaseCooldown <= 0 && entity.NearestEntity(Tuning.PhaseReach) is Entity target)
         {
             Aim = new PhaseAim(target, Vector3.Zero, Vector2.Zero);
             _grabOffset = target.Position - entity.Position;
+            _phaseCooldown = Tuning.PhaseCooldownTime;
         }
         if (Aim is PhaseAim aim)
         {
@@ -184,7 +187,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         _groundTicksLeft = Math.Max(0, _groundTicksLeft - 1);
         _thrustTicksLeft = Math.Max(0, _thrustTicksLeft - 1);
         _jumpWasHeld = input.JumpHeld;
-        _phaseWasHeld = input.PhaseHeld;
+        _phaseCooldown = Math.Max(0, _phaseCooldown - dt);
     }
 
     /// <summary>
@@ -229,10 +232,11 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         float totalMass = entity.Mass + target.Mass;
         Vector3 velocity = (entity.Mass * entity.LinearVelocity + target.Mass * target.LinearVelocity) / totalMass;
 
-        // The relative velocity that takes back, over this step, how far they have drifted since the last. A step
-        // is 0 long at the end of the slowdown.
+        // The relative velocity that takes back how far they have drifted, over a step, but never over less than a
+        // tick's length at full speed. Steps shrink with the time scale as the game slows down, and dividing by a tiny
+        // one would give a velocity large enough to fling them both when play resumes.
         Vector3 drift = target.Position - entity.Position - _grabOffset;
-        Vector3 closing = dt > 0 ? -drift / dt : Vector3.Zero;
+        Vector3 closing = -drift / MathF.Max(dt, 1f / Engine.PhysicsTicksPerSecond);
 
         entity.ApplyCentralImpulse(entity.Mass * (velocity - target.Mass / totalMass * closing - entity.LinearVelocity));
         target.ApplyCentralImpulse(target.Mass * (velocity + entity.Mass / totalMass * closing - target.LinearVelocity));
@@ -312,8 +316,8 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     /// <summary>The nearest of the eight directions to <paramref name="direction"/>, whatever its length, as a unit vector.</summary>
     private static Vector2 EightWay(Vector2 direction)
     {
-        const float Step = MathF.PI / 4;
-        float angle = MathF.Round(direction.Angle() / Step) * Step;
+        const float step = MathF.PI / 4;
+        float angle = MathF.Round(direction.Angle() / step) * step;
         // Rounded, so that the axes are exactly zero.
         return new Vector2(MathF.Round(MathF.Cos(angle), 6), MathF.Round(MathF.Sin(angle), 6));
     }

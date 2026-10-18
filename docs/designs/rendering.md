@@ -10,6 +10,7 @@ Relevant decision records:
 - [011: Stitching LDtk levels into one world](../decision-records/011-stitched-levels.md)
 - [012: Subsystems in `BodyCheck.Core`](../decision-records/012-core-subsystems.md)
 - [014: Less disruptive looking](../decision-records/014-less-disruptive-looking.md)
+- [015: The phase ability](../decision-records/015-phase.md)
 
 The image is Mode X with modern lighting: 320x240 and 256 colours, as on a VGA card in the mid-1990s, drawn with anti-aliasing, shadows, ambient occlusion, reflections and bloom. Star Fox, Quake and Descent are the references for the geometry, and Mode X for the image (`003`).
 
@@ -28,7 +29,7 @@ A tile's face is 16x16 pixels at 320x240, so a screen is 20x15 tiles, the size o
 
 The camera is at the distance where a tile's front face is 16 pixels, whatever the size of the room (`009 §5.2`). At the other sizes the switches give, the view is the same 15 tiles high, so they show the same framing, not 16-pixel tiles.
 
-The camera follows the player with a lag, and its view is centred 3 tiles above the player, which puts the player 70% of the way down the screen (`010 §1`). Up and down, on the same inputs as moving, look up or down, but only while they are the only input: no moving and no jumping (`010 §1.3`, `014 §1.1`). After a hold of 0.5 seconds the view eases over 1 second to where the player's centre is 5.625 tiles from the view's, on the 1/8 or 7/8 line, partway for the left stick partway pushed; when any other input starts, it goes straight back, as fast as damping allows (`014 §1.2`, `§1.3`). Since this measures from the player and not from the 3-tile lift, looking up does little for now. It shows only the room: the view's centre is clamped so that the view at the tiles' front faces stays inside the room, and is centred on the room where the room is smaller than the view (`010 §2.1`, `§2.2`). A 20x15 room fills the view, so the camera doesn't move in it.
+The camera follows the player with a lag, and its view is centred 3 tiles above the player, which puts the player 70% of the way down the screen (`010 §1`). Up and down, on the same inputs as moving, look up or down, but only while they are the only input: no moving, no jumping and no phase held (`010 §1.3`, `014 §1.1`, `015 §5.15`). After a hold of 0.5 seconds the view eases over 1 second to where the player's centre is 5.625 tiles from the view's, on the 1/8 or 7/8 line, partway for the left stick partway pushed; when any other input starts, it goes straight back, as fast as damping allows (`014 §1.2`, `§1.3`). Since this measures from the player and not from the 3-tile lift, looking up does little for now. It shows only the room: the view's centre is clamped so that the view at the tiles' front faces stays inside the room, and is centred on the room where the room is smaller than the view (`010 §2.1`, `§2.2`). A 20x15 room fills the view, so the camera doesn't move in it.
 
 ## Palette
 

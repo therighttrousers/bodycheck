@@ -59,7 +59,7 @@ public sealed class PhaseProbe : IProbe
 
         // Wait on the bump for the robot.
         float gap = _player.Position.X - _player.HalfSize.X - (_robot.Position.X + _robot.HalfSize.X);
-        if (gap < 0.8f)
+        if (gap < 0.2f)
         {
             _phaseTick = t;
             GD.Print($"Phase at tick {t}: player {p.X:F2}, {p.Y:F2}; robot {_robot.Position.X:F2}, {_robot.Position.Y:F2}");

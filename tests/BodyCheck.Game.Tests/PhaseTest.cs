@@ -116,7 +116,7 @@ public class PhaseTest
     }
 
     [TestCase]
-    public async Task PressingPhaseGrabsTheTarget()
+    public async Task HoldingPhaseGrabsATargetThatComesInReach()
     {
         var (player, robot) = await Start(
             "####################",
@@ -124,15 +124,17 @@ public class PhaseTest
             "#..................#",
             "#.P.......R........#",
             "####################");
+        PlayerController controller = _run!.Node.PlayerController;
 
-        // Run at the robot until it is in reach.
-        for (int i = 0; i < 120 && robot.Left() - player.Right() > 0.9f; i++)
+        // Run at the robot holding phase, until the aim begins.
+        for (int i = 0; i < 120 && controller.Aim is null; i++)
         {
-            await _run!.Tick(RoomRun.Right);
+            await _run.Tick(AimRight);
         }
+        AssertObject(controller.Aim?.Target).IsSame(robot);
 
-        // They move together, at the velocity of their center of mass, from the step after the press.
-        await _run!.Tick(AimNowhere, 2);
+        // They move together, at the velocity of their center of mass, from the step after the grab.
+        await _run.Tick(AimRight);
         AssertFloat(player.LinearVelocity.X).IsGreater(1);
         AssertFloat(player.LinearVelocity.X - robot.LinearVelocity.X).IsEqualApprox(0, 0.5f);
     }
