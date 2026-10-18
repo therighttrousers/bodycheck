@@ -111,7 +111,11 @@ public partial class Entity : RigidBody3D
     /// <summary>The force that gravity puts on the entity where it is.</summary>
     public float Weight => Mass * -GetGravity().Y;
 
-    /// <summary>The nearest other entity whose box comes within <paramref name="gap"/> of this one's, as of the engine's last step.</summary>
+    /// <summary>
+    /// Of the other entities whose boxes come within <paramref name="gap"/> of this one's, the one whose box is nearest
+    /// this one's center, as of the engine's last step. Measured from the center, an entity beside this one is nearer
+    /// than one that only touches it at a corner.
+    /// </summary>
     public Entity? NearestEntity(float gap)
     {
         var halfSize = new Vector3(HalfSize.X + gap, HalfSize.Y + gap, Depth / 2);
@@ -120,7 +124,7 @@ public partial class Entity : RigidBody3D
             .MinBy(other =>
             {
                 Vector2 distance = new Vector2(Position.X, Position.Y) - new Vector2(other.Position.X, other.Position.Y);
-                Vector2 apart = (distance.Abs() - HalfSize - other.HalfSize).Max(Vector2.Zero);
+                Vector2 apart = (distance.Abs() - other.HalfSize).Max(Vector2.Zero);
                 return apart.LengthSquared();
             });
     }

@@ -140,6 +140,29 @@ public class PhaseTest
     }
 
     [TestCase]
+    public async Task RunningAtStackedRobotsGrabsTheBottomOne()
+    {
+        // The top robot lags a little behind the bottom one, so box to box it is nearer: its corner meets the
+        // player's head. Measured from the player's center, the bottom one is nearer.
+        _run = new RoomRun(RoomRun.RoomOf(
+            "############",
+            "#..........#",
+            "#......R...#",
+            "#..........#",
+            "#.P....R...#",
+            "############"));
+        Entity bottom = _run.Node.EntitiesOf(EntityKind.Robot).MinBy(robot => robot.Position.Y)!;
+        PlayerController controller = _run.Node.PlayerController;
+        await _run.Tick(RoomRun.Idle, 30);
+
+        for (int i = 0; i < 120 && controller.Aim is null; i++)
+        {
+            await _run.Tick(AimRight);
+        }
+        AssertObject(controller.Aim?.Target).IsSame(bottom);
+    }
+
+    [TestCase]
     public async Task WhileAimingThePlayerDoesntFallAwayFromAHoveringPlatform()
     {
         // The player starts in the air beside the platform, and aims at once.
