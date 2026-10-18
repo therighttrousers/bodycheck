@@ -39,9 +39,15 @@ Development doesn't make much use of Godot's editor because the game world is pr
 ## Controls
 
 - Move: A/D, arrow keys, or gamepad left stick or D-pad
+- Look up or down: W/S, arrow keys, or gamepad left stick or D-pad
 - Jump: Space, or gamepad A. Hold to jump higher.
-- Previous or next room: ','/'.' or gamepad left/right shoulder button
+- Map: Tab, or gamepad Back. Pauses the game and zooms out to show the whole world; press again to zoom back in.
+- Pause: Escape, or gamepad Start. There's no menu yet.
+- Previous or next world: ','/'.' or gamepad left/right shoulder button
 - F3: debug overlay on or off, with measurements for tuning and level design. Pass `--overlay` after `--` to start with it on.
+- F4: collision shapes as wireframes on or off. Pass `--shapes` after `--` to start with them on.
+
+The debug overlay, the wireframes and the rendering switches below work while the game is paused.
 
 Rendering switches, for judging the look. The window's title shows their state. The room named "Look" has shapes to judge it on.
 

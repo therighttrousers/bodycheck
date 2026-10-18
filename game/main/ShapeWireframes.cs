@@ -37,6 +37,12 @@ public partial class ShapeWireframes : Node2D
         Visible = false;
     }
 
+    public override void _Ready()
+    {
+        // Stay active when the game is paused.
+        ProcessMode = ProcessModeEnum.Always;
+    }
+
     public override void _UnhandledKeyInput(InputEvent @event)
     {
         if (@event is InputEventKey { Pressed: true, Echo: false, PhysicalKeycode: Key.F4 })
