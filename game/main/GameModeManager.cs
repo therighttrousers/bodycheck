@@ -114,7 +114,7 @@ public partial class GameModeManager : Node
         {
             // In real time, since the tween would otherwise slow itself down.
             _slowdown = CreateTween().SetIgnoreTimeScale();
-            _slowdown.TweenMethod(Callable.From<double>(scale => Engine.TimeScale = scale), 1.0, 0.0, SlowdownTime);
+            _slowdown.TweenMethod(Callable.From<double>(scale => Engine.TimeScale = scale), 1.0, 0.05, SlowdownTime);
             _slowdown.TweenCallback(Callable.From(() => SetGameMode(GameMode.Phasing)));
         }
         GameModeChanged?.Invoke(GameMode);
