@@ -35,7 +35,7 @@ Run and jump. See [movement.md](movement.md).
 ## Ability: phase
 
 - The player teleports to the other side of an object, and the object teleports too, the other way.
-- The target is chosen from the entities in reach: those whose boxes are within 0.25 tiles of the player's box beside it, overlapping its height, or above or below it, overlapping its width, but not off a corner. Of those, it is the one whose box is nearest the player's center (`015 §5.16`). Every kind of entity can be phased through (`015 §1.2`, `§1.3`).
+- The target is the entity whose box is nearest the player's center, if it is within the reach of 1.15 tiles: whatever a sphere of that radius around the player's center meets. The reach is more than half the player's diagonal, 0.985 tiles, so everything touching the player is in reach. It reaches 0.75 tiles beyond the player's sides and 0.25 above and below (`015 §5.16`). Every kind of entity can be phased through (`015 §1.2`, `§1.3`).
 - Phase is K or X on the keyboard, X on a gamepad (`015 §1.1`). Holding it with a target in reach, or coming within reach of one while holding it, fixes the target, holds the player and the target together, moving at the velocity of their center of mass, and pauses the game, slowing down to the pause over half a second, showing the target and an arrow in the direction held, for as long as it is held. Releasing it unpauses and phases in the direction held, or cancels with none (`015 §5.5`, `§5.6`, `§5.7`, `§5.15`).
 - A new aim can't begin until 0.5 seconds of game time after the last began, so that mashing phase can't ride a platform (`015 §5.15`).
 - The player's momentum is replaced: fixed magnitude, in one of eight directions chosen by player input (`015 §2.1`).
@@ -95,7 +95,7 @@ Phase:
 - Targeting is too easy in some places and too hard in others, and reach ignores tiles, so a target behind a wall is chosen, though every phase with it fails (`015 §5.8`, `§5.11`).
 - Should a spring draw the player and the target together while the game slows down to the pause? Likely wanted if the slowdown becomes 0.5 seconds; it would also shorten the teleport (`015 §5.13`).
 - A blocked phase gives the player no sign that it failed. That waits for effects (`015 §2.3`).
-- Tuning to be checked by playing: the reach of 0.25 tiles, the cooldown of 0.5 seconds, the gap of 0.5 tiles, the separation of at least 2.5 tiles, and the speed of 16 (`015 §3.1`, `§5.1`).
+- Tuning to be checked by playing: the reach of 1.15 tiles from the player's center, the cooldown of 0.5 seconds, the gap of 0.5 tiles, the separation of at least 2.5 tiles, and the speed of 16 (`015 §3.1`, `§5.1`).
 - Should other entities be allowed to overlap where a phase puts a body, for the engine to push them apart? To be measured first: overlapping walkers in particular may be pushed hard (`015 §5.3`).
 - Phasing straight down through a grounded target puts the player on the floor and sends the target up. What is that good for? Idea: a short fall stuns the target.
 - Should a phase launch the player faster off heavy or immovable targets? That would make turrets give bigger launches in general, and make phasing upward off a robot stronger than phasing sideways.

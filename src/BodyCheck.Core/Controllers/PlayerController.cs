@@ -63,8 +63,11 @@ public sealed record PlayerTuning
     /// </summary>
     public int CoyoteTicks { get; init; } = 4;
 
-    /// <summary>How far the box of the entity phased through may be from the player's box.</summary>
-    public float PhaseReach { get; init; } = 0.25f;
+    /// <summary>
+    /// How far the box of the entity phased through may be from the player's center. More than half the player's
+    /// diagonal (0.985 tiles for the player's box), so that everything touching the player is in reach.
+    /// </summary>
+    public float PhaseReach { get; init; } = 1.15f;
 
     /// <summary>
     /// How far apart the player's box and the box of the entity phased through end up, along the phase's direction.

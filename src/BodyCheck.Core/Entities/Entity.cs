@@ -112,18 +112,14 @@ public partial class Entity : RigidBody3D
     public float Weight => Mass * -GetGravity().Y;
 
     /// <summary>
-    /// Of the other entities in reach, the one whose box is nearest this one's center, as of the engine's last step.
-    /// An entity is in reach if its box comes within <paramref name="gap"/> of this one's beside it, overlapping its
-    /// height, or above or below it, overlapping its width. One that would only meet it at a corner is not.
+    /// The other entity whose box is nearest this one's center, if any is nearer than <paramref name="radius"/>, as of
+    /// the engine's last step. With a radius larger than half this entity's diagonal, every entity that touches this
+    /// one's box is in reach, wherever it touches.
     /// </summary>
-    public Entity? NearestEntity(float gap)
+    public Entity? NearestEntity(float radius)
     {
-        // A little less than the box on the other axis, so that boxes whose edges only touch don't overlap.
-        const float Clearance = 0.01f;
-        var beside = new Vector3(HalfSize.X + gap, HalfSize.Y - Clearance, Depth / 2);
-        var aboveOrBelow = new Vector3(HalfSize.X - Clearance, HalfSize.Y + gap, Depth / 2);
-        return Overlapping(Position, beside)
-            .Concat(Overlapping(Position, aboveOrBelow))
+        // A sphere meets a box exactly when the box's nearest point is within its radius of its center.
+        return Overlapping(new SphereShape3D { Radius = radius }, Position)
             .OfType<Entity>()
             .MinBy(other =>
             {
@@ -144,7 +140,7 @@ public partial class Entity : RigidBody3D
         // A little smaller than the box, so that touching isn't overlapping.
         const float Clearance = 0.01f;
         var halfSize = new Vector3(HalfSize.X - Clearance, HalfSize.Y - Clearance, Depth / 2);
-        if (Overlapping(position, halfSize).Any(collider => collider != partner))
+        if (Overlapping(new BoxShape3D { Size = 2 * halfSize }, position).Any(collider => collider != partner))
         {
             return false;
         }
@@ -186,12 +182,12 @@ public partial class Entity : RigidBody3D
         }
     }
 
-    /// <summary>The colliders, other than this entity, that overlap a box at a place.</summary>
-    private IEnumerable<GodotObject> Overlapping(Vector3 center, Vector3 halfSize)
+    /// <summary>The colliders, other than this entity, that overlap a shape centered at a place.</summary>
+    private IEnumerable<GodotObject> Overlapping(Shape3D shape, Vector3 center)
     {
         var query = new PhysicsShapeQueryParameters3D
         {
-            Shape = new BoxShape3D { Size = 2 * halfSize },
+            Shape = shape,
             Transform = new Transform3D(Basis.Identity, center),
             CollisionMask = CollisionMask,
             Exclude = [GetRid()],
