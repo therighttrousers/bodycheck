@@ -8,7 +8,7 @@ namespace BodyCheck;
 /// Draws every box collision shape in the game's viewport as a wireframe, over the game, so that a body's
 /// box can be compared with its model. F4 switches it on and off.
 /// <para>
-/// It reads the shapes and the camera from the engine each frame, so it draws whatever room is loaded. Like
+/// It reads the shapes and the camera from the engine each frame, so it draws whatever world is loaded. Like
 /// the <see cref="DebugOverlay"/>, it belongs in the window's own viewport, where it is drawn at the window's
 /// full resolution and the colour pass doesn't touch it.
 /// </para>

@@ -3,15 +3,15 @@ using System.Threading.Tasks;
 
 using BodyCheck.Core.Controllers;
 using BodyCheck.Core.Entities;
-using BodyCheck.Core.Rooms;
 using BodyCheck.Core.Simulation;
+using BodyCheck.Core.WorldData;
 
 using Godot;
 
 namespace BodyCheck.Game.Tests;
 
 /// <summary>
-/// One room loaded into the running engine for a test, with the player's input under the test's control.
+/// One room, as a world of one room, loaded into the running engine for a test, with the player's input under the test's control.
 /// Free it when the test ends.
 /// </summary>
 public sealed class RoomRun
@@ -24,7 +24,7 @@ public sealed class RoomRun
 
     public RoomRun(Room room, BodyTuning? playerBody = null, bool controllersEnabled = true)
     {
-        Node = new RoomNode(room, EntityVisuals.For, playerBody: playerBody)
+        Node = new WorldNode(new World(room), EntityVisuals.For, playerBody: playerBody)
         {
             PlayerInput = () => _input,
             ControllersEnabled = controllersEnabled,
@@ -32,7 +32,7 @@ public sealed class RoomRun
         Tree.Root.AddChild(Node);
     }
 
-    public RoomNode Node { get; }
+    public WorldNode Node { get; }
 
     public Entity Player => Node.Player;
 

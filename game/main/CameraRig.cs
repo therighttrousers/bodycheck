@@ -11,7 +11,7 @@ namespace BodyCheck;
 /// <summary>
 /// The camera, which Phantom Camera moves: its host on the <see cref="Camera3D"/> puts the camera where the one
 /// phantom camera is, and the phantom camera follows a target that this node moves each frame. The target is above
-/// the player, kept where the view shows only the room, as far as the room is bigger than the view.
+/// the player, kept where the view shows only the world, as far as the world is bigger than the view.
 /// </summary>
 public partial class CameraRig : Node3D
 {
@@ -24,14 +24,14 @@ public partial class CameraRig : Node3D
     /// </summary>
     private const float HalfHeight = 240f / Constants.TilePixels / 2;
 
-    /// <summary>How far above the player's centre the view's centre is, in tiles, when the room allows it.</summary>
+    /// <summary>How far above the player's centre the view's centre is, in tiles, when the world allows it.</summary>
     private const float Lift = 3;
     /// <summary>How far the camera target moves, in tiles, when the player looks up or down.</summary>
     private const float Look = 5;
 
     private readonly Node3D _target = new() { PhysicsInterpolationMode = PhysicsInterpolationModeEnum.Off };
     private PhantomCamera3D _phantomCamera = null!;
-    private RoomNode? _room;
+    private WorldNode? _world;
 
     public Camera3D Camera { get; } = new() { Fov = Fov, Current = true };
 
@@ -53,10 +53,10 @@ public partial class CameraRig : Node3D
         _phantomCamera.FollowTarget = _target;
     }
 
-    /// <summary>Follows the player of <paramref name="room"/>, from where the camera should be at once, undamped.</summary>
-    public void Follow(RoomNode room)
+    /// <summary>Follows the player of <paramref name="world"/>, from where the camera should be at once, undamped.</summary>
+    public void Follow(WorldNode world)
     {
-        _room = room;
+        _world = world;
         MoveTarget();
         _phantomCamera.Node3D.Call("teleport_position");
     }
@@ -66,27 +66,27 @@ public partial class CameraRig : Node3D
 
     private void MoveTarget()
     {
-        if (_room is null)
+        if (_world is null)
         {
             return;
         }
 
-        PlayerInput? input = _room.PlayerInput?.Invoke();
+        PlayerInput? input = _world.PlayerInput?.Invoke();
         float lookOffset = Look * (input?.Look ?? 0);
 
         // The player's interpolated position, since the target moves every frame and the player every physics tick.
-        Vector3 player = _room.Player.GetGlobalTransformInterpolated().Origin;
+        Vector3 player = _world.Player.GetGlobalTransformInterpolated().Origin;
         Vector2 viewport = GetViewport().GetVisibleRect().Size;
         float halfWidth = HalfHeight * viewport.X / viewport.Y;
         _target.GlobalPosition = new Vector3(
-            Clamp(player.X, halfWidth, _room.Tiles.Width),
-            Clamp(player.Y + Lift + lookOffset, HalfHeight, _room.Tiles.Height),
+            Clamp(player.X, halfWidth, _world.Tiles.Width),
+            Clamp(player.Y + Lift + lookOffset, HalfHeight, _world.Tiles.Height),
             0);
     }
 
     /// <summary>
     /// Keeps the view's centre where a view of <paramref name="half"/> either side of it stays between 0 and
-    /// <paramref name="size"/>, or in the middle when the room is smaller than the view.
+    /// <paramref name="size"/>, or in the middle when the world is smaller than the view.
     /// </summary>
     private static float Clamp(float centre, float half, float size) =>
         size <= 2 * half ? size / 2 : Mathf.Clamp(centre, half, size - half);

@@ -4,8 +4,8 @@ using System.Threading.Tasks;
 using BodyCheck.Core;
 using BodyCheck.Core.Controllers;
 using BodyCheck.Core.Entities;
-using BodyCheck.Core.Rooms;
 using BodyCheck.Core.Simulation;
+using BodyCheck.Core.WorldData;
 
 using GdUnit4;
 
@@ -25,11 +25,11 @@ public class RidingTest
     private static readonly PlayerInput Idle = new(0, 0, false);
     private static readonly PlayerInput Jump = new(0, 0, true);
 
-    private RoomNode _room = null!;
+    private WorldNode _world = null!;
     private PlayerInput _input;
 
-    private Entity Player => _room.Player;
-    private Entity Robot => _room.EntitiesOf(EntityKind.Robot).Single();
+    private Entity Player => _world.Player;
+    private Entity Robot => _world.EntitiesOf(EntityKind.Robot).Single();
 
     private static SceneTree Tree => (SceneTree)Engine.GetMainLoop();
 
@@ -37,13 +37,13 @@ public class RidingTest
     private async Task Start()
     {
         _input = Idle;
-        _room = new RoomNode(TestRoomLibrary.RobotRiding, EntityVisuals.For) { PlayerInput = () => _input };
-        Tree.Root.AddChild(_room);
+        _world = new WorldNode(new World(TestRoomLibrary.RobotRiding), EntityVisuals.For) { PlayerInput = () => _input };
+        Tree.Root.AddChild(_world);
         await Tick(Idle, 120);
     }
 
     [AfterTest]
-    public void TearDown() => _room.Free();
+    public void TearDown() => _world.Free();
 
     private async Task Tick(PlayerInput input, int ticks = 1)
     {

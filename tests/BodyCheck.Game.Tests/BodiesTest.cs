@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using BodyCheck.Core;
 using BodyCheck.Core.Controllers;
 using BodyCheck.Core.Entities;
-using BodyCheck.Core.Rooms;
+using BodyCheck.Core.WorldData;
 
 using GdUnit4;
 

@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace BodyCheck.Core.Rooms;
+namespace BodyCheck.Core.WorldData;
 
 /// <summary>
 /// Rooms for tests and probes. They measure one thing each and aren't meant for playing.

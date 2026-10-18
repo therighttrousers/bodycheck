@@ -1,5 +1,5 @@
 using BodyCheck.Core.Entities;
-using BodyCheck.Core.Rooms;
+using BodyCheck.Core.WorldData;
 
 using Godot;
 

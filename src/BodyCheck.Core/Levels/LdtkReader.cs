@@ -1,15 +1,16 @@
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 
-using BodyCheck.Core.Rooms;
+using BodyCheck.Core.WorldData;
 
 using Godot;
 
 namespace BodyCheck.Core.Levels;
 
 /// <summary>
-/// Reads the levels of an LDtk project, stitched together into one room, and checks everything it reads. Levels are
-/// 20x15 tiles, on a grid of that size; grid cells with no level are solid. A level has two layers:
+/// Reads the levels of an LDtk project into a world, one room per level, and checks everything it reads. Levels are
+/// 20x15 tiles, on a grid of that size; grid cells with no level are solid, as everything outside a world's rooms is. A
+/// level has two layers:
 /// <c>SolidGeometry</c>, an IntGrid in which every value but 0 is a solid tile, and <c>Characters</c>, whose entities
 /// start with the middle of their base at the middle of the bottom edge of their box in LDtk.
 /// </summary>
@@ -19,13 +20,15 @@ public static class LdtkReader
     private const string JsonVersionPrefix = "1.5.";
 
     /// <summary>
-    /// Reads every level of the project at <paramref name="projectPath"/> into one room, named after the project's file.
+    /// Reads every level of the project at <paramref name="projectPath"/> into a world, named after the project's file,
+    /// with a room for each level, named after the level. The levels are moved so that the leftmost and lowest are at
+    /// the world's origin.
     /// </summary>
     /// <param name="readFile">
     /// Reads a file's text, given its path. A level's file is found from its path relative to the project's directory.
     /// </param>
     /// <exception cref="InvalidDataException">When a file isn't what this reads, naming the file and what is wrong.</exception>
-    public static Room ReadWorld(string projectPath, Func<string, string> readFile)
+    public static World ReadWorld(string projectPath, Func<string, string> readFile)
     {
         LdtkProject project = Parse(projectPath, readFile(projectPath), LdtkJsonContext.Default.LdtkProject);
         if (!project.JsonVersion.StartsWith(JsonVersionPrefix, StringComparison.Ordinal))
@@ -62,38 +65,27 @@ public static class LdtkReader
         int left = cells.Min(cell => cell.X);
         int bottom = cells.Max(cell => cell.Y);
 
-        var tiles = new TileGrid(
-            (cells.Max(cell => cell.X) - left + 1) * Constants.LevelWidth,
-            (bottom - cells.Min(cell => cell.Y) + 1) * Constants.LevelHeight);
-        for (int y = 0; y < tiles.Height; y++)
-        {
-            for (int x = 0; x < tiles.Width; x++)
-            {
-                tiles.SetSolid(x, y, true);
-            }
-        }
-
         string directory = projectPath[..(projectPath.LastIndexOfAny(['/', '\\']) + 1)];
-        var entityConfigs = new List<EntityConfig>();
+        var rooms = new List<Room>();
         foreach (LdtkLevel level in project.Levels)
         {
             (int x, int y) = Cell(level);
             var origin = new Vector2I((x - left) * Constants.LevelWidth, (bottom - y) * Constants.LevelHeight);
             if (level.ExternalRelPath is null)
             {
-                AddLevel(projectPath, level, origin, tiles, entityConfigs);
+                rooms.Add(ReadLevel(projectPath, level, origin));
             }
             else
             {
                 string levelPath = directory + level.ExternalRelPath;
                 LdtkLevel external = Parse(levelPath, readFile(levelPath), LdtkJsonContext.Default.LdtkLevel);
-                AddLevel(levelPath, external, origin, tiles, entityConfigs);
+                rooms.Add(ReadLevel(levelPath, external, origin));
             }
         }
 
         try
         {
-            return new Room(Path.GetFileNameWithoutExtension(projectPath), tiles, entityConfigs);
+            return new World(Path.GetFileNameWithoutExtension(projectPath), rooms);
         }
         catch (ArgumentException e)
         {
@@ -103,12 +95,8 @@ public static class LdtkReader
 
     private static (int X, int Y) Cell(LdtkLevel level) => (level.WorldX / level.PxWid, level.WorldY / level.PxHei);
 
-    /// <summary>
-    /// Copies a level's tiles into <paramref name="tiles"/>, and its entities' configs into <paramref name="entityConfigs"/>,
-    /// with the level's bottom left tile at <paramref name="origin"/>.
-    /// </summary>
-    private static void AddLevel(
-        string path, LdtkLevel level, Vector2I origin, TileGrid tiles, List<EntityConfig> entityConfigs)
+    /// <summary>Reads a level into a room, named after the level, with its bottom left tile at <paramref name="origin"/>.</summary>
+    private static Room ReadLevel(string path, LdtkLevel level, Vector2I origin)
     {
         LdtkLayerInstance[] layers = level.LayerInstances
             ?? throw Invalid(path, $"Level '{level.Identifier}' has no layers.");
@@ -143,14 +131,16 @@ public static class LdtkReader
             throw Invalid(path, $"In level '{level.Identifier}', {solid.Identifier} has {solid.IntGridCsv.Length} "
                 + $"values for {Constants.LevelWidth * Constants.LevelHeight} cells.");
         }
+        var tiles = new TileGrid(Constants.LevelWidth, Constants.LevelHeight);
         for (int row = 0; row < Constants.LevelHeight; row++)
         {
             for (int x = 0; x < Constants.LevelWidth; x++)
             {
-                tiles.SetSolid(origin.X + x, origin.Y + Constants.LevelHeight - 1 - row, solid.IntGridCsv[row * Constants.LevelWidth + x] != 0);
+                tiles.SetSolid(x, Constants.LevelHeight - 1 - row, solid.IntGridCsv[row * Constants.LevelWidth + x] != 0);
             }
         }
 
+        var entityConfigs = new List<EntityConfig>();
         foreach (LdtkEntityInstance entity in characters.EntityInstances)
         {
             if (entity.Px.Length != 2 || entity.Pivot.Length != 2)
@@ -162,7 +152,7 @@ public static class LdtkReader
             // LDtk's y is down, from the top of the level, and the room's is up, from the bottom.
             float left = entity.Px[0] - entity.Pivot[0] * entity.Width;
             float bottom = entity.Px[1] + (1 - entity.Pivot[1]) * entity.Height;
-            Vector2 start = origin + new Vector2(
+            var start = new Vector2(
                 (left + entity.Width / 2f) / Constants.TilePixels,
                 Constants.LevelHeight - bottom / Constants.TilePixels
             );
@@ -174,6 +164,8 @@ public static class LdtkReader
                 LdtkEntityName.Block => new EntityConfig.Block(start),
             });
         }
+
+        return new Room(level.Identifier, origin, tiles, entityConfigs);
     }
 
     private static T Parse<T>(string path, string json, JsonTypeInfo<T> type)

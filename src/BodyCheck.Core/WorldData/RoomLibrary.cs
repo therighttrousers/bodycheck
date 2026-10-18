@@ -1,4 +1,4 @@
-namespace BodyCheck.Core.Rooms;
+namespace BodyCheck.Core.WorldData;
 
 /// <summary>
 /// The library of test rooms. Design docs and tests refer to these by name.
