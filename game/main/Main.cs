@@ -38,7 +38,7 @@ public partial class Main : Node
 {
     private const string LevelsPath = "res://levels/main.ldtk";
 
-    private GameModeManager _gameModeManager = new();
+    private readonly GameModeManager _gameModeManager = new();
     private IReadOnlyList<World> _worlds = null!;
     private int _worldIndex;
     private bool _mergeTiles = true;

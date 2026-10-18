@@ -37,17 +37,15 @@ public partial class CameraRig : Node3D
     /// <summary>How far the camera target moves, in tiles, when the player looks up or down.</summary>
     private const float Look = 5;
 
-    private readonly Node3D _target = new() { PhysicsInterpolationMode = PhysicsInterpolationModeEnum.Off };
-    private PhantomCamera3D _phantomCamera = null!;
-    private WorldNode? _world;
-
-    private Node3D _mapPhantom = null!;
-    private PhantomCamera3D _mapPhantomCamera = null!;
-
     /// <summary>The priority of the player's camera, which is above the map camera's when the map is closed.</summary>
     private const int CameraPriority = 50;
     /// <summary>The priority of the map camera, when it's enabled. Should be greater than all other priorities.</summary>
     private const int MapCameraPriority = 1000;
+
+    private readonly Node3D _target = new() { PhysicsInterpolationMode = PhysicsInterpolationModeEnum.Off };
+    private PhantomCamera3D _phantomCamera = null!;
+    private PhantomCamera3D _mapPhantomCamera = null!;
+    private WorldNode? _world;
 
     public Camera3D Camera { get; } = new() { Fov = Fov, Current = true };
 
@@ -73,10 +71,10 @@ public partial class CameraRig : Node3D
         _phantomCamera.Priority = CameraPriority;
         _phantomCamera.TweenDuration = 0.25f;
 
-        _mapPhantom = NewPhantomCameraNode<Node3D>("phantom_camera/phantom_camera_3d.gd");
-        _mapPhantom.Set("follow_mode", (int)FollowMode3D.None);
-        AddChild(_mapPhantom);
-        _mapPhantomCamera = _mapPhantom.AsPhantomCamera3D();
+        Node3D mapPhantom = NewPhantomCameraNode<Node3D>("phantom_camera/phantom_camera_3d.gd");
+        mapPhantom.Set("follow_mode", (int)FollowMode3D.None);
+        AddChild(mapPhantom);
+        _mapPhantomCamera = mapPhantom.AsPhantomCamera3D();
         _mapPhantomCamera.Priority = 0;
         _mapPhantomCamera.TweenDuration = 0.25f;
     }
@@ -118,11 +116,10 @@ public partial class CameraRig : Node3D
         float h = 0.5f * _world.Tiles.Height;
         float w = 0.5f * _world.Tiles.Width * viewport.Y / viewport.X;
         float mapDistance = Math.Max(h, w) / Mathf.Tan(Mathf.DegToRad(Fov / 2));
-        _mapPhantom.Position = new Vector3(
+        _mapPhantomCamera.Node3D.Position = new Vector3(
             0.5f * _world.Tiles.Width,
             0.5f * _world.Tiles.Height,
-            mapDistance + 0.5f
-        );
+            mapDistance + 0.5f);
     }
 
     private void MoveTarget()
