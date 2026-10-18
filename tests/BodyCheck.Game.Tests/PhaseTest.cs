@@ -142,8 +142,8 @@ public class PhaseTest
     [TestCase]
     public async Task RunningAtStackedRobotsGrabsTheBottomOne()
     {
-        // The top robot lags a little behind the bottom one, so box to box it is nearer: its corner meets the
-        // player's head. Measured from the player's center, the bottom one is nearer.
+        // The top robot is behind the bottom one, and lags further as they patrol, so its corner reaches the
+        // player's head first. Reach has no corners, so it isn't in reach until it is above the player.
         _run = new RoomRun(RoomRun.RoomOf(
             "############",
             "#..........#",
@@ -151,7 +151,9 @@ public class PhaseTest
             "#..........#",
             "#.P....R...#",
             "############"));
+        Entity top = _run.Node.EntitiesOf(EntityKind.Robot).MaxBy(robot => robot.Position.Y)!;
         Entity bottom = _run.Node.EntitiesOf(EntityKind.Robot).MinBy(robot => robot.Position.Y)!;
+        top.Position += new Vector3(-0.1f, 0, 0);
         PlayerController controller = _run.Node.PlayerController;
         await _run.Tick(RoomRun.Idle, 30);
 

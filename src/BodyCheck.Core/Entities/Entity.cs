@@ -112,14 +112,18 @@ public partial class Entity : RigidBody3D
     public float Weight => Mass * -GetGravity().Y;
 
     /// <summary>
-    /// Of the other entities whose boxes come within <paramref name="gap"/> of this one's, the one whose box is nearest
-    /// this one's center, as of the engine's last step. Measured from the center, an entity beside this one is nearer
-    /// than one that only touches it at a corner.
+    /// Of the other entities in reach, the one whose box is nearest this one's center, as of the engine's last step.
+    /// An entity is in reach if its box comes within <paramref name="gap"/> of this one's beside it, overlapping its
+    /// height, or above or below it, overlapping its width. One that would only meet it at a corner is not.
     /// </summary>
     public Entity? NearestEntity(float gap)
     {
-        var halfSize = new Vector3(HalfSize.X + gap, HalfSize.Y + gap, Depth / 2);
-        return Overlapping(Position, halfSize)
+        // A little less than the box on the other axis, so that boxes whose edges only touch don't overlap.
+        const float Clearance = 0.01f;
+        var beside = new Vector3(HalfSize.X + gap, HalfSize.Y - Clearance, Depth / 2);
+        var aboveOrBelow = new Vector3(HalfSize.X - Clearance, HalfSize.Y + gap, Depth / 2);
+        return Overlapping(Position, beside)
+            .Concat(Overlapping(Position, aboveOrBelow))
             .OfType<Entity>()
             .MinBy(other =>
             {

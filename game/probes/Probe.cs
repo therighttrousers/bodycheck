@@ -85,7 +85,7 @@ public static class Probe
             case "phase":
                 world = Load(RoomLibrary.Phase);
                 GD.Print("Phase probe:");
-                probe = new PhaseProbe(world.Player, world.EntitiesOf(EntityKind.Robot).First());
+                probe = new PhaseProbe(world.Player, world.PlayerController, world.EntitiesOf(EntityKind.Robot).First());
                 break;
             default:
                 throw new ArgumentException($"There is no probe named '{name}'.");

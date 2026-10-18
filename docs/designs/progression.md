@@ -35,7 +35,7 @@ Run and jump. See [movement.md](movement.md).
 ## Ability: phase
 
 - The player teleports to the other side of an object, and the object teleports too, the other way.
-- The target is chosen from the entities whose boxes are within 0.25 tiles of the player's box: the one whose box is nearest the player's center (`015 §5.16`). Every kind of entity can be phased through (`015 §1.2`, `§1.3`).
+- The target is chosen from the entities in reach: those whose boxes are within 0.25 tiles of the player's box beside it, overlapping its height, or above or below it, overlapping its width, but not off a corner. Of those, it is the one whose box is nearest the player's center (`015 §5.16`). Every kind of entity can be phased through (`015 §1.2`, `§1.3`).
 - Phase is K or X on the keyboard, X on a gamepad (`015 §1.1`). Holding it with a target in reach, or coming within reach of one while holding it, fixes the target, holds the player and the target together, moving at the velocity of their center of mass, and pauses the game, slowing down to the pause over half a second, showing the target and an arrow in the direction held, for as long as it is held. Releasing it unpauses and phases in the direction held, or cancels with none (`015 §5.5`, `§5.6`, `§5.7`, `§5.15`).
 - A new aim can't begin until 0.5 seconds of game time after the last began, so that mashing phase can't ride a platform (`015 §5.15`).
 - The player's momentum is replaced: fixed magnitude, in one of eight directions chosen by player input (`015 §2.1`).
