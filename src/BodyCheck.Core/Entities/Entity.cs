@@ -127,15 +127,16 @@ public partial class Entity : RigidBody3D
 
     /// <summary>
     /// Whether the entity could teleport to <paramref name="position"/>, as of the engine's last step: its box fits
-    /// there, and the line to it from <paramref name="from"/> crosses nothing but entities. So a teleport may pass
-    /// through other bodies, but not through walls.
+    /// there, and the line to it from where it is crosses nothing but entities. So a teleport may pass through
+    /// other bodies, but not through walls.
     /// </summary>
-    public bool CanTeleport(Vector3 from, Vector3 position)
+    /// <param name="partner">An entity that teleports at the same time, which is out of the way.</param>
+    public bool CanTeleport(Vector3 position, Entity? partner = null)
     {
         // A little smaller than the box, so that touching isn't overlapping.
         const float Clearance = 0.01f;
         var halfSize = new Vector3(HalfSize.X - Clearance, HalfSize.Y - Clearance, Depth / 2);
-        if (Overlapping(position, halfSize).Any())
+        if (Overlapping(position, halfSize).Any(collider => collider != partner))
         {
             return false;
         }
@@ -143,7 +144,7 @@ public partial class Entity : RigidBody3D
         var exclude = new Godot.Collections.Array<Rid> { GetRid() };
         while (true)
         {
-            var ray = PhysicsRayQueryParameters3D.Create(from, position, CollisionMask, exclude);
+            var ray = PhysicsRayQueryParameters3D.Create(Position, position, CollisionMask, exclude);
             var hit = GetWorld3D().DirectSpaceState.IntersectRay(ray);
             if (hit.Count == 0)
             {

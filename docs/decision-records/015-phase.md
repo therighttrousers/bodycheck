@@ -34,12 +34,15 @@ Anti-goals: visual or sound effects, animation, damage, stun, turrets, dead NPCs
   - (b) The way the player faces.
   - (c) No phase.
   - Leaning (Claude): (a).
+  - Superseded by §5.6: with no direction held, a phase is cancelled.
 - [x] 2.2 The distance. Fixed, from the target's center, as progression.md says: 2.5 tiles to start with. That clears the player's box from every entity there is, in every direction: a robot needs 1.8 vertically, a platform 1.8 horizontally.
+  - Superseded by §5.1: the player and the target are placed as a pair, at a separation that depends on their sizes.
 - [x] 2.3 When is the destination blocked, and what then? Decision (Neil): (a). Blocked: the player's box at the destination overlaps tiles or any other entity, or the line from the target's center to the destination crosses a tile, so that a phase never passes through a wall.
   - (a) Nothing happens: no teleport, no change in momentum, no throw.
   - (b) The player goes to the nearest place that is free.
   - (c) The player goes as far along the line as is free.
   - Leaning (Claude): (a). It is predictable, and (b) and (c) can put the player somewhere it didn't aim, or back inside the target. Telling the player that a phase failed waits for effects.
+  - Superseded by §5.2 and §5.3: the pair slides to fit, and a phase still never crosses tiles.
 
 ## 3. Momentum
 
@@ -55,3 +58,23 @@ Anti-goals: visual or sound effects, animation, damage, stun, turrets, dead NPCs
 - [~] 4.2 When the teleport happens. Setting a body's position moves it at once, so a controller stepped later in the same tick would see the player where it went, unlike forces and impulses (`005 §3.4`). Leaning (Claude): the entity holds the destination until every entity has been stepped, and sets it then, before the engine's step, so that what controllers decide still doesn't depend on the order they run in.
   - As built: the entity sets its position in its own `_PhysicsProcess`, which Godot runs after the room's, since the room is its parent. It also resets physics interpolation, so the player isn't drawn sliding from where it was to where it went.
   - Not tried: setting the transform from `_IntegrateForces`. Interpolation would have to be reset after the engine's step, which nothing calls back for.
+
+## 5. After playing it
+
+Neil played the first version on 2026-10-18. Kept: phasing through everything, though platforms add a lot of height and are to be watched in tuning; the speed; horizontal phases through robots, which give them a big kick; the teleport deferred until every entity is stepped; the teleport itself, since phase is to get the player past things it couldn't pass before, such as an immovable entity in its way. Reconsidered: what happens when there is no room for the player, which kept phasing down through a robot from throwing it up, or diagonally down from throwing it into a pit; where the target goes; how the distance is chosen; the jarring cut of the teleport; and that the input choosing the direction means something else just before the phase. Ori's bash, which inspired phase, pauses the game while its button is held and acts on release, showing an arrow, so the player has as long as it likes to choose a direction or cancel.
+
+- [x] 5.1 Where the player and the target go. Decision (Neil): they teleport as a pair, keeping their center of mass. Afterwards they are on the line through their center of mass in the phase's direction, the player ahead of it and the target behind, so each moves in proportion to the other's mass: a target twice the player's mass moves a third of the way, and the player two thirds. Each also moves across that line, to meet it, unless the player was head on.
+  - Considered: keeping each body's position across the line, and moving only along it. Also keeps the center of mass, but then the result depends on where in reach the player was, and there is no one line to draw an arrow on.
+  - The separation along the line is what clears the two boxes in that direction, plus a gap, but at least a minimum. With a minimum of 2.5 tiles, every entity there is gets the separation that §2.2 had; the size matters for larger ones, such as turrets.
+- [x] 5.2 When the pair doesn't fit. Decision (Neil): slide it along the line, the nearest first, as far as the separation either way. The center of mass then moves, by the slide. Phasing down through a robot on the floor then swaps them: the player lands where the robot stood, and the robot is put above it, and thrown up. Only if nowhere in that range fits does nothing happen.
+- [x] 5.3 What blocks. Decision (Neil): a phase never crosses tiles. Each body's box must fit where it goes, and the line from where it is to where it goes must cross no tiles; other entities don't block the lines.
+  - For now, other entities block where a body goes, as tiles do. Letting them overlap and be pushed apart by the engine may do instead, once measured: overlapping bodies, and walkers with continuous collision detection in particular, could be pushed hard.
+- [x] 5.4 The cut. Decision (Neil): the teleport stays instant. Continuity is for what is drawn, in a later change: an effect from start to end, or the model following the body over a few frames.
+- [ ] 5.5 Aiming. Decision (Neil): pressing phase with a target in reach fixes the target, and pauses the game; releasing it fixes the direction, unpauses and phases. Open: how the pause works.
+  - (a) The tree's pause, as the menu and the map use, with a new `GameMode`, `Phasing`, in `GameModeManager`. Whatever cares which pause it is asks the manager. Everything that moves stops, animations included. The player's controller isn't stepped then, so something that processes while paused reads the input for it, and the controller doesn't set the pause itself.
+  - (b) A freeze of the world's own: it stops stepping entities and the physics space, and keeps stepping the player's controller. Animations keep running.
+  - Leaning (Neil and Claude): (a).
+- [x] 5.6 Cancelling. Decision (Neil): releasing phase with no direction held cancels it.
+- [x] 5.7 What the player sees while aiming. Decision (Neil): a placeholder arrow and a mark on the target, with the arrow centered on the pair's center of mass, to start with. Real effects are for a later change.
+- [x] 5.8 Targeting. It is too easy to get a target in reach in some places and too hard in others. Decision (Neil): put off until the rest of this section is done.
+- [x] 5.9 Order: §5.1 to §5.3, then aiming (§5.5 to §5.7) with the placeholder, in this change. Effects and targeting in later ones.

@@ -21,6 +21,7 @@ namespace BodyCheck.Game.Tests;
 public class PhaseTest
 {
     private static readonly PlayerInput PhaseRight = new(1, 0, false, PhaseHeld: true);
+    private static readonly PlayerInput PhaseDown = new(0, -1, false, PhaseHeld: true);
     private static readonly PlayerInput PhaseThrough = new(0, 0, false, PhaseHeld: true);
 
     private RoomRun? _run;
@@ -43,7 +44,7 @@ public class PhaseTest
     }
 
     [TestCase]
-    public async Task PhaseLandsTheFixedDistanceAwayAndThrowsTheTargetBack()
+    public async Task PhaseKeepsTheCenterOfMassAndThrowsTheTargetBack()
     {
         var (player, robot) = await Start(
             "####################",
@@ -52,11 +53,13 @@ public class PhaseTest
             "#..PR..............#",
             "####################");
         PlayerTuning tuning = _run!.Node.PlayerTuning;
-        float robotX = robot.Position.X;
+        // The player and the robot have the same mass.
+        float center = (player.Position.X + robot.Position.X) / 2;
 
         // The teleport and the impulses take effect in the step after the press.
         await _run.Tick(PhaseRight);
-        AssertFloat(player.Position.X).IsEqualApprox(robotX + tuning.PhaseDistance, 0.5f);
+        AssertFloat(player.Position.X).IsEqualApprox(center + tuning.PhaseMinSeparation / 2, 0.5f);
+        AssertFloat(robot.Position.X).IsEqualApprox(center - tuning.PhaseMinSeparation / 2, 0.5f);
         AssertFloat(player.LinearVelocity.X).IsEqualApprox(tuning.PhaseSpeed, 0.5f);
         AssertFloat(player.LinearVelocity.Y).IsEqualApprox(0, 0.5f);
         AssertFloat(robot.LinearVelocity.X).IsLess(-1);
@@ -64,6 +67,26 @@ public class PhaseTest
         // Held, it doesn't phase again.
         await _run.Tick(PhaseRight, 5);
         AssertFloat(player.LinearVelocity.X).IsGreater(tuning.PhaseSpeed - 1);
+    }
+
+    [TestCase]
+    public async Task PhaseDownThroughARobotOnTheFloorSwapsThem()
+    {
+        var (player, robot) = await Start(
+            "##########",
+            "#........#",
+            "#........#",
+            "#........#",
+            "#........#",
+            "#..PR....#",
+            "##########");
+        float floor = player.Bottom();
+
+        // There is no room below the robot, so the pair slides up until the player fits where the robot stood.
+        await _run!.Tick(PhaseDown);
+        AssertFloat(player.Bottom()).IsEqualApprox(floor, 0.5f);
+        AssertFloat(robot.Bottom()).IsGreater(player.Top());
+        AssertFloat(robot.LinearVelocity.Y).IsGreater(1);
     }
 
     [TestCase]

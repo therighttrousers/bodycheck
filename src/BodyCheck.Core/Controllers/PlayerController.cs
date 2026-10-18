@@ -59,8 +59,16 @@ public sealed record PlayerTuning
     /// <summary>How far the box of the entity phased through may be from the player's box.</summary>
     public float PhaseReach { get; init; } = 1;
 
-    /// <summary>How far from the center of the entity phased through the player's center ends up.</summary>
-    public float PhaseDistance { get; init; } = 2.5f;
+    /// <summary>
+    /// How far apart the player's box and the box of the entity phased through end up, along the phase's direction.
+    /// </summary>
+    public float PhaseGap { get; init; } = 0.5f;
+
+    /// <summary>The least distance between the centers of the player and the entity phased through, after a phase.</summary>
+    public float PhaseMinSeparation { get; init; } = 2.5f;
+
+    /// <summary>How far the player and the entity phased through may slide, as a fraction of their separation, to fit.</summary>
+    public float PhaseMaxSlide { get; init; } = 1;
 
     /// <summary>The speed the player leaves a phase with.</summary>
     public float PhaseSpeed { get; init; } = 16;
@@ -138,8 +146,10 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     }
 
     /// <summary>
-    /// Phases through the nearest entity in reach, if the player fits on its other side: teleports there, in
-    /// the direction of input, and leaves at a fixed speed in that direction, throwing the entity the other way.
+    /// Phases through the nearest entity in reach, if they fit: the player and the entity teleport as a pair,
+    /// keeping their center of mass, onto the line through it in the direction of input, the player ahead of it and
+    /// the entity behind. If they don't fit there, they slide along the line, the nearest first. The player leaves
+    /// at a fixed speed in that direction, and the entity is thrown the other way.
     /// </summary>
     /// <returns>Whether the player phased.</returns>
     private bool TryPhase(WalkerEntity entity, PlayerInput input)
@@ -157,14 +167,54 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             : new Vector2(target.Position.X - entity.Position.X, target.Position.Y - entity.Position.Y));
         var direction3 = new Vector3(direction.X, direction.Y, 0);
 
-        Vector3 destination = target.Position + Tuning.PhaseDistance * direction3;
-        if (!entity.CanTeleport(target.Position, destination))
-        {
-            return false;
-        }
+        // Each moves in proportion to the other's mass.
+        float totalMass = entity.Mass + target.Mass;
+        Vector3 center = (entity.Mass * entity.Position + target.Mass * target.Position) / totalMass;
+        float separation = Separation(entity, target, direction);
+        Vector3 playerOffset = target.Mass / totalMass * separation * direction3;
+        Vector3 targetOffset = -entity.Mass / totalMass * separation * direction3;
 
-        entity.Teleport(destination);
-        Vector3 momentum = entity.Mass * Tuning.PhaseSpeed * direction3;
+        // The nearest slide first: 0, +1, -1, +2, -2, ... steps.
+        const float SlideStep = 1f / 16;
+        int slides = (int)(Tuning.PhaseMaxSlide * separation / SlideStep);
+        for (int i = 0; i <= 2 * slides; i++)
+        {
+            float slide = (i + 1) / 2 * (i % 2 == 1 ? 1 : -1) * SlideStep;
+            Vector3 playerDestination = center + slide * direction3 + playerOffset;
+            Vector3 targetDestination = center + slide * direction3 + targetOffset;
+            if (entity.CanTeleport(playerDestination, target) && target.CanTeleport(targetDestination, entity))
+            {
+                Phase(entity, target, playerDestination, targetDestination, direction3);
+                if (direction.X != 0)
+                {
+                    entity.Facing = MathF.Sign(direction.X);
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// How far apart the centers of the player and the target end up: enough to clear their boxes in the
+    /// direction of the phase, plus a gap, but at least the minimum.
+    /// </summary>
+    private float Separation(Entity entity, Entity target, Vector2 direction)
+    {
+        Vector2 halfSizes = entity.HalfSize + target.HalfSize;
+        // Along a diagonal, the boxes clear when they clear on either axis, whichever comes first.
+        float clear = MathF.Min(
+            direction.X == 0 ? float.PositiveInfinity : halfSizes.X / MathF.Abs(direction.X),
+            direction.Y == 0 ? float.PositiveInfinity : halfSizes.Y / MathF.Abs(direction.Y));
+        return MathF.Max(clear + Tuning.PhaseGap, Tuning.PhaseMinSeparation);
+    }
+
+    private void Phase(Entity entity, Entity target, Vector3 playerDestination, Vector3 targetDestination, Vector3 direction)
+    {
+        entity.Teleport(playerDestination);
+        target.Teleport(targetDestination);
+
+        Vector3 momentum = entity.Mass * Tuning.PhaseSpeed * direction;
         Vector3 impulse = momentum - entity.Mass * entity.LinearVelocity;
         entity.ApplyCentralImpulse(impulse);
         target.ApplyCentralImpulse(Tuning.PhaseThrow switch
@@ -172,12 +222,6 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             PhaseThrow.Fixed => -momentum,
             PhaseThrow.Conserved => -impulse,
         });
-
-        if (direction.X != 0)
-        {
-            entity.Facing = MathF.Sign(direction.X);
-        }
-        return true;
     }
 
     /// <summary>The nearest of the eight directions to <paramref name="direction"/>, whatever its length, as a unit vector.</summary>

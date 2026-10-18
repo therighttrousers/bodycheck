@@ -34,13 +34,15 @@ Run and jump. See [movement.md](movement.md).
 
 ## Ability: phase
 
-- The player teleports to the other side of an object.
+- The player teleports to the other side of an object, and the object teleports too, the other way.
 - The target is the nearest entity whose box is within 1 tile of the player's box. Every kind of entity can be phased through (`015 §1.2`, `§1.3`).
 - Phase acts on a press only: K or X on the keyboard, X on a gamepad (`015 §1.1`).
 - The player's momentum is replaced: fixed magnitude, in one of eight directions chosen by player input. With no direction held, the direction is from the player through the target's center, snapped to the nearest of the eight (`015 §2.1`).
-- The player's position is replaced: a fixed distance from the object's center, in the direction of the new momentum. The distance, 2.5 tiles, clears every entity in every direction (`015 §2.2`).
+- The player and the target teleport as a pair, keeping their center of mass. They end on the line through it in the direction of the new momentum, the player ahead and the target behind, so each moves in proportion to the other's mass (`015 §5.1`).
+- They end far enough apart to clear their boxes in that direction, plus a gap of 0.5 tiles, but at least 2.5 tiles apart, center to center. For every entity there is now, that is 2.5 tiles (`015 §5.1`).
+- If either doesn't fit, the pair slides along the line, the nearest place first, as far as their separation either way. Phasing down through a robot on the floor swaps them, and throws the robot up (`015 §5.2`).
 - The new speed is 16 tiles per second. Phasing straight up off a robot on the floor reaches a ledge 6 tiles up (`015 §3.1`).
-- A phase is blocked if the player's box doesn't fit at the destination, or a tile lies on the line from the target's center to the destination, so a phase never crosses a wall. A blocked phase does nothing at all (`015 §2.3`).
+- A phase never crosses tiles: each body's box must fit where it goes, without overlapping tiles or other entities, and the line from where it is to where it goes must cross no tiles. If nowhere within the slide fits, the phase does nothing at all (`015 §5.3`).
 - A movable object is thrown backwards, opposite to the player's exit direction. Lighter objects are thrown farther.
 - A phase ends a jump's thrust and coyote time.
 - Try it in the test room "Phase".
@@ -90,7 +92,8 @@ Where these appear in the progression is undecided.
 Phase:
 - What momentum does the target receive? Option: the opposite of the player's new momentum, so every phase throws the same, but total momentum is not conserved. Option: the opposite of the player's change in momentum, which is conserved, and makes the throw depend on how the player was moving. To be decided by trying both: both are built, chosen by `PlayerTuning.PhaseThrow`, and the first is the default (`015 §3.2`).
 - A blocked phase gives the player no sign that it failed. That waits for effects (`015 §2.3`).
-- Tuning to be checked by playing: the reach of 1 tile, the distance of 2.5 tiles and the speed of 16 (`015 §3.1`).
+- Tuning to be checked by playing: the reach of 1 tile, the gap of 0.5 tiles, the separation of at least 2.5 tiles, and the speed of 16 (`015 §3.1`, `§5.1`).
+- Should other entities be allowed to overlap where a phase puts a body, for the engine to push them apart? To be measured first: overlapping walkers in particular may be pushed hard (`015 §5.3`).
 - Phasing straight down through a grounded target puts the player on the floor and sends the target up. What is that good for? Idea: a short fall stuns the target.
 - Should a phase launch the player faster off heavy or immovable targets? That would make turrets give bigger launches in general, and make phasing upward off a robot stronger than phasing sideways.
 - Should dead NPCs remain as objects that can be phased through and boosted off?
