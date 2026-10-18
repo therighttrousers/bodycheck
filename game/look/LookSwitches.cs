@@ -63,7 +63,13 @@ public partial class LookSwitches : Node
         }
     }
 
-    public override void _Ready() => Apply();
+    public override void _Ready()
+    {
+        // Stay active when the game is paused.
+        ProcessMode = ProcessModeEnum.Always;
+
+        Apply();
+    }
 
     public override void _UnhandledKeyInput(InputEvent @event)
     {

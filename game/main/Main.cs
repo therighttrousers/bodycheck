@@ -24,6 +24,10 @@ namespace BodyCheck;
 /// switch to the previous and next world.
 /// </para>
 /// <para>
+/// Escape and Tab, or the gamepad's Start and Back, open and close the menu and the map (see
+/// <see cref="GameModeManager"/>), which pause the game. The camera, and the debug tools, work while it's paused.
+/// </para>
+/// <para>
 /// User arguments, after "--" on the command line: a world's name; "--tiles=single" for one collider per
 /// tile instead of merged boxes; "--probe=" and a probe's name to run that probe and quit; "--overlay" to
 /// start with the <see cref="DebugOverlay"/> showing; "--shapes" to start with the <see cref="ShapeWireframes"/> showing.
@@ -34,6 +38,7 @@ public partial class Main : Node
 {
     private const string LevelsPath = "res://levels/main.ldtk";
 
+    private readonly GameModeManager _gameModeManager = new();
     private IReadOnlyList<World> _worlds = null!;
     private int _worldIndex;
     private bool _mergeTiles = true;
@@ -55,6 +60,9 @@ public partial class Main : Node
         AddChild(_shapes);
         AddChild(_overlay);
         _worlds = [LdtkReader.ReadWorld(LevelsPath, ReadFile), .. RoomLibrary.All.Select(room => new World(room))];
+
+        _gameModeManager.GameModeChanged += _cameraRig.OnGameModeChanged;
+        AddChild(_gameModeManager);
 
         string? worldName = null;
         string? probeName = null;
@@ -228,6 +236,12 @@ public partial class Main : Node
         AddAction("previous_world",
             new InputEventKey { PhysicalKeycode = Key.Comma },
             new InputEventJoypadButton { ButtonIndex = JoyButton.LeftShoulder });
+        AddAction("menu",
+            new InputEventKey { PhysicalKeycode = Key.Escape },
+            new InputEventJoypadButton { ButtonIndex = JoyButton.Start });
+        AddAction("map",
+            new InputEventKey { PhysicalKeycode = Key.Tab },
+            new InputEventJoypadButton { ButtonIndex = JoyButton.Back });
     }
 
     private static void AddAction(string name, params InputEvent[] events)
