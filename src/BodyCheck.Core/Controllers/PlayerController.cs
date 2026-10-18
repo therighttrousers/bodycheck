@@ -6,7 +6,16 @@ namespace BodyCheck.Core.Controllers;
 
 /// <param name="Move">Horizontal input, from -1 (left) to 1 (right).</param>
 /// <param name="Look">Vertical input, from -1 (down) to 1 (up).</param>
-public readonly record struct PlayerInput(float Move, float Look, bool JumpHeld);
+public readonly record struct PlayerInput(float Move, float Look, bool JumpHeld, bool PhaseHeld = false);
+
+/// <summary>What momentum a phase gives the entity phased through.</summary>
+public enum PhaseThrow
+{
+    /// <summary>The opposite of the player's new momentum, so every phase throws the same.</summary>
+    Fixed,
+    /// <summary>The opposite of the player's change in momentum, so momentum is conserved.</summary>
+    Conserved,
+}
 
 public sealed record PlayerTuning
 {
@@ -43,6 +52,17 @@ public sealed record PlayerTuning
     /// Number of frames the player gets to jump, or turn around with ground thrust, *after* running off an edge.
     /// </summary>
     public int CoyoteTicks { get; init; } = 4;
+
+    /// <summary>How far the box of the entity phased through may be from the player's box.</summary>
+    public float PhaseReach { get; init; } = 1;
+
+    /// <summary>How far from the center of the entity phased through the player's center ends up.</summary>
+    public float PhaseDistance { get; init; } = 2.5f;
+
+    /// <summary>The speed the player leaves a phase with.</summary>
+    public float PhaseSpeed { get; init; } = 16;
+
+    public PhaseThrow PhaseThrow { get; init; } = PhaseThrow.Fixed;
 }
 
 /// <summary>
@@ -53,6 +73,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     private readonly Func<PlayerInput> _input;
 
     private bool _jumpWasHeld;
+    private bool _phaseWasHeld;
     private int _groundTicksLeft;
     private Vector3 _lastGroundVelocity = Vector3.Zero;
     private int _thrustTicksLeft;
@@ -84,8 +105,16 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             _lastGroundVelocity = entity.GroundVelocity;
         }
 
-        ApplyRun(entity, move, weight);
-        ApplyJump(entity, input.JumpHeld, weight);
+        if (input.PhaseHeld && !_phaseWasHeld && TryPhase(entity, input))
+        {
+            _groundTicksLeft = 0;
+            _thrustTicksLeft = 0;
+        }
+        else
+        {
+            ApplyRun(entity, move, weight);
+            ApplyJump(entity, input.JumpHeld, weight);
+        }
 
         // Set animation variables
         entity.IsGrounded = _groundTicksLeft > 0;
@@ -102,6 +131,59 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         _groundTicksLeft = Math.Max(0, _groundTicksLeft - 1);
         _thrustTicksLeft = Math.Max(0, _thrustTicksLeft - 1);
         _jumpWasHeld = input.JumpHeld;
+        _phaseWasHeld = input.PhaseHeld;
+    }
+
+    /// <summary>
+    /// Phases through the nearest entity in reach, if the player fits on its other side: teleports there, in
+    /// the direction of input, and leaves at a fixed speed in that direction, throwing the entity the other way.
+    /// </summary>
+    /// <returns>Whether the player phased.</returns>
+    private bool TryPhase(WalkerEntity entity, PlayerInput input)
+    {
+        Entity? target = entity.NearestEntity(Tuning.PhaseReach);
+        if (target is null)
+        {
+            return false;
+        }
+
+        // With no direction held, the other side is straight through the target.
+        var held = new Vector2(input.Move, input.Look);
+        Vector2 direction = EightWay(held.Length() >= 0.5f
+            ? held
+            : new Vector2(target.Position.X - entity.Position.X, target.Position.Y - entity.Position.Y));
+        var direction3 = new Vector3(direction.X, direction.Y, 0);
+
+        Vector3 destination = target.Position + Tuning.PhaseDistance * direction3;
+        if (!entity.CanTeleport(target.Position, destination))
+        {
+            return false;
+        }
+
+        entity.Teleport(destination);
+        Vector3 momentum = entity.Mass * Tuning.PhaseSpeed * direction3;
+        Vector3 impulse = momentum - entity.Mass * entity.LinearVelocity;
+        entity.ApplyCentralImpulse(impulse);
+        target.ApplyCentralImpulse(Tuning.PhaseThrow switch
+        {
+            PhaseThrow.Fixed => -momentum,
+            PhaseThrow.Conserved => -impulse,
+        });
+
+        if (direction.X != 0)
+        {
+            entity.Facing = MathF.Sign(direction.X);
+        }
+        return true;
+    }
+
+    /// <summary>The nearest of the eight directions to <paramref name="direction"/>, whatever its length, as a unit vector.</summary>
+    private static Vector2 EightWay(Vector2 direction)
+    {
+        const float Step = MathF.PI / 4;
+        float angle = MathF.Round(direction.Angle() / Step) * Step;
+        // Rounded, so that the axes are exactly zero.
+        return new Vector2(MathF.Round(MathF.Cos(angle), 6), MathF.Round(MathF.Sin(angle), 6));
     }
 
     /// <summary>Reports the player's measurements to <see cref="Telemetry"/>, as of the engine's last step.</summary>

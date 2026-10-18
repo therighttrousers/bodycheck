@@ -39,6 +39,9 @@ public partial class Entity : RigidBody3D
     // How closely a contact normal must line up with an axis to count as a contact on that side.
     private const float SideThreshold = 0.7f;
 
+    // Where to move to before the engine's next step, if anywhere.
+    private Vector3? _teleport;
+
     /// <param name="visual">What to draw for the entity, centered on the middle of its box.</param>
     public Entity(BodyTuning tuning, Node3D? visual = null, bool axisLockAngularZ = true)
         : this(tuning, visual, tuning.EngineFriction, continuousCd: false, axisLockAngularZ)
@@ -107,6 +110,86 @@ public partial class Entity : RigidBody3D
 
     /// <summary>The force that gravity puts on the entity where it is.</summary>
     public float Weight => Mass * -GetGravity().Y;
+
+    /// <summary>The nearest other entity whose box comes within <paramref name="gap"/> of this one's, as of the engine's last step.</summary>
+    public Entity? NearestEntity(float gap)
+    {
+        var halfSize = new Vector3(HalfSize.X + gap, HalfSize.Y + gap, Depth / 2);
+        return Overlapping(Position, halfSize)
+            .OfType<Entity>()
+            .MinBy(other =>
+            {
+                Vector2 distance = new Vector2(Position.X, Position.Y) - new Vector2(other.Position.X, other.Position.Y);
+                Vector2 apart = (distance.Abs() - HalfSize - other.HalfSize).Max(Vector2.Zero);
+                return apart.LengthSquared();
+            });
+    }
+
+    /// <summary>
+    /// Whether the entity could teleport to <paramref name="position"/>, as of the engine's last step: its box fits
+    /// there, and the line to it from <paramref name="from"/> crosses nothing but entities. So a teleport may pass
+    /// through other bodies, but not through walls.
+    /// </summary>
+    public bool CanTeleport(Vector3 from, Vector3 position)
+    {
+        // A little smaller than the box, so that touching isn't overlapping.
+        const float Clearance = 0.01f;
+        var halfSize = new Vector3(HalfSize.X - Clearance, HalfSize.Y - Clearance, Depth / 2);
+        if (Overlapping(position, halfSize).Any())
+        {
+            return false;
+        }
+
+        var exclude = new Godot.Collections.Array<Rid> { GetRid() };
+        while (true)
+        {
+            var ray = PhysicsRayQueryParameters3D.Create(from, position, CollisionMask, exclude);
+            var hit = GetWorld3D().DirectSpaceState.IntersectRay(ray);
+            if (hit.Count == 0)
+            {
+                return true;
+            }
+            if (hit["collider"].AsGodotObject() is not Entity entity)
+            {
+                return false;
+            }
+            exclude.Add(entity.GetRid());
+        }
+    }
+
+    /// <summary>
+    /// Moves the entity to <paramref name="position"/> before the engine's next step, keeping its velocity. Until
+    /// then it stays where it is, so that controllers stepped after this one in the same tick still see the world
+    /// as of the engine's last step.
+    /// </summary>
+    public void Teleport(Vector3 position) => _teleport = position;
+
+    // Every entity's step runs before this, because the room that steps them is their parent, and a parent is
+    // processed before its children.
+    public override void _PhysicsProcess(double delta)
+    {
+        if (_teleport is Vector3 position)
+        {
+            _teleport = null;
+            Position = position;
+            // Drawn there at once, not interpolated across the room.
+            ResetPhysicsInterpolation();
+        }
+    }
+
+    /// <summary>The colliders, other than this entity, that overlap a box at a place.</summary>
+    private IEnumerable<GodotObject> Overlapping(Vector3 center, Vector3 halfSize)
+    {
+        var query = new PhysicsShapeQueryParameters3D
+        {
+            Shape = new BoxShape3D { Size = 2 * halfSize },
+            Transform = new Transform3D(Basis.Identity, center),
+            CollisionMask = CollisionMask,
+            Exclude = [GetRid()],
+        };
+        return GetWorld3D().DirectSpaceState.IntersectShape(query)
+            .Select(result => result["collider"].AsGodotObject());
+    }
 
     /// <summary>Call once per physics tick, before the engine's step.</summary>
     /// <param name="controlled">Whether the controller runs. Without it, the entity only coasts, under drag and gravity.</param>

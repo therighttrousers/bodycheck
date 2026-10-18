@@ -102,7 +102,8 @@ public partial class Main : Node
         _world.PlayerInput = () => new PlayerInput(
             Input.GetAxis("move_left", "move_right"),
             Input.GetAxis("move_down", "move_up"),
-            Input.IsActionPressed("jump"));
+            Input.IsActionPressed("jump"),
+            Input.IsActionPressed("phase"));
     }
 
     public override void _PhysicsProcess(double delta)
@@ -230,6 +231,10 @@ public partial class Main : Node
         AddAction("jump",
             new InputEventKey { PhysicalKeycode = Key.Space },
             new InputEventJoypadButton { ButtonIndex = JoyButton.A });
+        AddAction("phase",
+            new InputEventKey { PhysicalKeycode = Key.Shift },
+            new InputEventKey { PhysicalKeycode = Key.J },
+            new InputEventJoypadButton { ButtonIndex = JoyButton.X });
         AddAction("next_world",
             new InputEventKey { PhysicalKeycode = Key.Period },
             new InputEventJoypadButton { ButtonIndex = JoyButton.RightShoulder });

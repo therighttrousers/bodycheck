@@ -11,6 +11,7 @@ Relevant decision records:
 - [011: Stitching LDtk levels into one world](../decision-records/011-stitched-levels.md)
 - [012: Subsystems in `BodyCheck.Core`](../decision-records/012-core-subsystems.md)
 - [013: The world as a container of rooms](../decision-records/013-world-of-rooms.md)
+- [014: The phase ability](../decision-records/014-phase.md)
 
 ## Tools
 
@@ -46,6 +47,7 @@ Core is split into subsystems, each a subdirectory and a namespace, with an `int
 - An `Entity` is one thing in a room that has a body: the player, a robot, a platform, a block. It is the engine's rigid body itself, so what the engine reports about bodies is about entities. Its body values are a `BodyTuning`, and it is given what to draw.
 - An entity's origin is the centre of its body, where its collision box is centred. What it draws has its origin at its base, and the entity lowers it by half the body's height (`006 §2.1`).
 - An entity owns its motors, so that they live exactly as long as it does. Each kind of body that has a controller is a subclass, which holds that body's motors: `WalkerEntity` has traction, and `SimpleControlledEntity`, which a platform is, has no motors (`005 §3.6`). A plain `Entity` has neither, and is what a block is (`005 §3.8`).
+- Every entity can teleport, and can ask the engine about its surroundings as of the last step: the nearest entity within a gap of its box, and whether it could teleport to a place without overlapping anything or crossing anything but entities on the way. The player's controller uses them to phase (`014 §4.1`).
 - An `ICharacterController<TEntity>` decides what an entity does, using forces, impulses and the motors of that kind of body. The player and the NPCs use the same interface; the player's controller is given its source of input. The wrong controller for a body doesn't compile.
 - The player and a robot are the same class, `WalkerEntity`, with different tuning, looks and controller.
 - **Telemetry.** Game code pushes measurements to `Telemetry`, by `Metric`, an enum. Each metric keeps its last value until it is reported again or the telemetry is reset. Whatever wants the measurements reads them: the debug overlay, and tests. Nothing that reports knows what reads, so telemetry puts no constraint on how game code is divided up (`008 §1`).

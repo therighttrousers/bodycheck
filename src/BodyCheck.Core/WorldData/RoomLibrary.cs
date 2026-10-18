@@ -55,6 +55,33 @@ public static class RoomLibrary
         """);
 
     /// <summary>
+    /// Things to phase through and throw: robots, blocks and a platform. A ledge on the left that only a phase
+    /// up through something reaches, a pit to throw a robot into, and a
+    /// wall that a phase can't cross. Bumps keep the robots in their pens.
+    /// </summary>
+    public static readonly Room Phase = Room.FromText("Phase", """
+        ################################
+        #..............................#
+        #..............................#
+        #..............................#
+        #..............................#
+        #..............................#
+        #..............................#
+        #..............................#
+        #..................H...........#
+        #..............................#
+        #####..........................#
+        #..............................#
+        #..............................#
+        #.....................#........#
+        #........#......#.....#........#
+        #...R....#.P....#..R..#...R..B.#
+        #############...################
+        #############...################
+        ################################
+        """);
+
+    /// <summary>
     /// A room the shape of the screen, for judging the rendering. The game adds turning shapes to its
     /// upper half.
     /// </summary>
@@ -79,5 +106,5 @@ public static class RoomLibrary
         ########################
         """);
 
-    public static IReadOnlyList<Room> All { get; } = [Playground, RobotRide, Look];
+    public static IReadOnlyList<Room> All { get; } = [Playground, RobotRide, Phase, Look];
 }
