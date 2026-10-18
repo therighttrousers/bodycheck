@@ -96,7 +96,7 @@ advance_mode = 2
 [sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_a0sfp"]
 xfade_time = 0.25
 advance_mode = 2
-advance_expression = "IsGrounded && !(IsMoving && abs(GroundSpeed) > 0.01)"
+advance_expression = "IsGrounded && !IsMoving"
 
 [sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_2h3ep"]
 xfade_time = 0.1
@@ -128,6 +128,21 @@ xfade_time = 0.1
 advance_mode = 2
 advance_expression = "IsJumping"
 
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_e7l1j"]
+xfade_time = 0.1
+advance_mode = 2
+advance_expression = "!IsGrounded && !IsJumping"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_elv8a"]
+xfade_time = 0.1
+advance_mode = 2
+advance_expression = "IsMoving && IsGrounded"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_ydmpv"]
+xfade_time = 0.1
+advance_mode = 2
+advance_expression = "!IsMoving && IsGrounded"
+
 [sub_resource type="AnimationNodeStateMachine" id="AnimationNodeStateMachine_e8kf8"]
 states/End/position = Vector2(79.81445, 259.2)
 states/Idle/node = SubResource("AnimationNodeAnimation_2h3ep")
@@ -139,7 +154,7 @@ states/Jump/position = Vector2(230.40443, 32.8)
 states/Move/node = SubResource("AnimationNodeBlendTree_uwn0d")
 states/Move/position = Vector2(421.47513, 152.74728)
 states/Start/position = Vector2(79.96805, 155.69078)
-transitions = ["Start", "Idle", SubResource("AnimationNodeStateMachineTransition_512o4"), "Jump", "InAir", SubResource("AnimationNodeStateMachineTransition_hvsop"), "InAir", "Idle", SubResource("AnimationNodeStateMachineTransition_a0sfp"), "Idle", "Jump", SubResource("AnimationNodeStateMachineTransition_2h3ep"), "Idle", "Move", SubResource("AnimationNodeStateMachineTransition_ik5y6"), "Move", "Idle", SubResource("AnimationNodeStateMachineTransition_a1pq2"), "Move", "InAir", SubResource("AnimationNodeStateMachineTransition_00emu"), "InAir", "Move", SubResource("AnimationNodeStateMachineTransition_kxahi"), "Move", "Jump", SubResource("AnimationNodeStateMachineTransition_gvx1h")]
+transitions = ["Start", "Idle", SubResource("AnimationNodeStateMachineTransition_512o4"), "Jump", "InAir", SubResource("AnimationNodeStateMachineTransition_hvsop"), "InAir", "Idle", SubResource("AnimationNodeStateMachineTransition_a0sfp"), "Idle", "Jump", SubResource("AnimationNodeStateMachineTransition_2h3ep"), "Idle", "Move", SubResource("AnimationNodeStateMachineTransition_ik5y6"), "Move", "Idle", SubResource("AnimationNodeStateMachineTransition_a1pq2"), "Move", "InAir", SubResource("AnimationNodeStateMachineTransition_00emu"), "InAir", "Move", SubResource("AnimationNodeStateMachineTransition_kxahi"), "Move", "Jump", SubResource("AnimationNodeStateMachineTransition_gvx1h"), "Idle", "InAir", SubResource("AnimationNodeStateMachineTransition_e7l1j"), "Jump", "Move", SubResource("AnimationNodeStateMachineTransition_elv8a"), "Jump", "Idle", SubResource("AnimationNodeStateMachineTransition_ydmpv")]
 graph_offset = Vector2(-80, -43.90295)
 
 [node name="Player" type="Node3D" unique_id=1679574890]
