@@ -29,7 +29,7 @@ public enum GameMode { Playing, Menu, Map, SlowingForPhase, Phasing }
 public partial class GameModeManager : Node
 {
     /// <summary>How long, in real seconds, the game takes to slow down to the pause for a phase.</summary>
-    private const float SlowdownTime = 0.25f;
+    private const float SlowdownTime = 0.5f;
 
     private Tween? _slowdown;
 
