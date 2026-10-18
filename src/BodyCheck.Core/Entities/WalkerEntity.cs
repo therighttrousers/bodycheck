@@ -33,8 +33,14 @@ public partial class WalkerEntity : Entity
         : base(tuning, visual, engineFriction: 0, continuousCd: true, axisLockAngularZ: true)
     {
         // A joint that constrains nothing: every limit is off, so its only effect is the X motor. The
-        // walker is the joint's second body. The first is what it stands on, or nothing for tiles.
-        _motor = new Generic6DofJoint3D { NodeB = new NodePath(".."), ExcludeNodesFromCollision = false };
+        // walker is the joint's second body. The first is what it stands on, or nothing for tiles. The joint
+        // is at the feet, where traction acts: higher, its push back would tip what the walker stands on.
+        _motor = new Generic6DofJoint3D
+        {
+            Position = new Vector3(0, -tuning.HalfSize.Y, 0),
+            NodeB = new NodePath(".."),
+            ExcludeNodesFromCollision = false
+        };
         foreach (var flag in (ReadOnlySpan<Generic6DofJoint3D.Flag>)
             [Generic6DofJoint3D.Flag.EnableLinearLimit, Generic6DofJoint3D.Flag.EnableAngularLimit])
         {

@@ -81,7 +81,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         if (entity.OnGround)
         {
             _groundTicksLeft = Tuning.CoyoteTicks + 1; // +1 to include this frame in remaining ground ticks
-            _lastGroundVelocity = entity.LinearVelocity;
+            _lastGroundVelocity = entity.GroundVelocity;
         }
 
         ApplyRun(entity, move, weight);
@@ -186,12 +186,12 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             return;
         }
 
-        if (!_jumpWasHeld && _groundTicksLeft > 0)
+        if (!_jumpWasHeld && _groundTicksLeft > 0 && _thrustTicksLeft == 0)
         {
-            // From jump speed, subtract the delta-Y accumulated during coyote frames (which should be negative), to
-            // allow coyote jumps to go just as high as jumps from the ground.
-            var coyoteVelocityY = entity.LinearVelocity.Y - _lastGroundVelocity.Y;
-            var impulse = new Vector3(0, entity.Mass * (Tuning.JumpSpeed - coyoteVelocityY), 0);
+            // The jump speed is relative to the ground, as it moved on the last tick on it: whatever the entity
+            // gained or lost against it since, from falling in coyote ticks or being pushed off it, is undone.
+            var relativeVelocityY = entity.LinearVelocity.Y - _lastGroundVelocity.Y;
+            var impulse = new Vector3(0, entity.Mass * (Tuning.JumpSpeed - relativeVelocityY), 0);
             entity.ApplyCentralImpulse(impulse);
             entity.Support?.ApplyCentralImpulse(-impulse);
             _groundTicksLeft = 0;
