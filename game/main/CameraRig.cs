@@ -18,7 +18,7 @@ namespace BodyCheck;
 /// takes over in <see cref="GameMode.Map"/>.
 /// <para>
 /// The rig processes while the tree is paused, so that the camera can move to the map and back. The player doesn't
-/// look up or down while it's paused.
+/// look up or down while it's paused, or when the user is giving any other movement input.
 /// </para>
 /// </summary>
 public partial class CameraRig : Node3D
@@ -34,8 +34,12 @@ public partial class CameraRig : Node3D
 
     /// <summary>How far above the player's centre the view's centre is, in tiles, when the world allows it.</summary>
     private const float Lift = 3;
-    /// <summary>How far the camera target moves, in tiles, when the player looks up or down.</summary>
-    private const float Look = 5;
+    /// <summary>How far from the player's centre the view's centre is, in tiles, when the player looks up or down and the world allows it.</summary>
+    private const float LookOffset = 0.75f * HalfHeight;
+    /// <summary>How long the user must hold up or down before panning starts, in seconds.</summary>
+    private const float LookDelay = 0.5f;
+    /// <summary>How long it takes to pan fully up or down after panning starts, in seconds.</summary>
+    private const float LookTime = 1;
 
     /// <summary>The priority of the player's camera, which is above the map camera's when the map is closed.</summary>
     private const int CameraPriority = 50;
@@ -46,6 +50,11 @@ public partial class CameraRig : Node3D
     private PhantomCamera3D _phantomCamera = null!;
     private PhantomCamera3D _mapPhantomCamera = null!;
     private WorldNode? _world;
+
+    /// <summary>Eases <see cref="_lookAmount"/> from 0 to 1 while the player looks; null while the player doesn't.</summary>
+    private Tween? _lookTween;
+    /// <summary>How far the player has looked, from 0 (not at all) to 1 (fully).</summary>
+    private float _lookAmount;
 
     public Camera3D Camera { get; } = new() { Fov = Fov, Current = true };
 
@@ -129,8 +138,29 @@ public partial class CameraRig : Node3D
             return;
         }
 
+        float lookOffset;
         PlayerInput? input = _world.PlayerInput?.Invoke();
-        float lookOffset = GetTree().Paused ? 0 : Look * (input?.Look ?? 0);
+        if (!GetTree().Paused && input is not null && input.Value.CanLook)
+        {
+            // Delay for a bit, then slowly pan.
+            if (_lookTween is null)
+            {
+                _lookTween = CreateTween();
+                _lookTween.TweenMethod(Callable.From<float>(amount => _lookAmount = amount), 0f, 1f, LookTime)
+                    .SetDelay(LookDelay)
+                    .SetTrans(Tween.TransitionType.Quad)
+                    .SetEase(Tween.EaseType.In);
+            }
+            lookOffset = Mathf.Lerp(Lift, LookOffset * input.Value.Look, _lookAmount);
+        }
+        else
+        {
+            // If not looking, snap back as fast as damping allows.
+            _lookTween?.Kill();
+            _lookTween = null;
+            _lookAmount = 0;
+            lookOffset = Lift;
+        }
 
         // The player's interpolated position, since the target moves every frame and the player every physics tick.
         Vector3 player = _world.Player.GetGlobalTransformInterpolated().Origin;
@@ -138,7 +168,7 @@ public partial class CameraRig : Node3D
         float halfWidth = HalfHeight * viewport.X / viewport.Y;
         _target.GlobalPosition = new Vector3(
             Clamp(player.X, halfWidth, _world.Tiles.Width),
-            Clamp(player.Y + Lift + lookOffset, HalfHeight, _world.Tiles.Height),
+            Clamp(player.Y + lookOffset, HalfHeight, _world.Tiles.Height),
             0);
     }
 

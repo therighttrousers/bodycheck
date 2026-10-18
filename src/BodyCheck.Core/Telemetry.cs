@@ -59,6 +59,9 @@ public readonly record struct TelemetryValue(TelemetryKind Kind, float X, float 
 /// <para>
 /// <b>Prefer to record the game equivalents of SI units</b>; e.g. seconds, meters (tiles), kilograms.
 /// </para>
+/// <para>
+/// <b>Use this only for observing internal state outside of normal gameplay.</b> Think of it as a logger.
+/// </para>
 /// </summary>
 public static class Telemetry
 {
