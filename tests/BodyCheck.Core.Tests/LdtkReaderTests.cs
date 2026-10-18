@@ -1,5 +1,5 @@
 using BodyCheck.Core.Levels;
-using BodyCheck.Core.Rooms;
+using BodyCheck.Core.WorldData;
 
 using Godot;
 
@@ -19,7 +19,8 @@ public class LdtkReaderTests
     /// <paramref name="solid"/>, indexes into its IntGrid, top row first.
     /// </summary>
     private static string Level(
-        int worldX, int worldY, string entities = "", int[]? solid = null, int pxWid = 320, int worldDepth = 0)
+        int worldX, int worldY, string entities = "", int[]? solid = null, int pxWid = 320, int worldDepth = 0,
+        string identifier = "Test")
     {
         int[] values = new int[20 * 15];
         foreach (int i in solid ?? [])
@@ -27,7 +28,7 @@ public class LdtkReaderTests
             values[i] = 1;
         }
         return $$"""
-            { "identifier": "Test", "pxWid": {{pxWid}}, "pxHei": 240, "worldX": {{worldX}}, "worldY": {{worldY}},
+            { "identifier": "{{identifier}}", "pxWid": {{pxWid}}, "pxHei": 240, "worldX": {{worldX}}, "worldY": {{worldY}},
               "worldDepth": {{worldDepth}}, "externalRelPath": null, "layerInstances": [
                 { "__identifier": "SolidGeometry", "__type": "IntGrid", "__cWid": 20, "__cHei": 15, "__gridSize": 16,
                   "__pxTotalOffsetX": 0, "__pxTotalOffsetY": 0,
@@ -51,28 +52,27 @@ public class LdtkReaderTests
     }
 
     [Fact]
-    public void Stitches_levels_on_the_grid_and_fills_the_gaps()
+    public void Reads_each_level_into_a_room_at_its_place_on_the_grid()
     {
         // One level up and to the left of the other, so that the world is 2x2 levels, two of them missing.
         const string robot =
             """{ "__identifier": "RobotBasic", "__pivot": [0.5, 1], "px": [8, 240], "width": 16, "height": 16 }""";
-        Room room = LdtkReader.ReadWorld("test.ldtk", Project(
-            Level(-320, 0, robot, solid: [0]) + ", " + Level(0, 240, PlayerStart)));
-        TileGrid tiles = room.CreateTiles();
+        World world = LdtkReader.ReadWorld("test.ldtk", Project(
+            Level(-320, 0, robot, solid: [0], identifier: "Upper") + ", " + Level(0, 240, PlayerStart, identifier: "Lower")));
 
-        Assert.Equal((40, 30), (tiles.Width, tiles.Height));
-        Assert.True(tiles.IsSolid(0, 29)); // The top left level's top left tile
-        Assert.False(tiles.IsSolid(1, 29));
-        Assert.False(tiles.IsSolid(5, 20));
-        Assert.False(tiles.IsSolid(25, 5));
-        Assert.True(tiles.IsSolid(25, 20)); // No level
-        Assert.True(tiles.IsSolid(5, 5)); // No level
+        Assert.Equal(["Upper", "Lower"], world.Rooms.Select(room => room.Name));
+        Room upper = world.Rooms[0];
+        Room lower = world.Rooms[1];
 
-        var playerStart = room.EntityConfigs.First(c => c.Kind == EntityKind.Player).Start;
-        Assert.Equal(new Vector2(21.5f, 14), playerStart);
+        Assert.Equal(new Vector2I(0, 15), upper.Origin);
+        Assert.True(upper.IsSolid(0, 14)); // Its top left tile
+        Assert.False(upper.IsSolid(1, 14));
+        EntityConfig robotConfig = Assert.Single(upper.EntityConfigs);
+        Assert.Equal((EntityKind.Robot, new Vector2(0.5f, 0)), (robotConfig.Kind, robotConfig.Start));
 
-        var robotStarts = room.EntityConfigs.Where(c => c.Kind == EntityKind.Robot).Select(c => c.Start);
-        Assert.Equal(new Vector2(0.5f, 15), Assert.Single(robotStarts));
+        Assert.Equal(new Vector2I(20, 0), lower.Origin);
+        EntityConfig playerConfig = Assert.Single(lower.EntityConfigs);
+        Assert.Equal((EntityKind.Player, new Vector2(1.5f, 14)), (playerConfig.Kind, playerConfig.Start));
     }
 
     [Theory]

@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-using BodyCheck.Core.Rooms;
+using BodyCheck.Core.WorldData;
 
 using Godot;
 

@@ -5,8 +5,8 @@ using System.Linq;
 using BodyCheck.Core;
 using BodyCheck.Core.Controllers;
 using BodyCheck.Core.Levels;
-using BodyCheck.Core.Rooms;
 using BodyCheck.Core.Simulation;
+using BodyCheck.Core.WorldData;
 using BodyCheck.Look;
 using BodyCheck.Probes;
 
@@ -15,16 +15,16 @@ using Godot;
 namespace BodyCheck;
 
 /// <summary>
-/// Plays one room, drawn as gray boxes: the levels of the LDtk project at <see cref="LevelsPath"/>, stitched into one
-/// world, or a room from the <see cref="RoomLibrary"/> library. It adds the camera, the lights and the player's input to a <see cref="RoomNode"/>,
+/// Plays one world, drawn as gray boxes: the levels of the LDtk project at <see cref="LevelsPath"/>, as a world of one
+/// room per level, or a room from the <see cref="RoomLibrary"/> library, as a world of one room. It adds the camera, the lights and the player's input to a <see cref="WorldNode"/>,
 /// and the rendering pipeline's switches (see <see cref="LookSwitches"/>). The game is drawn in a <see cref="WorldViewportContainer"/>, and the overlay over
 /// it at the window's full resolution.
 /// <para>
-/// The rooms are the world first, then the library. The first room plays unless one is named. Comma and period
-/// switch to the previous and next room.
+/// The worlds are the LDtk world first, then the library's. The first world plays unless one is named. Comma and period
+/// switch to the previous and next world.
 /// </para>
 /// <para>
-/// User arguments, after "--" on the command line: a room name; "--tiles=single" for one collider per
+/// User arguments, after "--" on the command line: a world's name; "--tiles=single" for one collider per
 /// tile instead of merged boxes; "--probe=" and a probe's name to run that probe and quit; "--overlay" to
 /// start with the <see cref="DebugOverlay"/> showing; "--shapes" to start with the <see cref="ShapeWireframes"/> showing.
 /// F3 switches the overlay on and off, and F4 the shapes.
@@ -34,10 +34,10 @@ public partial class Main : Node
 {
     private const string LevelsPath = "res://levels/main.ldtk";
 
-    private IReadOnlyList<Room> _rooms = null!;
-    private int _roomIndex;
+    private IReadOnlyList<World> _worlds = null!;
+    private int _worldIndex;
     private bool _mergeTiles = true;
-    private RoomNode _room = null!;
+    private WorldNode _world = null!;
     private readonly CameraRig _cameraRig = new();
     private LookSwitches _look = null!;
     private readonly WorldViewportContainer _worldView = new();
@@ -54,9 +54,9 @@ public partial class Main : Node
         _shapes = new ShapeWireframes(_worldView);
         AddChild(_shapes);
         AddChild(_overlay);
-        _rooms = [LdtkReader.ReadWorld(LevelsPath, ReadFile), .. RoomLibrary.All];
+        _worlds = [LdtkReader.ReadWorld(LevelsPath, ReadFile), .. RoomLibrary.All.Select(room => new World(room))];
 
-        string? roomName = null;
+        string? worldName = null;
         string? probeName = null;
         foreach (string arg in OS.GetCmdlineUserArgs())
         {
@@ -78,20 +78,20 @@ public partial class Main : Node
             }
             else
             {
-                roomName = arg;
+                worldName = arg;
             }
         }
 
         if (probeName is not null)
         {
-            _probe = Probe.Start(probeName, room => LoadRoom(room), _mergeTiles);
+            _probe = Probe.Start(probeName, world => LoadWorld(world), _mergeTiles);
             return;
         }
 
-        int index = _rooms.ToList().FindIndex(
-            room => room.Name.Equals(roomName, StringComparison.OrdinalIgnoreCase));
-        LoadRoom(Math.Max(index, 0));
-        _room.PlayerInput = () => new PlayerInput(
+        int index = _worlds.ToList().FindIndex(
+            world => world.Name.Equals(worldName, StringComparison.OrdinalIgnoreCase));
+        LoadWorld(Math.Max(index, 0));
+        _world.PlayerInput = () => new PlayerInput(
             Input.GetAxis("move_left", "move_right"),
             Input.GetAxis("move_down", "move_up"),
             Input.IsActionPressed("jump"));
@@ -99,7 +99,7 @@ public partial class Main : Node
 
     public override void _PhysicsProcess(double delta)
     {
-        // This runs before the room's own tick, because a parent is processed before its children.
+        // This runs before the world's own tick, because a parent is processed before its children.
         if (_probe is not null)
         {
             _probe.Tick((float)delta);
@@ -110,13 +110,13 @@ public partial class Main : Node
             return;
         }
 
-        if (Input.IsActionJustPressed("next_room"))
+        if (Input.IsActionJustPressed("next_world"))
         {
-            LoadRoom(_roomIndex + 1);
+            LoadWorld(_worldIndex + 1);
         }
-        else if (Input.IsActionJustPressed("previous_room"))
+        else if (Input.IsActionJustPressed("previous_world"))
         {
-            LoadRoom(_roomIndex - 1);
+            LoadWorld(_worldIndex - 1);
         }
     }
 
@@ -132,27 +132,27 @@ public partial class Main : Node
         Telemetry.Report(Metric.MouseTile, new Vector2I(Mathf.FloorToInt(point.X), Mathf.FloorToInt(point.Y)));
     }
 
-    private void LoadRoom(int index)
+    private void LoadWorld(int index)
     {
-        Func<PlayerInput>? input = _room?.PlayerInput;
-        _roomIndex = Mathf.PosMod(index, _rooms.Count);
-        LoadRoom(_rooms[_roomIndex]).PlayerInput = input;
+        Func<PlayerInput>? input = _world?.PlayerInput;
+        _worldIndex = Mathf.PosMod(index, _worlds.Count);
+        LoadWorld(_worlds[_worldIndex]).PlayerInput = input;
     }
 
-    /// <summary>Replaces the current room, if there is one, and has the camera follow the new one's player.</summary>
-    private RoomNode LoadRoom(Room room)
+    /// <summary>Replaces the current world, if there is one, and has the camera follow the new one's player.</summary>
+    private WorldNode LoadWorld(World world)
     {
-        _room?.QueueFree();
+        _world?.QueueFree();
         Telemetry.Reset();
-        _room = new RoomNode(room, EntityVisuals.For, _mergeTiles);
-        if (room == RoomLibrary.Look)
+        _world = new WorldNode(world, EntityVisuals.For, _mergeTiles);
+        if (world.Rooms.Contains(RoomLibrary.Look))
         {
-            _room.AddChild(new LookProps(_room.Tiles));
+            _world.AddChild(new LookProps(_world.Tiles));
         }
-        _worldView.World.AddChild(_room);
-        _cameraRig.Follow(_room);
+        _worldView.World.AddChild(_world);
+        _cameraRig.Follow(_world);
         ShowTitle();
-        return _room;
+        return _world;
     }
 
     private static string ReadFile(string path)
@@ -162,7 +162,7 @@ public partial class Main : Node
         return file.GetAsText();
     }
 
-    private void ShowTitle() => GetWindow().Title = $"Body Check: {_room.Room.Name} ({_look.Summary})";
+    private void ShowTitle() => GetWindow().Title = $"Body Check: {_world.World.Name} ({_look.Summary})";
 
     /// <summary>Adds the lights, the colour pass, and the switches that turn parts of the pipeline on and off.</summary>
     private void AddLook()
@@ -222,10 +222,10 @@ public partial class Main : Node
         AddAction("jump",
             new InputEventKey { PhysicalKeycode = Key.Space },
             new InputEventJoypadButton { ButtonIndex = JoyButton.A });
-        AddAction("next_room",
+        AddAction("next_world",
             new InputEventKey { PhysicalKeycode = Key.Period },
             new InputEventJoypadButton { ButtonIndex = JoyButton.RightShoulder });
-        AddAction("previous_room",
+        AddAction("previous_world",
             new InputEventKey { PhysicalKeycode = Key.Comma },
             new InputEventJoypadButton { ButtonIndex = JoyButton.LeftShoulder });
     }

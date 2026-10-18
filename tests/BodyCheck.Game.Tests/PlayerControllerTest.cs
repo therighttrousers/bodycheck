@@ -4,8 +4,8 @@ using System.Threading.Tasks;
 using BodyCheck.Core;
 using BodyCheck.Core.Controllers;
 using BodyCheck.Core.Entities;
-using BodyCheck.Core.Rooms;
 using BodyCheck.Core.Simulation;
+using BodyCheck.Core.WorldData;
 
 using GdUnit4;
 
@@ -31,13 +31,13 @@ public class PlayerControllerTest
     private static readonly BodyTuning NoDrag = BodyTuning.Player with { Drag = 0 };
     private static readonly PlayerTuning FullThrust = new() { JumpThrustFrac = 1 };
 
-    private RoomNode? _room;
+    private WorldNode? _world;
     private PlayerInput _input;
 
     private static readonly float Gravity = (float)ProjectSettings.GetSetting("physics/3d/default_gravity");
 
-    private Entity Player => _room!.Player;
-    private PlayerTuning Tuning => _room!.PlayerTuning;
+    private Entity Player => _world!.Player;
+    private PlayerTuning Tuning => _world!.PlayerTuning;
     private Vector3 Velocity => Player.LinearVelocity;
 
     private static SceneTree Tree => (SceneTree)Engine.GetMainLoop();
@@ -48,22 +48,22 @@ public class PlayerControllerTest
         PlayerTuning? tuning = null, BodyTuning? body = null,
         int height = 20, int playerX = 1, int playerY = 1, int settleTicks = 30)
     {
-        _room?.Free();
+        _world?.Free();
         _input = Idle;
         Room frame = TestRoomLibrary.EmptyFrame(60, height, playerX, playerY);
-        _room = new RoomNode(frame, EntityVisuals.For, playerTuning: tuning, playerBody: body)
+        _world = new WorldNode(new World(frame), EntityVisuals.For, playerTuning: tuning, playerBody: body)
         {
             PlayerInput = () => _input,
         };
-        Tree.Root.AddChild(_room);
+        Tree.Root.AddChild(_world);
         await Tick(Idle, settleTicks);
     }
 
     [AfterTest]
     public void TearDown()
     {
-        _room?.Free();
-        _room = null;
+        _world?.Free();
+        _world = null;
     }
 
     private async Task Tick(PlayerInput input, int ticks = 1)
@@ -122,14 +122,28 @@ public class PlayerControllerTest
         await Start(body: NoDrag);
 
         // A controller sees an impulse only after the engine's next step, so the push gets a tick of its own.
-        _room!.ControllersEnabled = false;
+        _world!.ControllersEnabled = false;
         Player.ApplyCentralImpulse(new Vector3(20, 0, 0) * Player.Mass);
         await Tick(Idle);
-        _room!.ControllersEnabled = true;
+        _world!.ControllersEnabled = true;
 
         await Tick(Right, 30);
 
         AssertThat(Velocity.X).IsEqualApprox(20f, 0.001f);
+    }
+
+    [TestCase]
+    public async Task A_disabled_player_does_not_drive()
+    {
+        await Start();
+        float startX = Player.Position.X;
+
+        // Kept active, so that its body stays in the engine, and only what steps it can stop it.
+        Player.DisableMode = CollisionObject3D.DisableModeEnum.KeepActive;
+        Player.ProcessMode = Node.ProcessModeEnum.Disabled;
+        await Tick(Right, 30);
+
+        AssertThat(Player.Position.X).IsEqualApprox(startX, 0.001f);
     }
 
     [TestCase]

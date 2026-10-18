@@ -1,4 +1,4 @@
-using BodyCheck.Core.Rooms;
+using BodyCheck.Core.WorldData;
 
 namespace BodyCheck.Core.Tests;
 

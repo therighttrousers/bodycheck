@@ -1,6 +1,6 @@
 using Godot;
 
-namespace BodyCheck.Core.Rooms;
+namespace BodyCheck.Core.WorldData;
 
 /// <summary>The kinds of entity that can be in a room.</summary>
 public enum EntityKind

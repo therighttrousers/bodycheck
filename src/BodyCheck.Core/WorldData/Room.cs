@@ -1,31 +1,27 @@
 using Godot;
 
-namespace BodyCheck.Core.Rooms;
+namespace BodyCheck.Core.WorldData;
 
 /// <summary>
-/// A named room: its tiles, and the configuration of each of its entities. Rooms come from text (<see cref="FromText"/>)
-/// and from LDtk levels.
+/// A named room, one part of a <see cref="World"/>: where it is, its tiles, and the configuration of each entity that
+/// starts in it. Its tiles and its entities' starts are in its own coordinates, with its bottom left tile at (0, 0).
+/// Rooms come from text (<see cref="FromText"/>) and from LDtk levels.
 /// </summary>
 public sealed class Room
 {
     private readonly TileGrid _tiles;
 
+    /// <param name="origin">Where the room's bottom left tile is in the world, in tiles.</param>
     /// <param name="tiles">The room's tiles. The room keeps it, so the caller must not change it afterwards.</param>
     /// <param name="entityConfigs">
-    /// Each entity's configuration, including where the middle of its base starts. There must be one player.
+    /// Each entity's configuration, including where the middle of its base starts, in the room's coordinates.
     /// </param>
-    public Room(string name, TileGrid tiles, IEnumerable<EntityConfig> entityConfigs)
+    public Room(string name, Vector2I origin, TileGrid tiles, IEnumerable<EntityConfig> entityConfigs)
     {
         Name = name;
+        Origin = origin;
         _tiles = tiles;
-
         EntityConfigs = [.. entityConfigs];
-
-        int numPlayerStarts = EntityConfigs.Count(c => c.Kind == EntityKind.Player);
-        if (numPlayerStarts != 1)
-        {
-            throw new ArgumentException($"Room '{name}' has {numPlayerStarts} player starts, not 1.", nameof(entityConfigs));
-        }
     }
 
     /// <summary>
@@ -39,7 +35,7 @@ public sealed class Room
     /// </list>
     /// An entity starts with the middle of its base at the middle of the bottom edge of its tile.
     /// </summary>
-    public static Room FromText(string name, string text)
+    public static Room FromText(string name, string text, Vector2I origin = default)
     {
         string[] rows = text.ReplaceLineEndings("\n").Split('\n');
 
@@ -64,17 +60,23 @@ public sealed class Room
             }
         }
 
-        return new Room(name, TileGrid.FromText(rows), entityConfigs);
+        return new Room(name, origin, TileGrid.FromText(rows), entityConfigs);
     }
 
     public string Name { get; }
 
+    /// <summary>Where the room's bottom left tile is in the world, in tiles.</summary>
+    public Vector2I Origin { get; }
+
+    /// <summary>The tiles the room covers, in the world's coordinates.</summary>
+    public Rect2I Bounds => new(Origin, _tiles.Width, _tiles.Height);
+
     /// <summary>
-    /// Each entity's configuration, including where the middle of its base starts, in the order the room was
-    /// given them.
+    /// Each entity's configuration, including where the middle of its base starts, in the room's coordinates and in
+    /// the order the room was given them.
     /// </summary>
     public IReadOnlyList<EntityConfig> EntityConfigs { get; }
 
-    /// <summary>Builds a fresh grid, so that one world's changes to its tiles don't reach another's.</summary>
-    public TileGrid CreateTiles() => _tiles.Clone();
+    /// <summary>Whether a tile is solid, in the room's coordinates. Everything outside the room is solid.</summary>
+    public bool IsSolid(int x, int y) => _tiles.IsSolid(x, y);
 }

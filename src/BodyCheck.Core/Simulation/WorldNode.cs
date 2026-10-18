@@ -2,21 +2,22 @@ using System.Diagnostics;
 
 using BodyCheck.Core.Controllers;
 using BodyCheck.Core.Entities;
-using BodyCheck.Core.Rooms;
+using BodyCheck.Core.WorldData;
 
 using Godot;
 
 namespace BodyCheck.Core.Simulation;
 
 /// <summary>
-/// One room, simulated: its tiles, and the entities in it with their controllers. Each physics tick it
-/// steps every entity, before the engine's own step. It has no camera, lights or input of its own, so
-/// that tests can use it as it is.
+/// One world, simulated: its tiles, and the entities in it with their controllers. Each physics tick it
+/// steps every entity that can process, before the engine's own step, so that an entity's controller stops with
+/// whatever pauses or disables its body. It has no camera, lights or input of its own, so that tests can use it as it
+/// is.
 /// <para>
 /// It is given what to draw for each kind of entity, so that it doesn't know the game's assets.
 /// </para>
 /// </summary>
-public partial class RoomNode : Node3D
+public partial class WorldNode : Node3D
 {
     private readonly List<Entity> _entities = [];
 
@@ -25,15 +26,15 @@ public partial class RoomNode : Node3D
     /// It is called once for each entity.
     /// </param>
     /// <param name="mergeTiles">Whether to merge tiles into larger colliders, or give each tile its own.</param>
-    public RoomNode(
-        Room room,
+    public WorldNode(
+        World world,
         Func<EntityKind, BodyTuning, Node3D> visual,
         bool mergeTiles = true,
         PlayerTuning? playerTuning = null,
         BodyTuning? playerBody = null)
     {
-        Room = room;
-        Tiles = room.CreateTiles();
+        World = world;
+        Tiles = world.CreateTiles();
         AddChild(TileColliders.Build(Tiles, mergeTiles));
 
         // A back wall, so that lights have something to fall on.
@@ -53,7 +54,7 @@ public partial class RoomNode : Node3D
         var robotTuning = new RobotTuning();
         var platformTuning = new PlatformTuning();
 
-        foreach (EntityConfig config in room.EntityConfigs)
+        foreach (EntityConfig config in world.EntityConfigs)
         {
             Entity entity = config.Kind switch
             {
@@ -68,7 +69,7 @@ public partial class RoomNode : Node3D
             _entities.Add(entity);
         }
 
-        // Redundant but harmless: the `Room` constructor also ensures this.
+        // Redundant but harmless: the `World` constructor also ensures this.
         Debug.Assert(Player is not null);
     }
 
@@ -97,21 +98,21 @@ public partial class RoomNode : Node3D
         return new Entity(BodyTuning.Block, visual, axisLockAngularZ: false);
     }
 
-    public Room Room { get; }
+    public World World { get; }
     public TileGrid Tiles { get; }
 
     public WalkerEntity Player { get; } = null!;
     public PlayerTuning PlayerTuning { get; }
 
     /// <summary>
-    /// Every entity in the room, in the order they are stepped, which is the order of the room's
-    /// <see cref="Room.EntityConfigs"/>: <c>Entities[i]</c> was built from <c>Room.EntityConfigs[i]</c>.
+    /// Every entity in the world, in the order they are stepped, which is the order of the world's
+    /// <see cref="World.EntityConfigs"/>: <c>Entities[i]</c> was built from <c>World.EntityConfigs[i]</c>.
     /// </summary>
     public IReadOnlyList<Entity> Entities => _entities;
 
     /// <summary>The entities of one kind, in the order they are stepped.</summary>
     public IEnumerable<Entity> EntitiesOf(EntityKind kind) =>
-        _entities.Where((entity, i) => Room.EntityConfigs[i].Kind == kind);
+        _entities.Where((entity, i) => World.EntityConfigs[i].Kind == kind);
 
     /// <summary>Supplies the player's input, once per tick. The player stands idle if this is null.</summary>
     public Func<PlayerInput>? PlayerInput { get; set; }
@@ -123,7 +124,10 @@ public partial class RoomNode : Node3D
     {
         foreach (Entity entity in _entities)
         {
-            entity.Step((float)delta, ControllersEnabled);
+            if (entity.CanProcess())
+            {
+                entity.Step((float)delta, ControllersEnabled);
+            }
         }
     }
 }
