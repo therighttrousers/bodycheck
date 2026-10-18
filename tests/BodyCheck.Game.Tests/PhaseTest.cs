@@ -165,6 +165,42 @@ public class PhaseTest
     }
 
     [TestCase]
+    public async Task PhaseThroughABlockOnTheFloor()
+    {
+        // A block is shorter than the player, so the two can't both stand on the floor with their centers level.
+        _run = new RoomRun(RoomRun.RoomOf(
+            "############",
+            "#..........#",
+            "#..........#",
+            "#..PB......#",
+            "############"));
+        Entity player = _run.Player;
+        Entity block = _run.Node.EntitiesOf(EntityKind.Block).Single();
+        await _run.Tick(RoomRun.Idle, 30);
+
+        await _run.Tick(AimRight);
+        await _run.Tick(RoomRun.Right);
+        AssertFloat(player.Position.X).IsGreater(block.Position.X);
+    }
+
+    [TestCase]
+    public async Task ARobotPastABumpIsOutOfReach()
+    {
+        // Reach is 0.75 tiles past the player's side, and a tile is 1 wide.
+        _run = new RoomRun(RoomRun.RoomOf(
+            "############",
+            "#..........#",
+            "#..........#",
+            "#..P#R.....#",
+            "############"), controllersEnabled: false);
+        await _run.Tick(RoomRun.Idle, 30);
+        _run.Node.ControllersEnabled = true;
+
+        await _run.Tick(AimRight, 5);
+        AssertObject(_run.Node.PlayerController.Aim).IsNull();
+    }
+
+    [TestCase]
     public async Task WhileAimingThePlayerDoesntFallAwayFromAHoveringPlatform()
     {
         // The player starts in the air beside the platform, and aims at once.

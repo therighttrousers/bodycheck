@@ -252,8 +252,9 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     /// <summary>
     /// Phases through the target in a direction, if they fit: the player and the target teleport as a pair, keeping
     /// their center of mass, onto the line through it in that direction, the player ahead of it and the target
-    /// behind. If they don't fit there, they slide along the line, the nearest first. The player leaves at a fixed
-    /// speed in that direction, and the target is thrown the other way.
+    /// behind. If they don't fit there, they are offset from each other across the line, as far as lines up their
+    /// edges on either side, and slide along the line, the nearest first. The player leaves at a fixed speed in that
+    /// direction, and the target is thrown the other way.
     /// </summary>
     /// <returns>Whether the player phased.</returns>
     private bool TryPhase(WalkerEntity entity, Entity target, Vector2 direction)
@@ -267,25 +268,49 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         Vector3 playerOffset = target.Mass / totalMass * separation * direction3;
         Vector3 targetOffset = -entity.Mass / totalMass * separation * direction3;
 
-        // The nearest slide first: 0, +1, -1, +2, -2, ... steps.
-        const float SlideStep = 1f / 16;
-        int slides = (int)(Tuning.PhaseMaxSlide * separation / SlideStep);
-        for (int i = 0; i <= 2 * slides; i++)
+        // Across the line, the player may be offset from the target as far as lines up their edges on one side or the
+        // other: centers level is the middle, and, for a horizontal phase, bottoms or tops level are the ends. Split by
+        // mass, as along the line, so that the center of mass stays where it is. For bodies the same size, it is 0.
+        var across = new Vector3(-direction.Y, direction.X, 0);
+        float maxOffset = MathF.Abs(Extent(entity.HalfSize, across) - Extent(target.HalfSize, across));
+
+        const float Step = 1f / 16;
+        foreach (float offset in NearestFirst(maxOffset, Step))
         {
-            float slide = (i + 1) / 2 * (i % 2 == 1 ? 1 : -1) * SlideStep;
-            Vector3 playerDestination = center + slide * direction3 + playerOffset;
-            Vector3 targetDestination = center + slide * direction3 + targetOffset;
-            if (entity.CanTeleport(playerDestination, target) && target.CanTeleport(targetDestination, entity))
+            Vector3 playerAcross = target.Mass / totalMass * offset * across;
+            Vector3 targetAcross = -entity.Mass / totalMass * offset * across;
+            foreach (float slide in NearestFirst(Tuning.PhaseMaxSlide * separation, Step))
             {
-                Phase(entity, target, playerDestination, targetDestination, direction3);
-                if (direction.X != 0)
+                Vector3 playerDestination = center + slide * direction3 + playerOffset + playerAcross;
+                Vector3 targetDestination = center + slide * direction3 + targetOffset + targetAcross;
+                if (entity.CanTeleport(playerDestination, target) && target.CanTeleport(targetDestination, entity))
                 {
-                    entity.Facing = MathF.Sign(direction.X);
+                    Phase(entity, target, playerDestination, targetDestination, direction3);
+                    if (direction.X != 0)
+                    {
+                        entity.Facing = MathF.Sign(direction.X);
+                    }
+                    return true;
                 }
-                return true;
             }
         }
         return false;
+    }
+
+    /// <summary>How far a box with a half size reaches from its center in a direction, given as a unit vector.</summary>
+    private static float Extent(Vector2 halfSize, Vector3 direction) =>
+        MathF.Abs(direction.X) * halfSize.X + MathF.Abs(direction.Y) * halfSize.Y;
+
+    /// <summary>0, then steps either way, the nearest first, out to <paramref name="max"/> exactly.</summary>
+    private static IEnumerable<float> NearestFirst(float max, float step)
+    {
+        yield return 0;
+        for (int i = 1; (i - 1) * step < max; i++)
+        {
+            float value = MathF.Min(i * step, max);
+            yield return value;
+            yield return -value;
+        }
     }
 
     /// <summary>

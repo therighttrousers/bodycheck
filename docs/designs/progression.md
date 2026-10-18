@@ -42,6 +42,7 @@ Run and jump. See [movement.md](movement.md).
 - The player and the target teleport as a pair, keeping their center of mass. They end on the line through it in the direction of the new momentum, the player ahead and the target behind, so each moves in proportion to the other's mass (`015 §5.1`).
 - They end far enough apart to clear their boxes in that direction, plus a gap of 0.5 tiles, but at least 2.5 tiles apart, center to center. For every entity there is now, that is 2.5 tiles (`015 §5.1`).
 - If either doesn't fit, the pair slides along the line, the nearest place first, as far as their separation either way. Phasing down through a robot on the floor swaps them, and throws the robot up (`015 §5.2`).
+- Bodies of different sizes may also be offset from each other across the line, split by mass, as far as lines up their edges on either side, so that a phase through a block on the floor leaves both standing on it (`015 §5.17`).
 - The new speed is 16 tiles per second. Phasing straight up off a robot on the floor reaches a ledge 6 tiles up (`015 §3.1`).
 - A phase never crosses tiles: each body's box must fit where it goes, without overlapping tiles or other entities, and the line from where it is to where it goes must cross no tiles. If nowhere within the slide fits, the phase does nothing at all (`015 §5.3`).
 - A movable object is thrown backwards, opposite to the player's exit direction. Lighter objects are thrown farther.
