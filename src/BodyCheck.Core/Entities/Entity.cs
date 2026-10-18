@@ -99,8 +99,11 @@ public partial class Entity : RigidBody3D
 
     public bool OnGround => Contacts.HasFlag(Contacts.Floor);
 
-    /// <summary>The velocity of whatever this entity stands on: zero for tiles, and in the air.</summary>
-    public Vector3 GroundVelocity => Support?.LinearVelocity ?? Vector3.Zero;
+    /// <summary>
+    /// The velocity of the surface this entity stood on during the engine's last step, where it touched: zero
+    /// for tiles, and in the air. On a support that spins, it differs from the support's own velocity.
+    /// </summary>
+    public Vector3 GroundVelocity { get; private set; }
 
     /// <summary>The force that gravity puts on the entity where it is.</summary>
     public float Weight => Mass * -GetGravity().Y;
@@ -134,6 +137,9 @@ public partial class Entity : RigidBody3D
     {
         var contacts = Contacts.None;
         Entity? support = null;
+        // Summed over the floor contacts with the support, which may be several, e.g. the corners of a box.
+        Vector3 groundVelocity = Vector3.Zero;
+        int groundContacts = 0;
         for (int i = 0; i < state.GetContactCount(); i++)
         {
             // The normal points away from the other collider, towards this body.
@@ -142,6 +148,11 @@ public partial class Entity : RigidBody3D
             {
                 contacts |= Contacts.Floor;
                 support ??= state.GetContactColliderObject(i) as Entity;
+                if (support is not null && state.GetContactColliderObject(i) == support)
+                {
+                    groundVelocity += state.GetContactColliderVelocityAtPosition(i);
+                    groundContacts++;
+                }
             }
             else if (normal.Y < -SideThreshold)
             {
@@ -158,5 +169,6 @@ public partial class Entity : RigidBody3D
         }
         Contacts = contacts;
         Support = support;
+        GroundVelocity = groundContacts > 0 ? groundVelocity / groundContacts : Vector3.Zero;
     }
 }

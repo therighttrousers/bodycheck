@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -269,5 +270,36 @@ public class BodiesTest
         // The shortest jump from tiles clears 2 tiles but not 3.
         AssertThat(Telemetry.Get(Metric.AirRise)!.Value.X).IsBetween(2f, 3f);
         AssertThat(block.Position.X).IsEqualApprox(blockStart, 0.01f);
+    }
+
+    public static IEnumerable<(float, int)> BoostTestData =>
+        from position in new float[] { -0.3f, -0.4f, -0.5f, -0.6f }
+        from ticks in new int[] { 5, 6, 7, 8, 9, 10 }
+        select (position, ticks);
+
+    [TestCase]
+    [DataPoint(nameof(BoostTestData))]
+    public async Task Regression_the_player_cannot_get_a_large_boost_from_running_off_a_block((float, int) data)
+    {
+        var (position, ticks) = data;
+
+        RoomRun run = Start(RoomOf(
+            "#..............................#",
+            "#..............................#",
+            "#..............................#",
+            "#..............................#",
+            "#..............................#",
+            "#..............................#",
+            "#......P.......................#",
+            "#......B.......................#",
+            "################################"));
+
+        run.Player.Position += new Vector3(position, 0, 0);
+        // Let the player settle on the block, drive right for a short time, then jump.
+        await run.Tick(Idle, 10);
+        await run.Tick(Right, ticks);
+        await run.Tick(Jump, 120);
+
+        AssertThat(Telemetry.GetFloat(Metric.AirRise) ?? 1e10).IsLess(5f);
     }
 }
