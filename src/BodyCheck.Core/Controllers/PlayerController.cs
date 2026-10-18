@@ -147,6 +147,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         if (Aim is null && input.PhaseHeld && !_phaseWasHeld && entity.NearestEntity(Tuning.PhaseReach) is Entity target)
         {
             Aim = new PhaseAim(target, Vector3.Zero, Vector2.Zero);
+            Grab(entity, target);
         }
         UpdateAim(entity, input);
 
@@ -208,6 +209,19 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         {
             _release = aim;
         }
+    }
+
+    /// <summary>
+    /// Gives the player and the target the velocity of their center of mass, as in a perfectly inelastic collision, so
+    /// that they move together while the game slows down to the pause for aiming. Without it, they can drift far
+    /// apart before the phase. Momentum is conserved.
+    /// </summary>
+    private static void Grab(Entity entity, Entity target)
+    {
+        Vector3 velocity = (entity.Mass * entity.LinearVelocity + target.Mass * target.LinearVelocity)
+            / (entity.Mass + target.Mass);
+        entity.ApplyCentralImpulse(entity.Mass * (velocity - entity.LinearVelocity));
+        target.ApplyCentralImpulse(target.Mass * (velocity - target.LinearVelocity));
     }
 
     private static Vector3 CenterOfMass(Entity entity, Entity target) =>

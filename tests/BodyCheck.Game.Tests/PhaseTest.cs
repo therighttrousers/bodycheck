@@ -116,6 +116,28 @@ public class PhaseTest
     }
 
     [TestCase]
+    public async Task PressingPhaseGrabsTheTarget()
+    {
+        var (player, robot) = await Start(
+            "####################",
+            "#..................#",
+            "#..................#",
+            "#.P.......R........#",
+            "####################");
+
+        // Run at the robot until it is in reach.
+        for (int i = 0; i < 120 && robot.Left() - player.Right() > 0.9f; i++)
+        {
+            await _run!.Tick(RoomRun.Right);
+        }
+
+        // They move together, at the velocity of their center of mass, from the step after the press.
+        await _run!.Tick(AimNowhere, 2);
+        AssertFloat(player.LinearVelocity.X).IsGreater(1);
+        AssertFloat(player.LinearVelocity.X - robot.LinearVelocity.X).IsEqualApprox(0, 0.5f);
+    }
+
+    [TestCase]
     public async Task ReleasingWithNoDirectionHeldCancels()
     {
         var (player, _) = await Start(
