@@ -6,7 +6,10 @@ namespace BodyCheck.Core.Controllers;
 
 /// <param name="Move">Horizontal input, from -1 (left) to 1 (right).</param>
 /// <param name="Look">Vertical input, from -1 (down) to 1 (up).</param>
-public readonly record struct PlayerInput(float Move, float Look, bool JumpHeld, bool PhaseHeld = false);
+public readonly record struct PlayerInput(float Move, float Look, bool JumpHeld, bool PhaseHeld = false)
+{
+    public bool CanLook => Look != 0 && Move == 0 && !JumpHeld;
+}
 
 /// <summary>What momentum a phase gives the entity phased through.</summary>
 public enum PhaseThrow
