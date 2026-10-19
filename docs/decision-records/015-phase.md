@@ -15,6 +15,8 @@ Goals:
 
 Anti-goals: visual or sound effects, animation, damage, stun, turrets, dead NPCs. NPCs that phase.
 
+Closed on 2026-10-18. Outcomes are in [progression.md](../designs/progression.md#ability-phase), [movement.md](../designs/movement.md), [architecture.md](../designs/architecture.md) and [rendering.md](../designs/rendering.md); unresolved items are in progression.md's open questions. Tuning, and the choices to be made by playing (§1.3, §3.2, §5.3), are issue #61; effects (§5.4, §5.7, §2.3) are issue #62.
+
 ## 1. Using it
 
 - [x] 1.1 Which input phases? Decision (Neil): as leaning. A new action, `phase`, acting on a press only, like jump: holding it doesn't phase again.
@@ -54,8 +56,8 @@ Anti-goals: visual or sound effects, animation, damage, stun, turrets, dead NPCs
 
 ## 4. Building it
 
-- [~] 4.1 Where the code goes. The controller decides whether and where to phase; the entity offers what a body can do: find the entities near it, say whether its box fits at a place, and teleport. The physics queries read the world as of the engine's last step, like everything else a controller sees.
-- [~] 4.2 When the teleport happens. Setting a body's position moves it at once, so a controller stepped later in the same tick would see the player where it went, unlike forces and impulses (`005 §3.4`). Leaning (Claude): the entity holds the destination until every entity has been stepped, and sets it then, before the engine's step, so that what controllers decide still doesn't depend on the order they run in.
+- [x] 4.1 Where the code goes. Decision (Neil): as built. The controller decides whether and where to phase; the entity offers what a body can do: find the entities near it, say whether its box fits at a place, and teleport. The physics queries read the world as of the engine's last step, like everything else a controller sees.
+- [x] 4.2 When the teleport happens. Decision (Neil): as leaning. Setting a body's position moves it at once, so a controller stepped later in the same tick would see the player where it went, unlike forces and impulses (`005 §3.4`). Leaning (Claude): the entity holds the destination until every entity has been stepped, and sets it then, before the engine's step, so that what controllers decide still doesn't depend on the order they run in.
   - As built: the entity sets its position in its own `_PhysicsProcess`, which Godot runs after the room's, since the room is its parent. It also resets physics interpolation, so the player isn't drawn sliding from where it was to where it went.
   - Not tried: setting the transform from `_IntegrateForces`. Interpolation would have to be reset after the engine's step, which nothing calls back for.
 
@@ -118,3 +120,5 @@ Neil played the first version on 2026-10-18. Kept: phasing through everything, t
   - The stacked robots: at r = 1.15, the bottom robot comes in reach 0.75 tiles away, and the top robot's corner only within about 0.32 tiles, so the bottom one is grabbed first even when the top one is 0.18 tiles behind it.
 - [x] 5.17 Bodies of different sizes. Neil: running at a block, the phase sometimes fails, and never with a robot; and about half the time, a platform pinned against a ceiling can't be phased through horizontally. The pair was placed with both centers on the line through their center of mass. For a horizontal phase, that puts them at the same height, which two bodies of different heights can't both stand at: through a block on the floor (mass 2, half height 0.5), the center of mass is 1.63 tiles up, and the player's center needs to be at 1.9, so its box was 0.27 tiles into the floor. Sliding along the line can't fix that. A platform under a ceiling is the same upside down.
   - Decision (Claude, for Neil's review): across the line, the player may be offset from the target, as far as lines up their edges on one side or the other: from centers level to, for a horizontal phase, bottoms level or tops level. The offset is split by mass, as along the line, so the center of mass stays put. The nearest offset is tried first, with every slide along the line for each. For bodies of the same size the range is 0, so robots are placed as before. Through a block on the floor, the offset that fits is the one with both standing on it.
+- [x] 5.18 What phasing straight down is for (`000 §3.2`). Neil, after playing: juggling robots, putting robots on platforms, picking up blocks, and, while platforms can be phased through, falling through them.
+- [x] 5.19 A spring for a longer slowdown (§5.13). Neil: not needed; the held grab works well at 0.5 seconds. If it is needed, playing will show it.

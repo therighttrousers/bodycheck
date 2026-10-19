@@ -49,6 +49,7 @@ Run and jump. See [movement.md](movement.md).
 - A phase ends a jump's thrust and coyote time.
 - Try it in the test room "Phase".
 - Traversal: phase through objects and NPCs to go faster and reach high places.
+- Phasing straight down juggles robots, puts robots on platforms, picks up blocks, and falls through platforms while they can be phased through (`015 §5.18`).
 - Combat: throw an NPC into the air, into spikes or into a pit. For example, jump near a spike pit and phase diagonally down through an NPC to lob it up and into the pit.
 
 ## World change: activate laser turrets
@@ -93,12 +94,9 @@ Where these appear in the progression is undecided.
 
 Phase:
 - What momentum does the target receive? Option: the opposite of the player's new momentum, so every phase throws the same, but total momentum is not conserved. Option: the opposite of the player's change in momentum, which is conserved, and makes the throw depend on how the player was moving. To be decided by trying both: both are built, chosen by `PlayerTuning.PhaseThrow`, and the first is the default (`015 §3.2`).
-- Targeting is too easy in some places and too hard in others, and reach ignores tiles, so a target behind a wall is chosen, though every phase with it fails (`015 §5.8`, `§5.11`).
-- Should a spring draw the player and the target together while the game slows down to the pause? Likely wanted if the slowdown becomes 0.5 seconds; it would also shorten the teleport (`015 §5.13`).
 - A blocked phase gives the player no sign that it failed. That waits for effects (`015 §2.3`).
-- Tuning to be checked by playing: the reach of 0.165 tiles beyond half the player's diagonal, the cooldown of 0.5 seconds, the gap of 0.5 tiles, the separation of at least 2.5 tiles, and the speed of 16 (`015 §3.1`, `§5.1`).
+- Tuning to be checked by playing (issue #61): the reach of 0.165 tiles beyond half the player's diagonal, the cooldown of 0.5 seconds, the gap of 0.5 tiles, the separation of at least 2.5 tiles, and the speed of 16 (`015 §3.1`, `§5.1`).
 - Should other entities be allowed to overlap where a phase puts a body, for the engine to push them apart? To be measured first: overlapping walkers in particular may be pushed hard (`015 §5.3`).
-- Phasing straight down through a grounded target puts the player on the floor and sends the target up. What is that good for? Idea: a short fall stuns the target.
 - Should a phase launch the player faster off heavy or immovable targets? That would make turrets give bigger launches in general, and make phasing upward off a robot stronger than phasing sideways.
 - Should dead NPCs remain as objects that can be phased through and boosted off?
 - Phasing through a hovering platform throws the platform and leaves its riders behind. That is built, as [characters.md](characters.md) says every NPC can be phased through, but is only a leaning (`015 §1.3`).
