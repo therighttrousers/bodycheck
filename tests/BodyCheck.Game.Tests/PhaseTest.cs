@@ -65,8 +65,9 @@ public class PhaseTest
         // The teleport and the impulses take effect in the step after the release.
         await _run.Tick(AimRight);
         await _run.Tick(RoomRun.Right);
-        AssertFloat(player.Position.X).IsEqualApprox(center + tuning.PhaseMinSeparation / 2, 0.5f);
-        AssertFloat(robot.Position.X).IsEqualApprox(center - tuning.PhaseMinSeparation / 2, 0.5f);
+        float separation = player.HalfSize.X + robot.HalfSize.X + tuning.PhaseGap;
+        AssertFloat(player.Position.X).IsEqualApprox(center + separation / 2, 0.5f);
+        AssertFloat(robot.Position.X).IsEqualApprox(center - separation / 2, 0.5f);
         AssertFloat(player.LinearVelocity.X).IsEqualApprox(tuning.PhaseSpeed, 0.5f);
         AssertFloat(player.LinearVelocity.Y).IsEqualApprox(0, 0.5f);
         AssertFloat(robot.LinearVelocity.X).IsLess(-1);
@@ -100,11 +101,12 @@ public class PhaseTest
     [TestCase]
     public async Task PhaseThroughAWallDoesNothing()
     {
+        // There is no room for the pair between the walls, which are 2 tiles apart, and a phase can't cross one.
         var (player, robot) = await Start(
             "##########",
             "#........#",
             "#........#",
-            "#.PR#....#",
+            "#PR#.....#",
             "##########");
         Vector3 start = player.Position;
 
@@ -143,7 +145,7 @@ public class PhaseTest
     public async Task RunningAtStackedRobotsGrabsTheBottomOne()
     {
         // The top robot is behind the bottom one, and lags further as they patrol, so its corner reaches the
-        // player's head first. Reach has no corners, so it isn't in reach until it is above the player.
+        // player's head early. Reach is a sphere around the player's center, which the bottom robot enters first.
         _run = new RoomRun(RoomRun.RoomOf(
             "############",
             "#..........#",
@@ -256,7 +258,7 @@ public class PhaseTest
         Vector3 start = player.Position;
         await _run.PausedTick(AimNowhere, 10);
         await _run.PausedTick(AimRight);
-        AssertThat(world.PlayerController.Aim?.Direction).IsEqual(Vector2.Right);
+        AssertThat(world.PlayerController.Aim?.Direction).IsEqual(Vector3.Right);
         AssertFloat(player.Position.DistanceTo(start)).IsEqual(0);
 
         await _run.PausedTick(RoomRun.Right);

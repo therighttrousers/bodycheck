@@ -55,7 +55,7 @@ Development doesn't make much use of Godot's editor because the game world is pr
 
 Hold the jump button to jump higher.
 
-Phase goes through the robot, block or platform nearest the player. Holding it with one in reach, or coming within reach of one while holding it, slows the game to a pause, with an arrow to aim with; release it while holding a direction to phase that way, or with no direction to cancel.
+Phase goes through the robot, block or platform nearest the player. Holding it with one in reach, or coming within reach of one while holding it, slows the game to a pause, with arrows to aim with; release it while holding a direction to phase that way, or with no direction to cancel.
 
 The debug overlay, the wireframes and the rendering switches below work while the game is paused.
 

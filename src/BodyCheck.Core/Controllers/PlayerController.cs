@@ -11,22 +11,6 @@ public readonly record struct PlayerInput(float XAxis, float YAxis, bool JumpHel
     public bool CanLook => YAxis != 0 && XAxis == 0 && !JumpHeld && !PhaseHeld;
 }
 
-/// <summary>What momentum a phase gives the entity phased through.</summary>
-public enum PhaseThrow
-{
-    /// <summary>The opposite of the player's new momentum, so every phase throws the same.</summary>
-    Fixed,
-    /// <summary>The opposite of the player's change in momentum, so momentum is conserved.</summary>
-    Conserved,
-}
-
-/// <summary>A phase being aimed: its target, fixed when phase is pressed, and the direction held.</summary>
-/// <param name="Center">The center of mass of the player and the target, which the phase keeps.</param>
-/// <param name="Direction">
-/// One of the eight directions, as a unit vector, or zero if none is held. Released with none, the phase is cancelled.
-/// </param>
-public readonly record struct PhaseAim(Entity Target, Vector3 Center, Vector2 Direction);
-
 public sealed record PlayerTuning
 {
     /// <summary>Speed at which the run drive force falls to zero.</summary>
@@ -75,19 +59,20 @@ public sealed record PlayerTuning
     /// </summary>
     public float PhaseGap { get; init; } = 0.5f;
 
-    /// <summary>The least distance between the centers of the player and the entity phased through, after a phase.</summary>
-    public float PhaseMinSeparation { get; init; } = 2.5f;
-
     /// <summary>How far the player and the entity phased through may slide, as a fraction of their separation, to fit.</summary>
     public float PhaseMaxSlide { get; init; } = 1;
 
-    /// <summary>The speed the player leaves a phase with.</summary>
+    /// <summary>
+    /// The speed of the momentum a phase gives the player: the speed it leaves with, under <see cref="PhaseThrow.Fixed"/>,
+    /// or what is added to how it moves, under <see cref="PhaseThrow.Conserved"/>.
+    /// </summary>
     public float PhaseSpeed { get; init; } = 16;
 
     /// <summary>The minimum time between phase uses, according to the game clock.</summary>
     public float PhaseCooldownTime { get; init; } = 0.5f;
 
-    public PhaseThrow PhaseThrow { get; init; } = PhaseThrow.Conserved;
+    /// <summary>What momentum a phase gives the player and the target. To be chosen by playing.</summary>
+    public PhaseThrow PhaseThrow { get; init; } = PhaseThrow.Fixed;
 }
 
 /// <summary>
@@ -100,9 +85,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     private bool _jumpWasHeld;
     private float _phaseCooldown;
     // A phase released, to be made on the next tick of play.
-    private PhaseAim? _release;
-    // Where the target was from the player when the aim began, which the grab holds.
-    private Vector3 _grabOffset;
+    private PhaseAction? _release;
     private int _groundTicksLeft;
     private Vector3 _lastGroundVelocity = Vector3.Zero;
     private int _thrustTicksLeft;
@@ -122,8 +105,10 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
 
     public PlayerTuning Tuning { get; }
 
-    /// <summary>The phase being aimed, from when phase is pressed with a target in reach until it is released.</summary>
-    public PhaseAim? Aim { get; private set; }
+    /// <summary>
+    /// The phase being aimed, from when phase is held with a target in reach, after the cooldown, until it is released.
+    /// </summary>
+    public PhaseAction? Aim { get; private set; }
 
     /// <summary>The game is paused while a phase is aimed, so that the player can take its time over the direction.</summary>
     public bool RequestsPause => Aim is not null;
@@ -135,7 +120,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     public void ApplyPaused(WalkerEntity entity, float dt)
     {
         PlayerInput input = _input();
-        UpdateAim(entity, input);
+        UpdateAim(input);
         _jumpWasHeld = input.JumpHeld;
     }
 
@@ -154,17 +139,26 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         // If nothing pauses the game for the aim, the player aims while it runs.
         if (Aim is null && input.PhaseHeld && _phaseCooldown <= 0 && entity.NearestEntity(entity.HalfSize.Length() + Tuning.PhaseReach) is Entity target)
         {
-            Aim = new PhaseAim(target, Vector3.Zero, Vector2.Zero);
-            _grabOffset = target.Position - entity.Position;
+            Aim = new PhaseAction(
+                Player: entity,
+                Target: target,
+                GrabOffset: target.Position - entity.Position,
+                Gap: Tuning.PhaseGap,
+                Direction: Vector3.Zero,
+                MaxSlide: Tuning.PhaseMaxSlide,
+                Throw: Tuning.PhaseThrow,
+                Speed: Tuning.PhaseSpeed);
             _phaseCooldown = Tuning.PhaseCooldownTime;
         }
-        if (Aim is PhaseAim aim)
-        {
-            Grab(entity, aim.Target, dt);
-        }
-        UpdateAim(entity, input);
 
-        if (_release is PhaseAim release && TryPhase(entity, release.Target, release.Direction))
+        if (Aim is PhaseAction aim)
+        {
+            aim.Grab(dt);
+        }
+
+        UpdateAim(input);
+
+        if (_release is PhaseAction release && release.TryPhase())
         {
             _groundTicksLeft = 0;
             _thrustTicksLeft = 0;
@@ -198,9 +192,9 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     /// Follows the direction held while a phase is aimed, and ends the aim when phase is released: with a direction
     /// held, the phase is made on the next tick of play, and with none, it is cancelled.
     /// </summary>
-    private void UpdateAim(WalkerEntity entity, PlayerInput input)
+    private void UpdateAim(PlayerInput input)
     {
-        if (Aim is not PhaseAim aim)
+        if (Aim is not PhaseAction aim)
         {
             return;
         }
@@ -208,8 +202,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         var held = new Vector2(input.XAxis, input.YAxis);
         aim = aim with
         {
-            Center = CenterOfMass(entity, aim.Target),
-            Direction = held.Length() >= 0.5f ? EightWay(held) : Vector2.Zero,
+            Direction = held.Length() >= 0.5f ? Vector2.EightWay(held).ToVector3() : Vector3.Zero,
         };
         if (input.PhaseHeld)
         {
@@ -218,137 +211,10 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         }
 
         Aim = null;
-        if (aim.Direction != Vector2.Zero)
+        if (aim.Direction != Vector3.Zero)
         {
             _release = aim;
         }
-    }
-
-    /// <summary>
-    /// Holds the player and the target where they were from each other when the aim began, while they move together
-    /// at the velocity of their center of mass, as in a perfectly inelastic collision. Done on every tick of play while
-    /// a phase is aimed, so that they keep together while the game slows down to the pause, whatever else pushes on
-    /// them, such as gravity on a player beside a hovering platform. Without it, they can drift far apart before the
-    /// phase. Momentum is conserved: the impulses on the two are equal and opposite.
-    /// </summary>
-    private void Grab(Entity entity, Entity target, float dt)
-    {
-        float totalMass = entity.Mass + target.Mass;
-        Vector3 velocity = (entity.Mass * entity.LinearVelocity + target.Mass * target.LinearVelocity) / totalMass;
-
-        // The relative velocity that takes back how far they have drifted, over a step, but never over less than a
-        // tick's length at full speed. Steps shrink with the time scale as the game slows down, and dividing by a tiny
-        // one would give a velocity large enough to fling them both when play resumes.
-        Vector3 drift = target.Position - entity.Position - _grabOffset;
-        Vector3 closing = -drift / MathF.Max(dt, 1f / Engine.PhysicsTicksPerSecond);
-
-        entity.ApplyCentralImpulse(entity.Mass * (velocity - target.Mass / totalMass * closing - entity.LinearVelocity));
-        target.ApplyCentralImpulse(target.Mass * (velocity + entity.Mass / totalMass * closing - target.LinearVelocity));
-    }
-
-    private static Vector3 CenterOfMass(Entity entity, Entity target) =>
-        (entity.Mass * entity.Position + target.Mass * target.Position) / (entity.Mass + target.Mass);
-
-    /// <summary>
-    /// Phases through the target in a direction, if they fit: the player and the target teleport as a pair, keeping
-    /// their center of mass, onto the line through it in that direction, the player ahead of it and the target
-    /// behind. If they don't fit there, they are offset from each other across the line, as far as lines up their
-    /// edges on either side, and slide along the line, the nearest first. The player leaves at a fixed speed in that
-    /// direction, and the target is thrown the other way.
-    /// </summary>
-    /// <returns>Whether the player phased.</returns>
-    private bool TryPhase(WalkerEntity entity, Entity target, Vector2 direction)
-    {
-        var direction3 = new Vector3(direction.X, direction.Y, 0);
-
-        // Each moves in proportion to the other's mass.
-        float totalMass = entity.Mass + target.Mass;
-        Vector3 center = CenterOfMass(entity, target);
-        float separation = Separation(entity, target, direction);
-        Vector3 playerOffset = target.Mass / totalMass * separation * direction3;
-        Vector3 targetOffset = -entity.Mass / totalMass * separation * direction3;
-
-        // Across the line, the player may be offset from the target as far as lines up their edges on one side or the
-        // other: centers level is the middle, and, for a horizontal phase, bottoms or tops level are the ends. Split by
-        // mass, as along the line, so that the center of mass stays where it is. For bodies the same size, it is 0.
-        var across = new Vector3(-direction.Y, direction.X, 0);
-        float maxOffset = MathF.Abs(Extent(entity.HalfSize, across) - Extent(target.HalfSize, across));
-
-        const float Step = 1f / 16;
-        foreach (float offset in NearestFirst(maxOffset, Step))
-        {
-            Vector3 playerAcross = target.Mass / totalMass * offset * across;
-            Vector3 targetAcross = -entity.Mass / totalMass * offset * across;
-            foreach (float slide in NearestFirst(Tuning.PhaseMaxSlide * separation, Step))
-            {
-                Vector3 playerDestination = center + slide * direction3 + playerOffset + playerAcross;
-                Vector3 targetDestination = center + slide * direction3 + targetOffset + targetAcross;
-                if (entity.CanTeleport(playerDestination, target) && target.CanTeleport(targetDestination, entity))
-                {
-                    Phase(entity, target, playerDestination, targetDestination, direction3);
-                    if (direction.X != 0)
-                    {
-                        entity.Facing = MathF.Sign(direction.X);
-                    }
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    /// <summary>How far a box with a half size reaches from its center in a direction, given as a unit vector.</summary>
-    private static float Extent(Vector2 halfSize, Vector3 direction) =>
-        MathF.Abs(direction.X) * halfSize.X + MathF.Abs(direction.Y) * halfSize.Y;
-
-    /// <summary>0, then steps either way, the nearest first, out to <paramref name="max"/> exactly.</summary>
-    private static IEnumerable<float> NearestFirst(float max, float step)
-    {
-        yield return 0;
-        for (int i = 1; (i - 1) * step < max; i++)
-        {
-            float value = MathF.Min(i * step, max);
-            yield return value;
-            yield return -value;
-        }
-    }
-
-    /// <summary>
-    /// How far apart the centers of the player and the target end up: enough to clear their boxes in the
-    /// direction of the phase, plus a gap, but at least the minimum.
-    /// </summary>
-    private float Separation(Entity entity, Entity target, Vector2 direction)
-    {
-        Vector2 halfSizes = entity.HalfSize + target.HalfSize;
-        // Along a diagonal, the boxes clear when they clear on either axis, whichever comes first.
-        float clear = MathF.Min(
-            direction.X == 0 ? float.PositiveInfinity : halfSizes.X / MathF.Abs(direction.X),
-            direction.Y == 0 ? float.PositiveInfinity : halfSizes.Y / MathF.Abs(direction.Y));
-        return MathF.Max(clear + Tuning.PhaseGap, Tuning.PhaseMinSeparation);
-    }
-
-    private void Phase(Entity entity, Entity target, Vector3 playerDestination, Vector3 targetDestination, Vector3 direction)
-    {
-        entity.Teleport(playerDestination);
-        target.Teleport(targetDestination);
-
-        Vector3 momentum = entity.Mass * Tuning.PhaseSpeed * direction;
-        Vector3 impulse = momentum - entity.Mass * entity.LinearVelocity;
-        entity.ApplyCentralImpulse(impulse);
-        target.ApplyCentralImpulse(Tuning.PhaseThrow switch
-        {
-            PhaseThrow.Fixed => -momentum,
-            PhaseThrow.Conserved => -impulse,
-        });
-    }
-
-    /// <summary>The nearest of the eight directions to <paramref name="direction"/>, whatever its length, as a unit vector.</summary>
-    private static Vector2 EightWay(Vector2 direction)
-    {
-        const float step = MathF.PI / 4;
-        float angle = MathF.Round(direction.Angle() / step) * step;
-        // Rounded, so that the axes are exactly zero.
-        return new Vector2(MathF.Round(MathF.Cos(angle), 6), MathF.Round(MathF.Sin(angle), 6));
     }
 
     /// <summary>Reports the player's measurements to <see cref="Telemetry"/>, as of the engine's last step.</summary>

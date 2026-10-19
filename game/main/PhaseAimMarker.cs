@@ -1,3 +1,6 @@
+using System;
+
+using BodyCheck.Core;
 using BodyCheck.Core.Controllers;
 using BodyCheck.Core.Entities;
 using BodyCheck.Core.Simulation;
@@ -8,15 +11,20 @@ using Godot;
 namespace BodyCheck;
 
 /// <summary>
-/// A placeholder for showing a phase being aimed: a mark around the target, and an arrow in the direction held,
-/// centered on the center of mass of the player and the target. Like the <see cref="ShapeWireframes"/>, it is drawn
+/// A placeholder for showing a phase being aimed: a mark around the target, and, with a direction held, two arrows from
+/// the center of mass of the player and the target, for the velocity each would leave with if phase were released now,
+/// at a tenth of a tile per tile per second. Like the <see cref="ShapeWireframes"/>, it is drawn
 /// over the game at the window's full resolution, and it draws while the game is paused for the aim.
 /// </summary>
 public partial class PhaseAimMarker : Node2D
 {
-    private static readonly Color MarkColor = new(1, 0.85f, 0.2f);
-    private const float LineWidth = 3;
-    private const float HeadLength = 0.5f;
+    private static readonly Color PlayerColor = new(1, 0.85f, 0.2f);
+    private const float PlayerLineWidth = 4;
+    private const float PlayerHeadLength = 30;
+
+    private static readonly Color TargetColor = new(0.9f, 0.6f, 0.15f);
+    private const float TargetLineWidth = 3;
+    private const float TargetHeadLength = 20;
 
     private readonly WorldViewportContainer _worldView;
 
@@ -38,35 +46,45 @@ public partial class PhaseAimMarker : Node2D
     public override void _Draw()
     {
         Camera3D? camera = _worldView.World.GetCamera3D();
-        if (camera is null || World?.PlayerController.Aim is not PhaseAim aim)
+        if (camera is null || World?.PlayerController.Aim is not PhaseAction aim)
         {
             return;
         }
 
         // From the plane of play to the window's pixels, where the container draws the game scaled up.
         Transform2D toWindow = _worldView.GetGlobalTransform();
-        Vector2 ToWindow(Vector2 point) => toWindow * camera.UnprojectPosition(new Vector3(point.X, point.Y, 0));
+        Vector2 ToWindow(Vector2 point) => toWindow * camera.UnprojectPosition(point.ToVector3());
 
         Entity target = aim.Target;
-        Vector2 targetCenter = new(target.Position.X, target.Position.Y);
+        Vector2 targetCenter = target.Position.ToVector2();
         Vector2 corner = target.HalfSize + new Vector2(0.15f, 0.15f);
         Vector2[] box = [
             ToWindow(targetCenter + corner * new Vector2(-1, -1)), ToWindow(targetCenter + corner * new Vector2(1, -1)),
             ToWindow(targetCenter + corner * new Vector2(1, 1)), ToWindow(targetCenter + corner * new Vector2(-1, 1)),
             ToWindow(targetCenter + corner * new Vector2(-1, -1)),
         ];
-        DrawPolyline(box, MarkColor, LineWidth);
+        DrawPolyline(box, TargetColor, TargetLineWidth);
 
-        if (aim.Direction == Vector2.Zero)
+        if (aim.Direction == Vector3.Zero)
         {
             return;
         }
 
-        Vector2 center = new(aim.Center.X, aim.Center.Y);
-        Vector2 half = World.PlayerTuning.PhaseMinSeparation / 2 * aim.Direction;
-        Vector2 tip = center + half;
-        DrawLine(ToWindow(center - half), ToWindow(tip), MarkColor, LineWidth);
-        DrawLine(ToWindow(tip), ToWindow(tip - HeadLength * aim.Direction.Rotated(0.5f)), MarkColor, LineWidth);
-        DrawLine(ToWindow(tip), ToWindow(tip - HeadLength * aim.Direction.Rotated(-0.5f)), MarkColor, LineWidth);
+        Vector2 center = aim.CenterOfMass().ToVector2();
+        var (playerImpulse, targetImpulse) = aim.Impulses();
+        Vector3 playerVelocity = (aim.Player.Mass * aim.Player.LinearVelocity + playerImpulse) / aim.Player.Mass;
+        Vector3 targetVelocity = (aim.Target.Mass * aim.Target.LinearVelocity + targetImpulse) / aim.Target.Mass;
+        Vector2 playerDir = playerVelocity.ToVector2() / 10;
+        Vector2 targetDir = targetVelocity.ToVector2() / 10;
+        DrawArrow(ToWindow(center), ToWindow(center + playerDir), PlayerColor, PlayerLineWidth, PlayerHeadLength);
+        DrawArrow(ToWindow(center), ToWindow(center + targetDir), TargetColor, TargetLineWidth, TargetHeadLength);
+    }
+
+    private void DrawArrow(Vector2 p1, Vector2 p2, Color color, float lineWidth, float headLength)
+    {
+        Vector2 dir = (p2 - p1).Normalized();
+        DrawLine(p1, p2, color, lineWidth);
+        DrawLine(p2, p2 - headLength * dir.Rotated(0.5f), color, lineWidth);
+        DrawLine(p2, p2 - headLength * dir.Rotated(-0.5f), color, lineWidth);
     }
 }
