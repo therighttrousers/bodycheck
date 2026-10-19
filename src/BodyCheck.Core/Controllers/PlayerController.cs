@@ -87,7 +87,7 @@ public sealed record PlayerTuning
     /// <summary>The minimum time between phase uses, according to the game clock.</summary>
     public float PhaseCooldownTime { get; init; } = 0.5f;
 
-    public PhaseThrow PhaseThrow { get; init; } = PhaseThrow.Fixed;
+    public PhaseThrow PhaseThrow { get; init; } = PhaseThrow.Conserved;
 }
 
 /// <summary>
