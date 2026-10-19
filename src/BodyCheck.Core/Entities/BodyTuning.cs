@@ -14,6 +14,9 @@ public sealed record BodyTuning
     /// <summary>Linear drag coefficient: drag force is -Drag × velocity.</summary>
     public float Drag { get; init; } = 0.375f;
 
+    /// <summary>The layer this entity is on. Should be a bit in PhysicsLayer.EntityCollisionMask.</summary>
+    public required PhysicsLayer CollisionLayer { get; init; }
+
     /// <summary>
     /// The engine's coefficient of friction for this body, which lets it rest on things and be carried.
     /// A <see cref="WalkerEntity"/> has none, whatever this says: it grips through traction.
@@ -24,13 +27,35 @@ public sealed record BodyTuning
     /// </summary>
     public float EngineFriction { get; init; }
 
-    public static BodyTuning Player { get; } = new() { HalfSize = new(0.4f, 0.9f), Mass = 1 };
+    public static BodyTuning Player { get; } = new()
+    {
+        HalfSize = new(0.4f, 0.9f),
+        Mass = 1,
+        CollisionLayer = PhysicsLayer.Character
+    };
 
-    public static BodyTuning Robot { get; } = new() { HalfSize = new(0.4f, 0.9f), Mass = 1 };
+    public static BodyTuning Robot { get; } = new()
+    {
+        HalfSize = new(0.4f, 0.9f),
+        Mass = 1,
+        CollisionLayer = PhysicsLayer.Character
+    };
 
     /// <summary>A hovering platform. Its friction carries the things that rest on it.</summary>
-    public static BodyTuning Platform { get; } = new() { HalfSize = new(1.4f, 0.4f), Mass = 5, EngineFriction = 1 };
+    public static BodyTuning Platform { get; } = new()
+    {
+        HalfSize = new(1.4f, 0.4f),
+        Mass = 5,
+        EngineFriction = 1,
+        CollisionLayer = PhysicsLayer.Character
+    };
 
     /// <summary>A block, which has no controller: it is only pushed, carried and stood on.</summary>
-    public static BodyTuning Block { get; } = new() { HalfSize = new(0.5f, 0.5f), Mass = 2, EngineFriction = 1 };
+    public static BodyTuning Block { get; } = new()
+    {
+        HalfSize = new(0.5f, 0.5f),
+        Mass = 2,
+        EngineFriction = 1,
+        CollisionLayer = PhysicsLayer.Prop
+    };
 }

@@ -65,6 +65,8 @@ public partial class Entity : RigidBody3D
         LinearDampMode = DampMode.Replace;
         LinearDamp = 0;
         CanSleep = false;
+        CollisionLayer = (uint)tuning.CollisionLayer;
+        CollisionMask = (uint)PhysicsLayer.DefaultCollisionMask;
         ContactMonitor = true;
         MaxContactsReported = 8;
         ContinuousCd = continuousCd;
@@ -135,31 +137,20 @@ public partial class Entity : RigidBody3D
     /// other bodies, but not through walls.
     /// </summary>
     /// <param name="partner">An entity that teleports at the same time, which is out of the way.</param>
-    public bool CanTeleport(Vector3 position, Entity? partner = null)
+    public bool CanTeleport(Vector3 position, Entity? partner = null, PhysicsLayer? collisionMask = null)
     {
+        PhysicsLayer collMask = collisionMask ?? (PhysicsLayer)CollisionMask;
         // A little smaller than the box, so that touching isn't overlapping.
-        const float Clearance = 0.01f;
-        var halfSize = new Vector3(HalfSize.X - Clearance, HalfSize.Y - Clearance, Depth / 2);
-        if (Overlapping(new BoxShape3D { Size = 2 * halfSize }, position).Any(collider => collider != partner))
+        const float clearance = 0.01f;
+        var halfSize = new Vector3(HalfSize.X - clearance, HalfSize.Y - clearance, Depth / 2);
+        if (Overlapping(new BoxShape3D { Size = 2 * halfSize }, position, collMask).Any(collider => collider != partner))
         {
             return false;
         }
 
-        var exclude = new Godot.Collections.Array<Rid> { GetRid() };
-        while (true)
-        {
-            var ray = PhysicsRayQueryParameters3D.Create(Position, position, CollisionMask, exclude);
-            var hit = GetWorld3D().DirectSpaceState.IntersectRay(ray);
-            if (hit.Count == 0)
-            {
-                return true;
-            }
-            if (hit["collider"].AsGodotObject() is not Entity entity)
-            {
-                return false;
-            }
-            exclude.Add(entity.GetRid());
-        }
+        var ray = PhysicsRayQueryParameters3D.Create(Position, position, (uint)(collMask & ~PhysicsLayer.EntityCollisionMask));
+        var hit = GetWorld3D().DirectSpaceState.IntersectRay(ray);
+        return hit.Count == 0;
     }
 
     /// <summary>
@@ -183,13 +174,14 @@ public partial class Entity : RigidBody3D
     }
 
     /// <summary>The colliders, other than this entity, that overlap a shape centered at a place.</summary>
-    private IEnumerable<GodotObject> Overlapping(Shape3D shape, Vector3 center)
+    private IEnumerable<GodotObject> Overlapping(Shape3D shape, Vector3 center, PhysicsLayer? collisionMask = null)
     {
+        PhysicsLayer collMask = collisionMask ?? (PhysicsLayer)CollisionMask;
         var query = new PhysicsShapeQueryParameters3D
         {
             Shape = shape,
             Transform = new Transform3D(Basis.Identity, center),
-            CollisionMask = CollisionMask,
+            CollisionMask = (uint)collMask,
             Exclude = [GetRid()],
         };
         return GetWorld3D().DirectSpaceState.IntersectShape(query)

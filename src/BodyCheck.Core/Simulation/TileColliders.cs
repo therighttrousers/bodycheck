@@ -21,7 +21,11 @@ public static class TileColliders
     /// <param name="merge">Whether to merge tiles into larger boxes, or give each tile its own.</param>
     public static StaticBody3D Build(TileGrid tiles, bool merge = true)
     {
-        var body = new StaticBody3D { PhysicsMaterialOverride = new PhysicsMaterial { Friction = Friction, Bounce = 0 } };
+        var body = new StaticBody3D
+        {
+            PhysicsMaterialOverride = new PhysicsMaterial { Friction = Friction, Bounce = 0 },
+            CollisionLayer = (uint)PhysicsLayer.Static,
+        };
         var material = new StandardMaterial3D { AlbedoColor = new Color(0.35f, 0.38f, 0.45f) };
         foreach (Rect2I box in TileBoxes(tiles, merge))
         {
