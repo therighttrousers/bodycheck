@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 
+using BodyCheck.Core;
 using BodyCheck.Core.Controllers;
 using BodyCheck.Core.Simulation;
 using BodyCheck.Core.WorldData;
@@ -44,7 +45,7 @@ public static class Probe
                 // Nothing may brake the sliding body, so the controllers are off.
                 world.ControllersEnabled = false;
                 GD.Print($"Seam probe: tiles {(mergeTiles ? "merged" : "single")}");
-                probe = new SeamProbe(world.Player, speed: world.PlayerTuning.TopSpeed);
+                probe = new SeamProbe(world.Player, speed: Features.Current.PlayerTopSpeed);
                 break;
             case "player":
                 world = Load(TestRoomLibrary.Seams);

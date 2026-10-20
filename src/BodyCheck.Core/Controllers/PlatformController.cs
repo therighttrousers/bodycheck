@@ -4,33 +4,16 @@ using Godot;
 
 namespace BodyCheck.Core.Controllers;
 
-public sealed record PlatformTuning
-{
-    /// <summary>Speed at which the horizontal drive force falls to zero.</summary>
-    public float TopSpeed { get; init; } = 6;
-
-    /// <summary>Force applied horizontally to move back and forth.</summary>
-    public float HorizontalDriveForce { get; init; } = 67.5f;
-
-    /// <summary>How much the platform thrusts vertically to get back to its original altitude. Higher -> less sag.</summary>
-    public float VerticalStiffness { get; init; } = 112.5f;
-    /// <summary>Maximum vertical thrust, as a fraction of weight. Should be > 1.</summary>
-    public float MaxVerticalThrustFrac { get; init; } = 1.5f;
-}
-
 public sealed class PlatformController : ICharacterController<SimpleControlledEntity>
 {
     private readonly float _startHeight;
     private float _move = 1;
 
     /// <param name="startHeight">The height of the platform's center that it tries to hold.</param>
-    public PlatformController(float startHeight, PlatformTuning tuning)
+    public PlatformController(float startHeight)
     {
         _startHeight = startHeight;
-        Tuning = tuning;
     }
-
-    public PlatformTuning Tuning { get; }
 
     public void Apply(SimpleControlledEntity entity, float dt)
     {
@@ -50,22 +33,24 @@ public sealed class PlatformController : ICharacterController<SimpleControlledEn
 
     private void ApplyHorizontalThrust(SimpleControlledEntity entity, float move)
     {
+        Features features = Features.Current;
         float speed = entity.LinearVelocity.X;
         // The drive fades out as the entity nears top speed in the input direction.
         // It never slows an entity that is already faster than that.
-        float headroom = Math.Clamp(1 - speed * MathF.Sign(move) / Tuning.TopSpeed, 0, 1);
+        float headroom = Math.Clamp(1 - speed * MathF.Sign(move) / features.PlatformTopSpeed, 0, 1);
 
-        entity.ApplyCentralForce(new Vector3(move * Tuning.HorizontalDriveForce * headroom, 0, 0));
+        entity.ApplyCentralForce(new Vector3(move * features.PlatformHorizontalDriveForce * headroom, 0, 0));
     }
 
     private void ApplyVerticalThrust(SimpleControlledEntity entity)
     {
         // PD controller: correction = K_p * (target - current) + K_d * -rate
+        Features features = Features.Current;
         float weight = entity.Weight;
-        var damping = 2 * MathF.Sqrt(Tuning.VerticalStiffness * entity.Mass);
-        var correction = Tuning.VerticalStiffness * (_startHeight - entity.Position.Y) + damping * -entity.LinearVelocity.Y;
+        var damping = 2 * MathF.Sqrt(features.PlatformVerticalStiffness * entity.Mass);
+        var correction = features.PlatformVerticalStiffness * (_startHeight - entity.Position.Y) + damping * -entity.LinearVelocity.Y;
 
-        var thrust = Math.Clamp(weight + correction, 0, weight * Tuning.MaxVerticalThrustFrac);
+        var thrust = Math.Clamp(weight + correction, 0, weight * features.PlatformMaxVerticalThrustFrac);
         entity.ApplyCentralForce(new Vector3(0, thrust, 0));
     }
 }

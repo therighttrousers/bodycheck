@@ -29,7 +29,7 @@ public class PlayerControllerTest
     private static readonly PlayerInput Jump = new(0, 0, true);
 
     private static readonly BodyTuning NoDrag = BodyTuning.Player with { Drag = 0 };
-    private static readonly PlayerTuning FullThrust = new() { JumpThrustFrac = 1 };
+    private static readonly Features FullThrust = new() { PlayerJumpThrustFrac = 1 };
 
     private WorldNode? _world;
     private PlayerInput _input;
@@ -37,21 +37,24 @@ public class PlayerControllerTest
     private static readonly float Gravity = (float)ProjectSettings.GetSetting("physics/3d/default_gravity");
 
     private Entity Player => _world!.Player;
-    private PlayerTuning Tuning => _world!.PlayerTuning;
     private Vector3 Velocity => Player.LinearVelocity;
 
     private static SceneTree Tree => (SceneTree)Engine.GetMainLoop();
 
-    /// <summary>Loads an empty room, replacing the one loaded before, and by default waits for the player to settle.</summary>
+    /// <summary>
+    /// Puts the given features in effect, or the defaults, and loads an empty room, replacing the one loaded before. By
+    /// default waits for the player to settle.
+    /// </summary>
     /// <param name="settleTicks">How long to wait before returning. Pass 0 for a player that starts in the air.</param>
     private async Task Start(
-        PlayerTuning? tuning = null, BodyTuning? body = null,
+        Features? features = null, BodyTuning? body = null,
         int height = 20, int playerX = 1, int playerY = 1, int settleTicks = 30)
     {
         _world?.Free();
+        Features.Set(features ?? new());
         _input = Idle;
         Room frame = TestRoomLibrary.EmptyFrame(60, height, playerX, playerY);
-        _world = new WorldNode(new World(frame), EntityVisuals.For, playerTuning: tuning, playerBody: body)
+        _world = new WorldNode(new World(frame), EntityVisuals.For, playerBody: body)
         {
             PlayerInput = () => _input,
         };
@@ -64,6 +67,7 @@ public class PlayerControllerTest
     {
         _world?.Free();
         _world = null;
+        Features.Reset();
     }
 
     private async Task Tick(PlayerInput input, int ticks = 1)
@@ -88,8 +92,8 @@ public class PlayerControllerTest
     public async Task Running_settles_at_the_speed_where_drive_balances_drag()
     {
         await Start();
-        float drive = Tuning.GroundForwardDriveForce;
-        float balance = drive / (drive / Tuning.TopSpeed + Player.Tuning.Drag);
+        float drive = Features.Current.PlayerGroundForwardDriveForce;
+        float balance = drive / (drive / Features.Current.PlayerTopSpeed + Player.Tuning.Drag);
 
         await Tick(Right, 120);
 
@@ -103,7 +107,7 @@ public class PlayerControllerTest
 
         await Tick(Right, 120);
 
-        AssertThat(Velocity.X).IsBetween(0.99f * Tuning.TopSpeed, Tuning.TopSpeed);
+        AssertThat(Velocity.X).IsBetween(0.99f * Features.Current.PlayerTopSpeed, Features.Current.PlayerTopSpeed);
     }
 
     [TestCase]
@@ -113,7 +117,7 @@ public class PlayerControllerTest
 
         await Tick(Right, 20);
 
-        AssertThat(Velocity.X).IsGreater(0.8f * Tuning.TopSpeed);
+        AssertThat(Velocity.X).IsGreater(0.8f * Features.Current.PlayerTopSpeed);
     }
 
     [TestCase]
@@ -177,7 +181,7 @@ public class PlayerControllerTest
         await Tick(Jump);
 
         // The engine's step has taken one tick of gravity off the jump speed.
-        AssertThat(Velocity.Y).IsEqualApprox(Tuning.JumpSpeed - Gravity * Dt, 0.001f);
+        AssertThat(Velocity.Y).IsEqualApprox(Features.Current.PlayerJumpSpeed - Gravity * Dt, 0.001f);
     }
 
     [TestCase]
@@ -187,7 +191,7 @@ public class PlayerControllerTest
 
         await Tick(Jump);
         float speedAfterImpulse = Velocity.Y;
-        await Tick(Jump, Tuning.JumpThrustTicks);
+        await Tick(Jump, Features.Current.PlayerJumpThrustTicks);
 
         AssertThat(Velocity.Y).IsEqualApprox(speedAfterImpulse, 0.001f);
     }
@@ -196,18 +200,18 @@ public class PlayerControllerTest
     public async Task Thrust_below_weight_slows_the_rise_less_than_gravity_alone()
     {
         await Start();
-        float lostToGravityAlone = Gravity * Tuning.JumpThrustTicks * Dt;
+        float lostToGravityAlone = Gravity * Features.Current.PlayerJumpThrustTicks * Dt;
 
-        await Tick(Jump, Tuning.JumpThrustTicks);
+        await Tick(Jump, Features.Current.PlayerJumpThrustTicks);
 
-        AssertThat(Velocity.Y).IsBetween(Tuning.JumpSpeed - lostToGravityAlone, Tuning.JumpSpeed);
+        AssertThat(Velocity.Y).IsBetween(Features.Current.PlayerJumpSpeed - lostToGravityAlone, Features.Current.PlayerJumpSpeed);
     }
 
     [TestCase]
     public async Task A_tap_without_drag_jumps_about_as_high_as_the_impulse_alone()
     {
         await Start(body: NoDrag);
-        float impulseOnly = Tuning.JumpSpeed * Tuning.JumpSpeed / (2 * Gravity);
+        float impulseOnly = Features.Current.PlayerJumpSpeed * Features.Current.PlayerJumpSpeed / (2 * Gravity);
 
         float apex = await ApexOfJump(ticksHeld: 1);
 
@@ -221,7 +225,7 @@ public class PlayerControllerTest
         float tap = await ApexOfJump(ticksHeld: 1);
 
         // Thrust starts the tick after the impulse, by when gravity has acted once. A tap gets none.
-        float risenUnderThrust = Tuning.JumpThrustTicks * (Tuning.JumpSpeed - Gravity * Dt) * Dt;
+        float risenUnderThrust = Features.Current.PlayerJumpThrustTicks * (Features.Current.PlayerJumpSpeed - Gravity * Dt) * Dt;
 
         await Start(FullThrust, NoDrag);
         float held = await ApexOfJump(ticksHeld: 600);
@@ -261,7 +265,7 @@ public class PlayerControllerTest
         // The take-off tick, then the thrust ticks.
         float steepest = float.MinValue;
         float shallowest = float.MaxValue;
-        for (int tick = 0; tick <= Tuning.JumpThrustTicks; tick++)
+        for (int tick = 0; tick <= Features.Current.PlayerJumpThrustTicks; tick++)
         {
             await Tick(new PlayerInput(1, 0, true));
             float angle = Mathf.RadToDeg(MathF.Atan2(Velocity.Y, Velocity.X));
@@ -306,7 +310,7 @@ public class PlayerControllerTest
     public async Task Thrust_ends_when_the_body_hits_a_ceiling()
     {
         // A ceiling 1.4 tiles above the player's head, and thrust that would otherwise hold it there for 10 seconds.
-        await Start(FullThrust with { JumpThrustTicks = 600 }, NoDrag, height: 5);
+        await Start(FullThrust with { PlayerJumpThrustTicks = 600 }, NoDrag, height: 5);
 
         await Tick(Jump, 60);
 
