@@ -32,7 +32,7 @@ public sealed class LandingProbe : IProbe
 
     public PlayerInput Input { get; private set; }
 
-    public void Tick(float dt)
+    public void Tick(float gameDt)
     {
         int t = _tick++ - _phaseStart;
         float vx = _body.LinearVelocity.X;
@@ -93,7 +93,7 @@ public sealed class PushProbe : IProbe
 
     public bool Done => _tick > Ticks;
 
-    public void Tick(float dt)
+    public void Tick(float gameDt)
     {
         int t = _tick++;
         float overlap = _robot.Position.X + _robot.HalfSize.X - (_player.Position.X - _player.HalfSize.X);
@@ -140,7 +140,7 @@ public sealed class RunOffProbe : IProbe
 
     public PlayerInput Input { get; private set; }
 
-    public void Tick(float dt)
+    public void Tick(float gameDt)
     {
         int t = _tick++ - SettleTicks;
         if (t < 0)

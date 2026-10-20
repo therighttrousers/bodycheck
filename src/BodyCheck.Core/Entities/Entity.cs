@@ -162,15 +162,17 @@ public partial class Entity : RigidBody3D
     }
 
     /// <summary>Call once per physics tick, before the engine's step.</summary>
+    /// <param name="gameDt">The tick's length in game time, which the engine's time scale shortens.</param>
+    /// <param name="realDt">The tick's length in real time, which the time scale doesn't change.</param>
     /// <param name="controlled">Whether the controller runs. Without it, the entity only coasts, under drag and gravity.</param>
-    public void Step(float dt, bool controlled = true)
+    public void Step(float gameDt, float realDt, bool controlled = true)
     {
         // A motor's push lasts one tick, like a force: it is off unless the controller uses it again.
         ReleaseMotors();
 
         if (controlled)
         {
-            Control(dt);
+            Control(gameDt, realDt);
         }
 
         ApplyCentralForce(-Tuning.Drag * LinearVelocity);
@@ -180,13 +182,14 @@ public partial class Entity : RigidBody3D
     /// Call once per physics tick while the game is paused because a controller asked (see
     /// <see cref="RequestsPause"/>), instead of <see cref="Step"/>. It runs the controller's paused step only.
     /// </summary>
-    public void StepPaused(float dt) => ControlPaused(dt);
+    /// <param name="realDt">The tick's length in real time. No game time passes.</param>
+    public void StepPaused(float realDt) => ControlPaused(realDt);
 
     /// <summary>Whether this entity's controller asks for the game to be paused.</summary>
     public virtual bool RequestsPause => false;
 
     /// <summary>Runs the paused step of the controller of this kind of body, if it has one.</summary>
-    protected virtual void ControlPaused(float dt)
+    protected virtual void ControlPaused(float realDt)
     {
     }
 
@@ -196,7 +199,7 @@ public partial class Entity : RigidBody3D
     }
 
     /// <summary>Runs the controller of this kind of body, if it has one.</summary>
-    protected virtual void Control(float dt)
+    protected virtual void Control(float gameDt, float realDt)
     {
     }
 

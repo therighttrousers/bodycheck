@@ -15,6 +15,7 @@ Relevant decision records:
 - [015: The phase ability](../decision-records/015-phase.md)
 - [016: Features](../decision-records/016-features.md)
 - [017: The playtesting and puzzle design workflow](../decision-records/017-playtesting-workflow.md)
+- [018: Game time and real time](../decision-records/018-game-and-real-time.md)
 
 ## Tools
 
@@ -53,6 +54,7 @@ Core is split into subsystems, each a subdirectory and a namespace, with an `int
 - Every entity can move through other entities, but not through tiles, before the engine's next step, and can find the colliders that overlap a shape, as of the last step. The player's controller uses them to phase: a `PhaseAction` holds a phase being aimed, with its rules for the grab, the placement and the impulses (`015 §4.1`, `§5.20`, `§5.21`).
 - An `ICharacterController<TEntity>` decides what an entity does, using forces, impulses and the motors of that kind of body. The player and the NPCs use the same interface; the player's controller is given its source of input. The wrong controller for a body doesn't compile.
 - **A controller can ask for the game to pause**, to decide something with everything else standing still: the player's does while a phase is aimed. While the game is paused for that, controllers run on a second path beside the normal one: the game calls `WorldNode.StepPaused`, which calls each `Entity.StepPaused`, which calls the controller's `ApplyPaused`. A controller asks through `RequestsPause`, which its entity passes on, and `WorldNode.PauseRequested` says whether any does. Both are default interface members that do nothing, so only controllers that pause have them. Nothing moves on this path: the engine doesn't step (`015 §5.10`).
+- **Controllers get game time and real time.** `Apply` takes each tick's length on both clocks: game time, which the engine's time scale shortens, and real time, a physics tick's length whatever the scale. `ApplyPaused` takes real time only, since no game time passes. A timer that governs the world runs on game time, and one about the player's fingers on real time (`018 §1.1`, `§1.2`).
 - The player and a robot are the same class, `WalkerEntity`, with different tuning, looks and controller.
 - **Telemetry.** Game code pushes measurements to `Telemetry`, by `Metric`, an enum. Each metric keeps its last value until it is reported again or the telemetry is reset. Whatever wants the measurements reads them: the debug overlay, and tests. Nothing that reports knows what reads, so telemetry puts no constraint on how game code is divided up (`008 §1`).
 - Core's classes have no `res://` path, so they are created in code and can't be attached to a scene in the editor.

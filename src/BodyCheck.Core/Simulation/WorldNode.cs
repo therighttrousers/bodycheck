@@ -123,9 +123,9 @@ public partial class WorldNode : Node3D
 
     /// <summary>
     /// Steps every entity's controller while the game is paused because a controller asked: call once per physics
-    /// tick then, in place of the world's own step. Nothing moves.
+    /// tick then, in place of the world's own step. Nothing moves, and no game time passes.
     /// </summary>
-    public void StepPaused(float dt)
+    public void StepPaused()
     {
         if (!ControllersEnabled)
         {
@@ -133,7 +133,7 @@ public partial class WorldNode : Node3D
         }
         foreach (Entity entity in _entities)
         {
-            entity.StepPaused(dt);
+            entity.StepPaused(RealDt);
         }
     }
 
@@ -143,8 +143,14 @@ public partial class WorldNode : Node3D
         {
             if (entity.CanProcess())
             {
-                entity.Step((float)delta, ControllersEnabled);
+                entity.Step((float)delta, RealDt, ControllersEnabled);
             }
         }
     }
+
+    /// <summary>
+    /// A physics tick's length in real time. The engine's time scale shortens the delta it gives each tick, but not
+    /// how often ticks come.
+    /// </summary>
+    private static float RealDt => 1f / Engine.PhysicsTicksPerSecond;
 }

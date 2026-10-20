@@ -6,6 +6,7 @@ Relevant decision records:
 - [005: Jolt's joint motors for traction](../decision-records/005-jolt-motors-for-traction.md)
 - [007: Running over one-tile gaps is not a design goal](../decision-records/007-one-tile-gaps.md)
 - [015: The phase ability](../decision-records/015-phase.md)
+- [018: Game time and real time](../decision-records/018-game-and-real-time.md)
 
 ## Player movement
 
@@ -34,6 +35,7 @@ Rationale: decision record `000 §1.8`.
 ### Edges and gaps
 
 - For a few ticks after moving off an edge without jumping, the player can still jump, and drives as on the ground: coyote time. A coyote jump is as high as one from the ground.
+- Coyote time and jump thrust run on game time, so the slowdown before a phase stretches them. They are tuned in ticks at 60 per second, and at full speed always last exactly that many ticks (`018 §1.1`, `§2.1`).
 - 1-tile gaps don't belong on running paths: at any speed, a running player may cross one or catch on its far edge and fall in, depending on where the ticks land (`007 §1.1`, `007 §1.2`).
 - Jumping up through a 1-tile gap doesn't need perfect alignment.
 

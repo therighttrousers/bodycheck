@@ -78,7 +78,7 @@ public sealed class RoomRun
         for (int i = 0; i < ticks; i++)
         {
             await Tree.ToSignal(Tree, SceneTree.SignalName.PhysicsFrame);
-            Node.StepPaused(1f / Engine.PhysicsTicksPerSecond);
+            Node.StepPaused();
         }
     }
 }

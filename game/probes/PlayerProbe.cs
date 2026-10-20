@@ -32,7 +32,7 @@ public sealed class PlayerProbe : IProbe
 
     public PlayerInput Input { get; private set; }
 
-    public void Tick(float dt) => Input = NextInput();
+    public void Tick(float gameDt) => Input = NextInput();
 
     /// <summary>Called once per physics tick, before the controller. Returns the input for this tick.</summary>
     private PlayerInput NextInput()

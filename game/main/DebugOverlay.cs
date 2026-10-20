@@ -33,11 +33,11 @@ public partial class DebugOverlay : CanvasLayer
         Metric.AirRise,
         Metric.AirRun,
         Metric.AirLand,
-        Metric.AirTicks,
+        Metric.AirTime,
         Metric.Feet,
         Metric.OnGround,
-        Metric.CoyoteTicks,
-        Metric.ThrustTicks,
+        Metric.CoyoteTime,
+        Metric.ThrustTime,
     ];
     private static readonly Metric[] Metrics = [.. Enum.GetValues<Metric>().Where(metric => !CustomRender.Contains(metric))];
     private static readonly string[] Labels = [.. Metrics.Select(metric => Words(metric.ToString()))];
@@ -103,19 +103,19 @@ public partial class DebugOverlay : CanvasLayer
         var airRise = Telemetry.GetFloat(Metric.AirRise) ?? 0;
         var airRun = Telemetry.GetFloat(Metric.AirRun) ?? 0;
         var airLand = Telemetry.GetFloat(Metric.AirLand) ?? 0;
-        var airTicks = Telemetry.GetInt(Metric.AirTicks) ?? 0;
+        var airTime = Telemetry.GetFloat(Metric.AirTime) ?? 0;
         var feet = Telemetry.GetVector2(Metric.Feet) ?? Vector2.Zero;
         var onGround = (Telemetry.GetBool(Metric.OnGround) ?? false) ? "true " : "false";
-        var coyoteTicks = Telemetry.GetInt(Metric.CoyoteTicks) ?? 0;
-        var thrustTicks = Telemetry.GetInt(Metric.ThrustTicks) ?? 0;
+        var coyoteTime = Telemetry.GetFloat(Metric.CoyoteTime) ?? 0;
+        var thrustTime = Telemetry.GetFloat(Metric.ThrustTime) ?? 0;
 
         _items.Clear();
 
         _items.Add(new Item("Frame times", $"{Signed(fps, "000")}  All {Signed(frameMs, "00.00")}  Phys {Signed(physicsMs, "00.00")}  CPU {Signed(renderMs.X, "00.00")}  GPU {Signed(renderMs.Y, "00.00")}"));
         _items.Add(new Item("Velocity", $"Vec {Signed(velocity.X, "00.00")} {Signed(velocity.Y, "00.00")}  Mag {Signed(speed, "00.00")}  Angle {Signed(angle, "000")}  Gnd {Signed(ground, "00.00")}"));
-        _items.Add(new Item("Last air", $"Rise {Signed(airRise, "00.00")}  Run {Signed(airRun, "00.00")}  Land {Signed(airLand, "00.00")}  Ticks {Signed(airTicks, "0000")}"));
+        _items.Add(new Item("Last air", $"Rise {Signed(airRise, "00.00")}  Run {Signed(airRun, "00.00")}  Land {Signed(airLand, "00.00")}  Time {Signed(airTime, "00.000")}"));
         _items.Add(new Item("Feet", $"Vec {Signed(feet.X, "0000.00")} {Signed(feet.Y, "0000.00")}  OnGround {onGround}"));
-        _items.Add(new Item("Leniency", $"Coyote {Signed(coyoteTicks, "0")}  Thrust {Signed(thrustTicks, "00")}"));
+        _items.Add(new Item("Leniency", $"Coyote {Signed(coyoteTime, "0.000")}  Thrust {Signed(thrustTime, "0.000")}"));
 
         // Add all the leftover telemetry.
         foreach (var (label, metric) in Labels.Zip(Metrics))

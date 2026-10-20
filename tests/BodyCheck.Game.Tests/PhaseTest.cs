@@ -240,6 +240,53 @@ public class PhaseTest
         AssertObject(_run.Node.PlayerController.Phase).IsNull();
     }
 
+    /// <summary>
+    /// Letting go of the direction the given number of ticks before releasing phase, while the game runs or while it is
+    /// paused: within <see cref="Features.PlayerPhaseReleaseTicks"/>, the phase is made in that direction.
+    /// </summary>
+    [TestCase(0, false)]
+    [TestCase(0, true)]
+    [TestCase(3, false)]
+    [TestCase(3, true)]
+    public async Task LettingGoOfTheDirectionJustBeforeReleasingStillPhases(int ticksBefore, bool paused)
+    {
+        var (player, robot) = await Start(
+            "####################",
+            "#..................#",
+            "#..................#",
+            "#..PR..............#",
+            "####################");
+        AssertInt(ticksBefore).IsLess(Features.Current.PlayerPhaseReleaseTicks);
+
+        await _run!.Tick(AimRight);
+        Tree.Paused = paused;
+        Task Tick(PlayerInput input, int ticks) => paused ? _run.PausedTick(input, ticks) : _run.Tick(input, ticks);
+        await Tick(AimNowhere, ticksBefore);
+        await Tick(RoomRun.Idle, 1);
+        Tree.Paused = false;
+        await _run.Tick(RoomRun.Idle);
+
+        AssertFloat(player.Position.X).IsGreater(robot.Position.X);
+    }
+
+    [TestCase]
+    public async Task LettingGoOfTheDirectionLongerBeforeReleasingCancels()
+    {
+        var (player, robot) = await Start(
+            "####################",
+            "#..................#",
+            "#..................#",
+            "#..PR..............#",
+            "####################");
+
+        await _run!.Tick(AimRight);
+        await _run.Tick(AimNowhere, Features.Current.PlayerPhaseReleaseTicks);
+        await _run.Tick(RoomRun.Idle, 2);
+
+        AssertFloat(player.Position.X).IsLess(robot.Position.X);
+        AssertObject(_run.Node.PlayerController.Phase).IsNull();
+    }
+
     [TestCase]
     public async Task AimingWhilePausedPhasesOnTheTickAfterRelease()
     {
