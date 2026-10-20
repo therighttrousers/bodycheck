@@ -41,7 +41,20 @@ public sealed class RoomRun
     /// <summary>A room from text rows, top row first, with the name "Test".</summary>
     public static Room RoomOf(params string[] rows) => Room.FromText("Test", string.Join('\n', rows));
 
-    public void Free() => Node.Free();
+    /// <summary>Frees the room, with <see cref="FreeAndFinalize"/>.</summary>
+    public void Free() => FreeAndFinalize(Node);
+
+    /// <summary>
+    /// Frees a node, and runs the finalizers of the C# objects it leaves behind, such as the wrappers of its meshes and
+    /// shapes. Godot crashes if a finalizer runs while it shuts down, so none may be left when the last test ends: every
+    /// test that frees a world frees it with this.
+    /// </summary>
+    public static void FreeAndFinalize(Node node)
+    {
+        node.Free();
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+    }
 
     /// <summary>Runs the room for a number of physics ticks with the given input.</summary>
     /// <param name="eachTick">Called after each tick.</param>

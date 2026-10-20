@@ -43,7 +43,7 @@ public class RidingTest
     }
 
     [AfterTest]
-    public void TearDown() => _world.Free();
+    public void TearDown() => RoomRun.FreeAndFinalize(_world);
 
     private async Task Tick(PlayerInput input, int ticks = 1)
     {
