@@ -48,6 +48,7 @@ public partial class Main : Node
     private readonly WorldViewportContainer _worldView = new();
     private readonly DebugOverlay _overlay = new();
     private ShapeWireframes _shapes = null!;
+    private PhaseAimMarker _phaseAimMarker = null!;
     private IProbe? _probe;
 
     public override void _Ready()
@@ -58,6 +59,8 @@ public partial class Main : Node
         _worldView.World.AddChild(_cameraRig);
         _shapes = new ShapeWireframes(_worldView);
         AddChild(_shapes);
+        _phaseAimMarker = new PhaseAimMarker(_worldView);
+        AddChild(_phaseAimMarker);
         AddChild(_overlay);
         _worlds = [LdtkReader.ReadWorld(LevelsPath, ReadFile), .. RoomLibrary.All.Select(room => new World(room))];
 
@@ -93,6 +96,9 @@ public partial class Main : Node
         if (probeName is not null)
         {
             _probe = Probe.Start(probeName, world => LoadWorld(world), _mergeTiles);
+            // A probe's input comes from this node's physics tick, which stops while the game is paused, so nothing
+            // pauses for its player. Unpaused, the player aims a phase while the world runs.
+            _gameModeManager.World = null;
             return;
         }
 
@@ -102,7 +108,8 @@ public partial class Main : Node
         _world.PlayerInput = () => new PlayerInput(
             Input.GetAxis("move_left", "move_right"),
             Input.GetAxis("move_down", "move_up"),
-            Input.IsActionPressed("jump"));
+            Input.IsActionPressed("jump"),
+            Input.IsActionPressed("phase"));
     }
 
     public override void _PhysicsProcess(double delta)
@@ -159,6 +166,8 @@ public partial class Main : Node
         }
         _worldView.World.AddChild(_world);
         _cameraRig.Follow(_world);
+        _gameModeManager.World = _world;
+        _phaseAimMarker.World = _world;
         ShowTitle();
         return _world;
     }
@@ -228,8 +237,17 @@ public partial class Main : Node
             new InputEventJoypadMotion { Axis = JoyAxis.LeftY, AxisValue = 1 },
             new InputEventJoypadButton { ButtonIndex = JoyButton.DpadDown });
         AddAction("jump",
-            new InputEventKey { PhysicalKeycode = Key.Space },
+            new InputEventKey { PhysicalKeycode = Key.J },
+            new InputEventKey { PhysicalKeycode = Key.C },
             new InputEventJoypadButton { ButtonIndex = JoyButton.A });
+        AddAction("phase",
+            new InputEventKey { PhysicalKeycode = Key.K },
+            new InputEventKey { PhysicalKeycode = Key.X },
+            new InputEventJoypadButton { ButtonIndex = JoyButton.X });
+        AddAction("boost",
+            new InputEventKey { PhysicalKeycode = Key.L },
+            new InputEventKey { PhysicalKeycode = Key.Z },
+            new InputEventJoypadMotion { Axis = JoyAxis.TriggerRight });
         AddAction("next_world",
             new InputEventKey { PhysicalKeycode = Key.Period },
             new InputEventJoypadButton { ButtonIndex = JoyButton.RightShoulder });

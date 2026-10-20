@@ -39,6 +39,12 @@ public partial class Entity : RigidBody3D
     // How closely a contact normal must line up with an axis to count as a contact on that side.
     private const float SideThreshold = 0.7f;
 
+    // How many times a move through entities may slide along a tile before it stops short.
+    private const int MaxSlides = 4;
+
+    // Where to move to through entities before the engine's next step, if anywhere.
+    private Vector3? _destination;
+
     /// <param name="visual">What to draw for the entity, centered on the middle of its box.</param>
     public Entity(BodyTuning tuning, Node3D? visual = null, bool axisLockAngularZ = true)
         : this(tuning, visual, tuning.EngineFriction, continuousCd: false, axisLockAngularZ)
@@ -62,6 +68,8 @@ public partial class Entity : RigidBody3D
         LinearDampMode = DampMode.Replace;
         LinearDamp = 0;
         CanSleep = false;
+        CollisionLayer = (uint)tuning.CollisionLayer;
+        CollisionMask = (uint)PhysicsLayer.DefaultCollisionMask;
         ContactMonitor = true;
         MaxContactsReported = 8;
         ContinuousCd = continuousCd;
@@ -108,6 +116,51 @@ public partial class Entity : RigidBody3D
     /// <summary>The force that gravity puts on the entity where it is.</summary>
     public float Weight => Mass * -GetGravity().Y;
 
+    /// <summary>
+    /// Moves the entity toward <paramref name="destination"/> before the engine's next step, through other entities
+    /// but not through tiles: where it meets one, it slides along it, so it may stop short. It keeps its velocity, and
+    /// the engine pushes it apart from whatever it ends up overlapping. Until then it stays where it is, so that
+    /// controllers stepped after this one in the same tick still see the world as of the engine's last step.
+    /// </summary>
+    public void MoveThroughEntities(Vector3 destination) => _destination = destination;
+
+    // Every entity's step runs before this, because the room that steps them is their parent, and a parent is
+    // processed before its children.
+    public override void _PhysicsProcess(double delta)
+    {
+        if (_destination is not Vector3 destination)
+        {
+            return;
+        }
+        _destination = null;
+
+        // Only for this move, which is over within the call: the engine's step sees the mask as it was.
+        uint mask = CollisionMask;
+        CollisionMask = (uint)PhysicsLayer.Static;
+        Vector3 motion = destination - Position;
+        for (int i = 0; i <= MaxSlides && MoveAndCollide(motion) is KinematicCollision3D collision; i++)
+        {
+            motion = collision.GetRemainder().Slide(collision.GetNormal());
+        }
+        CollisionMask = mask;
+
+        // Drawn there at once, not interpolated across the room.
+        ResetPhysicsInterpolation();
+    }
+
+    /// <summary>The colliders, other than this entity, that overlap a shape centered at a place.</summary>
+    public IEnumerable<GodotObject> Overlapping(Shape3D shape, Vector3 center)
+    {
+        var query = new PhysicsShapeQueryParameters3D
+        {
+            Shape = shape,
+            Transform = new Transform3D(Basis.Identity, center),
+            Exclude = [GetRid()],
+        };
+        return GetWorld3D().DirectSpaceState.IntersectShape(query)
+            .Select(result => result["collider"].AsGodotObject());
+    }
+
     /// <summary>Call once per physics tick, before the engine's step.</summary>
     /// <param name="controlled">Whether the controller runs. Without it, the entity only coasts, under drag and gravity.</param>
     public void Step(float dt, bool controlled = true)
@@ -121,6 +174,20 @@ public partial class Entity : RigidBody3D
         }
 
         ApplyCentralForce(-Tuning.Drag * LinearVelocity);
+    }
+
+    /// <summary>
+    /// Call once per physics tick while the game is paused because a controller asked (see
+    /// <see cref="RequestsPause"/>), instead of <see cref="Step"/>. It runs the controller's paused step only.
+    /// </summary>
+    public void StepPaused(float dt) => ControlPaused(dt);
+
+    /// <summary>Whether this entity's controller asks for the game to be paused.</summary>
+    public virtual bool RequestsPause => false;
+
+    /// <summary>Runs the paused step of the controller of this kind of body, if it has one.</summary>
+    protected virtual void ControlPaused(float dt)
+    {
     }
 
     /// <summary>Switches off every motor this kind of body has.</summary>

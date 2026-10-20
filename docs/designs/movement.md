@@ -5,6 +5,7 @@ Relevant decision records:
 - [001: Godot's 3D physics engine](../decision-records/001-godot-3d-physics.md)
 - [005: Jolt's joint motors for traction](../decision-records/005-jolt-motors-for-traction.md)
 - [007: Running over one-tile gaps is not a design goal](../decision-records/007-one-tile-gaps.md)
+- [015: The phase ability](../decision-records/015-phase.md)
 
 ## Player movement
 
@@ -47,11 +48,14 @@ Rationale: decision record `001`.
 - No body is ever `Rough`, so that a walker's zero friction wins on every contact it has (`001 §1.4`). Tiles have friction 1, which therefore affects only bodies that have friction of their own.
 - Bounce is 0 on everything. Drag is our own force, not the engine's damping, which gives lower jumps under the same tuning (`005 §2.1`).
 - All solid tiles are shapes of one static body, merged along rows into larger boxes, so that a floor seam can't catch a sliding body (`001 §1.2`).
+- Bodies are on physics layers: tiles on the static layer, blocks on the prop layer, and the player, robots and platforms on the character layer. Every entity collides with all three, so the layers change nothing about what collides yet; they let queries choose what they see. See [architecture.md](architecture.md).
 - Four project settings make contacts exact and corners sharp (`001 §1.3`): collision margin fraction 0.005, penetration slop 0, continuous collision detection's maximum penetration 0, and 60 physics ticks per second.
 - Once per tick, before the engine's step, the room steps every entity: its controller runs, then its drag is applied (`005 §3.3`).
 - A controller pushes its entity with the engine's own forces and impulses, and with the motors that its kind of body has. A walker's is traction, below.
 - A motor earns its place when its target speed binds, as in braking or holding against pushes, or when its push must land on another body. Otherwise a plain force does the same with less. So a platform moves itself with forces, and holds its height with a PD controller of our own, whose thrust is capped so that enough load sinks it, and which sags under a rider (`005 §3.6`).
 - A controller sees the world as of the engine's last step. Neither the forces nor the impulses applied this tick show in any entity's velocity until the next step, so what a controller decides doesn't depend on the order in which entities are stepped (`005 §3.4`).
+- A move through other entities, such as a phase's, waits until every entity has been stepped, and happens before the engine's step, so that it doesn't show to controllers stepped later in the same tick either. The entity's own `_PhysicsProcess` does it, since Godot processes a parent before its children. It sweeps the body toward where it goes against tiles only, sliding along any it meets, and leaves the engine's step to push apart whatever ends up overlapping. It resets physics interpolation, so the body isn't drawn sliding to where it went (`015 §4.2`, `§5.21`).
+- On the tick of play on which such a move happens, every entity's contacts are still from before it. The player's controller neither runs nor jumps then, nor counts itself on the ground (`015 §5.21`).
 - Gravity is set in one place: the project setting `physics/3d/default_gravity`, which the test project copies. An entity's weight uses the engine's figure for the gravity on it.
 
 ## Ground contact and traction
