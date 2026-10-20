@@ -54,19 +54,19 @@
 			"entityInstances": [
 				{
 					"__identifier": "RobotBasic",
-					"__grid": [15,13],
+					"__grid": [15,12],
 					"__pivot": [0,0],
 					"__tags": [],
 					"__tile": null,
 					"__smartColor": "#FEAE34",
 					"iid": "0c1314c0-bde0-11f1-b36f-4db7743d8dea",
 					"width": 16,
-					"height": 16,
+					"height": 32,
 					"defUid": 203,
-					"px": [240,208],
+					"px": [240,192],
 					"fieldInstances": [],
 					"__worldX": 560,
-					"__worldY": 208
+					"__worldY": 192
 				},
 				{
 					"__identifier": "PlatformHorizontal",
@@ -76,7 +76,7 @@
 					"__tile": null,
 					"__smartColor": "#63C74D",
 					"iid": "15da9730-bde0-11f1-b36f-dbe11e3d5ee8",
-					"width": 16,
+					"width": 48,
 					"height": 16,
 					"defUid": 204,
 					"px": [160,144],

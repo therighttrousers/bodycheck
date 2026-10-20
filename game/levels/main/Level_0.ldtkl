@@ -54,74 +54,74 @@
 			"entityInstances": [
 				{
 					"__identifier": "PlayerStart",
-					"__grid": [5,10],
+					"__grid": [5,9],
 					"__pivot": [0,0],
 					"__tags": [],
 					"__tile": null,
 					"__smartColor": "#2CE8F5",
 					"iid": "b5aa6fb0-bde0-11f1-abb8-395963510d38",
 					"width": 16,
-					"height": 16,
+					"height": 32,
 					"defUid": 202,
-					"px": [80,160],
+					"px": [80,144],
 					"fieldInstances": [],
 					"__worldX": 80,
-					"__worldY": 160
+					"__worldY": 144
 				},
 				{
 					"__identifier": "RobotBasic",
-					"__grid": [9,10],
+					"__grid": [9,9],
 					"__pivot": [0,0],
 					"__tags": [],
 					"__tile": null,
 					"__smartColor": "#FEAE34",
 					"iid": "e534ffc0-bde0-11f1-abb8-791e0bc1a4b5",
 					"width": 16,
-					"height": 16,
+					"height": 32,
 					"defUid": 203,
-					"px": [144,160],
+					"px": [144,144],
 					"fieldInstances": [],
 					"__worldX": 144,
-					"__worldY": 160
+					"__worldY": 144
 				},
 				{
 					"__identifier": "RobotBasic",
-					"__grid": [9,8],
+					"__grid": [9,7],
 					"__pivot": [0,0],
 					"__tags": [],
 					"__tile": null,
 					"__smartColor": "#FEAE34",
 					"iid": "e5c0ec10-bde0-11f1-abb8-1538e6b3da45",
 					"width": 16,
-					"height": 16,
+					"height": 32,
 					"defUid": 203,
-					"px": [144,128],
+					"px": [144,112],
 					"fieldInstances": [],
 					"__worldX": 144,
-					"__worldY": 128
+					"__worldY": 112
 				},
 				{
 					"__identifier": "PlatformHorizontal",
-					"__grid": [12,6],
+					"__grid": [5,6],
 					"__pivot": [0,0],
 					"__tags": [],
 					"__tile": null,
 					"__smartColor": "#63C74D",
 					"iid": "5e256320-bde0-11f1-abb8-7baab5667af3",
-					"width": 16,
+					"width": 48,
 					"height": 16,
 					"defUid": 204,
-					"px": [192,96],
+					"px": [80,96],
 					"fieldInstances": [
 						{ "__identifier": "Width", "__type": "Int", "__value": 3, "__tile": null, "defUid": 208, "realEditorValues": [] },
 						{ "__identifier": "HorizontalDirection", "__type": "LocalEnum.HorizontalDirection", "__value": "Left", "__tile": null, "defUid": 212, "realEditorValues": [] }
 					],
-					"__worldX": 192,
+					"__worldX": 80,
 					"__worldY": 96
 				},
 				{
 					"__identifier": "Block",
-					"__grid": [16,3],
+					"__grid": [16,5],
 					"__pivot": [0,0],
 					"__tags": [],
 					"__tile": null,
@@ -130,10 +130,10 @@
 					"width": 16,
 					"height": 16,
 					"defUid": 214,
-					"px": [256,48],
+					"px": [256,80],
 					"fieldInstances": [],
 					"__worldX": 256,
-					"__worldY": 48
+					"__worldY": 80
 				}
 			]
 		},

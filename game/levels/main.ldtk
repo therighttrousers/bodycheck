@@ -22,13 +22,13 @@
 				"levelIid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6",
 				"layerIid": "69ce88c0-bde0-11f1-abb8-472bc07d24f4",
 				"entityIid": "b5aa6fb0-bde0-11f1-abb8-395963510d38"
-			}, "worldX": 80, "worldY": 160, "widPx": 16, "heiPx": 16, "fields" : {} },
+			}, "worldX": 80, "worldY": 144, "widPx": 16, "heiPx": 32, "fields" : {} },
 			{ "iids": {
 				"worldIid": "67b6f530-bde0-11f1-9940-abfb4b03d025",
 				"levelIid": "67b71c40-bde0-11f1-9940-6f80f1c6fca9",
 				"layerIid": "67b71c41-bde0-11f1-9940-e19eab8e2e13",
 				"entityIid": "aa063540-bde0-11f1-9940-77551af9208c"
-			}, "worldX": 224, "worldY": 208, "widPx": 16, "heiPx": 16, "fields" : {} }
+			}, "worldX": 224, "worldY": 192, "widPx": 16, "heiPx": 32, "fields" : {} }
 		]
 	}],
 	"worldLayout": null,
@@ -903,7 +903,7 @@
 			"allowOutOfBounds": false,
 			"doc": null,
 			"width": 16,
-			"height": 16,
+			"height": 32,
 			"resizableX": false,
 			"resizableY": false,
 			"minWidth": null,
@@ -938,7 +938,7 @@
 			"allowOutOfBounds": false,
 			"doc": null,
 			"width": 16,
-			"height": 16,
+			"height": 32,
 			"resizableX": false,
 			"resizableY": false,
 			"minWidth": null,
@@ -972,7 +972,7 @@
 			"exportToToc": false,
 			"allowOutOfBounds": false,
 			"doc": null,
-			"width": 16,
+			"width": 48,
 			"height": 16,
 			"resizableX": false,
 			"resizableY": false,
