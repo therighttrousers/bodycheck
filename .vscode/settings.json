@@ -26,6 +26,18 @@
         "editor.defaultFormatter": "vscode.json-language-features"
     },
 
+    "[jsonc]": {
+        "editor.defaultFormatter": "vscode.json-language-features"
+    },
+    "json.schemas": [
+        {
+            "fileMatch": [ "${workspaceFolder}/game/configurations/*.jsonc" ],
+            "schema": {
+                "allowTrailingCommas": true
+            }
+        }
+    ],
+
     "[xml]": {
         "editor.defaultFormatter": "redhat.vscode-xml"
     }

@@ -12,11 +12,18 @@ internal sealed record LdtkProject
 {
     public required string JsonVersion { get; init; }
 
-    /// <summary>The levels, when the project has one world. Empty when it has several.</summary>
-    public required LdtkLevel[] Levels { get; init; }
+    /// <summary>The levels, when the project doesn't have LDtk's multi-worlds on. Empty when it does.</summary>
+    public required JsonElement[] Levels { get; init; }
 
-    /// <summary>The worlds, when the project has several. Empty when it has one.</summary>
-    public required JsonElement[] Worlds { get; init; }
+    /// <summary>The worlds, when the project has LDtk's multi-worlds on. Empty when it doesn't.</summary>
+    public required LdtkWorld[] Worlds { get; init; }
+}
+
+/// <summary>A world in a project with LDtk's multi-worlds on.</summary>
+internal sealed record LdtkWorld
+{
+    public required string Identifier { get; init; }
+    public required LdtkLevel[] Levels { get; init; }
 }
 
 /// <summary>
@@ -120,10 +127,6 @@ internal enum LdtkEntityName
     PlatformHorizontal,
     Block,
 }
-
-/// <summary>Reads an enum from its name only. The default converter also accepts its number.</summary>
-internal sealed class StrictEnumConverter<TEnum>() : JsonStringEnumConverter<TEnum>(allowIntegerValues: false)
-    where TEnum : struct, Enum;
 
 /// <summary>The code that reads the records, which System.Text.Json's source generator writes at compile time.</summary>
 [JsonSourceGenerationOptions(

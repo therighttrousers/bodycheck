@@ -1,6 +1,11 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
+
 namespace BodyCheck.Core;
 
 /// <summary>What momentum a phase gives the player and the entity phased through.</summary>
+[JsonConverter(typeof(StrictEnumConverter<PhaseThrow>))]
 public enum PhaseThrow
 {
     /// <summary>
@@ -44,6 +49,41 @@ public sealed record Features
 
     /// <summary>Puts every feature back to its default.</summary>
     public static void Reset() => Set(new());
+
+    private static readonly JsonDocumentOptions ReadOptions =
+        new() { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true };
+
+    /// <summary>
+    /// Reads a configuration: a JSON object that names features by their properties' names and gives their values. A
+    /// feature it doesn't name keeps its default (decision record 017). Comments and trailing commas are allowed, so
+    /// that a file is easy to edit by hand.
+    /// </summary>
+    /// <param name="path">The configuration's path, for errors.</param>
+    /// <exception cref="InvalidDataException">
+    /// When the text isn't a configuration, such as when it names something that isn't a feature or gives a value of
+    /// the wrong type, naming the path and what is wrong.
+    /// </exception>
+    public static Features Read(string path, string json)
+    {
+        try
+        {
+            // Reading checks the text, but the source generator's code gives a feature the text doesn't name 0, not its
+            // default. So the features it names are laid over the defaults, and the whole is read again.
+            _ = JsonSerializer.Deserialize(json, FeaturesJsonContext.Default.Features)
+                ?? throw new InvalidDataException($"{path}: The file holds null.");
+            JsonObject features = JsonSerializer.SerializeToNode(new Features(), FeaturesJsonContext.Default.Features)!
+                .AsObject();
+            foreach ((string name, JsonNode? value) in JsonNode.Parse(json, documentOptions: ReadOptions)!.AsObject())
+            {
+                features[name] = value?.DeepClone();
+            }
+            return features.Deserialize(FeaturesJsonContext.Default.Features)!;
+        }
+        catch (JsonException e)
+        {
+            throw new InvalidDataException($"{path}: {e.Message}", e);
+        }
+    }
 
     #region Player
     /// <summary>Speed at which the player's run drive force falls to zero.</summary>
@@ -142,3 +182,12 @@ public sealed record Features
     public float PlatformMaxVerticalThrustFrac { get; init; } = 1.5f;
     #endregion
 }
+
+/// <summary>The code that reads configurations, which System.Text.Json's source generator writes at compile time.</summary>
+[JsonSourceGenerationOptions(
+    RespectNullableAnnotations = true,
+    UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
+    ReadCommentHandling = JsonCommentHandling.Skip,
+    AllowTrailingCommas = true)]
+[JsonSerializable(typeof(Features))]
+internal sealed partial class FeaturesJsonContext : JsonSerializerContext;

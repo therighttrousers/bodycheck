@@ -5,55 +5,6 @@ namespace BodyCheck.Core.WorldData;
 /// </summary>
 public static class RoomLibrary
 {
-    /// <summary>Ledges, walls and one-tile pits for trying out running and jumping.</summary>
-    public static readonly Room Playground = Room.FromText("Playground", """
-        ################################
-        #..............................#
-        #..............................#
-        #..............................#
-        #.......................####...#
-        #..............................#
-        #..............................#
-        #...............####...........#
-        #..............................#
-        #.............##...............#
-        #..............................#
-        #.......###........#...........#
-        #..................#.....###...#
-        #..............#####...........#
-        #..P...........#...............#
-        #.........#............##......#
-        #.........#............##......#
-        ##.#################.###########
-        #..............................#
-        #..............................#
-        ################################
-        """);
-
-    /// <summary>
-    /// A flat floor with one robot, and a ledge 5 tiles up: too high to reach from the floor,
-    /// reachable from the robot's back.
-    /// </summary>
-    public static readonly Room RobotRide = Room.FromText("Robot ride", """
-        ################################
-        #..............................#
-        #..............................#
-        #..............................#
-        #..............................#
-        #..............................#
-        #..............................#
-        #..............................#
-        #....H..................########
-        #..............................#
-        #............R.................#
-        #..............................#
-        #..#.P.......R..............#..#
-        #..##########################..#
-        #..............................#
-        #..............................#
-        ################################
-        """);
-
     /// <summary>
     /// Things to phase through and throw: robots, blocks and a platform. A ledge on the left that only a phase
     /// up through something reaches, a pit to throw a robot into, a wall that a phase can't cross, and a pile of
@@ -106,5 +57,5 @@ public static class RoomLibrary
         ########################
         """);
 
-    public static IReadOnlyList<Room> All { get; } = [Playground, RobotRide, Phase, Look];
+    public static IReadOnlyList<Room> All { get; } = [Phase, Look];
 }

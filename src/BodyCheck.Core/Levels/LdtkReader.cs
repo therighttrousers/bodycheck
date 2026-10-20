@@ -8,9 +8,9 @@ using Godot;
 namespace BodyCheck.Core.Levels;
 
 /// <summary>
-/// Reads the levels of an LDtk project into a world, one room per level, and checks everything it reads. Levels are
-/// 20x15 tiles, on a grid of that size; grid cells with no level are solid, as everything outside a world's rooms is. A
-/// level has two layers:
+/// Reads the worlds of an LDtk project with LDtk's multi-worlds on, each into a world with one room per level, and
+/// checks everything it reads. Levels are 20x15 tiles, on a grid of that size; grid cells with no level are solid, as
+/// everything outside a world's rooms is. A level has two layers:
 /// <c>SolidGeometry</c>, an IntGrid in which every value but 0 is a solid tile, and <c>Characters</c>, whose entities
 /// start with the middle of their base at the middle of the bottom edge of their box in LDtk.
 /// </summary>
@@ -20,33 +20,41 @@ public static class LdtkReader
     private const string JsonVersionPrefix = "1.5.";
 
     /// <summary>
-    /// Reads every level of the project at <paramref name="projectPath"/> into a world, named after the project's file,
-    /// with a room for each level, named after the level. The levels are moved so that the leftmost and lowest are at
-    /// the world's origin.
+    /// Reads each world of the project at <paramref name="projectPath"/>, in order, into a world named after it, with a
+    /// room for each level, named after the level. A world's levels are moved so that the leftmost and lowest are at
+    /// its origin.
     /// </summary>
     /// <param name="readFile">
     /// Reads a file's text, given its path. A level's file is found from its path relative to the project's directory.
     /// </param>
     /// <exception cref="InvalidDataException">When a file isn't what this reads, naming the file and what is wrong.</exception>
-    public static World ReadWorld(string projectPath, Func<string, string> readFile)
+    public static IReadOnlyList<World> ReadWorlds(string projectPath, Func<string, string> readFile)
     {
         LdtkProject project = Parse(projectPath, readFile(projectPath), LdtkJsonContext.Default.LdtkProject);
         if (!project.JsonVersion.StartsWith(JsonVersionPrefix, StringComparison.Ordinal))
         {
             throw Invalid(projectPath, $"JSON version {project.JsonVersion} isn't {JsonVersionPrefix}x.");
         }
-        if (project.Worlds.Length != 0)
+        if (project.Worlds.Length == 0)
         {
-            throw Invalid(projectPath, "The project has more than one world.");
+            throw Invalid(projectPath, "The project doesn't have multi-worlds on.");
         }
-        if (project.Levels.Length == 0)
+
+        string directory = projectPath[..(projectPath.LastIndexOfAny(['/', '\\']) + 1)];
+        return [.. project.Worlds.Select(world => ReadWorld(projectPath, directory, world, readFile))];
+    }
+
+    private static World ReadWorld(string projectPath, string directory, LdtkWorld world, Func<string, string> readFile)
+    {
+        string where = $"In world '{world.Identifier}',";
+        if (world.Levels.Length == 0)
         {
-            throw Invalid(projectPath, "The project has no levels.");
+            throw Invalid(projectPath, $"World '{world.Identifier}' has no levels.");
         }
 
         // Each level's cell on the grid of levels, with y down, as in LDtk.
         var cells = new HashSet<(int X, int Y)>();
-        foreach (LdtkLevel level in project.Levels)
+        foreach (LdtkLevel level in world.Levels)
         {
             if (level.PxWid != Constants.LevelWidth * Constants.TilePixels
                 || level.PxHei != Constants.LevelHeight * Constants.TilePixels
@@ -54,20 +62,19 @@ public static class LdtkReader
                 || level.WorldY % level.PxHei != 0
                 || level.WorldDepth != 0)
             {
-                throw Invalid(projectPath, $"Level '{level.Identifier}' isn't {Constants.LevelWidth}x{Constants.LevelHeight} tiles, on "
-                    + "a grid of that size, at depth 0.");
+                throw Invalid(projectPath, $"{where} level '{level.Identifier}' isn't {Constants.LevelWidth}x"
+                    + $"{Constants.LevelHeight} tiles, on a grid of that size, at depth 0.");
             }
             if (!cells.Add(Cell(level)))
             {
-                throw Invalid(projectPath, $"Level '{level.Identifier}' is where another level is.");
+                throw Invalid(projectPath, $"{where} level '{level.Identifier}' is where another level is.");
             }
         }
         int left = cells.Min(cell => cell.X);
         int bottom = cells.Max(cell => cell.Y);
 
-        string directory = projectPath[..(projectPath.LastIndexOfAny(['/', '\\']) + 1)];
         var rooms = new List<Room>();
-        foreach (LdtkLevel level in project.Levels)
+        foreach (LdtkLevel level in world.Levels)
         {
             (int x, int y) = Cell(level);
             var origin = new Vector2I((x - left) * Constants.LevelWidth, (bottom - y) * Constants.LevelHeight);
@@ -85,7 +92,7 @@ public static class LdtkReader
 
         try
         {
-            return new World(Path.GetFileNameWithoutExtension(projectPath), rooms);
+            return new World(world.Identifier, rooms);
         }
         catch (ArgumentException e)
         {
