@@ -30,7 +30,6 @@ public partial class WorldNode : Node3D
         World world,
         Func<EntityKind, BodyTuning, Node3D> visual,
         bool mergeTiles = true,
-        PlayerTuning? playerTuning = null,
         BodyTuning? playerBody = null)
     {
         World = world;
@@ -48,19 +47,15 @@ public partial class WorldNode : Node3D
             Position = new Vector3(Tiles.Width / 2f, Tiles.Height / 2f, -0.6f),
         });
 
-        PlayerTuning = playerTuning ?? new PlayerTuning();
         PlayerInput Input() => PlayerInput?.Invoke() ?? default;
-
-        var robotTuning = new RobotTuning();
-        var platformTuning = new PlatformTuning();
 
         foreach (EntityConfig config in world.EntityConfigs)
         {
             Entity entity = config.Kind switch
             {
-                EntityKind.Player => Player = CreatePlayer((EntityConfig.Player)config, visual(config.Kind, BodyTuning.Player), playerBody ?? BodyTuning.Player, PlayerController = new PlayerController(PlayerTuning, Input)),
-                EntityKind.Robot => CreateRobot((EntityConfig.Robot)config, visual(config.Kind, BodyTuning.Robot), robotTuning),
-                EntityKind.Platform => CreatePlatform((EntityConfig.Platform)config, visual(config.Kind, BodyTuning.Platform), platformTuning),
+                EntityKind.Player => Player = CreatePlayer((EntityConfig.Player)config, visual(config.Kind, BodyTuning.Player), playerBody ?? BodyTuning.Player, PlayerController = new PlayerController(Input)),
+                EntityKind.Robot => CreateRobot((EntityConfig.Robot)config, visual(config.Kind, BodyTuning.Robot)),
+                EntityKind.Platform => CreatePlatform((EntityConfig.Platform)config, visual(config.Kind, BodyTuning.Platform)),
                 EntityKind.Block => CreateBlock((EntityConfig.Block)config, visual(config.Kind, BodyTuning.Block)),
             };
 
@@ -81,15 +76,15 @@ public partial class WorldNode : Node3D
         return player;
     }
 
-    private static WalkerEntity CreateRobot(EntityConfig.Robot config, Node3D visual, RobotTuning tuning)
+    private static WalkerEntity CreateRobot(EntityConfig.Robot config, Node3D visual)
     {
-        return new WalkerEntity(BodyTuning.Robot, visual) { Controller = new RobotController(tuning) };
+        return new WalkerEntity(BodyTuning.Robot, visual) { Controller = new RobotController() };
     }
 
-    private static SimpleControlledEntity CreatePlatform(EntityConfig.Platform config, Node3D visual, PlatformTuning tuning)
+    private static SimpleControlledEntity CreatePlatform(EntityConfig.Platform config, Node3D visual)
     {
         var platform = new SimpleControlledEntity(BodyTuning.Platform, visual);
-        platform.Controller = new PlatformController(config.Start.Y + platform.HalfSize.Y, tuning);
+        platform.Controller = new PlatformController(config.Start.Y + platform.HalfSize.Y);
         return platform;
     }
 
@@ -102,7 +97,6 @@ public partial class WorldNode : Node3D
     public TileGrid Tiles { get; }
 
     public WalkerEntity Player { get; } = null!;
-    public PlayerTuning PlayerTuning { get; }
     public PlayerController PlayerController { get; } = null!;
 
     /// <summary>

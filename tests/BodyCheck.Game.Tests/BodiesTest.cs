@@ -151,7 +151,7 @@ public class BodiesTest
             "#..P....R" + new string('.', 90) + "#",
             new string('#', 100)));
         Entity robot = run.Node.EntitiesOf(EntityKind.Robot).Single();
-        float robotTopSpeed = new RobotTuning().TopSpeed;
+        float robotTopSpeed = Features.Current.RobotTopSpeed;
 
         var overlap = new Overlap();
         await run.Tick(Right, 90, () => overlap.Add(run.Player.Right() - robot.Left()));

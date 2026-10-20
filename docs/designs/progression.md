@@ -3,6 +3,7 @@
 Relevant decision records:
 - [000: Initial design](../decision-records/000-initial-design.md)
 - [015: The phase ability](../decision-records/015-phase.md)
+- [016: Features](../decision-records/016-features.md)
 
 Abilities and world changes, in the order the player meets them.
 
@@ -90,7 +91,7 @@ Where these appear in the progression is undecided.
 ## Open questions
 
 Phase:
-- What momentum do the player and the target get? `Fixed`: equal and opposite momentum replaces theirs, so every phase leaves them moving the same, which makes juggling easy, but momentum isn't conserved. `Conserved`: it is added to theirs, so momentum is conserved and phases in a row may build speed, but juggling a robot high means meeting it just before the top of its rise. Both are built, chosen by `PlayerTuning.PhaseThrow`, and `Fixed` is the default; to be chosen by playing (`015 §3.2`, issue #61).
+- What momentum do the player and the target get? `Fixed`: equal and opposite momentum replaces theirs, so every phase leaves them moving the same, which makes juggling easy, but momentum isn't conserved. `Conserved`: it is added to theirs, so momentum is conserved and phases in a row may build speed, but juggling a robot high means meeting it just before the top of its rise. Both are built, chosen by the feature `PlayerPhaseThrow`, and `Fixed` is the default; to be chosen by playing (`015 §3.2`, issue #61).
 - Tuning to be checked by playing (issue #61): the reach of 0.165 tiles beyond half the player's diagonal, the cooldown of 0.5 seconds, the gap of 0.5 tiles, the offset of 0.5 tiles for choosing a target, and the speed of 12.7 (`015 §3.1`, `§5.1`, `§5.22`, `§5.23`).
 - Should a phase launch the player faster off heavy or immovable targets? That would make turrets give bigger launches in general, and make phasing upward off a robot stronger than phasing sideways.
 - Should dead NPCs remain as objects that can be phased through and boosted off?
