@@ -47,6 +47,32 @@ public static class TestRoomLibrary
         ########################
         """);
 
+    /// <summary>
+    /// A block about 2 tiles above the player's head, to fall onto it, and a block resting on the floor behind the
+    /// player, with room to run right.
+    /// </summary>
+    public static readonly Room Carrying = Room.FromText("Carrying", string.Join('\n',
+    [
+        new string('#', 40),
+        .. Enumerable.Repeat("#" + new string('.', 38) + "#", 3),
+        "#" + new string('.', 9) + "B" + new string('.', 28) + "#",
+        .. Enumerable.Repeat("#" + new string('.', 38) + "#", 2),
+        "#..B" + new string('.', 35) + "#",
+        "#..B......P" + new string('.', 28) + "#",
+        new string('#', 40),
+    ]));
+
+    /// <summary>A block in the middle of a large room, well clear of the player and the walls.</summary>
+    public static readonly Room FloatingBlock = Room.FromText("Floating block", string.Join('\n',
+    [
+        new string('#', 20),
+        .. Enumerable.Repeat("#" + new string('.', 18) + "#", 4),
+        "#" + new string('.', 9) + "B" + new string('.', 8) + "#",
+        .. Enumerable.Repeat("#" + new string('.', 18) + "#", 3),
+        "#.P" + new string('.', 16) + "#",
+        new string('#', 20),
+    ]));
+
     /// <summary>A hovering platform between two walls, with the player about 3 tiles above it.</summary>
     public static readonly Room PlatformRiding = Room.FromText("Platform riding", string.Join('\n',
     [

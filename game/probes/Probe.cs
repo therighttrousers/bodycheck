@@ -3,6 +3,7 @@ using System.Linq;
 
 using BodyCheck.Core;
 using BodyCheck.Core.Controllers;
+using BodyCheck.Core.Entities;
 using BodyCheck.Core.Simulation;
 using BodyCheck.Core.WorldData;
 
@@ -82,6 +83,22 @@ public static class Probe
                 world = Load(TestRoomLibrary.RobotRiding);
                 GD.Print("Run-off probe:");
                 probe = new RunOffProbe(world.Player, world.EntitiesOf(EntityKind.Robot).Single());
+                break;
+            case "carry":
+                world = Load(TestRoomLibrary.Carrying);
+                GD.Print("Carry probe:");
+                {
+                    var blocks = world.EntitiesOf(EntityKind.Block).ToList();
+                    Entity carried = blocks.MaxBy(block => block.Position.Y)!;
+                    Entity resting = blocks.MinBy(block => block.Position.Y)!;
+                    Entity stacked = blocks.Single(block => block != carried && block != resting);
+                    probe = new CarryProbe(world.Player, carried, resting, stacked);
+                }
+                break;
+            case "joint-placement":
+                world = Load(TestRoomLibrary.FloatingBlock);
+                GD.Print("Joint placement probe:");
+                probe = new JointPlacementProbe(world.EntitiesOf(EntityKind.Block).Single(), world.Player);
                 break;
             case "phase":
                 world = Load(RoomLibrary.Phase);
