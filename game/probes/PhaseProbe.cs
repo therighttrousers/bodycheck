@@ -29,7 +29,7 @@ public sealed class PhaseProbe : IProbe
 
     public PlayerInput Input { get; private set; }
 
-    public void Tick(float dt) => Input = NextInput();
+    public void Tick(float gameDt) => Input = NextInput();
 
     private PlayerInput NextInput()
     {

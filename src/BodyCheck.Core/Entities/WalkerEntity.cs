@@ -86,13 +86,13 @@ public partial class WalkerEntity : Entity
 
     protected override void ControlPaused(float realDt) => Controller?.ApplyPaused(this, realDt);
 
-    protected override void Control(float dt, float realDt)
+    protected override void Control(float gameDt, float realDt)
     {
-        Controller?.Apply(this, dt, realDt);
-        UpdateAnimation(dt);
+        Controller?.Apply(this, gameDt, realDt);
+        UpdateAnimation(gameDt);
     }
 
-    private void UpdateAnimation(float dt)
+    private void UpdateAnimation(float gameDt)
     {
         if (Visual is null) return;
 
@@ -101,7 +101,7 @@ public partial class WalkerEntity : Entity
         // - Require walker collision meshes to be cylinders
         var rot = Visual.Rotation;
         var target = 0.5f * MathF.PI * Facing;
-        var newYaw = Mathf.MoveToward(rot.Y, target, 15 * dt);
+        var newYaw = Mathf.MoveToward(rot.Y, target, 15 * gameDt);
         Visual.Rotation = new Vector3(rot.X, newYaw, rot.Z);
 
         if (AnimationTree is not null)

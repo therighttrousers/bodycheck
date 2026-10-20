@@ -61,7 +61,7 @@ public sealed class PhaseAction(
     /// them, such as gravity on a player beside a hovering platform. Without it, they can drift far apart before the
     /// phase. Momentum is conserved: the impulses on the two are equal and opposite.
     /// </summary>
-    public void Grab(float dt)
+    public void Grab(float gameDt)
     {
         float totalMass = Player.Mass + Target.Mass;
         Vector3 velocity = (Player.Mass * Player.LinearVelocity + Target.Mass * Target.LinearVelocity) / totalMass;
@@ -70,7 +70,7 @@ public sealed class PhaseAction(
         // tick's length at full speed. Steps shrink with the time scale as the game slows down, and dividing by a tiny
         // one would give a velocity large enough to fling them both when play resumes.
         Vector3 drift = Target.Position - Player.Position - grabOffset;
-        Vector3 closing = -drift / MathF.Max(dt, 1f / Engine.PhysicsTicksPerSecond);
+        Vector3 closing = -drift / MathF.Max(gameDt, 1f / Engine.PhysicsTicksPerSecond);
 
         Player.ApplyCentralImpulse(Player.Mass * (velocity - Target.Mass / totalMass * closing - Player.LinearVelocity));
         Target.ApplyCentralImpulse(Target.Mass * (velocity + Player.Mass / totalMass * closing - Target.LinearVelocity));

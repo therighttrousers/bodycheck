@@ -19,9 +19,6 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     // How far, from 0 to 1, the stick must be pushed for one of the eight directions to count as held.
     private const float DirectionDeadZone = 0.5f;
 
-    // The tick rate that features given in ticks count at.
-    private const float TuningTicksPerSecond = 60;
-
     private readonly Func<PlayerInput> _input;
 
     // Timers count down in game time, except where they say otherwise.
@@ -67,7 +64,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         _jumpWasHeld = input.JumpHeld;
     }
 
-    public void Apply(WalkerEntity entity, float dt, float realDt)
+    public void Apply(WalkerEntity entity, float gameDt, float realDt)
     {
         PlayerInput input = _input();
         float weight = entity.Weight;
@@ -75,11 +72,11 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
 
         if (entity.OnGround && !_phaseMade)
         {
-            _groundTimeLeft = TicksToTime(Features.Current.PlayerCoyoteTicks + 1); // +1 to include this tick
+            _groundTimeLeft = Features.TicksToTime(Features.Current.PlayerCoyoteTicks + 1); // +1 to include this tick
             _lastGroundVelocity = entity.GroundVelocity;
         }
 
-        if (!ApplyPhase(entity, input, dt, realDt))
+        if (!ApplyPhase(entity, input, gameDt, realDt))
         {
             ApplyRun(entity, move, weight);
             ApplyJump(entity, input.JumpHeld, weight);
@@ -95,17 +92,17 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             entity.Facing = Math.Sign(move);
         }
 
-        Report(entity, dt);
+        Report(entity, gameDt);
 
-        _groundTimeLeft = Math.Max(0, _groundTimeLeft - dt);
-        _thrustTimeLeft = Math.Max(0, _thrustTimeLeft - dt);
+        _groundTimeLeft = Math.Max(0, _groundTimeLeft - gameDt);
+        _thrustTimeLeft = Math.Max(0, _thrustTimeLeft - gameDt);
         _jumpWasHeld = input.JumpHeld;
-        _phaseCooldownLeft = Math.Max(0, _phaseCooldownLeft - dt);
+        _phaseCooldownLeft = Math.Max(0, _phaseCooldownLeft - gameDt);
         _phaseMade = false;
     }
 
     /// <summary>Reports the player's measurements to <see cref="Telemetry"/>, as of the engine's last step.</summary>
-    private void Report(WalkerEntity entity, float dt)
+    private void Report(WalkerEntity entity, float gameDt)
     {
         var feet = new Vector2(entity.Position.X, entity.Position.Y - entity.HalfSize.Y);
         var velocity = new Vector2(entity.LinearVelocity.X, entity.LinearVelocity.Y);
@@ -125,7 +122,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
                 _airTime = 0;
             }
             _highestFeet = MathF.Max(_highestFeet, feet.Y);
-            _airTime += dt;
+            _airTime += gameDt;
             return;
         }
 
@@ -151,9 +148,9 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     /// this tick: while it is aimed, and on the tick of play on which a phase made moves the bodies, when the contacts
     /// are from before it.
     /// </summary>
-    /// <param name="dt">The tick's length in game time: 0 while the game is paused.</param>
+    /// <param name="gameDt">The tick's length in game time: 0 while the game is paused.</param>
     /// <param name="realDt">The tick's length in real time.</param>
-    private bool ApplyPhase(WalkerEntity entity, PlayerInput input, float dt, float realDt)
+    private bool ApplyPhase(WalkerEntity entity, PlayerInput input, float gameDt, float realDt)
     {
         // Made while paused, and moving on this tick.
         if (_phaseMade)
@@ -180,7 +177,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             return false;
         }
 
-        phase.Grab(dt);
+        phase.Grab(gameDt);
 
         // The direction held, or the last one held if it was let go of only just now, so that letting go of it just
         // before phase, or with it, still phases.
@@ -188,7 +185,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         if (held != Vector3.Zero)
         {
             phase.Direction = held;
-            _phaseDirectionTimeLeft = TicksToTime(Features.Current.PlayerPhaseReleaseTicks + 1); // +1 to include this tick
+            _phaseDirectionTimeLeft = Features.TicksToTime(Features.Current.PlayerPhaseReleaseTicks + 1); // +1 to include this tick
         }
         else
         {
@@ -216,13 +213,6 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         _thrustTimeLeft = 0;
         return _phaseMade;
     }
-
-    /// <summary>
-    /// A length of time given in ticks at <see cref="TuningTicksPerSecond"/>, less half a tick: a timer set to it and
-    /// counted down by ticks' lengths at full speed stays above zero for exactly that many ticks, with half a tick to
-    /// spare either way however the lengths round.
-    /// </summary>
-    private static float TicksToTime(int ticks) => (ticks - 0.5f) / TuningTicksPerSecond;
 
     /// <summary>One of the eight directions, from the input, as a unit vector in the plane of play, or zero if none.</summary>
     private static Vector3 DirectionHeld(PlayerInput input)
@@ -300,7 +290,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             entity.ApplyCentralImpulse(impulse);
             entity.Support?.ApplyCentralImpulse(-impulse);
             _groundTimeLeft = 0;
-            _thrustTimeLeft = TicksToTime(Features.Current.PlayerJumpThrustTicks + 1); // +1 to include this tick
+            _thrustTimeLeft = Features.TicksToTime(Features.Current.PlayerJumpThrustTicks + 1); // +1 to include this tick
 
             // Thrust starts on the next tick.
             return;

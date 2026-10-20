@@ -34,7 +34,7 @@ public sealed class DropProbe : IProbe
     public bool Done => _tick >= TicksPerDrop * Overhangs.Length * Heights.Length;
 
     /// <summary>Call once per physics tick.</summary>
-    public void Tick(float dt)
+    public void Tick(float gameDt)
     {
         int drop = _tick / TicksPerDrop;
         int phase = _tick % TicksPerDrop;

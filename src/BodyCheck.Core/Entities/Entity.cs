@@ -162,17 +162,17 @@ public partial class Entity : RigidBody3D
     }
 
     /// <summary>Call once per physics tick, before the engine's step.</summary>
-    /// <param name="dt">The tick's length in game time, which the engine's time scale shortens.</param>
+    /// <param name="gameDt">The tick's length in game time, which the engine's time scale shortens.</param>
     /// <param name="realDt">The tick's length in real time, which the time scale doesn't change.</param>
     /// <param name="controlled">Whether the controller runs. Without it, the entity only coasts, under drag and gravity.</param>
-    public void Step(float dt, float realDt, bool controlled = true)
+    public void Step(float gameDt, float realDt, bool controlled = true)
     {
         // A motor's push lasts one tick, like a force: it is off unless the controller uses it again.
         ReleaseMotors();
 
         if (controlled)
         {
-            Control(dt, realDt);
+            Control(gameDt, realDt);
         }
 
         ApplyCentralForce(-Tuning.Drag * LinearVelocity);
@@ -199,7 +199,7 @@ public partial class Entity : RigidBody3D
     }
 
     /// <summary>Runs the controller of this kind of body, if it has one.</summary>
-    protected virtual void Control(float dt, float realDt)
+    protected virtual void Control(float gameDt, float realDt)
     {
     }
 

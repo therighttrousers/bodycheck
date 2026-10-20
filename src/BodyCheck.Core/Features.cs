@@ -85,6 +85,16 @@ public sealed record Features
         }
     }
 
+    /// <summary>The tick rate that features given in ticks count at.</summary>
+    public const int TuningTicksPerSecond = 60;
+
+    /// <summary>
+    /// A length of time given in ticks at <see cref="TuningTicksPerSecond"/>, less half a tick: a timer set to it and
+    /// counted down by ticks' lengths at full speed stays above zero for exactly that many ticks, with half a tick to
+    /// spare either way however the lengths round.
+    /// </summary>
+    public static float TicksToTime(int ticks) => (ticks - 0.5f) / TuningTicksPerSecond;
+
     #region Player
     /// <summary>Speed at which the player's run drive force falls to zero.</summary>
     public float PlayerTopSpeed { get; init; } = 12;
@@ -108,8 +118,8 @@ public sealed record Features
     public float PlayerJumpSpeed { get; init; } = 12.7f;
 
     /// <summary>
-    /// How long the jump thrust lasts while the button is held, in ticks at 60 per second of game time. Includes the
-    /// tick with the initial jump impulse.
+    /// How long the jump thrust lasts while the button is held, in ticks at <see cref="TuningTicksPerSecond"/> of game
+    /// time. Includes the tick with the initial jump impulse.
     /// </summary>
     public int PlayerJumpThrustTicks { get; init; } = 14;
 
@@ -117,8 +127,8 @@ public sealed record Features
     public float PlayerJumpThrustFrac { get; init; } = 0.9f;
 
     /// <summary>
-    /// How long the player gets to jump, or turn around with ground thrust, *after* running off an edge, in ticks at 60
-    /// per second of game time.
+    /// How long the player gets to jump, or turn around with ground thrust, *after* running off an edge, in ticks at
+    /// <see cref="TuningTicksPerSecond"/> of game time.
     /// </summary>
     public int PlayerCoyoteTicks { get; init; } = 4;
 
@@ -150,9 +160,10 @@ public sealed record Features
     public float PlayerPhaseCooldownTime { get; init; } = 0.5f;
 
     /// <summary>
-    /// How long the last direction held while aiming a phase still counts once it is let go of, in ticks at 60 per
-    /// second of real time, counting the tick it is let go on. Releasing phase within it phases in that direction,
-    /// instead of cancelling. At 1, releasing both on the same tick phases; at 0, the direction must still be held.
+    /// How long the last direction held while aiming a phase still counts once it is let go of, in ticks at
+    /// <see cref="TuningTicksPerSecond"/> of real time, counting the tick it is let go on. Releasing phase within it
+    /// phases in that direction, instead of cancelling. At 1, releasing both on the same tick phases; at 0, the
+    /// direction must still be held.
     /// </summary>
     public int PlayerPhaseReleaseTicks { get; init; } = 4;
 

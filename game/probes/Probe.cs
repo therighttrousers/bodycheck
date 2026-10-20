@@ -19,7 +19,7 @@ public interface IProbe
     public bool Done { get; }
 
     /// <summary>Called once per physics tick, before the world's own tick.</summary>
-    public void Tick(float dt);
+    public void Tick(float gameDt);
 
     /// <summary>The player's input for this tick, for probes that drive the player.</summary>
     public PlayerInput Input => default;

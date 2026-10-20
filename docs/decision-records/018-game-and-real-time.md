@@ -16,7 +16,7 @@ Releasing phase within a tick of letting go of the direction cancels the phase: 
 
 ## 2. Tuning in ticks
 
-- [x] 2.1 Are durations tuned in seconds or ticks? Neil: ticks at 60 per second, as now. At a time scale of 1, coyote time and thrust must always last the same number of ticks, and adding up deltas can drift. Each is converted to a time half a tick away from a whole number of ticks, the most margin there can be. Since timers count down and run while above zero, a duration of n ticks is n - 1/2 ticks long: it outlasts n ticks and not n + 1. The conversion is the player controller's own, since only it uses it.
+- [x] 2.1 Are durations tuned in seconds or ticks? Neil: ticks at 60 per second, as now. At a time scale of 1, coyote time and thrust must always last the same number of ticks, and adding up deltas can drift. Each is converted to a time half a tick away from a whole number of ticks, the most margin there can be. Since timers count down and run while above zero, a duration of n ticks is n - 1/2 ticks long: it outlasts n ticks and not n + 1. That is easy to get wrong, as the first try showed, so the conversion and the tuning tick rate are shared, beside the features they convert: `Features.TicksToTime` and `Features.TuningTicksPerSecond` (Neil). The literal tick counts in tests and probes stay: they are lengths to wait, not rates, and the one rate among them is the engine's tick length, not the tuning rate.
 
 ## 3. Phase release leniency
 

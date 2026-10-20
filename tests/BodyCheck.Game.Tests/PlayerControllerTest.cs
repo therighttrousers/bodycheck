@@ -42,18 +42,18 @@ public class PlayerControllerTest
     private static SceneTree Tree => (SceneTree)Engine.GetMainLoop();
 
     /// <summary>
-    /// Puts the given features in effect, or the defaults, and loads an empty room, replacing the one loaded before. By
-    /// default waits for the player to settle.
+    /// Puts the given features in effect, or the defaults, and loads the given room, or an empty one, replacing the one
+    /// loaded before. By default waits for the player to settle.
     /// </summary>
     /// <param name="settleTicks">How long to wait before returning. Pass 0 for a player that starts in the air.</param>
     private async Task Start(
         Features? features = null, BodyTuning? body = null,
-        int height = 20, int playerX = 1, int playerY = 1, int settleTicks = 30)
+        int height = 20, int playerX = 1, int playerY = 1, int settleTicks = 30, Room? room = null)
     {
         _world?.Free();
         Features.Set(features ?? new());
         _input = Idle;
-        Room frame = TestRoomLibrary.EmptyFrame(60, height, playerX, playerY);
+        Room frame = room ?? TestRoomLibrary.EmptyFrame(60, height, playerX, playerY);
         _world = new WorldNode(new World(frame), EntityVisuals.For, playerBody: body)
         {
             PlayerInput = () => _input,
@@ -307,6 +307,37 @@ public class PlayerControllerTest
 
         AssertThat(Player.OnGround).IsFalse();
         AssertThat(Velocity.Y).IsLess(before);
+    }
+
+    /// <summary>
+    /// Running off a ledge, the player can jump until the last coyote tick, counted from the first in the air, but not
+    /// on the tick after.
+    /// </summary>
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task Coyote_time_lasts_exactly_its_ticks(bool oneTickLate)
+    {
+        await Start(room: RoomRun.RoomOf(
+            "##########",
+            "#........#",
+            "#........#",
+            "#........#",
+            "#P.......#",
+            "####.....#",
+            "####.....#",
+            "##########"));
+        for (int i = 0; i < 120 && Player.OnGround; i++)
+        {
+            await Tick(Right);
+        }
+        AssertThat(Player.OnGround).IsFalse();
+
+        int airTicks = Features.Current.PlayerCoyoteTicks + (oneTickLate ? 1 : 0);
+        await Tick(Right, airTicks - 1);
+        await Tick(new PlayerInput(1, 0, true));
+
+        // Rising after a jump, falling without one.
+        AssertThat(Velocity.Y > 0).IsEqual(!oneTickLate);
     }
 
     [TestCase]

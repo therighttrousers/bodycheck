@@ -34,9 +34,9 @@ public sealed class SeamProbe : IProbe
     /// <summary>Call once per physics tick. Returns true when the probe has finished and printed its result.</summary>
     public bool Done { get; private set; }
 
-    public void Tick(float dt) => Done = Advance(dt);
+    public void Tick(float gameDt) => Done = Advance(gameDt);
 
-    private bool Advance(float dt)
+    private bool Advance(float gameDt)
     {
         _tick++;
         if (_tick < SettleTicks)
@@ -55,7 +55,7 @@ public sealed class SeamProbe : IProbe
         }
 
         // What drag alone leaves of last tick's speed.
-        _expectedSpeed *= 1 - _body.Tuning.Drag / _body.Mass * dt;
+        _expectedSpeed *= 1 - _body.Tuning.Drag / _body.Mass * gameDt;
         Vector3 velocity = _body.LinearVelocity;
         _maxSpeedLoss = Mathf.Max(_maxSpeedLoss, _expectedSpeed - velocity.X);
         _expectedSpeed = velocity.X;
