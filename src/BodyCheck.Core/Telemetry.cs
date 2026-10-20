@@ -16,8 +16,10 @@ public enum Metric
     /// <summary>Speed along X relative to what the player stands on.</summary>
     GroundSpeed,
     OnGround,
-    CoyoteTicks,
-    ThrustTicks,
+    /// <summary>Coyote time left, in game seconds.</summary>
+    CoyoteTime,
+    /// <summary>Jump thrust time left, in game seconds.</summary>
+    ThrustTime,
 
     // The player's last time in the air, reported on landing. Measured from its feet on the last tick on
     // the ground.
@@ -27,7 +29,8 @@ public enum Metric
     AirRun,
     /// <summary>How far the feet ended up above where they started; negative for below.</summary>
     AirLand,
-    AirTicks,
+    /// <summary>How long it was in the air, in game seconds.</summary>
+    AirTime,
 
     /// <summary>The tile under the mouse.</summary>
     MouseTile,

@@ -4,6 +4,7 @@ Relevant decision records:
 - [000: Initial design](../decision-records/000-initial-design.md)
 - [015: The phase ability](../decision-records/015-phase.md)
 - [016: Features](../decision-records/016-features.md)
+- [018: Game time and real time](../decision-records/018-game-and-real-time.md)
 
 Abilities and world changes, in the order the player meets them.
 
@@ -38,6 +39,7 @@ Run and jump. See [movement.md](movement.md).
 - The player moves at once to the other side of an object, and the object moves too, the other way.
 - The target is the entity in reach whose box is nearest a point 0.5 tiles from the player's center in the direction held, or nearest the center itself with none held, so that holding toward an entity favors it (`015 §5.22`). In reach is whatever a sphere around the player's center meets, whose radius is half the player's diagonal, 0.985 tiles, plus a reach of 0.165 tiles, 1.15 in all. Everything touching the player is in reach. It reaches 0.75 tiles beyond the player's sides and 0.25 above and below (`015 §5.16`). Every kind of entity can be phased through (`015 §1.2`, `§1.3`).
 - Phase is K or X on the keyboard, X on a gamepad (`015 §1.1`). Holding it with a target in reach, or coming within reach of one while holding it, fixes the target, holds the player and the target together, moving at the velocity of their center of mass, and pauses the game, slowing down to the pause over half a second, showing the target and, with a direction held, arrows for the velocity the player and the target would each leave with, for as long as it is held. Releasing it unpauses and phases in the direction held, or cancels with none (`015 §5.5`, `§5.6`, `§5.7`, `§5.15`).
+- The last direction held still counts for 4 ticks of real time after it is let go of, counting the tick it is let go on, so that letting go of it with phase, or just before, still phases (`018 §3.1`).
 - A new aim can't begin until 0.5 seconds of game time after the last began, so that mashing phase can't ride a platform (`015 §5.15`).
 - The phase's direction is one of eight, chosen by player input (`015 §2.1`). The player and the target get equal and opposite momentum along it, at the player's speed of 12.7 tiles per second, which either replaces how they were moving or adds to it (`015 §3.2`).
 - The player and the target move as a pair, keeping their center of mass. They are sent to the line through it in the direction of the new momentum, the player ahead and the target behind, so each moves in proportion to the other's mass (`015 §5.1`).
@@ -92,7 +94,8 @@ Where these appear in the progression is undecided.
 
 Phase:
 - What momentum do the player and the target get? `Fixed`: equal and opposite momentum replaces theirs, so every phase leaves them moving the same, which makes juggling easy, but momentum isn't conserved. `Conserved`: it is added to theirs, so momentum is conserved and phases in a row may build speed, but juggling a robot high means meeting it just before the top of its rise. Both are built, chosen by the feature `PlayerPhaseThrow`, and `Fixed` is the default; to be chosen by playing (`015 §3.2`, issue #61).
-- Tuning to be checked by playing (issue #61): the reach of 0.165 tiles beyond half the player's diagonal, the cooldown of 0.5 seconds, the gap of 0.5 tiles, the offset of 0.5 tiles for choosing a target, and the speed of 12.7 (`015 §3.1`, `§5.1`, `§5.22`, `§5.23`).
+- Tuning to be checked by playing (issue #61): the reach of 0.165 tiles beyond half the player's diagonal, the cooldown of 0.5 seconds, the gap of 0.5 tiles, the offset of 0.5 tiles for choosing a target, the speed of 12.7, and the 4 ticks a released direction still counts (`015 §3.1`, `§5.1`, `§5.22`, `§5.23`, `018 §3.1`).
+- Letting go of a diagonal, or a stick passing neighbouring directions on its way back to the middle, can phase in a direction next to the one meant (`018 §3.2`).
 - Should a phase launch the player faster off heavy or immovable targets? That would make turrets give bigger launches in general, and make phasing upward off a robot stronger than phasing sideways.
 - Should dead NPCs remain as objects that can be phased through and boosted off?
 - Phasing through a hovering platform throws the platform and leaves its riders behind. That is built, as [characters.md](characters.md) says every NPC can be phased through, but is only a leaning (`015 §1.3`).

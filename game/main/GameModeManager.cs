@@ -88,7 +88,7 @@ public partial class GameModeManager : Node
 
         if (GameMode == GameMode.Phasing)
         {
-            World.StepPaused((float)delta);
+            World.StepPaused();
         }
 
         if (GameMode is GameMode.SlowingForPhase or GameMode.Phasing && !World.PauseRequested)

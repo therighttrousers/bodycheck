@@ -288,7 +288,7 @@ public class PlayerControllerTest
         await Start();
         Telemetry.Reset();
         await Tick(Jump, 120);
-        AssertThat(Telemetry.Get(Metric.AirTicks)).IsNotNull(); // It has landed.
+        AssertThat(Telemetry.Get(Metric.AirTime)).IsNotNull(); // It has landed.
 
         await Tick(Jump, 10);
 

@@ -15,7 +15,7 @@ public sealed class PlatformController : ICharacterController<SimpleControlledEn
         _startHeight = startHeight;
     }
 
-    public void Apply(SimpleControlledEntity entity, float dt)
+    public void Apply(SimpleControlledEntity entity, float dt, float realDt)
     {
         // Patrol. Bounce off of anything solid (including the player).
         if (_move < 0 && entity.Contacts.HasFlag(Contacts.Left))

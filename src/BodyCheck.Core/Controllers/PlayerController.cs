@@ -19,13 +19,19 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     // How far, from 0 to 1, the stick must be pushed for one of the eight directions to count as held.
     private const float DirectionDeadZone = 0.5f;
 
+    // The tick rate that features given in ticks count at.
+    private const float TuningTicksPerSecond = 60;
+
     private readonly Func<PlayerInput> _input;
 
+    // Timers count down in game time, except where they say otherwise.
     private bool _jumpWasHeld;
-    private int _groundTicksLeft;
+    private float _groundTimeLeft;
     private Vector3 _lastGroundVelocity = Vector3.Zero;
-    private int _thrustTicksLeft;
+    private float _thrustTimeLeft;
     private float _phaseCooldownLeft;
+    // In real time: how much longer the last direction held while a phase is aimed still counts, once let go of.
+    private float _phaseDirectionTimeLeft;
     // Whether a phase has been made that the engine hasn't stepped since. Its bodies move just before the engine's step
     // on the first tick of play, so until then contacts are from before the phase.
     private bool _phaseMade;
@@ -34,7 +40,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     private bool _inAir;
     private Vector2 _takeOffFeet;
     private float _highestFeet;
-    private int _airTicks;
+    private float _airTime;
 
     /// <param name="input">Supplies the player's input, once per tick.</param>
     public PlayerController(Func<PlayerInput> input)
@@ -54,14 +60,14 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     /// Aims the phase while the game is paused for it. Releasing phase ends the aim, and the bodies move on the next
     /// tick of play.
     /// </summary>
-    public void ApplyPaused(WalkerEntity entity, float dt)
+    public void ApplyPaused(WalkerEntity entity, float realDt)
     {
         PlayerInput input = _input();
-        ApplyPhase(entity, input, dt);
+        ApplyPhase(entity, input, 0, realDt);
         _jumpWasHeld = input.JumpHeld;
     }
 
-    public void Apply(WalkerEntity entity, float dt)
+    public void Apply(WalkerEntity entity, float dt, float realDt)
     {
         PlayerInput input = _input();
         float weight = entity.Weight;
@@ -69,37 +75,37 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
 
         if (entity.OnGround && !_phaseMade)
         {
-            _groundTicksLeft = Features.Current.PlayerCoyoteTicks + 1; // +1 to include this frame in remaining ground ticks
+            _groundTimeLeft = TicksToTime(Features.Current.PlayerCoyoteTicks + 1); // +1 to include this tick
             _lastGroundVelocity = entity.GroundVelocity;
         }
 
-        if (!ApplyPhase(entity, input, dt))
+        if (!ApplyPhase(entity, input, dt, realDt))
         {
             ApplyRun(entity, move, weight);
             ApplyJump(entity, input.JumpHeld, weight);
         }
 
         // Set animation variables
-        entity.IsGrounded = _groundTicksLeft > 0;
+        entity.IsGrounded = _groundTimeLeft > 0;
         entity.IsMoving = move != 0;
-        entity.IsJumping = _thrustTicksLeft > 0;
+        entity.IsJumping = _thrustTimeLeft > 0;
         // Only change facing direction when on the ground or just after jumping (and allow setting to 0)
-        if (_groundTicksLeft > 0 || _thrustTicksLeft > 0)
+        if (_groundTimeLeft > 0 || _thrustTimeLeft > 0)
         {
             entity.Facing = Math.Sign(move);
         }
 
-        Report(entity);
+        Report(entity, dt);
 
-        _groundTicksLeft = Math.Max(0, _groundTicksLeft - 1);
-        _thrustTicksLeft = Math.Max(0, _thrustTicksLeft - 1);
+        _groundTimeLeft = Math.Max(0, _groundTimeLeft - dt);
+        _thrustTimeLeft = Math.Max(0, _thrustTimeLeft - dt);
         _jumpWasHeld = input.JumpHeld;
         _phaseCooldownLeft = Math.Max(0, _phaseCooldownLeft - dt);
         _phaseMade = false;
     }
 
     /// <summary>Reports the player's measurements to <see cref="Telemetry"/>, as of the engine's last step.</summary>
-    private void Report(WalkerEntity entity)
+    private void Report(WalkerEntity entity, float dt)
     {
         var feet = new Vector2(entity.Position.X, entity.Position.Y - entity.HalfSize.Y);
         var velocity = new Vector2(entity.LinearVelocity.X, entity.LinearVelocity.Y);
@@ -107,8 +113,8 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         Telemetry.Report(Metric.Velocity, velocity);
         Telemetry.Report(Metric.GroundSpeed, entity.GroundSpeed);
         Telemetry.Report(Metric.OnGround, entity.OnGround);
-        Telemetry.Report(Metric.CoyoteTicks, entity.OnGround ? 0 : _groundTicksLeft);
-        Telemetry.Report(Metric.ThrustTicks, _thrustTicksLeft);
+        Telemetry.Report(Metric.CoyoteTime, entity.OnGround ? 0 : _groundTimeLeft);
+        Telemetry.Report(Metric.ThrustTime, _thrustTimeLeft);
 
         if (!entity.OnGround)
         {
@@ -116,10 +122,10 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             {
                 _inAir = true;
                 _highestFeet = _takeOffFeet.Y;
-                _airTicks = 0;
+                _airTime = 0;
             }
             _highestFeet = MathF.Max(_highestFeet, feet.Y);
-            _airTicks++;
+            _airTime += dt;
             return;
         }
 
@@ -129,12 +135,12 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             Telemetry.Report(Metric.AirRise, _highestFeet - _takeOffFeet.Y);
             Telemetry.Report(Metric.AirRun, MathF.Abs(feet.X - _takeOffFeet.X));
             Telemetry.Report(Metric.AirLand, feet.Y - _takeOffFeet.Y);
-            Telemetry.Report(Metric.AirTicks, _airTicks);
+            Telemetry.Report(Metric.AirTime, _airTime);
         }
 
         // The engine still reports the floor contact for a tick after a jump, when the feet have already
-        // risen. Thrust ticks count from the jump, so they mark it.
-        if (_thrustTicksLeft == 0)
+        // risen. Thrust time counts from the jump, so it marks it.
+        if (_thrustTimeLeft == 0)
         {
             _takeOffFeet = feet;
         }
@@ -145,7 +151,9 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     /// this tick: while it is aimed, and on the tick of play on which a phase made moves the bodies, when the contacts
     /// are from before it.
     /// </summary>
-    private bool ApplyPhase(WalkerEntity entity, PlayerInput input, float dt)
+    /// <param name="dt">The tick's length in game time: 0 while the game is paused.</param>
+    /// <param name="realDt">The tick's length in real time.</param>
+    private bool ApplyPhase(WalkerEntity entity, PlayerInput input, float dt, float realDt)
     {
         // Made while paused, and moving on this tick.
         if (_phaseMade)
@@ -164,6 +172,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
                 speed: Features.Current.PlayerPhaseSpeed);
 
             _phaseCooldownLeft = Features.Current.PlayerPhaseCooldownTime;
+            _phaseDirectionTimeLeft = 0;
         }
 
         if (Phase is not PhaseAction phase)
@@ -172,7 +181,24 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         }
 
         phase.Grab(dt);
-        phase.Direction = DirectionHeld(input);
+
+        // The direction held, or the last one held if it was let go of only just now, so that letting go of it just
+        // before phase, or with it, still phases.
+        Vector3 held = DirectionHeld(input);
+        if (held != Vector3.Zero)
+        {
+            phase.Direction = held;
+            _phaseDirectionTimeLeft = TicksToTime(Features.Current.PlayerPhaseReleaseTicks + 1); // +1 to include this tick
+        }
+        else
+        {
+            _phaseDirectionTimeLeft = Math.Max(0, _phaseDirectionTimeLeft - realDt);
+            if (_phaseDirectionTimeLeft == 0)
+            {
+                phase.Direction = Vector3.Zero;
+            }
+        }
+
         if (input.PhaseHeld)
         {
             return true;
@@ -186,10 +212,17 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         Phase = null;
 
         // A phase ends a jump's thrust and coyote time, and so does cancelling one: the aim took them.
-        _groundTicksLeft = 0;
-        _thrustTicksLeft = 0;
+        _groundTimeLeft = 0;
+        _thrustTimeLeft = 0;
         return _phaseMade;
     }
+
+    /// <summary>
+    /// A length of time given in ticks at <see cref="TuningTicksPerSecond"/>, less half a tick: a timer set to it and
+    /// counted down by ticks' lengths at full speed stays above zero for exactly that many ticks, with half a tick to
+    /// spare either way however the lengths round.
+    /// </summary>
+    private static float TicksToTime(int ticks) => (ticks - 0.5f) / TuningTicksPerSecond;
 
     /// <summary>One of the eight directions, from the input, as a unit vector in the plane of play, or zero if none.</summary>
     private static Vector3 DirectionHeld(PlayerInput input)
@@ -231,7 +264,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             // It never slows an entity that is already faster than that.
             float headroom = Math.Clamp(1 - speed * MathF.Sign(move) / features.PlayerTopSpeed, 0, 1);
             float driveForce =
-                _groundTicksLeft > 0
+                _groundTimeLeft > 0
                     ? (reverse ? features.PlayerGroundReverseDriveForce : features.PlayerGroundForwardDriveForce)
                     : (reverse ? features.PlayerAirReverseDriveForce : features.PlayerAirForwardDriveForce);
             drive = MathF.Abs(move) * driveForce * headroom;
@@ -258,7 +291,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             return;
         }
 
-        if (!_jumpWasHeld && _groundTicksLeft > 0 && _thrustTicksLeft == 0)
+        if (!_jumpWasHeld && _groundTimeLeft > 0 && _thrustTimeLeft == 0)
         {
             // The jump speed is relative to the ground, as it moved on the last tick on it: whatever the entity
             // gained or lost against it since, from falling in coyote ticks or being pushed off it, is undone.
@@ -266,8 +299,8 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             var impulse = new Vector3(0, entity.Mass * (Features.Current.PlayerJumpSpeed - relativeVelocityY), 0);
             entity.ApplyCentralImpulse(impulse);
             entity.Support?.ApplyCentralImpulse(-impulse);
-            _groundTicksLeft = 0;
-            _thrustTicksLeft = Features.Current.PlayerJumpThrustTicks + 1;
+            _groundTimeLeft = 0;
+            _thrustTimeLeft = TicksToTime(Features.Current.PlayerJumpThrustTicks + 1); // +1 to include this tick
 
             // Thrust starts on the next tick.
             return;
@@ -276,10 +309,10 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         // If stopped rising (e.g. hit a ceiling), cancel thrust.
         if (entity.LinearVelocity.Y <= 0)
         {
-            _thrustTicksLeft = 0;
+            _thrustTimeLeft = 0;
         }
 
-        if (_thrustTicksLeft > 0)
+        if (_thrustTimeLeft > 0)
         {
             var force = new Vector3(0, Features.Current.PlayerJumpThrustFrac * weight, 0);
             entity.ApplyCentralForce(force);

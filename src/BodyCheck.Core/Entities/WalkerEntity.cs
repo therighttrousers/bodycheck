@@ -84,11 +84,11 @@ public partial class WalkerEntity : Entity
 
     public override bool RequestsPause => Controller?.RequestsPause ?? false;
 
-    protected override void ControlPaused(float dt) => Controller?.ApplyPaused(this, dt);
+    protected override void ControlPaused(float realDt) => Controller?.ApplyPaused(this, realDt);
 
-    protected override void Control(float dt)
+    protected override void Control(float dt, float realDt)
     {
-        Controller?.Apply(this, dt);
+        Controller?.Apply(this, dt, realDt);
         UpdateAnimation(dt);
     }
 

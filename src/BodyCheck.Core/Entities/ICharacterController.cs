@@ -12,7 +12,9 @@ public interface ICharacterController<in TEntity>
     where TEntity : Entity
 {
     /// <summary>Called once per physics tick, before the engine's step.</summary>
-    public void Apply(TEntity entity, float dt);
+    /// <param name="dt">The tick's length in game time, which the engine's time scale shortens.</param>
+    /// <param name="realDt">The tick's length in real time, which the time scale doesn't change.</param>
+    public void Apply(TEntity entity, float dt, float realDt);
 
     /// <summary>
     /// Whether the controller asks for the game to be paused, so that it can decide something with all else
@@ -23,9 +25,10 @@ public interface ICharacterController<in TEntity>
 
     /// <summary>
     /// Called once per physics tick while the game is paused because a controller asked. Nothing moves then:
-    /// the engine doesn't step, so forces and impulses wait until play resumes.
+    /// the engine doesn't step, so forces and impulses wait until play resumes. No game time passes.
     /// </summary>
-    public void ApplyPaused(TEntity entity, float dt)
+    /// <param name="realDt">The tick's length in real time.</param>
+    public void ApplyPaused(TEntity entity, float realDt)
     {
     }
 }
