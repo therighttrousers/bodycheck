@@ -211,3 +211,78 @@ public sealed class JointPlacementProbe : IProbe
         }
     }
 }
+
+/// <summary>
+/// In the "Carrying" room: a block falls onto the idle player's head and settles. Then either the player runs right
+/// for a short way and stops ("wobble"), or the block is dropped again, offset to one side of the head
+/// ("offset-landing"). Prints a trace of the block on the player's head, tick by tick.
+/// </summary>
+public sealed class WobbleProbe : IProbe
+{
+    private const int SettleTicks = 120;
+    private const int TraceTicks = 120;
+    private const float RunDistance = 2.5f;
+    private const float Offset = 0.5f;
+
+    private readonly WalkerEntity _player;
+    private readonly Entity _block;
+    private readonly bool _offset;
+    private int _tick;
+    private float _runStart;
+    private bool _running;
+
+    public WobbleProbe(WalkerEntity player, Entity block, bool offset)
+    {
+        _player = player;
+        _block = block;
+        _offset = offset;
+    }
+
+    public bool Done => _tick > SettleTicks + TraceTicks;
+
+    public PlayerInput Input { get; private set; }
+
+    public void Tick(float gameDt)
+    {
+        int t = _tick++ - SettleTicks;
+        if (t < 0)
+        {
+            return;
+        }
+
+        if (t == 0)
+        {
+            _runStart = _player.Position.X;
+            _running = !_offset;
+            if (_offset)
+            {
+                // From 1.2 tiles above the head.
+                _block.Position = _player.Position + new Vector3(Offset, _player.HalfSize.Y + 1.2f + _block.HalfSize.Y, 0);
+                _block.Rotation = Vector3.Zero;
+                _block.LinearVelocity = Vector3.Zero;
+                _block.AngularVelocity = Vector3.Zero;
+            }
+        }
+        if (_running && _player.Position.X - _runStart >= RunDistance)
+        {
+            _running = false;
+            GD.Print($"  stops driving at tick {t}");
+        }
+        Input = new PlayerInput(_running ? 1 : 0, 0, false);
+
+        int floorContacts = 0;
+        PhysicsDirectBodyState3D state = PhysicsServer3D.BodyGetDirectState(_block.GetRid());
+        for (int i = 0; i < state.GetContactCount(); i++)
+        {
+            if (state.GetContactLocalNormal(i).Y > 0.7f)
+            {
+                floorContacts++;
+            }
+        }
+        string support = !_block.OnGround ? "air" : _block.Support == _player ? "player" : _block.Support is null ? "tiles" : "entity";
+        GD.Print($"  tick {t,3}: player vx {_player.LinearVelocity.X,7:F3}; block dx {_block.Position.X - _player.Position.X,6:F3} "
+            + $"vx {_block.LinearVelocity.X,7:F3} vy {_block.LinearVelocity.Y,7:F3} rot {_block.Rotation.Z,6:F3} "
+            + $"spin {_block.AngularVelocity.Z,7:F3} on {support,-6} contacts {floorContacts} "
+            + $"landed {(_block.Landed ? 1 : 0)} friction {_block.Friction,7:F1}");
+    }
+}

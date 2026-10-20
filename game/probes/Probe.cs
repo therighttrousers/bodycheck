@@ -95,6 +95,12 @@ public static class Probe
                     probe = new CarryProbe(world.Player, carried, resting, stacked);
                 }
                 break;
+            case "wobble" or "offset-landing":
+                world = Load(TestRoomLibrary.Carrying);
+                GD.Print($"{(name == "wobble" ? "Wobble" : "Offset landing")} probe:");
+                probe = new WobbleProbe(
+                    world.Player, world.EntitiesOf(EntityKind.Block).MaxBy(block => block.Position.Y)!, offset: name != "wobble");
+                break;
             case "joint-placement":
                 world = Load(TestRoomLibrary.FloatingBlock);
                 GD.Print("Joint placement probe:");
