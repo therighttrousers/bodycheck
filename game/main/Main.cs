@@ -45,7 +45,7 @@ public partial class Main : Node
 {
     private const string LevelsPath = "res://levels/main.ldtk";
     private const string ConfigurationsDirectory = "res://configurations";
-    private const string ConfigurationExtension = ".json";
+    private const string ConfigurationExtension = ".jsonc";
     private const string DefaultConfiguration = "defaults";
 
     private readonly GameModeManager _gameModeManager = new();

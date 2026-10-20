@@ -5,7 +5,7 @@ public class FeaturesTests
     [Fact]
     public void ReadsOnlyTheFeaturesItNames()
     {
-        Features features = Features.Read("test.json", """
+        Features features = Features.Read("test.jsonc", """
             {
                 // A stronger jump.
                 "PlayerJumpSpeed": 15,
@@ -26,7 +26,7 @@ public class FeaturesTests
     [InlineData("null")]
     public void RejectsWhatIsNotAConfiguration(string json)
     {
-        var e = Assert.Throws<InvalidDataException>(() => Features.Read("test.json", json));
-        Assert.StartsWith("test.json: ", e.Message);
+        var e = Assert.Throws<InvalidDataException>(() => Features.Read("test.jsonc", json));
+        Assert.StartsWith("test.jsonc: ", e.Message);
     }
 }

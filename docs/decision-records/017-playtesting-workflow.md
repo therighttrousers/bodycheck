@@ -26,7 +26,7 @@ What there is now: `Features` is a record whose defaults are its properties' ini
 
 ## 2. Configurations
 
-- [x] 2.1 Where do they live? Leaning (Claude): one JSON file each, in `game/configurations/`, named after the configuration. In the repository, since they are design work to share. Decision: as leaning. An example, `strong-jump.json`, shows the format.
+- [x] 2.1 Where do they live? Leaning (Claude): one JSON file each, in `game/configurations/`, named after the configuration. In the repository, since they are design work to share. Decision: as leaning. An example, `strong-jump.jsonc`, shows the format. Changed (Neil): the extension is `.jsonc`, so that editors know comments and trailing commas are allowed.
 - [x] 2.2 What does a file hold? Options:
   - (a) Every feature, each required, as the convention for reading data says. Adding a feature means editing every file.
   - (b) Only the features that differ from the defaults. A missing one is the default; an unknown name or a value of the wrong type is an error, reported with where it is.
