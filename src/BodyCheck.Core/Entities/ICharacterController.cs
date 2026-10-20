@@ -24,6 +24,12 @@ public interface ICharacterController<in TEntity>
     public bool RequestsPause => false;
 
     /// <summary>
+    /// The coefficient of friction with which the entity grips what it stands on, for kinds of body whose friction
+    /// is their controller's to tune, such as a walker's. Read each tick it is used.
+    /// </summary>
+    public float GroundFriction => 0;
+
+    /// <summary>
     /// Called once per physics tick while the game is paused because a controller asked. Nothing moves then:
     /// the engine doesn't step, so forces and impulses wait until play resumes. No game time passes.
     /// </summary>

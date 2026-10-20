@@ -225,6 +225,38 @@ public class BodiesTest
     }
 
     [TestCase]
+    public async Task A_block_that_lands_on_the_players_head_stays_there_while_the_player_runs()
+    {
+        RoomRun run = Start(RoomOf([
+            .. Enumerable.Repeat("#" + new string('.', 78) + "#", 7),
+            "#B.P" + new string('.', 75) + "#",
+            new string('#', 80)]));
+        Entity block = run.Node.EntitiesOf(EntityKind.Block).Single();
+        await run.Tick(Idle, 60);
+
+        // Dropped from 2 tiles above the head while the player runs at top speed, 5 tiles per second slower than the
+        // player, and far enough ahead to land on the middle of its head.
+        await run.Tick(Right, 60);
+        const float Height = 2;
+        const float Slip = 5;
+        float fallTime = MathF.Sqrt(2 * Height * block.Mass / block.Weight);
+        block.Position = run.Player.Position
+            + new Vector3(Slip * fallTime, run.Player.HalfSize.Y + Height + block.HalfSize.Y, 0);
+        block.LinearVelocity = new Vector3(run.Player.LinearVelocity.X - Slip, 0, 0);
+        await run.Tick(Right, 30);
+        float landedOffset = block.Position.X - run.Player.Position.X;
+
+        // It stops slipping as it lands, and stays where it landed while the player runs on.
+        float greatestChange = 0;
+        await run.Tick(Right, 90, () =>
+            greatestChange = MathF.Max(greatestChange, MathF.Abs(block.Position.X - run.Player.Position.X - landedOffset)));
+
+        AssertThat(block.Support).IsSame(run.Player);
+        AssertThat(MathF.Abs(landedOffset)).IsLess(run.Player.HalfSize.X);
+        AssertThat(greatestChange).IsLess(0.01f);
+    }
+
+    [TestCase]
     public async Task The_player_can_push_a_block_and_it_stops_when_let_go()
     {
         RoomRun run = Start(RoomOf(

@@ -18,11 +18,17 @@ public enum Contacts
 /// (contacts, what stands on what) is about entities. Entities may only rotate about Z (default off).
 /// <para>
 /// An entity is a body and its looks. This class is a body with nothing to move itself by, such as a
-/// block: it is only pushed, carried and stood on. A subclass is a kind of body that has motors, and a
-/// controller to use them. The room calls <see cref="Step"/> on every entity once per physics tick.
+/// block: it is only pushed, carried and stood on. A subclass is a kind of body that has a controller, and
+/// may give it ways to use the entity's grip. The room calls <see cref="Step"/> on every entity once per
+/// physics tick.
 /// </para>
 /// <para>
 /// Bounce and damping are off in the engine. Drag is the entity's own force.
+/// </para>
+/// <para>
+/// Every entity grips what it stands on with the motor of a joint between the two, along X. On its own, the
+/// motor is friction, where the engine's friction falls short: on a walker, whose engine friction is 0. A
+/// walker's controller adds traction to it.
 /// </para>
 /// <para>
 /// An entity is also the base node for advance expressions in the entity's visual; i.e. in the AnimationTree
@@ -44,6 +50,20 @@ public partial class Entity : RigidBody3D
 
     // Where to move to through entities before the engine's next step, if anywhere.
     private Vector3? _destination;
+
+    // The joint whose motor grips what the entity stands on: friction, and a walker's traction. It constrains
+    // nothing: every limit is off, so its only effect is the X motor. The entity is the joint's second body, and
+    // the first is what it is anchored to, or nothing for tiles. It has no bodies until it is first anchored.
+    private readonly Generic6DofJoint3D _grip;
+    private bool _gripAnchored;
+    private Entity? _gripAnchor;
+
+    // What the entity stood on during the engine's last step: the collider, and the middle of the contacts with it.
+    private Rid _groundCollider;
+    private Vector3 _groundContact;
+
+    // The entities that touched this one from above during the engine's last step.
+    private readonly List<Entity> _above = [];
 
     /// <param name="visual">What to draw for the entity, centered on the middle of its box.</param>
     public Entity(BodyTuning tuning, Node3D? visual = null, bool axisLockAngularZ = true)
@@ -77,6 +97,16 @@ public partial class Entity : RigidBody3D
         var size = new Vector3(2 * tuning.HalfSize.X, 2 * tuning.HalfSize.Y, Depth);
         AddChild(new CollisionShape3D { Shape = new BoxShape3D { Size = size } });
 
+        _grip = new Generic6DofJoint3D { ExcludeNodesFromCollision = false };
+        foreach (var flag in (ReadOnlySpan<Generic6DofJoint3D.Flag>)
+            [Generic6DofJoint3D.Flag.EnableLinearLimit, Generic6DofJoint3D.Flag.EnableAngularLimit])
+        {
+            _grip.SetFlagX(flag, false);
+            _grip.SetFlagY(flag, false);
+            _grip.SetFlagZ(flag, false);
+        }
+        AddChild(_grip);
+
         if (visual is not null)
         {
             visual.Position -= new Vector3(0, tuning.HalfSize.Y, 0);
@@ -107,6 +137,9 @@ public partial class Entity : RigidBody3D
 
     public bool OnGround => Contacts.HasFlag(Contacts.Floor);
 
+    /// <summary>Whether the engine's last step brought the entity onto the ground from the air.</summary>
+    public bool Landed { get; private set; }
+
     /// <summary>
     /// The velocity of the surface this entity stood on during the engine's last step, where it touched: zero
     /// for tiles, and in the air. On a support that spins, it differs from the support's own velocity.
@@ -117,12 +150,37 @@ public partial class Entity : RigidBody3D
     public float Weight => Mass * -GetGravity().Y;
 
     /// <summary>
+    /// The entity's weight and the loads of the entities that stand on it, as of the engine's last step: how hard it
+    /// presses on what it stands on, at rest.
+    /// </summary>
+    public float Load => Weight + _above.Where(other => other.Support == this).Sum(other => other.Load);
+
+    /// <summary>
+    /// The most force that the entity's friction with what it stands on uses this tick, along X. Zero in the air, and
+    /// where the engine's own friction is enough. Traction adds to it.
+    /// </summary>
+    public float Friction { get; private set; }
+
+    /// <summary>
+    /// The coefficient of friction with which this kind of body grips what it stands on. The motor makes up what the
+    /// engine's friction falls short of it.
+    /// </summary>
+    /// <param name="controlled">Whether the controller runs this tick.</param>
+    protected virtual float GroundFriction(bool controlled) => Tuning.EngineFriction;
+
+    /// <summary>
     /// Moves the entity toward <paramref name="destination"/> before the engine's next step, through other entities
     /// but not through tiles: where it meets one, it slides along it, so it may stop short. It keeps its velocity, and
     /// the engine pushes it apart from whatever it ends up overlapping. Until then it stays where it is, so that
     /// controllers stepped after this one in the same tick still see the world as of the engine's last step.
     /// </summary>
-    public void MoveThroughEntities(Vector3 destination) => _destination = destination;
+    public void MoveThroughEntities(Vector3 destination)
+    {
+        _destination = destination;
+        // What it stands on is from before the move, so it has no grip until the engine's next step.
+        _grip.SetFlagX(Generic6DofJoint3D.Flag.EnableLinearMotor, false);
+        Friction = 0;
+    }
 
     // Every entity's step runs before this, because the room that steps them is their parent, and a parent is
     // processed before its children.
@@ -167,8 +225,11 @@ public partial class Entity : RigidBody3D
     /// <param name="controlled">Whether the controller runs. Without it, the entity only coasts, under drag and gravity.</param>
     public void Step(float gameDt, float realDt, bool controlled = true)
     {
-        // A motor's push lasts one tick, like a force: it is off unless the controller uses it again.
-        ReleaseMotors();
+        // A motor's push lasts one tick, like a force: it is off unless friction or the controller uses it again.
+        _grip.SetFlagX(Generic6DofJoint3D.Flag.EnableLinearMotor, false);
+        Friction = 0;
+
+        ApplyFriction(gameDt, GroundFriction(controlled));
 
         if (controlled)
         {
@@ -193,9 +254,71 @@ public partial class Entity : RigidBody3D
     {
     }
 
-    /// <summary>Switches off every motor this kind of body has.</summary>
-    protected virtual void ReleaseMotors()
+    // Grips what the entity stands on, for the next step, as far as the engine's friction falls short (019 §1.5): its
+    // coefficient times the load. Bodies that aren't rough use the smaller of their two coefficients.
+    private void ApplyFriction(float gameDt, float groundFriction)
     {
+        // Before a move through entities, what it stands on is from before the move.
+        if (!OnGround || _destination is not null)
+        {
+            return;
+        }
+
+        float engineFriction = Mathf.Min(
+            PhysicsMaterialOverride.Friction,
+            PhysicsServer3D.BodyGetParam(_groundCollider, PhysicsServer3D.BodyParameter.Friction).AsSingle());
+        float shortfall = groundFriction - engineFriction;
+        if (shortfall <= 0)
+        {
+            return;
+        }
+
+        Friction = shortfall * Load;
+        if (Landed)
+        {
+            // Whatever lands stops slipping at once (019 §2.1): on top, as much force as stops the slip within the tick.
+            Friction += Mass * MathF.Abs(LinearVelocity.X - GroundVelocity.X) / gameDt;
+        }
+        DriveGrip(0, Friction);
+    }
+
+    /// <summary>
+    /// Drives the entity's grip on what it stands on, for the next step: pushes against the ground to bring the
+    /// entity's horizontal speed, relative to the ground, towards <paramref name="targetSpeed"/>, with at most
+    /// <paramref name="maxForce"/>, and pushes the ground the other way equally. It replaces what the grip did this
+    /// tick, and has no effect in the air. With no force, the grip is off.
+    /// </summary>
+    protected void DriveGrip(float targetSpeed, float maxForce)
+    {
+        if (!OnGround || maxForce <= 0)
+        {
+            _grip.SetFlagX(Generic6DofJoint3D.Flag.EnableLinearMotor, false);
+            return;
+        }
+
+        if (!_gripAnchored || Support != _gripAnchor)
+        {
+            AnchorGrip();
+        }
+        _grip.SetParamX(Generic6DofJoint3D.Param.LinearMotorTargetVelocity, targetSpeed);
+        _grip.SetParamX(Generic6DofJoint3D.Param.LinearMotorForceLimit, maxForce);
+        _grip.SetFlagX(Generic6DofJoint3D.Flag.EnableLinearMotor, true);
+    }
+
+    // Godot builds the engine's joint when a node path changes to a new value, and fixes the joint's place in each body
+    // then, from where the joint node is (019 §2.2). So the joint is put where the entity touches what it stands on,
+    // level, first: that is where friction acts. Higher, its push back would tip what the entity stands on. On a body
+    // that rotates, it is at the center for now, since a landing's catch at its base tips it (019 §4.3).
+    private void AnchorGrip()
+    {
+        _gripAnchored = true;
+        _gripAnchor = Support;
+        _grip.GlobalTransform = new Transform3D(Basis.Identity, AxisLockAngularZ ? _groundContact : Position);
+        _grip.NodeA = Support is null ? new NodePath() : _grip.GetPathTo(Support);
+        if (_grip.NodeB.IsEmpty)
+        {
+            _grip.NodeB = new NodePath("..");
+        }
     }
 
     /// <summary>Runs the controller of this kind of body, if it has one.</summary>
@@ -205,11 +328,15 @@ public partial class Entity : RigidBody3D
 
     public override void _IntegrateForces(PhysicsDirectBodyState3D state)
     {
+        bool wasOnGround = OnGround;
         var contacts = Contacts.None;
         Entity? support = null;
+        Rid groundCollider = default;
         // Summed over the floor contacts with the support, which may be several, e.g. the corners of a box.
         Vector3 groundVelocity = Vector3.Zero;
+        Vector3 groundContact = Vector3.Zero;
         int groundContacts = 0;
+        _above.Clear();
         for (int i = 0; i < state.GetContactCount(); i++)
         {
             // The normal points away from the other collider, towards this body.
@@ -218,15 +345,14 @@ public partial class Entity : RigidBody3D
             {
                 contacts |= Contacts.Floor;
                 support ??= state.GetContactColliderObject(i) as Entity;
-                if (support is not null && state.GetContactColliderObject(i) == support)
-                {
-                    groundVelocity += state.GetContactColliderVelocityAtPosition(i);
-                    groundContacts++;
-                }
             }
             else if (normal.Y < -SideThreshold)
             {
                 contacts |= Contacts.Ceiling;
+                if (state.GetContactColliderObject(i) is Entity above && !_above.Contains(above))
+                {
+                    _above.Add(above);
+                }
             }
             else if (normal.X > SideThreshold)
             {
@@ -237,8 +363,33 @@ public partial class Entity : RigidBody3D
                 contacts |= Contacts.Right;
             }
         }
+
+        // What the entity stands on: the support, or else the tiles.
+        for (int i = 0; i < state.GetContactCount(); i++)
+        {
+            if (state.GetContactLocalNormal(i).Y <= SideThreshold
+                || (support is not null && state.GetContactColliderObject(i) != support))
+            {
+                continue;
+            }
+            if (groundContacts == 0)
+            {
+                groundCollider = state.GetContactCollider(i);
+            }
+            if (state.GetContactCollider(i) == groundCollider)
+            {
+                groundVelocity += state.GetContactColliderVelocityAtPosition(i);
+                groundContact += state.GetContactLocalPosition(i);
+                groundContacts++;
+            }
+        }
+
         Contacts = contacts;
         Support = support;
-        GroundVelocity = groundContacts > 0 ? groundVelocity / groundContacts : Vector3.Zero;
+        Landed = !wasOnGround && OnGround;
+        _groundCollider = groundCollider;
+        _groundContact = groundContacts > 0 ? groundContact / groundContacts : Position;
+        // Tiles don't move.
+        GroundVelocity = support is not null && groundContacts > 0 ? groundVelocity / groundContacts : Vector3.Zero;
     }
 }

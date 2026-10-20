@@ -53,6 +53,8 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     /// <summary>The game is paused while a phase is aimed, so that the player can take its time over the direction.</summary>
     public bool RequestsPause => Phase is not null;
 
+    public float GroundFriction => Features.Current.PlayerGroundFriction;
+
     /// <summary>
     /// Aims the phase while the game is paused for it. Releasing phase ends the aim, and the bodies move on the next
     /// tick of play.
@@ -78,7 +80,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
 
         if (!ApplyPhase(entity, input, gameDt, realDt))
         {
-            ApplyRun(entity, move, weight);
+            ApplyRun(entity, move);
             ApplyJump(entity, input.JumpHeld, weight);
         }
 
@@ -239,7 +241,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             });
     }
 
-    private void ApplyRun(WalkerEntity entity, float move, float weight)
+    private void ApplyRun(WalkerEntity entity, float move)
     {
         Features features = Features.Current;
 
@@ -262,11 +264,14 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
 
         if (entity.OnGround)
         {
-            // On the ground the drive is traction: the engine applies it, and pushes back on the support.
-            // Friction adds to it unless the entity is driving the way it is already going, so it holds an
-            // idle entity still on its support, and can stop a moving one but can't reverse it.
-            float friction = move == 0 || reverse ? features.PlayerGroundFriction * weight : 0;
-            entity.ApplyTraction(MathF.Sign(move) * features.PlayerTopSpeed, drive + friction);
+            // On the ground the drive is traction: the engine applies it, and pushes back on the support. It
+            // adds to the entity's friction, which holds an idle entity still on its support. Driving the way
+            // the entity is already going gets no friction, so the drive takes it off again.
+            if (move != 0)
+            {
+                float extra = reverse ? drive : drive - entity.Friction;
+                entity.ApplyTraction(MathF.Sign(move) * features.PlayerTopSpeed, extra);
+            }
         }
         else
         {

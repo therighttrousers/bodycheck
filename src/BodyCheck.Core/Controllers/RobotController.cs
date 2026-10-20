@@ -58,10 +58,15 @@ public sealed class RobotController : ICharacterController<WalkerEntity>
             drive = MathF.Abs(move) * force * headroom;
         }
 
-        // The drive is traction: the engine applies it, and pushes back on the support. Friction adds to it
-        // unless the entity is driving the way it is already going, so it holds an idle entity still on its
-        // support, and can stop a moving one but can't reverse it. Neither does anything in the air.
-        float friction = move == 0 || reverse ? features.RobotGroundFriction * entity.Weight : 0;
-        entity.ApplyTraction(MathF.Sign(move) * features.RobotTopSpeed, drive + friction);
+        // The drive is traction: the engine applies it, and pushes back on the support. It adds to the entity's
+        // friction, which holds an idle entity still on its support. Driving the way the entity is already going
+        // gets no friction, so the drive takes it off again. Neither does anything in the air.
+        if (move != 0)
+        {
+            float extra = reverse ? drive : drive - entity.Friction;
+            entity.ApplyTraction(MathF.Sign(move) * features.RobotTopSpeed, extra);
+        }
     }
+
+    public float GroundFriction => Features.Current.RobotGroundFriction;
 }
