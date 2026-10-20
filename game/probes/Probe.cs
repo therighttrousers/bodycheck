@@ -43,8 +43,9 @@ public static class Probe
         {
             case "seams":
                 world = Load(TestRoomLibrary.Seams);
-                // Nothing may brake the sliding body, so the controllers are off.
+                // Nothing may brake the sliding body, so the controllers and ground friction are off.
                 world.ControllersEnabled = false;
+                Features.Set(Features.Current with { PlayerGroundFriction = 0 });
                 GD.Print($"Seam probe: tiles {(mergeTiles ? "merged" : "single")}");
                 probe = new SeamProbe(world.Player, speed: Features.Current.PlayerTopSpeed);
                 break;

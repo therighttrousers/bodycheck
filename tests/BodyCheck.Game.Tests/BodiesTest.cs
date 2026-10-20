@@ -63,13 +63,16 @@ public class BodiesTest
     {
         _run?.Free();
         _run = null;
+        Features.Reset();
     }
 
     [TestCase(1f)]
     [TestCase(3f)]
     public async Task Colliding_bodies_share_their_momentum_without_bouncing(float movingMass)
     {
-        // With the controllers off, the player and the robot are just two boxes on a frictionless floor.
+        // With the controllers off and no ground friction, the player and the robot are just two boxes on a
+        // frictionless floor.
+        Features.Set(new() { PlayerGroundFriction = 0, RobotGroundFriction = 0 });
         RoomRun run = Start(
             RoomOf(
                 "#..............................#",

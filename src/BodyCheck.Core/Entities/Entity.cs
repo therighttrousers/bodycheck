@@ -48,6 +48,9 @@ public partial class Entity : RigidBody3D
     // How many times a move through entities may slide along a tile before it stops short.
     private const int MaxSlides = 4;
 
+    // How far the grip's joint may be above or below where it should act before it is anchored again there.
+    private const float GripDrift = 0.05f;
+
     // Where to move to through entities before the engine's next step, if anywhere.
     private Vector3? _destination;
 
@@ -57,6 +60,8 @@ public partial class Entity : RigidBody3D
     private readonly Generic6DofJoint3D _grip;
     private bool _gripAnchored;
     private Entity? _gripAnchor;
+    // Where the joint is, in the entity's frame: where the engine's joint acts on it.
+    private Vector3 _gripPoint;
 
     // What the entity stood on during the engine's last step: the collider, and the middle of the contacts with it.
     private Rid _groundCollider;
@@ -150,10 +155,21 @@ public partial class Entity : RigidBody3D
     public float Weight => Mass * -GetGravity().Y;
 
     /// <summary>
-    /// The entity's weight and the loads of the entities that stand on it, as of the engine's last step: how hard it
-    /// presses on what it stands on, at rest.
+    /// The entity's weight and the loads of the entities that stand on it, and so on up the stack, as of the engine's
+    /// last step: how hard it presses on what it stands on, at rest.
     /// </summary>
-    public float Load => Weight + _above.Where(other => other.Support == this).Sum(other => other.Load);
+    public float ComputeLoad()
+    {
+        float load = Weight;
+        foreach (Entity other in _above)
+        {
+            if (other.Support == this)
+            {
+                load += other.ComputeLoad();
+            }
+        }
+        return load;
+    }
 
     /// <summary>
     /// The most force that the entity's friction with what it stands on uses this tick, along X. Zero in the air, and
@@ -165,8 +181,7 @@ public partial class Entity : RigidBody3D
     /// The coefficient of friction with which this kind of body grips what it stands on. The motor makes up what the
     /// engine's friction falls short of it.
     /// </summary>
-    /// <param name="controlled">Whether the controller runs this tick.</param>
-    protected virtual float GroundFriction(bool controlled) => Tuning.EngineFriction;
+    protected virtual float GroundFriction => Tuning.EngineFriction;
 
     /// <summary>
     /// Moves the entity toward <paramref name="destination"/> before the engine's next step, through other entities
@@ -229,7 +244,7 @@ public partial class Entity : RigidBody3D
         _grip.SetFlagX(Generic6DofJoint3D.Flag.EnableLinearMotor, false);
         Friction = 0;
 
-        ApplyFriction(gameDt, GroundFriction(controlled));
+        ApplyFriction(gameDt);
 
         if (controlled)
         {
@@ -256,7 +271,7 @@ public partial class Entity : RigidBody3D
 
     // Grips what the entity stands on, for the next step, as far as the engine's friction falls short (019 §1.5): its
     // coefficient times the load. Bodies that aren't rough use the smaller of their two coefficients.
-    private void ApplyFriction(float gameDt, float groundFriction)
+    private void ApplyFriction(float gameDt)
     {
         // Before a move through entities, what it stands on is from before the move.
         if (!OnGround || _destination is not null)
@@ -267,13 +282,13 @@ public partial class Entity : RigidBody3D
         float engineFriction = Mathf.Min(
             PhysicsMaterialOverride.Friction,
             PhysicsServer3D.BodyGetParam(_groundCollider, PhysicsServer3D.BodyParameter.Friction).AsSingle());
-        float shortfall = groundFriction - engineFriction;
+        float shortfall = GroundFriction - engineFriction;
         if (shortfall <= 0)
         {
             return;
         }
 
-        Friction = shortfall * Load;
+        Friction = shortfall * ComputeLoad();
         if (Landed)
         {
             // Whatever lands stops slipping at once (019 §2.1): on top, as much force as stops the slip within the tick.
@@ -296,9 +311,14 @@ public partial class Entity : RigidBody3D
             return;
         }
 
-        if (!_gripAnchored || Support != _gripAnchor)
+        // The grip acts where the entity touches what it stands on (019 §2.2), except in a landing's catch on a body
+        // that rotates (019 §4.3). A real impact's friction comes with its normal force, which spreads across the face
+        // and keeps the friction from tipping the body; the catch has no impact with it, so it acts at the center.
+        Vector3 point = Landed && !AxisLockAngularZ ? Position : _groundContact;
+        // The motor pushes only along X, so only the joint's height changes what it does.
+        if (!_gripAnchored || Support != _gripAnchor || MathF.Abs(ToGlobal(_gripPoint).Y - point.Y) > GripDrift)
         {
-            AnchorGrip();
+            AnchorGrip(point);
         }
         _grip.SetParamX(Generic6DofJoint3D.Param.LinearMotorTargetVelocity, targetSpeed);
         _grip.SetParamX(Generic6DofJoint3D.Param.LinearMotorForceLimit, maxForce);
@@ -306,19 +326,17 @@ public partial class Entity : RigidBody3D
     }
 
     // Godot builds the engine's joint when a node path changes to a new value, and fixes the joint's place in each body
-    // then, from where the joint node is (019 §2.2). So the joint is put where the entity touches what it stands on,
-    // level, first: that is where friction acts. Higher, its push back would tip what the entity stands on. On a body
-    // that rotates, it is at the center for now, since a landing's catch at its base tips it (019 §4.3).
-    private void AnchorGrip()
+    // then, from where the joint node is (019 §2.2). So the joint is put where it acts, level, first. Node B is cleared
+    // before node A is set, so that setting it again builds the joint even when node A is unchanged.
+    private void AnchorGrip(Vector3 point)
     {
         _gripAnchored = true;
         _gripAnchor = Support;
-        _grip.GlobalTransform = new Transform3D(Basis.Identity, AxisLockAngularZ ? _groundContact : Position);
+        _grip.GlobalTransform = new Transform3D(Basis.Identity, point);
+        _gripPoint = ToLocal(point);
+        _grip.NodeB = new NodePath();
         _grip.NodeA = Support is null ? new NodePath() : _grip.GetPathTo(Support);
-        if (_grip.NodeB.IsEmpty)
-        {
-            _grip.NodeB = new NodePath("..");
-        }
+        _grip.NodeB = new NodePath("..");
     }
 
     /// <summary>Runs the controller of this kind of body, if it has one.</summary>

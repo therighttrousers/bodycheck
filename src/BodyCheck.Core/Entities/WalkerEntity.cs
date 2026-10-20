@@ -35,8 +35,7 @@ public partial class WalkerEntity : Entity
     /// <summary>What decides the walker's actions each tick. Without one it is only pushed around.</summary>
     public ICharacterController<WalkerEntity>? Controller { get; set; }
 
-    // A walker's friction is part of how it is controlled: without its controller, it slides freely.
-    protected override float GroundFriction(bool controlled) => controlled ? Controller?.GroundFriction ?? 0 : 0;
+    protected override float GroundFriction => Controller?.GroundFriction ?? 0;
 
     /// <summary>
     /// Adds traction to the walker's friction, for the next step: pushes against the ground to bring the walker's
