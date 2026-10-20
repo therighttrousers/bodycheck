@@ -62,7 +62,10 @@ public class PlayerControllerTest
     [AfterTest]
     public void TearDown()
     {
-        _world?.Free();
+        if (_world is not null)
+        {
+            RoomRun.FreeAndFinalize(_world);
+        }
         _world = null;
     }
 
