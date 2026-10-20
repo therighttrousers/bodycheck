@@ -45,8 +45,7 @@ public sealed record Features
     /// <summary>Puts every feature back to its default.</summary>
     public static void Reset() => Set(new());
 
-    // The player.
-
+    #region Player
     /// <summary>Speed at which the player's run drive force falls to zero.</summary>
     public float PlayerTopSpeed { get; init; } = 12;
 
@@ -110,9 +109,9 @@ public sealed record Features
 
     /// <summary>What momentum a phase gives the player and the target. To be chosen by playing.</summary>
     public PhaseThrow PlayerPhaseThrow { get; init; } = PhaseThrow.Fixed;
+    #endregion
 
-    // Robots.
-
+    #region Robots
     /// <summary>Speed at which a robot's run drive force falls to zero.</summary>
     public float RobotTopSpeed { get; init; } = 3;
 
@@ -126,9 +125,9 @@ public sealed record Features
     /// the direction of travel.
     /// </summary>
     public float RobotGroundFriction { get; init; } = 4;
+    #endregion
 
-    // Platforms.
-
+    #region Platforms
     /// <summary>Speed at which a platform's horizontal drive force falls to zero.</summary>
     public float PlatformTopSpeed { get; init; } = 6;
 
@@ -141,4 +140,5 @@ public sealed record Features
     public float PlatformVerticalStiffness { get; init; } = 112.5f;
     /// <summary>A platform's maximum vertical thrust, as a fraction of its weight. Should be > 1.</summary>
     public float PlatformMaxVerticalThrustFrac { get; init; } = 1.5f;
+    #endregion
 }
