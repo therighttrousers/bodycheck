@@ -31,7 +31,6 @@
     },
     "json.schemas": [
         {
-            // Matcher might be too broad - can we assume every .jsonc file allows trailing commas?
             "fileMatch": [ "${workspaceFolder}/game/configurations/*.jsonc" ],
             "schema": {
                 "allowTrailingCommas": true
