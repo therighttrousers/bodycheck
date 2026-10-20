@@ -32,6 +32,7 @@ See [docs/designs/architecture.md](docs/designs/architecture.md) for tech detail
 - Build everything: `dotnet build`
 - Run the unit tests: `dotnet test`
 - Run the game from the terminal: `dotnet build && .\Godot\Godot.exe --path game` - note that building first is required
+- Run the game without a terminal: double-click `play.cmd`, which builds the game and runs it
 - Run the game from Godot's editor: `.\Godot\Godot.exe --path game --editor`, then press the `▶` button to build and run
 
 Development doesn't make much use of Godot's editor because the game world is programmatically generated from tile-based maps, and because agents are much better at writing config files and code than using the editor.
@@ -50,6 +51,8 @@ Development doesn't make much use of Godot's editor because the game world is pr
 - Map: Tab, or gamepad Back. Pauses the game and zooms out to show the whole world; press again to zoom back in.
 - Pause: Escape, or gamepad Start. There's no menu yet.
 - Previous or next world: ','/'.' or gamepad left/right shoulder button
+- F5: read the worlds and configurations again, and restart the world
+- F6/F7: previous or next configuration
 - F3: debug overlay on or off, with measurements for tuning and level design. Pass `--overlay` after `--` to start with it on.
 - F4: collision shapes as wireframes on or off. Pass `--shapes` after `--` to start with them on.
 
@@ -70,7 +73,13 @@ Rendering switches, for judging the look. The window's title shows their state. 
 - [ and ]: the dither's lightness spread, down and up
 - ; and ': the dither's chroma spread, down and up
 
-## Rooms
+## Worlds
 
-The game's rooms are the levels of `game/levels/main.ldtk`, made in [LDtk](https://ldtk.io/), followed by the named test rooms in `src/BodyCheck.Core/Rooms/RoomLibrary.cs`. The first level plays by default. To start in a particular room, pass its name after `--`:
-`.\Godot\Godot.exe --path game -- "Robot ride"`
+The game's worlds are the worlds of `game/levels/main.ldtk`, made in [LDtk](https://ldtk.io/) with its multi-worlds on, so that they all share its layers and entities, followed by a world for each named test room in `src/BodyCheck.Core/WorldData/RoomLibrary.cs`. The first plays by default. To start in a particular one, pass its name after `--`:
+`.\Godot\Godot.exe --path game -- "Robot ride"`, or `play.cmd "Robot ride"`.
+
+To make a new world for a puzzle, add a world to `main.ldtk` in LDtk. Save in LDtk, then press F5 in the game to play the change.
+
+## Configurations
+
+A configuration is a set of gameplay values to try, such as a stronger jump. Each is a JSON file in `game/configurations/` that names only the values it changes; see `strong-jump.json`. The values and their defaults are the properties of `src/BodyCheck.Core/Features.cs`. The game starts with the defaults, unless a configuration is named after `--` with `--configuration=`, for example `play.cmd --configuration=strong-jump`. F6 and F7 switch between configurations, and the window's title shows which is playing. Edit a file in any text editor, then press F5, or switch to it, to play the change. A mistake in a file is shown at the bottom of the window, and the game goes on without it.

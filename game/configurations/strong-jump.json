@@ -1,0 +1,6 @@
+// An example configuration: the defaults, with a stronger jump. Name only the features to change; the rest keep their
+// defaults. The features and their defaults are in src/BodyCheck.Core/Features.cs.
+{
+    "PlayerJumpSpeed": 15,
+    "PlayerJumpThrustTicks": 18,
+}
