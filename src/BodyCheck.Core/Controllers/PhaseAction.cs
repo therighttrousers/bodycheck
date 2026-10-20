@@ -4,24 +4,6 @@ using Godot;
 
 namespace BodyCheck.Core.Controllers;
 
-/// <summary>What momentum a phase gives the player and the entity phased through.</summary>
-public enum PhaseThrow
-{
-    /// <summary>
-    /// Replaces the momentum of each with equal and opposite momentum, along the phase's direction. Every phase leaves
-    /// them moving the same, however they were moving before, which makes juggling easy and predictable. Momentum is
-    /// not conserved.
-    /// </summary>
-    Fixed,
-
-    /// <summary>
-    /// Adds equal and opposite momentum to each, along the phase's direction, so momentum is conserved. Where they end
-    /// up moving depends on how they were moving: phases in a row can build speed, and to juggle a robot high, the
-    /// player has to meet it just before the top of its rise.
-    /// </summary>
-    Conserved,
-}
-
 /// <summary>
 /// A phase being aimed: the player and its target, held together by <see cref="Grab"/>, and what is needed to make the
 /// phase when it is released, with <see cref="Phase"/>.

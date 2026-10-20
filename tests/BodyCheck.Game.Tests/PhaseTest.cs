@@ -1,6 +1,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 
+using BodyCheck.Core;
 using BodyCheck.Core.Controllers;
 using BodyCheck.Core.Entities;
 using BodyCheck.Core.Simulation;
@@ -58,23 +59,22 @@ public class PhaseTest
             "#..................#",
             "#..PR..............#",
             "####################");
-        PlayerTuning tuning = _run!.Node.PlayerTuning;
         // The player and the robot have the same mass.
         float center = (player.Position.X + robot.Position.X) / 2;
 
         // The teleport and the impulses take effect in the step after the release.
-        await _run.Tick(AimRight);
+        await _run!.Tick(AimRight);
         await _run.Tick(RoomRun.Right);
-        float separation = player.HalfSize.X + robot.HalfSize.X + tuning.PhaseGap;
+        float separation = player.HalfSize.X + robot.HalfSize.X + Features.Current.PlayerPhaseGap;
         AssertFloat(player.Position.X).IsEqualApprox(center + separation / 2, 0.5f);
         AssertFloat(robot.Position.X).IsEqualApprox(center - separation / 2, 0.5f);
-        AssertFloat(player.LinearVelocity.X).IsEqualApprox(tuning.PhaseSpeed, 0.5f);
+        AssertFloat(player.LinearVelocity.X).IsEqualApprox(Features.Current.PlayerPhaseSpeed, 0.5f);
         AssertFloat(player.LinearVelocity.Y).IsEqualApprox(0, 0.5f);
         AssertFloat(robot.LinearVelocity.X).IsLess(-1);
 
         // Running on, the player keeps its speed.
         await _run.Tick(RoomRun.Right, 5);
-        AssertFloat(player.LinearVelocity.X).IsGreater(tuning.PhaseSpeed - 1);
+        AssertFloat(player.LinearVelocity.X).IsGreater(Features.Current.PlayerPhaseSpeed - 1);
     }
 
     [TestCase]
