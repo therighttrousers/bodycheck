@@ -22,6 +22,7 @@ What there is now: `Features` is a record whose defaults are its properties' ini
   - (c) The Godot editor's play button. It builds the C# code, but the editor is more than they need.
   - Leaning (Claude): (b). Their maps and configurations are design work that we want in the repository, with their history, and the game already reads maps from it.
   - Decision (Neil): (b). The script is `play.cmd`, in the repository's root, since Windows opens a `.ps1` in Notepad when it is double-clicked. It builds only the game, then starts it, passing on its arguments.
+  - Added (Neil): `godot-editor.cmd`, which builds the game and opens it in the Godot editor, for the toolbar in the editor's Game tab that changes the game's speed. That toolbar works with any game connected to the editor's debugger, but connecting one started by `play.cmd` means keeping the debug server open and passing `--remote-debug`, too much complication to save a click.
 - [ ] 1.2 How do their changes reach the repository? Git through a GUI, such as GitHub Desktop, on a branch of their own, with PRs as usual? Open (Neil).
 
 ## 2. Configurations

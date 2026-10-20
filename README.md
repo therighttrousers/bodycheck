@@ -33,7 +33,7 @@ See [docs/designs/architecture.md](docs/designs/architecture.md) for tech detail
 - Run the unit tests: `dotnet test`
 - Run the game from the terminal: `dotnet build && .\Godot\Godot.exe --path game` - note that building first is required
 - Run the game without a terminal: double-click `play.cmd`, which builds the game and runs it
-- Run the game from Godot's editor: `.\Godot\Godot.exe --path game --editor`, then press the `▶` button to build and run
+- Run the game from Godot's editor: double-click `godot-editor.cmd`, or run `.\Godot\Godot.exe --path game --editor`, then press the `▶` button to build and run. The editor's Game tab has a toolbar that changes the game's speed, which a game started any other way doesn't get
 
 Development doesn't make much use of Godot's editor because the game world is programmatically generated from tile-based maps, and because agents are much better at writing config files and code than using the editor.
 
