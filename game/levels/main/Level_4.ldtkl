@@ -54,35 +54,35 @@
 			"entityInstances": [
 				{
 					"__identifier": "RobotBasic",
-					"__grid": [8,13],
+					"__grid": [8,12],
 					"__pivot": [0,0],
 					"__tags": [],
 					"__tile": null,
 					"__smartColor": "#FEAE34",
 					"iid": "a77921c0-bde0-11f1-9940-af1fcbeb8ee2",
 					"width": 16,
-					"height": 16,
+					"height": 32,
 					"defUid": 203,
-					"px": [128,208],
+					"px": [128,192],
 					"fieldInstances": [],
 					"__worldX": 128,
-					"__worldY": 208
+					"__worldY": 192
 				},
 				{
 					"__identifier": "PlayerStart",
-					"__grid": [14,13],
+					"__grid": [14,12],
 					"__pivot": [0,0],
 					"__tags": [],
 					"__tile": null,
 					"__smartColor": "#2CE8F5",
 					"iid": "aa063540-bde0-11f1-9940-77551af9208c",
 					"width": 16,
-					"height": 16,
+					"height": 32,
 					"defUid": 202,
-					"px": [224,208],
+					"px": [224,192],
 					"fieldInstances": [],
 					"__worldX": 224,
-					"__worldY": 208
+					"__worldY": 192
 				}
 			]
 		},
