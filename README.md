@@ -76,7 +76,7 @@ Rendering switches, for judging the look. The window's title shows their state. 
 ## Worlds
 
 The game's worlds are the worlds of `game/levels/main.ldtk`, made in [LDtk](https://ldtk.io/) with its multi-worlds on, so that they all share its layers and entities, followed by a world for each named test room in `src/BodyCheck.Core/WorldData/RoomLibrary.cs`. The first plays by default. To start in a particular one, pass its name after `--`:
-`.\Godot\Godot.exe --path game -- "Robot ride"`, or `play.cmd "Robot ride"`.
+`.\Godot\Godot.exe --path game -- Phase`, or `play.cmd "My cool test room"`. Put quotes around multi-word room names.
 
 To make a new world for a puzzle, add a world to `main.ldtk` in LDtk. Save in LDtk, then press F5 in the game to play the change.
 
