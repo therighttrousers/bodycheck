@@ -18,7 +18,6 @@ public enum PhysicsLayer : uint
     Prop = 1 << 3,
     /// <summary>Character entities like the player, robots, drones, platforms and doors.</summary>
     Character = 1 << 4,
-    All = (Character << 1) - 1,
     /// <summary>Any Entity.</summary>
     EntityCollisionMask = Prop | Character,
     DefaultCollisionMask = Static | EntityCollisionMask,

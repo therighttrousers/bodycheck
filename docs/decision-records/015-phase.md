@@ -45,10 +45,12 @@ Closed on 2026-10-18. Outcomes are in [progression.md](../designs/progression.md
   - (c) The player goes as far along the line as is free.
   - Leaning (Claude): (a). It is predictable, and (b) and (c) can put the player somewhere it didn't aim, or back inside the target. Telling the player that a phase failed waits for effects.
   - Superseded by §5.2 and §5.3: the pair slides to fit, and a phase still never crosses tiles.
+  - Superseded by §5.21: nothing blocks a phase, and it still never crosses tiles.
 
 ## 3. Momentum
 
 - [~] 3.1 The player's new speed: fixed, 16 tiles per second to start with. Without drag, rising from that speed would climb about 4.5 tiles, as high as the highest jump, from 2.5 tiles above the target's center. Measured (2026-10-18, `--probe=phase`): with drag, and drifting left, the feet rise about 3.6 tiles after the teleport. That reaches a ledge 6 tiles above the floor from a robot standing on it, as the "Phase" room has. The change is one impulse, the player's mass times the difference between the new velocity and the old, so momentum is still tracked.
+  - Changed by §5.23: 12.7 tiles per second, until goals for tuning are worked out.
 - [ ] 3.2 What momentum the target gets. To be decided by trying both, so both are built, chosen by the player's tuning:
   - (A) The opposite of the player's new momentum. Every phase throws the same.
   - (B) The opposite of the player's change in momentum. Conserved; the throw depends on how the player was moving.
@@ -58,13 +60,16 @@ Closed on 2026-10-18. Outcomes are in [progression.md](../designs/progression.md
     - `Conserved`: adds equal and opposite momentum along the phase's direction to both. Conserved. Phases in a row may build speed, which is untested. Hard to juggle: the player has to meet a robot just before the top of its rise.
   - Still to be chosen by playing, in issue #61. `Fixed` is the default.
 - [x] 3.3 A phase ends a jump's thrust and coyote time. Expected: contacts would be a step behind the teleport, so that for the tick after a phase the player would have to count as in the air, or brake against the ground it left. Measured (2026-10-18): they aren't. On the tick after a phase up from the floor, the player is already off the ground, so nothing more is needed.
+  - Changed by §5.21: a phase released while paused moves the bodies on the first tick of play, when the contacts are from before it, and coyote time was taken from them. The controller now skips that tick.
 
 ## 4. Building it
 
 - [x] 4.1 Where the code goes. Decision (Neil): as built. The controller decides whether and where to phase; the entity offers what a body can do: find the entities near it, say whether its box fits at a place, and teleport. The physics queries read the world as of the engine's last step, like everything else a controller sees.
+  - Changed by §5.21: the entity finds the entities near it and moves through other entities; it no longer says whether its box fits, and doesn't teleport.
 - [x] 4.2 When the teleport happens. Decision (Neil): as leaning. Setting a body's position moves it at once, so a controller stepped later in the same tick would see the player where it went, unlike forces and impulses (`005 §3.4`). Leaning (Claude): the entity holds the destination until every entity has been stepped, and sets it then, before the engine's step, so that what controllers decide still doesn't depend on the order they run in.
   - As built: the entity sets its position in its own `_PhysicsProcess`, which Godot runs after the room's, since the room is its parent. It also resets physics interpolation, so the player isn't drawn sliding from where it was to where it went.
   - Not tried: setting the transform from `_IntegrateForces`. Interpolation would have to be reset after the engine's step, which nothing calls back for.
+  - Kept by §5.21, which defers the move through entities in the same way.
 
 ## 5. After playing it
 
@@ -75,8 +80,10 @@ Neil played the first version on 2026-10-18. Kept: phasing through everything, t
   - The separation along the line is what clears the two boxes in that direction, plus a gap, but at least a minimum. With a minimum of 2.5 tiles, every entity there is gets the separation that §2.2 had; the size matters for larger ones, such as turrets.
   - Changed (Neil, 2026-10-19): no minimum. The separation is what clears the boxes, plus the gap of 0.5: 1.3 tiles sideways through a robot, and 2.3 up or down. Shorter teleports are easier on the eye, and it is one fewer setting. Phasing straight up off a robot still reaches the ledge in the "Phase" room.
 - [x] 5.2 When the pair doesn't fit. Decision (Neil): slide it along the line, the nearest first, as far as the separation either way. The center of mass then moves, by the slide. Phasing down through a robot on the floor then swaps them: the player lands where the robot stood, and the robot is put above it, and thrown up. Only if nowhere in that range fits does nothing happen.
+  - Superseded by §5.21: nothing slides along the line, and nothing fails.
 - [x] 5.3 What blocks. Decision (Neil): a phase never crosses tiles. Each body's box must fit where it goes, and the line from where it is to where it goes must cross no tiles; other entities don't block the lines.
   - For now, other entities block where a body goes, as tiles do. Letting them overlap and be pushed apart by the engine may do instead, once measured: overlapping bodies, and walkers with continuous collision detection in particular, could be pushed hard.
+  - Superseded by §5.21: other entities don't block, and the engine pushes apart whatever overlaps. Tiles still do.
 - [x] 5.4 The cut. Decision (Neil): the teleport stays instant. Continuity is for what is drawn, in a later change: an effect from start to end, or the model following the body over a few frames.
 - [x] 5.5 Aiming. Decision (Neil): pressing phase with a target in reach fixes the target, and pauses the game; releasing it fixes the direction, unpauses and phases. How the pause works: (a).
   - (a) The tree's pause, as the menu and the map use, with a new `GameMode`, `Phasing`, in `GameModeManager`. Whatever cares which pause it is asks the manager. Everything that moves stops, animations included. The player's controller isn't stepped then, so something that processes while paused reads the input for it, and the controller doesn't set the pause itself.
@@ -93,6 +100,7 @@ Neil played the first version on 2026-10-18. Kept: phasing through everything, t
 - [x] 5.7 What the player sees while aiming. Decision (Neil): a placeholder arrow and a mark on the target, with the arrow centered on the pair's center of mass, to start with. Real effects are for a later change.
   - Changed (Neil, 2026-10-19): two arrows from the center of mass, for the velocity the player and the target would each leave with if phase were released now. Under `Conserved` they differ from the direction held.
 - [x] 5.8 Targeting. It is too easy to get a target in reach in some places and too hard in others. Decision (Neil): put off until the rest of this section is done.
+  - Taken up by §5.22.
 - [x] 5.9 Order: §5.1 to §5.3, then aiming (§5.5 to §5.7) with the placeholder, in this change. Effects and targeting in later ones.
 - [x] 5.11 Found while trying the pause (2026-10-18): reach ignores tiles, so a robot on the other side of a 1-tile bump can be the target, though every phase with it would cross the bump and fails. For targeting (§5.8).
   - Resolved by §5.16: reach is now 0.75 tiles past the player's side and 0.25 above and below, and a tile is 1 wide, so nothing on the far side of a wall is in reach; a test checks a robot past a bump. What remains are targets diagonally past a tile's corner, such as a robot at the top edge of a wall 2 tiles high: the line between centers crosses the wall, but a phase up through the robot can succeed. A check for a clear line to the target would wrongly exclude them, so there is none.
@@ -127,6 +135,17 @@ Neil played the first version on 2026-10-18. Kept: phasing through everything, t
   - The stacked robots: at r = 1.15, the bottom robot comes in reach 0.75 tiles away, and the top robot's corner only within about 0.32 tiles, so the bottom one is grabbed first even when the top one is 0.18 tiles behind it.
 - [x] 5.17 Bodies of different sizes. Neil: running at a block, the phase sometimes fails, and never with a robot; and about half the time, a platform pinned against a ceiling can't be phased through horizontally. The pair was placed with both centers on the line through their center of mass. For a horizontal phase, that puts them at the same height, which two bodies of different heights can't both stand at: through a block on the floor (mass 2, half height 0.5), the center of mass is 1.63 tiles up, and the player's center needs to be at 1.9, so its box was 0.27 tiles into the floor. Sliding along the line can't fix that. A platform under a ceiling is the same upside down.
   - Decision (Claude, for Neil's review): across the line, the player may be offset from the target, as far as lines up their edges on one side or the other: from centers level to, for a horizontal phase, bottoms level or tops level. The offset is split by mass, as along the line, so the center of mass stays put. The nearest offset is tried first, with every slide along the line for each. For bodies of the same size the range is 0, so robots are placed as before. Through a block on the floor, the offset that fits is the one with both standing on it.
+  - Superseded by §5.21: the engine pushes a body out of the floor, so no offset is needed.
 - [x] 5.18 What phasing straight down is for (`000 §3.2`). Neil, after playing: juggling robots, putting robots on platforms, picking up blocks, and, while platforms can be phased through, falling through them.
 - [x] 5.19 A spring for a longer slowdown (§5.13). Neil: not needed; the held grab works well at 0.5 seconds. If it is needed, playing will show it.
 - [x] 5.20 Where the phase's rules live (Neil, 2026-10-19). `PhaseAction`, in a file of its own, holds a phase being aimed and its rules: the grab, the placement, and the impulses. The player's controller begins the aim, grabs, follows the direction, settles how phase meets the other inputs, releases, and asks for the pause. Vector helpers shared by Core and the game are extension members in Core's root.
+- [x] 5.21 Moving through entities instead of teleporting (Neil, 2026-10-20). Each body moves from where it is toward where §5.1 sends it, through other entities but not through tiles: a sweep against tiles only, sliding along any tile it meets, so it may stop short. The engine pushes apart whatever ends up overlapping. A phase never fails and never crosses a wall, and there is no slide along the line (§5.2) or offset across it (§5.17). It answers §5.3's question (Neil): the engine pushes apart everything that ends up overlapping, walkers included, except static bodies, which don't move.
+  - Phasing down through a robot on the floor still swaps them: the player stops on the floor, and the engine pushes the robot up off it. Phasing sideways through a robot against a wall swaps them too.
+  - How: the engine's own move-and-collide, with the body's collision mask set to tiles only for the call.
+  - When: as §4.2, the entity holds the destination until every entity has been stepped, and moves in its own `_PhysicsProcess`, so that what controllers decide still doesn't depend on the order they run in. The first version moved the bodies from the controller. The entity's method is `MoveThroughEntities`; Neil: it isn't a teleport, so it isn't called one. A phase released while paused moves on the first tick of play.
+  - On that tick the contacts are from before the move, so the player's controller neither runs nor jumps then, nor counts itself on the ground. Otherwise, after a phase released while paused, a jump pressed on that tick went off from the floor the player had left.
+  - Cancelling a phase also ends a jump's thrust and coyote time (Neil): the aim took them, and a cancel doesn't give them back.
+  - A phase straight up or down turns the player to face the camera (Neil), the pose of a jump without moving.
+- [x] 5.22 Targeting (§5.8), Neil. The target is the entity in reach whose box is nearest a point 0.5 tiles from the player's center in the direction held, not nearest the center itself, unless no direction is held. Holding toward an entity favors it. Reach is unchanged (§5.16). The direction is one of eight, held past the same dead zone as the phase's direction.
+- [x] 5.23 Tuning and the test room (Neil). The speed is *very provisionally* 12.7 tiles per second, the same as the jump's. The "Phase" room is wider, with a pile of blocks on the right.
+  - Every phase setting, the speed included, will be set from goals for what a phase achieves, as the jump's are from the heights it clears. Neil will work the goals out by playing, with one of his kids, a Celeste expert. Until then the design docs set no goals for phase, such as the 6-tile ledge of §3.1.

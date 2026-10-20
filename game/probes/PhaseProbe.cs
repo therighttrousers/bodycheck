@@ -60,7 +60,7 @@ public sealed class PhaseProbe : IProbe
         }
 
         // On the bump, hold phase until it grabs the robot.
-        if (_controller.Aim is not null)
+        if (_controller.Phase is not null)
         {
             _phaseTick = t;
             GD.Print($"Grabbed at tick {t}: player {p.X:F2}, {p.Y:F2}; robot {_robot.Position.X:F2}, {_robot.Position.Y:F2}");

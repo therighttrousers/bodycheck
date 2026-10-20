@@ -24,29 +24,34 @@ public enum PhaseThrow
 
 /// <summary>
 /// A phase being aimed: the player and its target, held together by <see cref="Grab"/>, and what is needed to make the
-/// phase when it is released, with <see cref="TryPhase"/>.
+/// phase when it is released, with <see cref="Phase"/>.
 /// </summary>
-/// <param name="Player">The walker phasing: the player.</param>
-/// <param name="Target">The entity phased through, fixed when the aim begins.</param>
-/// <param name="GrabOffset">Where the target was from the player when the aim began, which the grab holds.</param>
-/// <param name="Gap">How far apart the two boxes end up, along the phase's direction.</param>
-/// <param name="Direction">
-/// One of the eight directions, as a unit vector in the plane of play, or zero if none is held. Released with none,
-/// the phase is cancelled.
-/// </param>
-/// <param name="MaxSlide">How far the pair may slide along the line to fit, as a fraction of their separation.</param>
-/// <param name="Throw">What momentum the phase gives the player and the target.</param>
-/// <param name="Speed">The speed of the momentum the phase gives the player, along its direction.</param>
-public readonly record struct PhaseAction(
-    WalkerEntity Player,
-    Entity Target,
-    Vector3 GrabOffset,
-    float Gap,
-    Vector3 Direction,
-    float MaxSlide,
-    PhaseThrow Throw,
-    float Speed)
+/// <param name="player">The walker phasing: the player.</param>
+/// <param name="target">The entity phased through, fixed when the aim begins.</param>
+/// <param name="grabOffset">Where the target was from the player when the aim began, which the grab holds.</param>
+/// <param name="gap">How far apart the two boxes end up, along the phase's direction.</param>
+/// <param name="phaseThrow">What momentum the phase gives the player and the target.</param>
+/// <param name="speed">The speed of the momentum the phase gives the player, along its direction.</param>
+public sealed class PhaseAction(
+    WalkerEntity player,
+    Entity target,
+    Vector3 grabOffset,
+    float gap,
+    PhaseThrow phaseThrow,
+    float speed)
 {
+    /// <summary>The walker phasing: the player.</summary>
+    public WalkerEntity Player => player;
+
+    /// <summary>The entity phased through, fixed when the aim begins.</summary>
+    public Entity Target => target;
+
+    /// <summary>
+    /// One of the eight directions, as a unit vector in the plane of play, or zero if none is held. Released with none,
+    /// the phase is cancelled.
+    /// </summary>
+    public Vector3 Direction { get; set; }
+
     /// <summary>Computes the center of mass of the player+target system.</summary>
     public Vector3 CenterOfMass() =>
         (Player.Mass * Player.Position + Target.Mass * Target.Position) / (Player.Mass + Target.Mass);
@@ -57,8 +62,8 @@ public readonly record struct PhaseAction(
     /// </summary>
     public (Vector3, Vector3) Impulses()
     {
-        Vector3 momentum = Player.Mass * Speed * Direction;
-        return Throw switch
+        Vector3 momentum = Player.Mass * speed * Direction;
+        return phaseThrow switch
         {
             PhaseThrow.Fixed => (
                  momentum - Player.Mass * Player.LinearVelocity,
@@ -82,7 +87,7 @@ public readonly record struct PhaseAction(
         // The relative velocity that takes back how far they have drifted, over a step, but never over less than a
         // tick's length at full speed. Steps shrink with the time scale as the game slows down, and dividing by a tiny
         // one would give a velocity large enough to fling them both when play resumes.
-        Vector3 drift = Target.Position - Player.Position - GrabOffset;
+        Vector3 drift = Target.Position - Player.Position - grabOffset;
         Vector3 closing = -drift / MathF.Max(dt, 1f / Engine.PhysicsTicksPerSecond);
 
         Player.ApplyCentralImpulse(Player.Mass * (velocity - Target.Mass / totalMass * closing - Player.LinearVelocity));
@@ -90,66 +95,26 @@ public readonly record struct PhaseAction(
     }
 
     /// <summary>
-    /// Phases through the target in a direction, if they fit: the player and the target teleport as a pair, keeping
-    /// their center of mass, onto the line through it in that direction, the player ahead of it and the target
-    /// behind. If they don't fit there, they are offset from each other across the line, as far as lines up their
-    /// edges on either side, and slide along the line, the nearest first. The player is thrown in that direction, and
-    /// the target the other way, as <see cref="Throw"/> says.
+    /// Phases through the target in <see cref="Direction"/>: the player and the target move as a pair, keeping their
+    /// center of mass, onto the line through it in that direction, the player ahead of it and the target behind. Each
+    /// moves through entities, but not through tiles, sliding along them, and the engine pushes apart whatever ends up
+    /// overlapping. The player is thrown in that direction, and the target the other way, as the throw says.
     /// </summary>
-    /// <returns>Whether the player phased.</returns>
-    public bool TryPhase()
+    public void Phase()
     {
         // Each moves in proportion to the other's mass.
         float totalMass = Player.Mass + Target.Mass;
         Vector3 center = CenterOfMass();
         float separation = Separation();
-        Vector3 playerOffset = Target.Mass / totalMass * separation * Direction;
-        Vector3 targetOffset = -Player.Mass / totalMass * separation * Direction;
+        Player.MoveThroughEntities(center + Target.Mass / totalMass * separation * Direction);
+        Target.MoveThroughEntities(center - Player.Mass / totalMass * separation * Direction);
 
-        // Across the line, the player may be offset from the target as far as lines up their edges on one side or the
-        // other: centers level is the middle, and, for a horizontal phase, bottoms or tops level are the ends. Split by
-        // mass, as along the line, so that the center of mass stays where it is. For bodies the same size, it is 0.
-        var across = new Vector3(-Direction.Y, Direction.X, 0);
-        float maxOffset = MathF.Abs(Extent(Player.HalfSize, across) - Extent(Target.HalfSize, across));
+        var (playerImpulse, targetImpulse) = Impulses();
+        Player.ApplyCentralImpulse(playerImpulse);
+        Target.ApplyCentralImpulse(targetImpulse);
 
-        const float step = 1f / 16;
-        foreach (float offset in NearestFirst(maxOffset, step))
-        {
-            Vector3 playerAcross = Target.Mass / totalMass * offset * across;
-            Vector3 targetAcross = -Player.Mass / totalMass * offset * across;
-            foreach (float slide in NearestFirst(MaxSlide * separation, step))
-            {
-                Vector3 playerDestination = center + slide * Direction + playerOffset + playerAcross;
-                Vector3 targetDestination = center + slide * Direction + targetOffset + targetAcross;
-                if (Player.CanTeleport(playerDestination, Target) &&
-                    Target.CanTeleport(targetDestination, Player))
-                {
-                    Phase(playerDestination, targetDestination);
-                    if (Direction.X != 0)
-                    {
-                        Player.Facing = MathF.Sign(Direction.X);
-                    }
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    /// <summary>How far a box with a half size reaches from its center in a direction, given as a unit vector.</summary>
-    private static float Extent(Vector2 halfSize, Vector3 direction) =>
-        MathF.Abs(direction.X) * halfSize.X + MathF.Abs(direction.Y) * halfSize.Y;
-
-    /// <summary>0, then steps either way, the nearest first, out to <paramref name="max"/> exactly.</summary>
-    private static IEnumerable<float> NearestFirst(float max, float step)
-    {
-        yield return 0;
-        for (int i = 1; (i - 1) * step < max; i++)
-        {
-            float value = MathF.Min(i * step, max);
-            yield return value;
-            yield return -value;
-        }
+        // Facing the camera, as in a jump without moving, for a phase straight up or down.
+        Player.Facing = Math.Sign(Direction.X);
     }
 
     /// <summary>
@@ -163,16 +128,6 @@ public readonly record struct PhaseAction(
         float clear = MathF.Min(
             Direction.X == 0 ? float.PositiveInfinity : halfSizes.X / MathF.Abs(Direction.X),
             Direction.Y == 0 ? float.PositiveInfinity : halfSizes.Y / MathF.Abs(Direction.Y));
-        return clear + Gap;
-    }
-
-    private void Phase(Vector3 playerDestination, Vector3 targetDestination)
-    {
-        Player.Teleport(playerDestination);
-        Target.Teleport(targetDestination);
-        var (playerImpulse, targetImpulse) = Impulses();
-        Player.ApplyCentralImpulse(playerImpulse);
-        Target.ApplyCentralImpulse(targetImpulse);
+        return clear + gap;
     }
 }
-

@@ -55,18 +55,21 @@ public sealed record PlayerTuning
     public float PhaseReach { get; init; } = 0.165f;
 
     /// <summary>
+    /// How far from the player's center, in the direction held, to measure from when choosing among the entities in
+    /// reach: the target is the one whose box is nearest that point. Holding toward an entity favors it.
+    /// </summary>
+    public float PhaseInputOffset { get; init; } = 0.5f;
+
+    /// <summary>
     /// How far apart the player's box and the box of the entity phased through end up, along the phase's direction.
     /// </summary>
     public float PhaseGap { get; init; } = 0.5f;
-
-    /// <summary>How far the player and the entity phased through may slide, as a fraction of their separation, to fit.</summary>
-    public float PhaseMaxSlide { get; init; } = 1;
 
     /// <summary>
     /// The speed of the momentum a phase gives the player: the speed it leaves with, under <see cref="PhaseThrow.Fixed"/>,
     /// or what is added to how it moves, under <see cref="PhaseThrow.Conserved"/>.
     /// </summary>
-    public float PhaseSpeed { get; init; } = 16;
+    public float PhaseSpeed { get; init; } = 12.7f;
 
     /// <summary>The minimum time between phase uses, according to the game clock.</summary>
     public float PhaseCooldownTime { get; init; } = 0.5f;
@@ -80,15 +83,19 @@ public sealed record PlayerTuning
 /// </summary>
 public sealed class PlayerController : ICharacterController<WalkerEntity>
 {
+    // How far, from 0 to 1, the stick must be pushed for one of the eight directions to count as held.
+    private const float DirectionDeadZone = 0.5f;
+
     private readonly Func<PlayerInput> _input;
 
     private bool _jumpWasHeld;
-    private float _phaseCooldown;
-    // A phase released, to be made on the next tick of play.
-    private PhaseAction? _release;
     private int _groundTicksLeft;
     private Vector3 _lastGroundVelocity = Vector3.Zero;
     private int _thrustTicksLeft;
+    private float _phaseCooldownLeft;
+    // Whether a phase has been made that the engine hasn't stepped since. Its bodies move just before the engine's step
+    // on the first tick of play, so until then contacts are from before the phase.
+    private bool _phaseMade;
 
     // The current time in the air, for telemetry: where the feet were on the last tick on the ground.
     private bool _inAir;
@@ -108,19 +115,19 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     /// <summary>
     /// The phase being aimed, from when phase is held with a target in reach, after the cooldown, until it is released.
     /// </summary>
-    public PhaseAction? Aim { get; private set; }
+    public PhaseAction? Phase { get; private set; }
 
     /// <summary>The game is paused while a phase is aimed, so that the player can take its time over the direction.</summary>
-    public bool RequestsPause => Aim is not null;
+    public bool RequestsPause => Phase is not null;
 
     /// <summary>
-    /// Aims the phase while the game is paused for it. Releasing phase ends the aim, and the phase happens on the
-    /// next tick of play.
+    /// Aims the phase while the game is paused for it. Releasing phase ends the aim, and the bodies move on the next
+    /// tick of play.
     /// </summary>
     public void ApplyPaused(WalkerEntity entity, float dt)
     {
         PlayerInput input = _input();
-        UpdateAim(input);
+        ApplyPhase(entity, input, dt);
         _jumpWasHeld = input.JumpHeld;
     }
 
@@ -130,45 +137,17 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         float weight = entity.Weight;
         float move = Math.Clamp(input.XAxis, -1, 1);
 
-        if (entity.OnGround)
+        if (entity.OnGround && !_phaseMade)
         {
             _groundTicksLeft = Tuning.CoyoteTicks + 1; // +1 to include this frame in remaining ground ticks
             _lastGroundVelocity = entity.GroundVelocity;
         }
 
-        // If nothing pauses the game for the aim, the player aims while it runs.
-        if (Aim is null && input.PhaseHeld && _phaseCooldown <= 0 && entity.NearestEntity(entity.HalfSize.Length() + Tuning.PhaseReach) is Entity target)
-        {
-            Aim = new PhaseAction(
-                Player: entity,
-                Target: target,
-                GrabOffset: target.Position - entity.Position,
-                Gap: Tuning.PhaseGap,
-                Direction: Vector3.Zero,
-                MaxSlide: Tuning.PhaseMaxSlide,
-                Throw: Tuning.PhaseThrow,
-                Speed: Tuning.PhaseSpeed);
-            _phaseCooldown = Tuning.PhaseCooldownTime;
-        }
-
-        if (Aim is PhaseAction aim)
-        {
-            aim.Grab(dt);
-        }
-
-        UpdateAim(input);
-
-        if (_release is PhaseAction release && release.TryPhase())
-        {
-            _groundTicksLeft = 0;
-            _thrustTicksLeft = 0;
-        }
-        else if (Aim is null)
+        if (!ApplyPhase(entity, input, dt))
         {
             ApplyRun(entity, move, weight);
             ApplyJump(entity, input.JumpHeld, weight);
         }
-        _release = null;
 
         // Set animation variables
         entity.IsGrounded = _groundTicksLeft > 0;
@@ -185,36 +164,8 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         _groundTicksLeft = Math.Max(0, _groundTicksLeft - 1);
         _thrustTicksLeft = Math.Max(0, _thrustTicksLeft - 1);
         _jumpWasHeld = input.JumpHeld;
-        _phaseCooldown = Math.Max(0, _phaseCooldown - dt);
-    }
-
-    /// <summary>
-    /// Follows the direction held while a phase is aimed, and ends the aim when phase is released: with a direction
-    /// held, the phase is made on the next tick of play, and with none, it is cancelled.
-    /// </summary>
-    private void UpdateAim(PlayerInput input)
-    {
-        if (Aim is not PhaseAction aim)
-        {
-            return;
-        }
-
-        var held = new Vector2(input.XAxis, input.YAxis);
-        aim = aim with
-        {
-            Direction = held.Length() >= 0.5f ? Vector2.EightWay(held).ToVector3() : Vector3.Zero,
-        };
-        if (input.PhaseHeld)
-        {
-            Aim = aim;
-            return;
-        }
-
-        Aim = null;
-        if (aim.Direction != Vector3.Zero)
-        {
-            _release = aim;
-        }
+        _phaseCooldownLeft = Math.Max(0, _phaseCooldownLeft - dt);
+        _phaseMade = false;
     }
 
     /// <summary>Reports the player's measurements to <see cref="Telemetry"/>, as of the engine's last step.</summary>
@@ -257,6 +208,82 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         {
             _takeOffFeet = feet;
         }
+    }
+
+    /// <summary>
+    /// Begins, holds, aims and releases a phase. Returns whether the phase takes the place of running and jumping on
+    /// this tick: while it is aimed, and on the tick of play on which a phase made moves the bodies, when the contacts
+    /// are from before it.
+    /// </summary>
+    private bool ApplyPhase(WalkerEntity entity, PlayerInput input, float dt)
+    {
+        // Made while paused, and moving on this tick.
+        if (_phaseMade)
+        {
+            return true;
+        }
+
+        if (Phase is null && input.PhaseHeld && _phaseCooldownLeft <= 0 && TargetedEntity(entity, input) is Entity target)
+        {
+            Phase = new PhaseAction(
+                player: entity,
+                target: target,
+                grabOffset: target.Position - entity.Position,
+                gap: Tuning.PhaseGap,
+                phaseThrow: Tuning.PhaseThrow,
+                speed: Tuning.PhaseSpeed);
+
+            _phaseCooldownLeft = Tuning.PhaseCooldownTime;
+        }
+
+        if (Phase is not PhaseAction phase)
+        {
+            return false;
+        }
+
+        phase.Grab(dt);
+        phase.Direction = DirectionHeld(input);
+        if (input.PhaseHeld)
+        {
+            return true;
+        }
+
+        if (phase.Direction != Vector3.Zero)
+        {
+            phase.Phase();
+            _phaseMade = true;
+        }
+        Phase = null;
+
+        // A phase ends a jump's thrust and coyote time, and so does cancelling one: the aim took them.
+        _groundTicksLeft = 0;
+        _thrustTicksLeft = 0;
+        return _phaseMade;
+    }
+
+    /// <summary>One of the eight directions, from the input, as a unit vector in the plane of play, or zero if none.</summary>
+    private static Vector3 DirectionHeld(PlayerInput input)
+    {
+        var held = new Vector2(input.XAxis, input.YAxis);
+        return held.Length() >= DirectionDeadZone ? Vector2.EightWay(held).ToVector3() : Vector3.Zero;
+    }
+
+    /// <summary>
+    /// The entity in reach, if any, whose box is nearest a point offset from the player's center in the direction
+    /// held. Reach is a sphere around the player's center, which meets every entity touching the player's box.
+    /// </summary>
+    private Entity? TargetedEntity(WalkerEntity entity, PlayerInput input)
+    {
+        float radius = entity.HalfSize.Length() + Tuning.PhaseReach;
+        Vector2 from = (entity.Position + Tuning.PhaseInputOffset * DirectionHeld(input)).ToVector2();
+        // A sphere meets a box exactly when the box's nearest point is within its radius of its center.
+        return entity.Overlapping(new SphereShape3D { Radius = radius }, entity.Position)
+            .OfType<Entity>()
+            .MinBy(other =>
+            {
+                Vector2 apart = ((from - other.Position.ToVector2()).Abs() - other.HalfSize).Max(Vector2.Zero);
+                return apart.LengthSquared();
+            });
     }
 
     private void ApplyRun(WalkerEntity entity, float move, float weight)

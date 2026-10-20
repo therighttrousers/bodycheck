@@ -39,8 +39,11 @@ public partial class Entity : RigidBody3D
     // How closely a contact normal must line up with an axis to count as a contact on that side.
     private const float SideThreshold = 0.7f;
 
-    // Where to move to before the engine's next step, if anywhere.
-    private Vector3? _teleport;
+    // How many times a move through entities may slide along a tile before it stops short.
+    private const int MaxSlides = 4;
+
+    // Where to move to through entities before the engine's next step, if anywhere.
+    private Vector3? _destination;
 
     /// <param name="visual">What to draw for the entity, centered on the middle of its box.</param>
     public Entity(BodyTuning tuning, Node3D? visual = null, bool axisLockAngularZ = true)
@@ -114,74 +117,44 @@ public partial class Entity : RigidBody3D
     public float Weight => Mass * -GetGravity().Y;
 
     /// <summary>
-    /// The other entity whose box is nearest this one's center, if any is nearer than <paramref name="radius"/>, as of
-    /// the engine's last step. With a radius larger than half this entity's diagonal, every entity that touches this
-    /// one's box is in reach, wherever it touches.
+    /// Moves the entity toward <paramref name="destination"/> before the engine's next step, through other entities
+    /// but not through tiles: where it meets one, it slides along it, so it may stop short. It keeps its velocity, and
+    /// the engine pushes it apart from whatever it ends up overlapping. Until then it stays where it is, so that
+    /// controllers stepped after this one in the same tick still see the world as of the engine's last step.
     /// </summary>
-    public Entity? NearestEntity(float radius)
-    {
-        // A sphere meets a box exactly when the box's nearest point is within its radius of its center.
-        return Overlapping(new SphereShape3D { Radius = radius }, Position)
-            .OfType<Entity>()
-            .MinBy(other =>
-            {
-                Vector2 distance = new Vector2(Position.X, Position.Y) - new Vector2(other.Position.X, other.Position.Y);
-                Vector2 apart = (distance.Abs() - other.HalfSize).Max(Vector2.Zero);
-                return apart.LengthSquared();
-            });
-    }
-
-    /// <summary>
-    /// Whether the entity could teleport to <paramref name="position"/>, as of the engine's last step: its box fits
-    /// there, and the line to it from where it is crosses nothing but entities. So a teleport may pass through
-    /// other bodies, but not through walls.
-    /// </summary>
-    /// <param name="partner">An entity that teleports at the same time, which is out of the way.</param>
-    public bool CanTeleport(Vector3 position, Entity? partner = null, PhysicsLayer? collisionMask = null)
-    {
-        PhysicsLayer collMask = collisionMask ?? (PhysicsLayer)CollisionMask;
-        // A little smaller than the box, so that touching isn't overlapping.
-        const float clearance = 0.01f;
-        var halfSize = new Vector3(HalfSize.X - clearance, HalfSize.Y - clearance, Depth / 2);
-        if (Overlapping(new BoxShape3D { Size = 2 * halfSize }, position, collMask).Any(collider => collider != partner))
-        {
-            return false;
-        }
-
-        var ray = PhysicsRayQueryParameters3D.Create(Position, position, (uint)(collMask & ~PhysicsLayer.EntityCollisionMask));
-        var hit = GetWorld3D().DirectSpaceState.IntersectRay(ray);
-        return hit.Count == 0;
-    }
-
-    /// <summary>
-    /// Moves the entity to <paramref name="position"/> before the engine's next step, keeping its velocity. Until
-    /// then it stays where it is, so that controllers stepped after this one in the same tick still see the world
-    /// as of the engine's last step.
-    /// </summary>
-    public void Teleport(Vector3 position) => _teleport = position;
+    public void MoveThroughEntities(Vector3 destination) => _destination = destination;
 
     // Every entity's step runs before this, because the room that steps them is their parent, and a parent is
     // processed before its children.
     public override void _PhysicsProcess(double delta)
     {
-        if (_teleport is Vector3 position)
+        if (_destination is not Vector3 destination)
         {
-            _teleport = null;
-            Position = position;
-            // Drawn there at once, not interpolated across the room.
-            ResetPhysicsInterpolation();
+            return;
         }
+        _destination = null;
+
+        // Only for this move, which is over within the call: the engine's step sees the mask as it was.
+        uint mask = CollisionMask;
+        CollisionMask = (uint)PhysicsLayer.Static;
+        Vector3 motion = destination - Position;
+        for (int i = 0; i <= MaxSlides && MoveAndCollide(motion) is KinematicCollision3D collision; i++)
+        {
+            motion = collision.GetRemainder().Slide(collision.GetNormal());
+        }
+        CollisionMask = mask;
+
+        // Drawn there at once, not interpolated across the room.
+        ResetPhysicsInterpolation();
     }
 
     /// <summary>The colliders, other than this entity, that overlap a shape centered at a place.</summary>
-    private IEnumerable<GodotObject> Overlapping(Shape3D shape, Vector3 center, PhysicsLayer? collisionMask = null)
+    public IEnumerable<GodotObject> Overlapping(Shape3D shape, Vector3 center)
     {
-        PhysicsLayer collMask = collisionMask ?? (PhysicsLayer)CollisionMask;
         var query = new PhysicsShapeQueryParameters3D
         {
             Shape = shape,
             Transform = new Transform3D(Basis.Identity, center),
-            CollisionMask = (uint)collMask,
             Exclude = [GetRid()],
         };
         return GetWorld3D().DirectSpaceState.IntersectShape(query)

@@ -34,19 +34,16 @@ Run and jump. See [movement.md](movement.md).
 
 ## Ability: phase
 
-- The player teleports to the other side of an object, and the object teleports too, the other way.
-- The target is the entity whose box is nearest the player's center, if it is in reach: whatever a sphere around the player's center meets, whose radius is half the player's diagonal, 0.985 tiles, plus a reach of 0.165 tiles, 1.15 in all. Everything touching the player is in reach. It reaches 0.75 tiles beyond the player's sides and 0.25 above and below (`015 §5.16`). Every kind of entity can be phased through (`015 §1.2`, `§1.3`).
+- The player moves at once to the other side of an object, and the object moves too, the other way.
+- The target is the entity in reach whose box is nearest a point 0.5 tiles from the player's center in the direction held, or nearest the center itself with none held, so that holding toward an entity favors it (`015 §5.22`). In reach is whatever a sphere around the player's center meets, whose radius is half the player's diagonal, 0.985 tiles, plus a reach of 0.165 tiles, 1.15 in all. Everything touching the player is in reach. It reaches 0.75 tiles beyond the player's sides and 0.25 above and below (`015 §5.16`). Every kind of entity can be phased through (`015 §1.2`, `§1.3`).
 - Phase is K or X on the keyboard, X on a gamepad (`015 §1.1`). Holding it with a target in reach, or coming within reach of one while holding it, fixes the target, holds the player and the target together, moving at the velocity of their center of mass, and pauses the game, slowing down to the pause over half a second, showing the target and, with a direction held, arrows for the velocity the player and the target would each leave with, for as long as it is held. Releasing it unpauses and phases in the direction held, or cancels with none (`015 §5.5`, `§5.6`, `§5.7`, `§5.15`).
 - A new aim can't begin until 0.5 seconds of game time after the last began, so that mashing phase can't ride a platform (`015 §5.15`).
-- The phase's direction is one of eight, chosen by player input (`015 §2.1`). The player and the target get equal and opposite momentum along it, at the player's speed of 16 tiles per second, which either replaces how they were moving or adds to it (`015 §3.2`).
-- The player and the target teleport as a pair, keeping their center of mass. They end on the line through it in the direction of the new momentum, the player ahead and the target behind, so each moves in proportion to the other's mass (`015 §5.1`).
+- The phase's direction is one of eight, chosen by player input (`015 §2.1`). The player and the target get equal and opposite momentum along it, at the player's speed of 12.7 tiles per second, which either replaces how they were moving or adds to it (`015 §3.2`).
+- The player and the target move as a pair, keeping their center of mass. They are sent to the line through it in the direction of the new momentum, the player ahead and the target behind, so each moves in proportion to the other's mass (`015 §5.1`).
 - They end far enough apart to clear their boxes in that direction, plus a gap of 0.5 tiles: through a robot, 1.3 tiles apart, center to center, sideways, and 2.3 up or down (`015 §5.1`).
-- If either doesn't fit, the pair slides along the line, the nearest place first, as far as their separation either way. Phasing down through a robot on the floor swaps them, and throws the robot up (`015 §5.2`).
-- Bodies of different sizes may also be offset from each other across the line, split by mass, as far as lines up their edges on either side, so that a phase through a block on the floor leaves both standing on it (`015 §5.17`).
-- Phasing straight up off a robot on the floor reaches a ledge 6 tiles up (`015 §3.1`).
-- A phase never crosses tiles: each body's box must fit where it goes, without overlapping tiles or other entities, and the line from where it is to where it goes must cross no tiles. If nowhere within the slide fits, the phase does nothing at all (`015 §5.3`).
+- Each moves straight toward where it is sent, through other entities but not through tiles: where it meets a tile, it slides along it, so it may stop short. The engine pushes apart whatever ends up overlapping. So a phase never fails and never crosses a wall. Phasing down through a robot on the floor swaps them: the player stops on the floor, and the robot is pushed up off it, and thrown up. Phasing sideways through a robot against a wall swaps them too (`015 §5.21`).
 - A movable object is thrown backwards, opposite to the player's exit direction. Lighter objects are thrown faster.
-- A phase ends a jump's thrust and coyote time.
+- A phase ends a jump's thrust and coyote time, and so does cancelling one (`015 §5.21`).
 - Try it in the test room "Phase".
 - Traversal: phase through objects and NPCs to go faster and reach high places.
 - Phasing straight down juggles robots, puts robots on platforms, picks up blocks, and falls through platforms while they can be phased through (`015 §5.18`).
@@ -94,9 +91,7 @@ Where these appear in the progression is undecided.
 
 Phase:
 - What momentum do the player and the target get? `Fixed`: equal and opposite momentum replaces theirs, so every phase leaves them moving the same, which makes juggling easy, but momentum isn't conserved. `Conserved`: it is added to theirs, so momentum is conserved and phases in a row may build speed, but juggling a robot high means meeting it just before the top of its rise. Both are built, chosen by `PlayerTuning.PhaseThrow`, and `Fixed` is the default; to be chosen by playing (`015 §3.2`, issue #61).
-- A blocked phase gives the player no sign that it failed. That waits for effects (`015 §2.3`).
-- Tuning to be checked by playing (issue #61): the reach of 0.165 tiles beyond half the player's diagonal, the cooldown of 0.5 seconds, the gap of 0.5 tiles, and the speed of 16 (`015 §3.1`, `§5.1`).
-- Should other entities be allowed to overlap where a phase puts a body, for the engine to push them apart? To be measured first: overlapping walkers in particular may be pushed hard (`015 §5.3`).
+- Tuning to be checked by playing (issue #61): the reach of 0.165 tiles beyond half the player's diagonal, the cooldown of 0.5 seconds, the gap of 0.5 tiles, the offset of 0.5 tiles for choosing a target, and the speed of 12.7 (`015 §3.1`, `§5.1`, `§5.22`, `§5.23`).
 - Should a phase launch the player faster off heavy or immovable targets? That would make turrets give bigger launches in general, and make phasing upward off a robot stronger than phasing sideways.
 - Should dead NPCs remain as objects that can be phased through and boosted off?
 - Phasing through a hovering platform throws the platform and leaves its riders behind. That is built, as [characters.md](characters.md) says every NPC can be phased through, but is only a leaning (`015 §1.3`).

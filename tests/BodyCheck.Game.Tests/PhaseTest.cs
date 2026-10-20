@@ -85,36 +85,36 @@ public class PhaseTest
             "#........#",
             "#........#",
             "#........#",
-            "#........#",
-            "#..PR....#",
+            "#...P....#",
+            "#...R....#",
             "##########");
         float floor = player.Bottom();
 
-        // There is no room below the robot, so the pair slides up until the player fits where the robot stood.
         await _run!.Tick(AimDown);
-        await _run.Tick(Down);
+        await _run.Tick(Down, 10);
+        // There is no room below the robot, so the player ends up on the floor.
         AssertFloat(player.Bottom()).IsEqualApprox(floor, 0.5f);
+        // The robot is thrown above the player.
         AssertFloat(robot.Bottom()).IsGreater(player.Top());
         AssertFloat(robot.LinearVelocity.Y).IsGreater(1);
     }
 
     [TestCase]
-    public async Task PhaseThroughAWallDoesNothing()
+    public async Task PhaseWithTargetNextToAWallSucceeds()
     {
-        // There is no room for the pair between the walls, which are 2 tiles apart, and a phase can't cross one.
         var (player, robot) = await Start(
             "##########",
             "#........#",
             "#........#",
             "#PR#.....#",
             "##########");
-        Vector3 start = player.Position;
+        Vector3 playerStart = player.Position;
+        Vector3 robotStart = robot.Position;
 
-        // The player only starts to run.
         await _run!.Tick(AimRight);
         await _run.Tick(RoomRun.Right);
-        AssertFloat(player.Position.DistanceTo(start)).IsLess(0.1f);
-        AssertFloat(robot.LinearVelocity.Length()).IsLess(1);
+        AssertFloat(player.Position.X).IsEqualApprox(robotStart.X, 0.1f);
+        AssertFloat(robot.Position.X).IsEqualApprox(playerStart.X, 0.1f);
     }
 
     [TestCase]
@@ -129,11 +129,11 @@ public class PhaseTest
         PlayerController controller = _run!.Node.PlayerController;
 
         // Run at the robot holding phase, until the aim begins.
-        for (int i = 0; i < 120 && controller.Aim is null; i++)
+        for (int i = 0; i < 120 && controller.Phase is null; i++)
         {
             await _run.Tick(AimRight);
         }
-        AssertObject(controller.Aim?.Target).IsSame(robot);
+        AssertObject(controller.Phase?.Target).IsSame(robot);
 
         // They move together, at the velocity of their center of mass, from the step after the grab.
         await _run.Tick(AimRight);
@@ -159,11 +159,11 @@ public class PhaseTest
         PlayerController controller = _run.Node.PlayerController;
         await _run.Tick(RoomRun.Idle, 30);
 
-        for (int i = 0; i < 120 && controller.Aim is null; i++)
+        for (int i = 0; i < 120 && controller.Phase is null; i++)
         {
             await _run.Tick(AimRight);
         }
-        AssertObject(controller.Aim?.Target).IsSame(bottom);
+        AssertObject(controller.Phase?.Target).IsSame(bottom);
     }
 
     [TestCase]
@@ -199,7 +199,7 @@ public class PhaseTest
         _run.Node.ControllersEnabled = true;
 
         await _run.Tick(AimRight, 5);
-        AssertObject(_run.Node.PlayerController.Aim).IsNull();
+        AssertObject(_run.Node.PlayerController.Phase).IsNull();
     }
 
     [TestCase]
@@ -237,7 +237,7 @@ public class PhaseTest
         await _run!.Tick(AimNowhere);
         await _run.Tick(RoomRun.Idle, 2);
         AssertFloat(player.Position.DistanceTo(start)).IsLess(0.01f);
-        AssertObject(_run.Node.PlayerController.Aim).IsNull();
+        AssertObject(_run.Node.PlayerController.Phase).IsNull();
     }
 
     [TestCase]
@@ -258,14 +258,36 @@ public class PhaseTest
         Vector3 start = player.Position;
         await _run.PausedTick(AimNowhere, 10);
         await _run.PausedTick(AimRight);
-        AssertThat(world.PlayerController.Aim?.Direction).IsEqual(Vector3.Right);
+        AssertThat(world.PlayerController.Phase?.Direction).IsEqual(Vector3.Right);
         AssertFloat(player.Position.DistanceTo(start)).IsEqual(0);
 
         await _run.PausedTick(RoomRun.Right);
         AssertBool(world.PauseRequested).IsFalse();
+        AssertFloat(player.Position.DistanceTo(start)).IsEqual(0);
         Tree.Paused = false;
         await _run.Tick(RoomRun.Right);
         AssertFloat(player.Position.X).IsGreater(robot.Position.X);
         AssertFloat(player.LinearVelocity.X).IsGreater(1);
+    }
+
+    [TestCase]
+    public async Task JumpRightAfterAPausedPhaseDoesNothing()
+    {
+        var (player, _) = await Start(
+            "####################",
+            "#..................#",
+            "#..................#",
+            "#..PR..............#",
+            "####################");
+
+        // Released while paused, and jump pressed on the first tick of play, when the contacts are still those of
+        // the floor where the player was.
+        await _run!.Tick(AimRight);
+        Tree.Paused = true;
+        await _run.PausedTick(RoomRun.Right);
+        Tree.Paused = false;
+        await _run.Tick(new PlayerInput(1, 0, true));
+
+        AssertFloat(player.LinearVelocity.Y).IsLess(1);
     }
 }

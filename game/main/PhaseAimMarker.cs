@@ -46,7 +46,7 @@ public partial class PhaseAimMarker : Node2D
     public override void _Draw()
     {
         Camera3D? camera = _worldView.World.GetCamera3D();
-        if (camera is null || World?.PlayerController.Aim is not PhaseAction aim)
+        if (camera is null || World?.PlayerController.Phase is not PhaseAction phase)
         {
             return;
         }
@@ -55,7 +55,7 @@ public partial class PhaseAimMarker : Node2D
         Transform2D toWindow = _worldView.GetGlobalTransform();
         Vector2 ToWindow(Vector2 point) => toWindow * camera.UnprojectPosition(point.ToVector3());
 
-        Entity target = aim.Target;
+        Entity target = phase.Target;
         Vector2 targetCenter = target.Position.ToVector2();
         Vector2 corner = target.HalfSize + new Vector2(0.15f, 0.15f);
         Vector2[] box = [
@@ -65,17 +65,17 @@ public partial class PhaseAimMarker : Node2D
         ];
         DrawPolyline(box, TargetColor, TargetLineWidth);
 
-        if (aim.Direction == Vector3.Zero)
+        if (phase.Direction == Vector3.Zero)
         {
             return;
         }
 
-        Vector2 center = aim.CenterOfMass().ToVector2();
-        var (playerImpulse, targetImpulse) = aim.Impulses();
-        Vector3 playerVelocity = (aim.Player.Mass * aim.Player.LinearVelocity + playerImpulse) / aim.Player.Mass;
-        Vector3 targetVelocity = (aim.Target.Mass * aim.Target.LinearVelocity + targetImpulse) / aim.Target.Mass;
-        Vector2 playerDir = playerVelocity.ToVector2() / 10;
-        Vector2 targetDir = targetVelocity.ToVector2() / 10;
+        Vector2 center = phase.CenterOfMass().ToVector2();
+        var (playerImpulse, targetImpulse) = phase.Impulses();
+        Vector3 playerVelocity = (phase.Player.Mass * phase.Player.LinearVelocity + playerImpulse) / phase.Player.Mass;
+        Vector3 targetVelocity = (phase.Target.Mass * phase.Target.LinearVelocity + targetImpulse) / phase.Target.Mass;
+        Vector2 playerDir = playerVelocity.ToVector2() / 8;
+        Vector2 targetDir = targetVelocity.ToVector2() / 8;
         DrawArrow(ToWindow(center), ToWindow(center + playerDir), PlayerColor, PlayerLineWidth, PlayerHeadLength);
         DrawArrow(ToWindow(center), ToWindow(center + targetDir), TargetColor, TargetLineWidth, TargetHeadLength);
     }
