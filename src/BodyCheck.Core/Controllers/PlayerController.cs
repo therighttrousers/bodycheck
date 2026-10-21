@@ -82,7 +82,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
 
         if (!ApplyPhase(entity, input, gameDt, realDt))
         {
-            ApplyRun(entity, move);
+            ApplyRun(entity, move, gameDt);
             ApplyJump(entity, input.JumpHeld, weight);
         }
 
@@ -243,7 +243,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             });
     }
 
-    private void ApplyRun(WalkerEntity entity, float move)
+    private void ApplyRun(WalkerEntity entity, float move, float gameDt)
     {
         Features features = Features.Current;
 
@@ -268,10 +268,14 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         {
             // On the ground the drive is traction: the engine applies it, and pushes back on the support. It
             // adds to the entity's friction, which holds an idle entity still on its support. Driving the way
-            // the entity is already going gets no friction, so the drive takes it off again.
+            // the entity is already going gets no friction, so the drive takes it off again. Reversing, it
+            // keeps only as much as stops the entity and what it carries within the tick, so that friction
+            // doesn't push on past zero towards the drive's target (019 §4.8).
             if (move != 0)
             {
-                float extra = reverse ? drive : drive - entity.Friction;
+                float stackMass = entity.ComputeLoad() * entity.Mass / entity.Weight;
+                float stopping = stackMass * MathF.Abs(speed) / gameDt;
+                float extra = reverse ? drive + MathF.Min(entity.Friction, stopping) - entity.Friction : drive - entity.Friction;
                 entity.ApplyTraction(MathF.Sign(move) * features.PlayerTopSpeed, extra);
             }
         }
