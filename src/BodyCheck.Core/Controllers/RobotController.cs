@@ -65,6 +65,8 @@ public sealed class RobotController : ICharacterController<WalkerEntity>
         // (019 §4.8). Neither does anything in the air.
         if (move != 0)
         {
+            // A loaded walker drives harder, so that carrying slows it less (019 §6.4).
+            drive *= entity.ComputeLoad() / entity.Weight;
             float stackMass = entity.ComputeLoad() * entity.Mass / entity.Weight;
             float stopping = stackMass * MathF.Abs(speed) / gameDt;
             float extra = reverse ? drive + MathF.Min(entity.Friction, stopping) - entity.Friction : drive - entity.Friction;
