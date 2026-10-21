@@ -10,10 +10,6 @@ namespace BodyCheck.Core.Simulation;
 /// </summary>
 public static class TileColliders
 {
-    // Walkers have no engine friction, and the smaller of two coefficients wins, so this only affects
-    // bodies that have some.
-    private const float Friction = 1;
-
     /// <summary>
     /// Returns a static body with a box collider for each box of tiles. Each collider is drawn, so the
     /// layout is visible.
@@ -23,7 +19,7 @@ public static class TileColliders
     {
         var body = new StaticBody3D
         {
-            PhysicsMaterialOverride = new PhysicsMaterial { Friction = Friction, Bounce = 0 },
+            PhysicsMaterialOverride = new PhysicsMaterial { Friction = Features.Current.TileDefaultFriction, Bounce = 0 },
             CollisionLayer = (uint)PhysicsLayer.Static,
         };
         var material = new StandardMaterial3D { AlbedoColor = new Color(0.35f, 0.38f, 0.45f) };
