@@ -37,10 +37,17 @@ public interface ICharacterController<in TEntity>
     public float? CarryFriction => null;
 
     /// <summary>
-    /// How firmly the entity holds the rotation of what stands on it, as a multiple of that body's load, for kinds of
-    /// body whose hold is their controller's to tune, such as a walker's. Null for none. Read each tick it is used.
+    /// The most torque with which the entity holds the rotation of what stands on it, for kinds of body whose hold is
+    /// their controller's to tune, such as a walker's. Null for none. Read each tick it is used.
     /// </summary>
-    public float? CarryHold => null;
+    public float? CarryTorque => null;
+
+    /// <summary>
+    /// The most force with which the entity steadies what stands on it, holding its speed at its center to the
+    /// entity's own, for kinds of body whose steadying is their controller's to tune, such as a walker's.
+    /// Null for none. Read each tick it is used.
+    /// </summary>
+    public float? CarrySteadying => null;
 
     /// <summary>
     /// Called once per physics tick while the game is paused because a controller asked. Nothing moves then:

@@ -121,11 +121,17 @@ public sealed record Features
     public float PlayerCarryFriction { get; init; } = 6;
 
     /// <summary>
-    /// How firmly the player holds the rotation of what it carries: the most torque it uses, as a multiple of the
-    /// carried body's load, so a length in tiles. Robots don't hold what they carry. A block of 1 tile tips off a body
-    /// that decelerates at more than gravity unless something holds it; through a reversal, holding it takes about 2.3.
+    /// The most torque with which the player holds the rotation of what it carries to its own. Robots don't hold what
+    /// they carry. A block of 1 tile tips off a body that decelerates at more than gravity unless something holds it.
     /// </summary>
-    public float PlayerCarryHold { get; init; } = 3;
+    public float PlayerCarryTorque { get; init; } = 20;
+
+    /// <summary>
+    /// The most force with which the player steadies what it carries: it holds the carried body's speed at its center
+    /// to its own, like a hand held up behind its head, so that the body neither slides nor tips. Robots
+    /// don't steady what they carry. Steadying a block of mass 2 through a reversal takes about 315.
+    /// </summary>
+    public float PlayerCarrySteadying { get; init; } = 30;
 
     /// <summary>Upward speed given by the jump impulse.</summary>
     public float PlayerJumpSpeed { get; init; } = 12.7f;

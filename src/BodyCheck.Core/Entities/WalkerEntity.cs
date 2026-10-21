@@ -39,7 +39,9 @@ public partial class WalkerEntity : Entity
 
     public override float? CarryFriction => Controller?.CarryFriction;
 
-    public override float? CarryHold => Controller?.CarryHold;
+    public override float? CarryTorque => Controller?.CarryTorque;
+
+    public override float? CarrySteadying => Controller?.CarrySteadying;
 
     /// <summary>
     /// Adds traction to the walker's friction, for the next step: pushes against the ground to bring the walker's

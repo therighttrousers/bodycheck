@@ -51,6 +51,9 @@ public partial class Entity : RigidBody3D
     // How far the grip's joint may be above or below where it should act before it is anchored again there.
     private const float GripDrift = 0.05f;
 
+    // How fast what steadies an entity turns it towards level, in radians per second for each radian it is off.
+    private const float LevelingRate = 10;
+
     // Where to move to through entities before the engine's next step, if anywhere.
     private Vector3? _destination;
 
@@ -66,6 +69,12 @@ public partial class Entity : RigidBody3D
     // What the entity stood on during the engine's last step: the collider, and the middle of the contacts with it.
     private Rid _groundCollider;
     private Vector3 _groundContact;
+
+    // The joint whose motor steadies the entity at its center, for what carries it like a hand (019 §5.1). Like the
+    // grip's, it constrains nothing, and has no bodies until it is first anchored.
+    private readonly Generic6DofJoint3D _steadying;
+    private bool _steadyingAnchored;
+    private Entity? _steadyingAnchor;
 
     // The entities that touched this one from above during the engine's last step.
     private readonly List<Entity> _above = [];
@@ -102,15 +111,10 @@ public partial class Entity : RigidBody3D
         var size = new Vector3(2 * tuning.HalfSize.X, 2 * tuning.HalfSize.Y, Depth);
         AddChild(new CollisionShape3D { Shape = new BoxShape3D { Size = size } });
 
-        _grip = new Generic6DofJoint3D { ExcludeNodesFromCollision = false };
-        foreach (var flag in (ReadOnlySpan<Generic6DofJoint3D.Flag>)
-            [Generic6DofJoint3D.Flag.EnableLinearLimit, Generic6DofJoint3D.Flag.EnableAngularLimit])
-        {
-            _grip.SetFlagX(flag, false);
-            _grip.SetFlagY(flag, false);
-            _grip.SetFlagZ(flag, false);
-        }
+        _grip = FreeJoint();
         AddChild(_grip);
+        _steadying = FreeJoint();
+        AddChild(_steadying);
 
         if (visual is not null)
         {
@@ -190,11 +194,17 @@ public partial class Entity : RigidBody3D
     public virtual float? CarryFriction => null;
 
     /// <summary>
-    /// How firmly this kind of body holds the rotation of what stands on it: the most torque it uses, as a multiple of
-    /// that body's load, so a length. A hand holds what it carries this way, where friction alone would let it tip
-    /// (019 §4.10). Null for a body that doesn't.
+    /// The most torque with which this kind of body holds the rotation of what stands on it to its own, as a hand would
+    /// (019 §4.10, §5.2). Null for a body that doesn't.
     /// </summary>
-    public virtual float? CarryHold => null;
+    public virtual float? CarryTorque => null;
+
+    /// <summary>
+    /// The most force with which this kind of body steadies what stands on it: it holds that body's speed at its center
+    /// to its own, like a hand held up behind the head, so that friction at the body's base needn't, and doesn't tip it
+    /// (019 §5.1). Null for a body that doesn't.
+    /// </summary>
+    public virtual float? CarrySteadying => null;
 
     /// <summary>
     /// Moves the entity toward <paramref name="destination"/> before the engine's next step, through other entities
@@ -308,12 +318,35 @@ public partial class Entity : RigidBody3D
         }
         DriveGrip(0, Friction);
 
-        // What carries the entity may also hold its rotation to its own, if it can turn.
-        if (Support?.CarryHold is float hold && !AxisLockAngularZ)
+        // What carries the entity may steady it, like a hand held up behind its head: the second joint's motor, at the
+        // entity's center, holds the center's speed to the carrier's, so that friction at the base needn't, and doesn't
+        // tip it (019 §5.1). The engine solves it with everything else, in the same step. At the center, it would also
+        // keep the entity from tipping off an edge, so the hand lets go once the center is past the carrier's side.
+        bool steadied = false;
+        if (Support?.CarrySteadying is float steadying && MathF.Abs(Position.X - Support.Position.X) <= Support.HalfSize.X)
         {
-            _grip.SetParamZ(Generic6DofJoint3D.Param.AngularMotorTargetVelocity, 0);
-            _grip.SetParamZ(Generic6DofJoint3D.Param.AngularMotorForceLimit, hold * ComputeLoad());
-            _grip.SetFlagZ(Generic6DofJoint3D.Flag.EnableMotor, true);
+            steadied = true;
+            if (!_steadyingAnchored || Support != _steadyingAnchor)
+            {
+                _steadyingAnchored = true;
+                _steadyingAnchor = Support;
+                Anchor(_steadying, Position);
+            }
+            _steadying.SetParamX(Generic6DofJoint3D.Param.LinearMotorTargetVelocity, 0);
+            _steadying.SetParamX(Generic6DofJoint3D.Param.LinearMotorForceLimit, steadying);
+            _steadying.SetFlagX(Generic6DofJoint3D.Flag.EnableLinearMotor, true);
+        }
+
+        // The hand may also turn the entity towards level, if it can turn: towards the nearest quarter turn from the
+        // carrier's own angle, the faster the further off it is. Steadying alone would keep a tilted entity from
+        // settling, since settling on a corner carries its center sideways.
+        if (steadied && Support!.CarryTorque is float torque && torque > 0 && !AxisLockAngularZ)
+        {
+            const float Quarter = MathF.PI / 2;
+            float tilt = Mathf.Wrap(Rotation.Z - Support.Rotation.Z, -Quarter / 2, Quarter / 2);
+            _steadying.SetParamZ(Generic6DofJoint3D.Param.AngularMotorTargetVelocity, LevelingRate * tilt);
+            _steadying.SetParamZ(Generic6DofJoint3D.Param.AngularMotorForceLimit, torque);
+            _steadying.SetFlagZ(Generic6DofJoint3D.Flag.EnableMotor, true);
         }
     }
 
@@ -321,7 +354,23 @@ public partial class Entity : RigidBody3D
     {
         _grip.SetFlagX(Generic6DofJoint3D.Flag.EnableLinearMotor, false);
         _grip.SetFlagZ(Generic6DofJoint3D.Flag.EnableMotor, false);
+        _steadying.SetFlagX(Generic6DofJoint3D.Flag.EnableLinearMotor, false);
+        _steadying.SetFlagZ(Generic6DofJoint3D.Flag.EnableMotor, false);
         Friction = 0;
+    }
+
+    // A joint that constrains nothing: every limit is off, so its only effects are the motors that are switched on.
+    private static Generic6DofJoint3D FreeJoint()
+    {
+        var joint = new Generic6DofJoint3D { ExcludeNodesFromCollision = false };
+        foreach (var flag in (ReadOnlySpan<Generic6DofJoint3D.Flag>)
+            [Generic6DofJoint3D.Flag.EnableLinearLimit, Generic6DofJoint3D.Flag.EnableAngularLimit])
+        {
+            joint.SetFlagX(flag, false);
+            joint.SetFlagY(flag, false);
+            joint.SetFlagZ(flag, false);
+        }
+        return joint;
     }
 
     /// <summary>
@@ -359,11 +408,17 @@ public partial class Entity : RigidBody3D
     {
         _gripAnchored = true;
         _gripAnchor = Support;
-        _grip.GlobalTransform = new Transform3D(Basis.Identity, point);
         _gripPoint = ToLocal(point);
-        _grip.NodeB = new NodePath();
-        _grip.NodeA = Support is null ? new NodePath() : _grip.GetPathTo(Support);
-        _grip.NodeB = new NodePath("..");
+        Anchor(_grip, point);
+    }
+
+    // Anchors one of the entity's joints to what it stands on, at a point.
+    private void Anchor(Generic6DofJoint3D joint, Vector3 point)
+    {
+        joint.GlobalTransform = new Transform3D(Basis.Identity, point);
+        joint.NodeB = new NodePath();
+        joint.NodeA = Support is null ? new NodePath() : joint.GetPathTo(Support);
+        joint.NodeB = new NodePath("..");
     }
 
     /// <summary>Runs the controller of this kind of body, if it has one.</summary>

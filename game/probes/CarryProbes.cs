@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 
 using BodyCheck.Core.Controllers;
@@ -213,29 +214,39 @@ public sealed class JointPlacementProbe : IProbe
 }
 
 /// <summary>
-/// In the "Carrying" room: a block falls onto the idle player's head and settles. Then either the player runs right
-/// for a short way and stops ("wobble"), or the block is dropped again, offset to one side of the head
-/// ("offset-landing"). Prints a trace of the block on the player's head, tick by tick.
+/// In the "Carrying" room: a block falls onto the idle player's head and settles. Then the player runs right for a
+/// short way and stops ("wobble"); or the block is dropped again, offset to one side of the head ("offset-landing");
+/// or the block is put just above the head, tilted, and the player waits for a second, then runs and stops ("tilted").
+/// Prints a trace of the block on the player's head, tick by tick.
 /// </summary>
 public sealed class WobbleProbe : IProbe
 {
+    public enum Case
+    {
+        Wobble,
+        OffsetLanding,
+        Tilted,
+    }
+
     private const int SettleTicks = 120;
     private const int TraceTicks = 120;
     private const float RunDistance = 2.5f;
     private const float Offset = 0.5f;
+    private const float Tilt = 0.1f;
+    private const int TiltedWaitTicks = 60;
 
     private readonly WalkerEntity _player;
     private readonly Entity _block;
-    private readonly bool _offset;
+    private readonly Case _case;
     private int _tick;
     private float _runStart;
     private bool _running;
 
-    public WobbleProbe(WalkerEntity player, Entity block, bool offset)
+    public WobbleProbe(WalkerEntity player, Entity block, Case @case)
     {
         _player = player;
         _block = block;
-        _offset = offset;
+        _case = @case;
     }
 
     public bool Done => _tick > SettleTicks + TraceTicks;
@@ -253,8 +264,8 @@ public sealed class WobbleProbe : IProbe
         if (t == 0)
         {
             _runStart = _player.Position.X;
-            _running = !_offset;
-            if (_offset)
+            _running = _case == Case.Wobble;
+            if (_case == Case.OffsetLanding)
             {
                 // From 1.2 tiles above the head.
                 _block.Position = _player.Position + new Vector3(Offset, _player.HalfSize.Y + 1.2f + _block.HalfSize.Y, 0);
@@ -262,6 +273,20 @@ public sealed class WobbleProbe : IProbe
                 _block.LinearVelocity = Vector3.Zero;
                 _block.AngularVelocity = Vector3.Zero;
             }
+            else if (_case == Case.Tilted)
+            {
+                // Just clear of the head, at its lowest corner.
+                float lift = _block.HalfSize.X * MathF.Sin(Tilt) + _block.HalfSize.Y * (MathF.Cos(Tilt) - 1) + 0.02f;
+                _block.Position = _player.Position + new Vector3(0, _player.HalfSize.Y + _block.HalfSize.Y + lift, 0);
+                _block.Rotation = new Vector3(0, 0, Tilt);
+                _block.LinearVelocity = Vector3.Zero;
+                _block.AngularVelocity = Vector3.Zero;
+            }
+        }
+        if (_case == Case.Tilted && t == TiltedWaitTicks)
+        {
+            _runStart = _player.Position.X;
+            _running = true;
         }
         if (_running && _player.Position.X - _runStart >= RunDistance)
         {
