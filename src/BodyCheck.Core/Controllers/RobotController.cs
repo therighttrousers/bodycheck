@@ -69,4 +69,6 @@ public sealed class RobotController : ICharacterController<WalkerEntity>
     }
 
     public float GroundFriction => Features.Current.RobotGroundFriction;
+
+    public float? CarryFriction => Features.Current.RobotCarryFriction;
 }

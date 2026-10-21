@@ -184,6 +184,12 @@ public partial class Entity : RigidBody3D
     protected virtual float GroundFriction => Tuning.EngineFriction;
 
     /// <summary>
+    /// The coefficient of friction with which this kind of body grips what stands on it, which wins over that body's
+    /// own: a walker grabs what it carries (019 §1.4). Null for a body that leaves what stands on it to its own.
+    /// </summary>
+    public virtual float? CarryFriction => null;
+
+    /// <summary>
     /// Moves the entity toward <paramref name="destination"/> before the engine's next step, through other entities
     /// but not through tiles: where it meets one, it slides along it, so it may stop short. It keeps its velocity, and
     /// the engine pushes it apart from whatever it ends up overlapping. Until then it stays where it is, so that
@@ -269,8 +275,9 @@ public partial class Entity : RigidBody3D
     {
     }
 
-    // Grips what the entity stands on, for the next step, as far as the engine's friction falls short (019 §1.5): its
-    // coefficient times the load. Bodies that aren't rough use the smaller of their two coefficients.
+    // Grips what the entity stands on, for the next step, as far as the engine's friction falls short (019 §1.5): the
+    // coefficient times the load. The coefficient is what the entity stands on carries with, if it has one, or else the
+    // entity's own. The engine's bodies aren't rough, so it uses the smaller of their two coefficients.
     private void ApplyFriction(float gameDt)
     {
         // Before a move through entities, what it stands on is from before the move.
@@ -282,7 +289,7 @@ public partial class Entity : RigidBody3D
         float engineFriction = Mathf.Min(
             PhysicsMaterialOverride.Friction,
             PhysicsServer3D.BodyGetParam(_groundCollider, PhysicsServer3D.BodyParameter.Friction).AsSingle());
-        float shortfall = GroundFriction - engineFriction;
+        float shortfall = (Support?.CarryFriction ?? GroundFriction) - engineFriction;
         if (shortfall <= 0)
         {
             return;

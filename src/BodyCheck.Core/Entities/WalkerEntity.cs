@@ -37,6 +37,8 @@ public partial class WalkerEntity : Entity
 
     protected override float GroundFriction => Controller?.GroundFriction ?? 0;
 
+    public override float? CarryFriction => Controller?.CarryFriction;
+
     /// <summary>
     /// Adds traction to the walker's friction, for the next step: pushes against the ground to bring the walker's
     /// horizontal speed, relative to the ground, towards <paramref name="targetSpeed"/>, with at most

@@ -30,6 +30,13 @@ public interface ICharacterController<in TEntity>
     public float GroundFriction => 0;
 
     /// <summary>
+    /// The coefficient of friction with which the entity grips what stands on it, for kinds of body whose grip on what
+    /// they carry is their controller's to tune, such as a walker's. It wins over the carried body's own. Null leaves
+    /// the carried body's own. Read each tick it is used.
+    /// </summary>
+    public float? CarryFriction => null;
+
+    /// <summary>
     /// Called once per physics tick while the game is paused because a controller asked. Nothing moves then:
     /// the engine doesn't step, so forces and impulses wait until play resumes. No game time passes.
     /// </summary>

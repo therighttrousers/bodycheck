@@ -114,6 +114,12 @@ public sealed record Features
     /// </summary>
     public float PlayerGroundFriction { get; init; } = 4;
 
+    /// <summary>
+    /// The player's coefficient of friction with what it carries, such as a block on its head. It wins over the carried
+    /// body's own. Holding a carried block through a reversal takes about 5.6.
+    /// </summary>
+    public float PlayerCarryFriction { get; init; } = 6;
+
     /// <summary>Upward speed given by the jump impulse.</summary>
     public float PlayerJumpSpeed { get; init; } = 12.7f;
 
@@ -185,6 +191,9 @@ public sealed record Features
     /// the direction of travel.
     /// </summary>
     public float RobotGroundFriction { get; init; } = 4;
+
+    /// <summary>A robot's coefficient of friction with what it carries. It wins over the carried body's own.</summary>
+    public float RobotCarryFriction { get; init; } = 6;
     #endregion
 
     #region Platforms

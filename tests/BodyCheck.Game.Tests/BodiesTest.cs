@@ -249,14 +249,15 @@ public class BodiesTest
         await run.Tick(Right, 30);
         float landedOffset = block.Position.X - run.Player.Position.X;
 
-        // It stops slipping as it lands, and stays where it landed while the player runs on.
+        // It stops slipping as it lands, and stays where it landed while the player runs on, apart from settling out of the
+        // little that the landing tilts it.
         float greatestChange = 0;
         await run.Tick(Right, 90, () =>
             greatestChange = MathF.Max(greatestChange, MathF.Abs(block.Position.X - run.Player.Position.X - landedOffset)));
 
         AssertThat(block.Support).IsSame(run.Player);
         AssertThat(MathF.Abs(landedOffset)).IsLess(run.Player.HalfSize.X);
-        AssertThat(greatestChange).IsLess(0.01f);
+        AssertThat(greatestChange).IsLess(0.05f);
     }
 
     [TestCase]
