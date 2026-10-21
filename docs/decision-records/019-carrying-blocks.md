@@ -4,6 +4,8 @@
 
 Inciting event (2026-10-20): issue #22, "Allow blocks to be carried", taken up as one of the last changes before a playtester is onboarded.
 
+Closed on 2026-10-20. Outcomes are in the design docs: [movement.md](../designs/movement.md), with what is still open in its open questions, [architecture.md](../designs/architecture.md) and [models.md](../designs/models.md).
+
 Picking a block up is already easy: phase down into it from above or from the side, and it ends up on the player's head. It doesn't stay there. It stays on platforms and other blocks.
 
 Cause: where two bodies touch, the engine uses the smaller of their coefficients of friction (no body is `Rough`, `001 §1.4`). A walker's is 0 (`005 §3.8`), so every contact it has slides freely. At its feet, traction stands in for friction. At its head, nothing does. A block's friction of 1 is thrown away on the one contact it is carried by. Godot exposes neither a per-contact friction callback nor friction per shape, so the walker can't have a grippy top alone.
