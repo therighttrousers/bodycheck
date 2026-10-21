@@ -53,14 +53,6 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     /// <summary>The game is paused while a phase is aimed, so that the player can take its time over the direction.</summary>
     public bool RequestsPause => Phase is not null;
 
-    public float GroundFriction => Features.Current.PlayerGroundFriction;
-
-    public float? CarryFriction => Features.Current.PlayerCarryFriction;
-
-    public float? CarryTorque => Features.Current.PlayerCarryTorque;
-
-    public float? CarrySteadying => Features.Current.PlayerCarrySteadying;
-
     /// <summary>
     /// Aims the phase while the game is paused for it. Releasing phase ends the aim, and the bodies move on the next
     /// tick of play.

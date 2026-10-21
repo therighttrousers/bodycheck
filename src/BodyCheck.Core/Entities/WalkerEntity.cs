@@ -7,7 +7,7 @@ namespace BodyCheck.Core.Entities;
 /// traction to the entity's friction.
 /// <para>
 /// A walker has no engine friction. With it, a walker would grip walls too, and lose its speed on landing.
-/// Its friction with what it stands on is the entity's own, with a coefficient from its controller.
+/// Its friction with what it stands on is the entity's own, with a coefficient from its tuning.
 /// </para>
 /// </summary>
 public partial class WalkerEntity : Entity
@@ -34,14 +34,6 @@ public partial class WalkerEntity : Entity
 
     /// <summary>What decides the walker's actions each tick. Without one it is only pushed around.</summary>
     public ICharacterController<WalkerEntity>? Controller { get; set; }
-
-    protected override float GroundFriction => Controller?.GroundFriction ?? 0;
-
-    public override float? CarryFriction => Controller?.CarryFriction;
-
-    public override float? CarryTorque => Controller?.CarryTorque;
-
-    public override float? CarrySteadying => Controller?.CarrySteadying;
 
     /// <summary>
     /// Adds traction to the walker's friction, for the next step: pushes against the ground to bring the walker's

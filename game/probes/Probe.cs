@@ -107,6 +107,14 @@ public static class Probe
                 };
                 probe = new WobbleProbe(world.Player, world.EntitiesOf(EntityKind.Block).MaxBy(block => block.Position.Y)!, @case);
                 break;
+            case "carry-checks":
+                world = Load(TestRoomLibrary.Carrying);
+                GD.Print("Carry checks probe:");
+                {
+                    var blocks = world.EntitiesOf(EntityKind.Block).OrderBy(block => block.Position.Y).ToList();
+                    probe = new CarryChecksProbe(world.Player, carried: blocks[^1], stacked: blocks[1]);
+                }
+                break;
             case "joint-placement":
                 world = Load(TestRoomLibrary.FloatingBlock);
                 GD.Print("Joint placement probe:");

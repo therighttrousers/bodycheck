@@ -181,30 +181,11 @@ public partial class Entity : RigidBody3D
     /// </summary>
     public float Friction { get; private set; }
 
-    /// <summary>
-    /// The coefficient of friction with which this kind of body grips what it stands on. The motor makes up what the
-    /// engine's friction falls short of it.
-    /// </summary>
-    protected virtual float GroundFriction => Tuning.EngineFriction;
-
-    /// <summary>
-    /// The coefficient of friction with which this kind of body grips what stands on it, which wins over that body's
-    /// own: a walker grabs what it carries (019 §1.4). Null for a body that leaves what stands on it to its own.
-    /// </summary>
-    public virtual float? CarryFriction => null;
-
-    /// <summary>
-    /// The most torque with which this kind of body holds the rotation of what stands on it to its own, as a hand would
-    /// (019 §4.10, §5.2). Null for a body that doesn't.
-    /// </summary>
-    public virtual float? CarryTorque => null;
-
-    /// <summary>
-    /// The most force with which this kind of body steadies what stands on it: it holds that body's speed at its center
-    /// to its own, like a hand held up behind the head, so that friction at the body's base needn't, and doesn't tip it
-    /// (019 §5.1). Null for a body that doesn't.
-    /// </summary>
-    public virtual float? CarrySteadying => null;
+    // The tuning's values for gripping and carrying, from the features in effect now. See BodyTuning.
+    private float GroundFriction => Tuning.GroundFriction?.Invoke(Features.Current) ?? Tuning.EngineFriction;
+    private float? CarryFriction => Tuning.CarryFriction?.Invoke(Features.Current);
+    private float? CarrySteadying => Tuning.CarrySteadying?.Invoke(Features.Current);
+    private float? CarryTorque => Tuning.CarryTorque?.Invoke(Features.Current);
 
     /// <summary>
     /// Moves the entity toward <paramref name="destination"/> before the engine's next step, through other entities

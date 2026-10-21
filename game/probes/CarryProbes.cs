@@ -311,3 +311,146 @@ public sealed class WobbleProbe : IProbe
             + $"landed {(_block.Landed ? 1 : 0)} friction {_block.Friction,7:F1}");
     }
 }
+
+/// <summary>
+/// In the "Carrying" room, checks for decision record 019 §3.2, §3.3 and §5.4, one after another. The player runs
+/// with the block on its head, stops, and stands still for 10 seconds: how far the two drift. The player is moved 3
+/// tiles through entities, as a phase moves it, with the block anchored to it: how the block follows. The block stacked
+/// on the floor is put onto a spare walker, which is then freed under it. And how long Godot takes to build a joint
+/// again when its node A changes.
+/// </summary>
+public sealed class CarryChecksProbe : IProbe
+{
+    private const int SettleTicks = 120;
+    private const float RunDistance = 2.5f;
+    private const int StillTicks = 600;
+    private const int MoveTicks = 60;
+    private const int SpareTicks = 120;
+    private const int FreedTicks = 60;
+    private const int Rebuilds = 1000;
+
+    private readonly WalkerEntity _player;
+    private readonly Entity _carried;
+    private readonly Entity _stacked;
+    private WalkerEntity? _spare;
+    private int _tick;
+    private int _phaseStart;
+    private int _phase;
+    private float _runStart;
+    private float _stillPlayerX;
+    private float _stillBlockOffset;
+    private float _fastestStill;
+
+    public CarryChecksProbe(WalkerEntity player, Entity carried, Entity stacked)
+    {
+        _player = player;
+        _carried = carried;
+        _stacked = stacked;
+    }
+
+    public bool Done { get; private set; }
+
+    public PlayerInput Input { get; private set; }
+
+    public void Tick(float gameDt)
+    {
+        int t = _tick++ - _phaseStart;
+        switch (_phase)
+        {
+            case 0:
+                // Settle, then run.
+                if (t == SettleTicks)
+                {
+                    _runStart = _player.Position.X;
+                    Next();
+                }
+                break;
+            case 1:
+                Input = new PlayerInput(_player.Position.X - _runStart < RunDistance ? 1 : 0, 0, false);
+                if (Input.XAxis == 0 && MathF.Abs(_player.LinearVelocity.X) < 0.001f)
+                {
+                    _stillPlayerX = _player.Position.X;
+                    _stillBlockOffset = _carried.Position.X - _player.Position.X;
+                    Next();
+                }
+                break;
+            case 2:
+                _fastestStill = MathF.Max(_fastestStill,
+                    MathF.Max(MathF.Abs(_player.LinearVelocity.X), MathF.Abs(_carried.LinearVelocity.X)));
+                if (t < 10 || t % 60 == 0)
+                {
+                    GD.Print($"    still, tick {t,3}: player vx {_player.LinearVelocity.X:F4}; block {_carried.Position.X - _player.Position.X - _stillBlockOffset:F4} over the head, "
+                        + $"vx {_carried.LinearVelocity.X:F4} rot {_carried.Rotation.Z:F4}");
+                }
+                if (t == StillTicks)
+                {
+                    GD.Print($"  standing still for {StillTicks} ticks after a stop: player moved {_player.Position.X - _stillPlayerX:F5} tiles, "
+                        + $"block moved {_carried.Position.X - _player.Position.X - _stillBlockOffset:F5} over the head, "
+                        + $"fastest {_fastestStill:F5} tiles per second");
+                    _player.MoveThroughEntities(_player.Position + new Vector3(3, 0, 0));
+                    GD.Print($"  moved the player 3 tiles through entities, block {_carried.Position.X - _player.Position.X:F3} over it");
+                    Next();
+                }
+                break;
+            case 3:
+                if (t < 6 || t % 10 == 0)
+                {
+                    GD.Print($"    tick {t,2}: player x {_player.Position.X:F3} vx {_player.LinearVelocity.X:F3}; block dx {_carried.Position.X - _player.Position.X:F3} "
+                        + $"vx {_carried.LinearVelocity.X:F3} vy {_carried.LinearVelocity.Y:F3} rot {_carried.Rotation.Z:F3} on {(_carried.Support == _player ? "player" : _carried.OnGround ? "other" : "air")}");
+                }
+                if (t == MoveTicks)
+                {
+                    // A walker without a controller, which the room doesn't step, at the far end of the room.
+                    _spare = new WalkerEntity(BodyTuning.Robot) { Position = new Vector3(30, 1 + BodyTuning.Robot.HalfSize.Y, 0) };
+                    _player.GetParent().AddChild(_spare);
+                    _stacked.Position = _spare.Position + new Vector3(0, _spare.HalfSize.Y + _stacked.HalfSize.Y + 0.05f, 0);
+                    _stacked.Rotation = Vector3.Zero;
+                    _stacked.LinearVelocity = Vector3.Zero;
+                    _stacked.AngularVelocity = Vector3.Zero;
+                    Next();
+                }
+                break;
+            case 4:
+                if (t == SpareTicks)
+                {
+                    GD.Print($"  block on the spare walker: on {(_stacked.Support == _spare ? "it" : "something else")}, friction {_stacked.Friction:F1}; freeing the walker");
+                    _spare!.QueueFree();
+                    Next();
+                }
+                break;
+            case 5:
+                if (t < 4 || t % 10 == 0)
+                {
+                    GD.Print($"    tick {t,2}: block y {_stacked.Position.Y:F3} vy {_stacked.LinearVelocity.Y:F3} on {(_stacked.OnGround ? _stacked.Support is null ? "tiles" : "entity" : "air")}, friction {_stacked.Friction:F1}");
+                }
+                if (t == FreedTicks)
+                {
+                    TimeRebuilds();
+                    Done = true;
+                }
+                break;
+        }
+    }
+
+    private void Next()
+    {
+        _phase++;
+        _phaseStart = _tick;
+    }
+
+    private void TimeRebuilds()
+    {
+        var joint = new Generic6DofJoint3D { ExcludeNodesFromCollision = false };
+        _stacked.AddChild(joint);
+        joint.NodeB = new NodePath("..");
+        NodePath toPlayer = joint.GetPathTo(_player);
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        for (int i = 0; i < Rebuilds; i++)
+        {
+            joint.NodeA = i % 2 == 0 ? toPlayer : new NodePath();
+        }
+        watch.Stop();
+        GD.Print($"  {Rebuilds} rebuilds of a joint by changing its node A: {watch.Elapsed.TotalMilliseconds * 1000 / Rebuilds:F1} microseconds each");
+        joint.QueueFree();
+    }
+}

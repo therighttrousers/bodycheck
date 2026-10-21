@@ -24,32 +24,6 @@ public interface ICharacterController<in TEntity>
     public bool RequestsPause => false;
 
     /// <summary>
-    /// The coefficient of friction with which the entity grips what it stands on, for kinds of body whose friction
-    /// is their controller's to tune, such as a walker's. Read each tick it is used.
-    /// </summary>
-    public float GroundFriction => 0;
-
-    /// <summary>
-    /// The coefficient of friction with which the entity grips what stands on it, for kinds of body whose grip on what
-    /// they carry is their controller's to tune, such as a walker's. It wins over the carried body's own. Null leaves
-    /// the carried body's own. Read each tick it is used.
-    /// </summary>
-    public float? CarryFriction => null;
-
-    /// <summary>
-    /// The most torque with which the entity holds the rotation of what stands on it, for kinds of body whose hold is
-    /// their controller's to tune, such as a walker's. Null for none. Read each tick it is used.
-    /// </summary>
-    public float? CarryTorque => null;
-
-    /// <summary>
-    /// The most force with which the entity steadies what stands on it, holding its speed at its center to the
-    /// entity's own, for kinds of body whose steadying is their controller's to tune, such as a walker's.
-    /// Null for none. Read each tick it is used.
-    /// </summary>
-    public float? CarrySteadying => null;
-
-    /// <summary>
     /// Called once per physics tick while the game is paused because a controller asked. Nothing moves then:
     /// the engine doesn't step, so forces and impulses wait until play resumes. No game time passes.
     /// </summary>

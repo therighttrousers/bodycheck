@@ -71,8 +71,4 @@ public sealed class RobotController : ICharacterController<WalkerEntity>
             entity.ApplyTraction(MathF.Sign(move) * features.RobotTopSpeed, extra);
         }
     }
-
-    public float GroundFriction => Features.Current.RobotGroundFriction;
-
-    public float? CarryFriction => Features.Current.RobotCarryFriction;
 }
