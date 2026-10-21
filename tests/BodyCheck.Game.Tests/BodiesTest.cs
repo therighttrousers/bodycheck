@@ -258,6 +258,15 @@ public class BodiesTest
         AssertThat(block.Support).IsSame(run.Player);
         AssertThat(MathF.Abs(landedOffset)).IsLess(run.Player.HalfSize.X);
         AssertThat(greatestChange).IsLess(0.05f);
+
+        // The player holds what it carries, so neither stopping nor turning round throws the block off.
+        float greatestTilt = 0;
+        void Watch() => greatestTilt = MathF.Max(greatestTilt, MathF.Abs(block.Rotation.Z));
+        await run.Tick(Idle, 60, Watch);
+        await run.Tick(Left, 60, Watch);
+        AssertThat(block.Support).IsSame(run.Player);
+        AssertThat(MathF.Abs(block.Position.X - run.Player.Position.X - landedOffset)).IsLess(0.05f);
+        AssertThat(greatestTilt).IsLess(0.1f);
     }
 
     [TestCase]

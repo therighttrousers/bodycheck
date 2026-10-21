@@ -57,6 +57,8 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
 
     public float? CarryFriction => Features.Current.PlayerCarryFriction;
 
+    public float? CarryHold => Features.Current.PlayerCarryHold;
+
     /// <summary>
     /// Aims the phase while the game is paused for it. Releasing phase ends the aim, and the bodies move on the next
     /// tick of play.

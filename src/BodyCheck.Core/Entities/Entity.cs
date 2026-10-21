@@ -190,6 +190,13 @@ public partial class Entity : RigidBody3D
     public virtual float? CarryFriction => null;
 
     /// <summary>
+    /// How firmly this kind of body holds the rotation of what stands on it: the most torque it uses, as a multiple of
+    /// that body's load, so a length. A hand holds what it carries this way, where friction alone would let it tip
+    /// (019 §4.10). Null for a body that doesn't.
+    /// </summary>
+    public virtual float? CarryHold => null;
+
+    /// <summary>
     /// Moves the entity toward <paramref name="destination"/> before the engine's next step, through other entities
     /// but not through tiles: where it meets one, it slides along it, so it may stop short. It keeps its velocity, and
     /// the engine pushes it apart from whatever it ends up overlapping. Until then it stays where it is, so that
@@ -199,8 +206,7 @@ public partial class Entity : RigidBody3D
     {
         _destination = destination;
         // What it stands on is from before the move, so it has no grip until the engine's next step.
-        _grip.SetFlagX(Generic6DofJoint3D.Flag.EnableLinearMotor, false);
-        Friction = 0;
+        ReleaseGrip();
     }
 
     // Every entity's step runs before this, because the room that steps them is their parent, and a parent is
@@ -243,12 +249,11 @@ public partial class Entity : RigidBody3D
     /// <summary>Call once per physics tick, before the engine's step.</summary>
     /// <param name="gameDt">The tick's length in game time, which the engine's time scale shortens.</param>
     /// <param name="realDt">The tick's length in real time, which the time scale doesn't change.</param>
-    /// <param name="controlled">Whether the controller runs. Without it, the entity only coasts, under drag and gravity.</param>
+    /// <param name="controlled">Whether the controller runs. Without it, the entity only coasts, under drag, gravity and friction.</param>
     public void Step(float gameDt, float realDt, bool controlled = true)
     {
         // A motor's push lasts one tick, like a force: it is off unless friction or the controller uses it again.
-        _grip.SetFlagX(Generic6DofJoint3D.Flag.EnableLinearMotor, false);
-        Friction = 0;
+        ReleaseGrip();
 
         ApplyFriction(gameDt);
 
@@ -302,6 +307,21 @@ public partial class Entity : RigidBody3D
             Friction += Mass * MathF.Abs(LinearVelocity.X - GroundVelocity.X) / gameDt;
         }
         DriveGrip(0, Friction);
+
+        // What carries the entity may also hold its rotation to its own, if it can turn.
+        if (Support?.CarryHold is float hold && !AxisLockAngularZ)
+        {
+            _grip.SetParamZ(Generic6DofJoint3D.Param.AngularMotorTargetVelocity, 0);
+            _grip.SetParamZ(Generic6DofJoint3D.Param.AngularMotorForceLimit, hold * ComputeLoad());
+            _grip.SetFlagZ(Generic6DofJoint3D.Flag.EnableMotor, true);
+        }
+    }
+
+    private void ReleaseGrip()
+    {
+        _grip.SetFlagX(Generic6DofJoint3D.Flag.EnableLinearMotor, false);
+        _grip.SetFlagZ(Generic6DofJoint3D.Flag.EnableMotor, false);
+        Friction = 0;
     }
 
     /// <summary>

@@ -37,6 +37,12 @@ public interface ICharacterController<in TEntity>
     public float? CarryFriction => null;
 
     /// <summary>
+    /// How firmly the entity holds the rotation of what stands on it, as a multiple of that body's load, for kinds of
+    /// body whose hold is their controller's to tune, such as a walker's. Null for none. Read each tick it is used.
+    /// </summary>
+    public float? CarryHold => null;
+
+    /// <summary>
     /// Called once per physics tick while the game is paused because a controller asked. Nothing moves then:
     /// the engine doesn't step, so forces and impulses wait until play resumes. No game time passes.
     /// </summary>

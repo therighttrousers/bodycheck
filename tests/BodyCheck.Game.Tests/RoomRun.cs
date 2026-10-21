@@ -18,6 +18,7 @@ public sealed class RoomRun
 {
     public static readonly PlayerInput Idle = new(0, 0, false);
     public static readonly PlayerInput Right = new(1, 0, false);
+    public static readonly PlayerInput Left = new(-1, 0, false);
     public static readonly PlayerInput Jump = new(0, 0, true);
 
     private PlayerInput _input = Idle;

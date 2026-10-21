@@ -120,6 +120,13 @@ public sealed record Features
     /// </summary>
     public float PlayerCarryFriction { get; init; } = 6;
 
+    /// <summary>
+    /// How firmly the player holds the rotation of what it carries: the most torque it uses, as a multiple of the
+    /// carried body's load, so a length in tiles. Robots don't hold what they carry. A block of 1 tile tips off a body
+    /// that decelerates at more than gravity unless something holds it; through a reversal, holding it takes about 2.3.
+    /// </summary>
+    public float PlayerCarryHold { get; init; } = 3;
+
     /// <summary>Upward speed given by the jump impulse.</summary>
     public float PlayerJumpSpeed { get; init; } = 12.7f;
 
