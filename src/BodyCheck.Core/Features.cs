@@ -152,6 +152,12 @@ public sealed record Features
     public int PlayerCoyoteTicks { get; init; } = 4;
 
     /// <summary>
+    /// How long a press of jump in the air still counts, in ticks at <see cref="TuningTicksPerSecond"/> of real time,
+    /// counting the tick it is pressed on. Landing within it jumps. At 1, only a press on the ground jumps.
+    /// </summary>
+    public int PlayerJumpBufferTicks { get; init; } = 4;
+
+    /// <summary>
     /// How far the box of the entity phased through may be beyond a sphere around the player's center that just
     /// contains the player's box, whose radius is half the player's diagonal. At least 0, so that everything touching
     /// the player is in reach.

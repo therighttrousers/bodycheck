@@ -341,6 +341,31 @@ public class PlayerControllerTest
         AssertThat(Velocity.Y > 0).IsEqual(!oneTickLate);
     }
 
+    /// <summary>
+    /// Falling, a tap of jump jumps on landing if the landing is within the buffer ticks, counted from the tap, but not
+    /// if the tap is one tick earlier.
+    /// </summary>
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task Jump_buffer_lasts_exactly_its_ticks(bool oneTickEarly)
+    {
+        await Start(playerX: 5, playerY: 5, settleTicks: 0);
+        int fallTicks = 0;
+        for (; fallTicks < 120 && !Player.OnGround; fallTicks++)
+        {
+            await Tick(Idle);
+        }
+
+        await Start(playerX: 5, playerY: 5, settleTicks: 0);
+        int bufferTicks = Features.Current.PlayerJumpBufferTicks + (oneTickEarly ? 1 : 0);
+        await Tick(Idle, fallTicks - bufferTicks);
+        await Tick(Jump);
+        await Tick(Idle, bufferTicks + 1);
+
+        // Rising after a jump, at rest without one.
+        AssertThat(Velocity.Y > 0).IsEqual(!oneTickEarly);
+    }
+
     [TestCase]
     public async Task Thrust_ends_when_the_body_hits_a_ceiling()
     {
