@@ -46,7 +46,7 @@ Run and jump. See [movement.md](movement.md).
 - They end far enough apart to clear their boxes in that direction, plus a gap of 0.5 tiles: through a robot, 1.3 tiles apart, center to center, sideways, and 2.3 up or down (`015 §5.1`).
 - Each moves straight toward where it is sent, through other entities but not through tiles: where it meets a tile, it slides along it, so it may stop short. The engine pushes apart whatever ends up overlapping. So a phase never fails and never crosses a wall. Phasing down through a robot on the floor swaps them: the player stops on the floor, and the robot is pushed up off it, and thrown up. Phasing sideways through a robot against a wall swaps them too (`015 §5.21`).
 - A movable object is thrown backwards, opposite to the player's exit direction. Lighter objects are thrown faster.
-- A phase ends a jump's thrust and coyote time, and so does cancelling one (`015 §5.21`).
+- A phase ends a jump's thrust, coyote time and buffered press, and so does cancelling one (`015 §5.21`).
 - Try it in the test room "Phase".
 - Traversal: phase through objects and NPCs to go faster and reach high places.
 - Phasing straight down juggles robots, puts robots on platforms, picks up blocks, and falls through platforms while they can be phased through (`015 §5.18`).

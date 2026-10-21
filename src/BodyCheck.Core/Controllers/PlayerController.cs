@@ -26,6 +26,8 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     private float _groundTimeLeft;
     private Vector3 _lastGroundVelocity = Vector3.Zero;
     private float _thrustTimeLeft;
+    // In real time: how much longer the last press of jump counts, so that pressing it just before landing jumps.
+    private float _jumpBufferLeft;
     private float _phaseCooldownLeft;
     // In real time: how much longer the last direction held while a phase is aimed still counts, once let go of.
     private float _phaseDirectionTimeLeft;
@@ -76,6 +78,11 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             _lastGroundVelocity = entity.GroundVelocity;
         }
 
+        if (input.JumpHeld && !_jumpWasHeld)
+        {
+            _jumpBufferLeft = Features.TicksToTime(Features.Current.PlayerJumpBufferTicks);
+        }
+
         if (!ApplyPhase(entity, input, gameDt, realDt))
         {
             ApplyRun(entity, move, weight);
@@ -96,6 +103,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
 
         _groundTimeLeft = Math.Max(0, _groundTimeLeft - gameDt);
         _thrustTimeLeft = Math.Max(0, _thrustTimeLeft - gameDt);
+        _jumpBufferLeft = Math.Max(0, _jumpBufferLeft - realDt);
         _jumpWasHeld = input.JumpHeld;
         _phaseCooldownLeft = Math.Max(0, _phaseCooldownLeft - gameDt);
         _phaseMade = false;
@@ -112,6 +120,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         Telemetry.Report(Metric.OnGround, entity.OnGround);
         Telemetry.Report(Metric.CoyoteTime, entity.OnGround ? 0 : _groundTimeLeft);
         Telemetry.Report(Metric.ThrustTime, _thrustTimeLeft);
+        Telemetry.Report(Metric.JumpBufferTime, _jumpBufferLeft);
 
         if (!entity.OnGround)
         {
@@ -208,9 +217,10 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         }
         Phase = null;
 
-        // A phase ends a jump's thrust and coyote time, and so does cancelling one: the aim took them.
+        // A phase ends a jump's thrust, coyote time and buffered press, and so does cancelling one: the aim took them.
         _groundTimeLeft = 0;
         _thrustTimeLeft = 0;
+        _jumpBufferLeft = 0;
         return _phaseMade;
     }
 
@@ -276,12 +286,8 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
 
     private void ApplyJump(WalkerEntity entity, bool jumpHeld, float weight)
     {
-        if (!jumpHeld)
-        {
-            return;
-        }
-
-        if (!_jumpWasHeld && _groundTimeLeft > 0 && _thrustTimeLeft == 0)
+        // A press buffered in the air jumps on landing even if jump has been let go of since, as a tap.
+        if (_jumpBufferLeft > 0 && _groundTimeLeft > 0 && _thrustTimeLeft == 0)
         {
             // The jump speed is relative to the ground, as it moved on the last tick on it: whatever the entity
             // gained or lost against it since, from falling in coyote ticks or being pushed off it, is undone.
@@ -290,9 +296,15 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             entity.ApplyCentralImpulse(impulse);
             entity.Support?.ApplyCentralImpulse(-impulse);
             _groundTimeLeft = 0;
+            _jumpBufferLeft = 0;
             _thrustTimeLeft = Features.TicksToTime(Features.Current.PlayerJumpThrustTicks + 1); // +1 to include this tick
 
             // Thrust starts on the next tick.
+            return;
+        }
+
+        if (!jumpHeld)
+        {
             return;
         }
 
