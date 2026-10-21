@@ -126,7 +126,8 @@ public class PlayerControllerTest
     [TestCase]
     public async Task Driving_does_not_slow_a_body_that_is_over_top_speed()
     {
-        await Start(body: NoDrag);
+        // Without ground friction, nothing brakes the push while the controller is off.
+        await Start(new() { PlayerGroundFriction = 0 }, body: NoDrag);
 
         // A controller sees an impulse only after the engine's next step, so the push gets a tick of its own.
         _world!.ControllersEnabled = false;

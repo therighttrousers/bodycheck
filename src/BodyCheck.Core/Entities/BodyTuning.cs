@@ -27,18 +27,53 @@ public sealed record BodyTuning
     /// </summary>
     public float EngineFriction { get; init; }
 
+    // The values below are features, which playtesting tunes, so each is a function that reads them from the features
+    // in effect when it is used (016 §3.1).
+
+    /// <summary>
+    /// The coefficient of friction with which this body grips what it stands on, where the engine's friction falls
+    /// short of it, as on a walker (019 §1.5). Null for <see cref="EngineFriction"/>.
+    /// </summary>
+    public Func<Features, float>? GroundFriction { get; init; }
+
+    /// <summary>
+    /// The coefficient of friction with which this body grips what stands on it, which wins over that body's own: a
+    /// walker grabs what it carries (019 §1.4). Null leaves what stands on it to its own.
+    /// </summary>
+    public Func<Features, float>? CarryFriction { get; init; }
+
+    /// <summary>
+    /// The most force with which this body steadies what stands on it: it holds that body's speed at its center to its
+    /// own, like a hand held up behind the head, so that friction at that body's base needn't, and doesn't tip it
+    /// (019 §5.1). Null for none.
+    /// </summary>
+    public Func<Features, float>? CarrySteadying { get; init; }
+
+    /// <summary>
+    /// The most torque with which this body, while it steadies what stands on it, turns that body towards level, as a
+    /// hand would (019 §5.1, §5.2). Null for none.
+    /// </summary>
+    public Func<Features, float>? CarryTorque { get; init; }
+
     public static BodyTuning Player { get; } = new()
     {
         HalfSize = new(0.4f, 0.9f),
         Mass = 1,
-        CollisionLayer = PhysicsLayer.Character
+        CollisionLayer = PhysicsLayer.Character,
+        GroundFriction = features => features.PlayerGroundFriction,
+        CarryFriction = features => features.PlayerCarryFriction,
+        CarrySteadying = features => features.PlayerCarrySteadying,
+        CarryTorque = features => features.PlayerCarryTorque,
     };
 
+    /// <summary>A robot, which doesn't steady or hold what it carries.</summary>
     public static BodyTuning Robot { get; } = new()
     {
         HalfSize = new(0.4f, 0.9f),
         Mass = 1,
-        CollisionLayer = PhysicsLayer.Character
+        CollisionLayer = PhysicsLayer.Character,
+        GroundFriction = features => features.RobotGroundFriction,
+        CarryFriction = features => features.RobotCarryFriction,
     };
 
     /// <summary>A hovering platform. Its friction carries the things that rest on it.</summary>

@@ -32,7 +32,7 @@ public sealed class RobotController : ICharacterController<WalkerEntity>
             _move = 0;
         }
 
-        ApplyRun(entity, _move);
+        ApplyRun(entity, _move, gameDt);
 
         // Set animation variables
         entity.IsGrounded = entity.OnGround;
@@ -40,7 +40,7 @@ public sealed class RobotController : ICharacterController<WalkerEntity>
         entity.Facing = _facing;
     }
 
-    private void ApplyRun(WalkerEntity entity, float move)
+    private void ApplyRun(WalkerEntity entity, float move, float gameDt)
     {
         Features features = Features.Current;
 
@@ -58,10 +58,19 @@ public sealed class RobotController : ICharacterController<WalkerEntity>
             drive = MathF.Abs(move) * force * headroom;
         }
 
-        // The drive is traction: the engine applies it, and pushes back on the support. Friction adds to it
-        // unless the entity is driving the way it is already going, so it holds an idle entity still on its
-        // support, and can stop a moving one but can't reverse it. Neither does anything in the air.
-        float friction = move == 0 || reverse ? features.RobotGroundFriction * entity.Weight : 0;
-        entity.ApplyTraction(MathF.Sign(move) * features.RobotTopSpeed, drive + friction);
+        // The drive is traction: the engine applies it, and pushes back on the support. It adds to the entity's
+        // friction, which holds an idle entity still on its support. Driving the way the entity is already going
+        // gets no friction, so the drive takes it off again. Reversing, it keeps only as much as stops the entity and
+        // what it carries within the tick, so that friction doesn't push on past zero towards the drive's target
+        // (019 §4.8). Neither does anything in the air.
+        if (move != 0)
+        {
+            // A loaded walker drives harder, so that carrying slows it less (019 §6.4).
+            drive *= entity.ComputeLoad() / entity.Weight;
+            float stackMass = entity.ComputeLoad() * entity.Mass / entity.Weight;
+            float stopping = stackMass * MathF.Abs(speed) / gameDt;
+            float extra = reverse ? drive + MathF.Min(entity.Friction, stopping) - entity.Friction : drive - entity.Friction;
+            entity.ApplyTraction(MathF.Sign(move) * features.RobotTopSpeed, extra);
+        }
     }
 }

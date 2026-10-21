@@ -3,6 +3,7 @@ using System.Linq;
 
 using BodyCheck.Core;
 using BodyCheck.Core.Controllers;
+using BodyCheck.Core.Entities;
 using BodyCheck.Core.Simulation;
 using BodyCheck.Core.WorldData;
 
@@ -42,8 +43,9 @@ public static class Probe
         {
             case "seams":
                 world = Load(TestRoomLibrary.Seams);
-                // Nothing may brake the sliding body, so the controllers are off.
+                // Nothing may brake the sliding body, so the controllers and ground friction are off.
                 world.ControllersEnabled = false;
+                Features.Set(Features.Current with { PlayerGroundFriction = 0 });
                 GD.Print($"Seam probe: tiles {(mergeTiles ? "merged" : "single")}");
                 probe = new SeamProbe(world.Player, speed: Features.Current.PlayerTopSpeed);
                 break;
@@ -73,6 +75,11 @@ public static class Probe
                 GD.Print("Landing probe:");
                 probe = new LandingProbe(world.Player);
                 break;
+            case "buffered-landing":
+                world = Load(TestRoomLibrary.Seams);
+                GD.Print("Buffered landing probe:");
+                probe = new BufferedLandingProbe(world.Player);
+                break;
             case "push":
                 world = Load(TestRoomLibrary.RobotPush);
                 GD.Print("Push probe:");
@@ -82,6 +89,41 @@ public static class Probe
                 world = Load(TestRoomLibrary.RobotRiding);
                 GD.Print("Run-off probe:");
                 probe = new RunOffProbe(world.Player, world.EntitiesOf(EntityKind.Robot).Single());
+                break;
+            case "carry":
+                world = Load(TestRoomLibrary.Carrying);
+                GD.Print("Carry probe:");
+                {
+                    var blocks = world.EntitiesOf(EntityKind.Block).ToList();
+                    Entity carried = blocks.MaxBy(block => block.Position.Y)!;
+                    Entity resting = blocks.MinBy(block => block.Position.Y)!;
+                    Entity stacked = blocks.Single(block => block != carried && block != resting);
+                    probe = new CarryProbe(world.Player, carried, resting, stacked);
+                }
+                break;
+            case "wobble" or "offset-landing" or "tilted":
+                world = Load(TestRoomLibrary.Carrying);
+                GD.Print($"Wobble probe, {name}:");
+                WobbleProbe.Case @case = name switch
+                {
+                    "wobble" => WobbleProbe.Case.Wobble,
+                    "offset-landing" => WobbleProbe.Case.OffsetLanding,
+                    _ => WobbleProbe.Case.Tilted,
+                };
+                probe = new WobbleProbe(world.Player, world.EntitiesOf(EntityKind.Block).MaxBy(block => block.Position.Y)!, @case);
+                break;
+            case "carry-checks":
+                world = Load(TestRoomLibrary.Carrying);
+                GD.Print("Carry checks probe:");
+                {
+                    var blocks = world.EntitiesOf(EntityKind.Block).OrderBy(block => block.Position.Y).ToList();
+                    probe = new CarryChecksProbe(world.Player, carried: blocks[^1], stacked: blocks[1]);
+                }
+                break;
+            case "joint-placement":
+                world = Load(TestRoomLibrary.FloatingBlock);
+                GD.Print("Joint placement probe:");
+                probe = new JointPlacementProbe(world.EntitiesOf(EntityKind.Block).Single(), world.Player);
                 break;
             case "phase":
                 world = Load(RoomLibrary.Phase);

@@ -3,10 +3,11 @@ using Godot;
 namespace BodyCheck.Core.Entities;
 
 /// <summary>
-/// A body that moves itself by its grip on what it stands on: the player, a robot. That grip is traction,
-/// which the engine applies as the motor of a joint between the walker and whatever it stands on.
+/// A body that moves itself by its grip on what it stands on: the player, a robot. Its controller adds
+/// traction to the entity's friction.
 /// <para>
 /// A walker has no engine friction. With it, a walker would grip walls too, and lose its speed on landing.
+/// Its friction with what it stands on is the entity's own, with a coefficient from its tuning.
 /// </para>
 /// </summary>
 public partial class WalkerEntity : Entity
@@ -24,63 +25,27 @@ public partial class WalkerEntity : Entity
     public float Facing { get; set; }
     #endregion
 
-    private readonly Generic6DofJoint3D _motor;
-    private Entity? _motorAnchor;
-
     /// <param name="visual">What to draw for the entity, centered on the middle of its box.</param>
     public WalkerEntity(BodyTuning tuning, Node3D? visual = null)
         // Continuous detection keeps a walker's contacts exact, which its movement depends on.
         : base(tuning, visual, engineFriction: 0, continuousCd: true, axisLockAngularZ: true)
     {
-        // A joint that constrains nothing: every limit is off, so its only effect is the X motor. The
-        // walker is the joint's second body. The first is what it stands on, or nothing for tiles. The joint
-        // is at the feet, where traction acts: higher, its push back would tip what the walker stands on.
-        _motor = new Generic6DofJoint3D
-        {
-            Position = new Vector3(0, -tuning.HalfSize.Y, 0),
-            NodeB = new NodePath(".."),
-            ExcludeNodesFromCollision = false
-        };
-        foreach (var flag in (ReadOnlySpan<Generic6DofJoint3D.Flag>)
-            [Generic6DofJoint3D.Flag.EnableLinearLimit, Generic6DofJoint3D.Flag.EnableAngularLimit])
-        {
-            _motor.SetFlagX(flag, false);
-            _motor.SetFlagY(flag, false);
-            _motor.SetFlagZ(flag, false);
-        }
-        AddChild(_motor);
     }
 
     /// <summary>What decides the walker's actions each tick. Without one it is only pushed around.</summary>
     public ICharacterController<WalkerEntity>? Controller { get; set; }
 
     /// <summary>
-    /// Uses the walker's grip on whatever it stands on, for the next step: pushes against the ground to
-    /// bring the walker's horizontal speed, relative to the ground, towards <paramref name="targetSpeed"/>,
-    /// with at most <paramref name="maxForce"/>, and pushes the ground the other way equally. A target of
-    /// zero is braking. It has no effect in the air.
+    /// Adds traction to the walker's friction, for the next step: pushes against the ground to bring the walker's
+    /// horizontal speed, relative to the ground, towards <paramref name="targetSpeed"/>, with at most
+    /// <see cref="Entity.Friction"/> plus <paramref name="extraForce"/>, and pushes the ground the other way equally.
+    /// The extra force may be negative, to take off friction that the controller doesn't want: at most nothing is
+    /// left. It has no effect in the air.
     /// <para>
-    /// The engine applies it, as the motor's target speed and force limit.
+    /// The engine applies it, as the target speed and force limit of the motor that friction uses (019 §1.6).
     /// </para>
     /// </summary>
-    public void ApplyTraction(float targetSpeed, float maxForce)
-    {
-        if (!OnGround || maxForce <= 0)
-        {
-            return;
-        }
-
-        if (Support != _motorAnchor)
-        {
-            _motorAnchor = Support;
-            _motor.NodeA = _motorAnchor is null ? new NodePath() : _motor.GetPathTo(_motorAnchor);
-        }
-        _motor.SetParamX(Generic6DofJoint3D.Param.LinearMotorTargetVelocity, targetSpeed);
-        _motor.SetParamX(Generic6DofJoint3D.Param.LinearMotorForceLimit, maxForce);
-        _motor.SetFlagX(Generic6DofJoint3D.Flag.EnableLinearMotor, true);
-    }
-
-    protected override void ReleaseMotors() => _motor.SetFlagX(Generic6DofJoint3D.Flag.EnableLinearMotor, false);
+    public void ApplyTraction(float targetSpeed, float extraForce) => DriveGrip(targetSpeed, Friction + extraForce);
 
     public override bool RequestsPause => Controller?.RequestsPause ?? false;
 
