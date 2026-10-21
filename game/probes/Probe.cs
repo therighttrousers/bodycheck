@@ -75,6 +75,11 @@ public static class Probe
                 GD.Print("Landing probe:");
                 probe = new LandingProbe(world.Player);
                 break;
+            case "buffered-landing":
+                world = Load(TestRoomLibrary.Seams);
+                GD.Print("Buffered landing probe:");
+                probe = new BufferedLandingProbe(world.Player);
+                break;
             case "push":
                 world = Load(TestRoomLibrary.RobotPush);
                 GD.Print("Push probe:");

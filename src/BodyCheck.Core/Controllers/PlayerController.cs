@@ -85,8 +85,10 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
 
         if (!ApplyPhase(entity, input, gameDt, realDt))
         {
-            ApplyRun(entity, move, gameDt);
-            ApplyJump(entity, input.JumpHeld, weight);
+            // A press buffered in the air jumps on landing even if jump has been let go of since, as a tap.
+            bool jumps = _jumpBufferLeft > 0 && _groundTimeLeft > 0 && _thrustTimeLeft == 0;
+            ApplyRun(entity, move, gameDt, jumps);
+            ApplyJump(entity, input.JumpHeld, weight, jumps);
         }
 
         // Set animation variables
@@ -249,7 +251,8 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             });
     }
 
-    private void ApplyRun(WalkerEntity entity, float move, float gameDt)
+    /// <param name="jumps">Whether the entity jumps on this tick.</param>
+    private void ApplyRun(WalkerEntity entity, float move, float gameDt, bool jumps)
     {
         Features features = Features.Current;
 
@@ -276,14 +279,18 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             // adds to the entity's friction, which holds an idle entity still on its support. Driving the way
             // the entity is already going gets no friction, so the drive takes it off again. Reversing, it
             // keeps only as much as stops the entity and what it carries within the tick, so that friction
-            // doesn't push on past zero towards the drive's target (019 §4.8).
-            if (move != 0)
+            // doesn't push on past zero towards the drive's target (019 §4.8). Jumping, it takes all of the friction
+            // off, whichever way it drives, so that a jump leaves with the entity's speed: a landing's catch would
+            // otherwise stop a jump buffered on an idle landing dead (019 §6.5).
+            if (move != 0 || jumps)
             {
                 // A loaded walker drives harder, so that carrying slows it less (019 §6.4).
                 drive *= entity.ComputeLoad() / entity.Weight;
                 float stackMass = entity.ComputeLoad() * entity.Mass / entity.Weight;
                 float stopping = stackMass * MathF.Abs(speed) / gameDt;
-                float extra = reverse ? drive + MathF.Min(entity.Friction, stopping) - entity.Friction : drive - entity.Friction;
+                float extra = reverse && !jumps
+                    ? drive + MathF.Min(entity.Friction, stopping) - entity.Friction
+                    : drive - entity.Friction;
                 entity.ApplyTraction(MathF.Sign(move) * features.PlayerTopSpeed, extra);
             }
         }
@@ -293,10 +300,10 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         }
     }
 
-    private void ApplyJump(WalkerEntity entity, bool jumpHeld, float weight)
+    /// <param name="jumps">Whether the entity jumps on this tick.</param>
+    private void ApplyJump(WalkerEntity entity, bool jumpHeld, float weight, bool jumps)
     {
-        // A press buffered in the air jumps on landing even if jump has been let go of since, as a tap.
-        if (_jumpBufferLeft > 0 && _groundTimeLeft > 0 && _thrustTimeLeft == 0)
+        if (jumps)
         {
             // The jump speed is relative to the ground, as it moved on the last tick on it: whatever the entity
             // gained or lost against it since, from falling in coyote ticks or being pushed off it, is undone.

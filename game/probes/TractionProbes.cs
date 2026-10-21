@@ -154,3 +154,68 @@ public sealed class RunOffProbe : IProbe
             + $"robot vx {_robot.LinearVelocity.X,7:F3}");
     }
 }
+
+/// <summary>
+/// Runs to speed in the "Seams" room and jumps, then, falling, presses jump on every other tick, so that a press is
+/// buffered when the player lands and it jumps again at once. Once holding the run throughout, once letting go of it
+/// at take-off. Prints the horizontal speed around the landing and the jump that follows.
+/// </summary>
+public sealed class BufferedLandingProbe : IProbe
+{
+    private const int RunTicks = 70;
+
+    private readonly Entity _body;
+    private int _tick;
+    private int _phaseStart;
+    private bool _second;
+    private bool _wasInAir;
+    private int _afterLanding = -1;
+    private float _lastAirSpeed;
+
+    public BufferedLandingProbe(Entity body)
+    {
+        _body = body;
+    }
+
+    public bool Done { get; private set; }
+
+    public PlayerInput Input { get; private set; }
+
+    public void Tick(float gameDt)
+    {
+        int t = _tick++ - _phaseStart;
+        if (t < RunTicks)
+        {
+            Input = new PlayerInput(t < 0 ? 0 : 1, 0, false);
+            return;
+        }
+
+        float held = _second ? 0 : 1;
+        bool falling = !_body.OnGround && _body.LinearVelocity.Y < 0;
+        Input = new PlayerInput(held, 0, t == RunTicks || (falling && t % 2 == 0));
+        if (_afterLanding < 0)
+        {
+            if (!_body.OnGround)
+            {
+                _wasInAir = true;
+                _lastAirSpeed = _body.LinearVelocity.X;
+            }
+            else if (_wasInAir)
+            {
+                _afterLanding = 0;
+                GD.Print($"  {(_second ? "idle since take-off" : "holding the run")}: vx {_lastAirSpeed:F3} on the last tick in the air");
+            }
+            return;
+        }
+
+        GD.Print($"    tick {_afterLanding} after landing: vx {_body.LinearVelocity.X:F3} vy {_body.LinearVelocity.Y:F3} on ground {_body.OnGround}");
+        if (++_afterLanding == 4)
+        {
+            Done = _second;
+            _second = true;
+            _wasInAir = false;
+            _afterLanding = -1;
+            _phaseStart = _tick + 60;
+        }
+    }
+}
