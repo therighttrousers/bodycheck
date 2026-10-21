@@ -20,6 +20,8 @@ public enum Metric
     CoyoteTime,
     /// <summary>Jump thrust time left, in game seconds.</summary>
     ThrustTime,
+    /// <summary>How much longer the last press of jump counts, in real seconds.</summary>
+    JumpBufferTime,
 
     // The player's last time in the air, reported on landing. Measured from its feet on the last tick on
     // the ground.
