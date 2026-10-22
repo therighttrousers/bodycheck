@@ -21,11 +21,12 @@ Prerequisites:
 - If you want to edit the code, Visual Studio Code
 - If you want to edit the map, version 1.5.3 of the [LDtk editor](https://ldtk.io/download/)
 - If you want to edit models, Blender
+- A parent directory to clone the repository into, **which must not contain spaces anywhere in its path**
 
 Steps:
 1. Open a terminal where `dotnet --version` prints a version >=10.0.0.
 2. Run `gh auth login`, and choose options to log in to GitHub.com, using HTTPS, with a web browser.
-3. Change to some `<parent-directory>` (the place you put all your projects).
+3. Change to some `<parent-directory>`.
 4. Run `git clone https://github.com/therighttrousers/bodycheck.git`.
 5. Run `cd bodycheck`.
 6. Run `.\dev-setup.ps1` to install Godot locally, install C# dependencies, and set up pre-commit hooks.
