@@ -1,7 +1,5 @@
 using System.Collections.Generic;
 
-using BodyCheck.Core.WorldData;
-
 using Godot;
 
 namespace BodyCheck.Look;
@@ -18,10 +16,10 @@ public partial class LookProps : Node3D
 
     private readonly List<Node3D> _spinners = [];
 
-    public LookProps(TileGrid tiles)
+    public LookProps(Vector2I size)
     {
-        float y = tiles.Height - 5.5f;
-        float spacing = tiles.Width / 6f;
+        float y = size.Y - 5.5f;
+        float spacing = size.X / 6f;
 
         // Smooth and shiny.
         AddSpinner(spacing, y,
@@ -99,7 +97,7 @@ public partial class LookProps : Node3D
         {
             Mesh = new QuadMesh
             {
-                Size = new Vector2(tiles.Width - 4, 1),
+                Size = new Vector2(size.X - 4, 1),
                 Material = new StandardMaterial3D
                 {
                     AlbedoTexture = new GradientTexture2D
@@ -109,7 +107,7 @@ public partial class LookProps : Node3D
                     ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
                 },
             },
-            Position = new Vector3(tiles.Width / 2f, tiles.Height - 2f, -0.45f),
+            Position = new Vector3(size.X / 2f, size.Y - 2f, -0.45f),
         });
     }
 

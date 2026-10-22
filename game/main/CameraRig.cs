@@ -122,12 +122,12 @@ public partial class CameraRig : Node3D
         }
 
         Vector2 viewport = GetViewport().GetVisibleRect().Size;
-        float h = 0.5f * _world.Tiles.Height;
-        float w = 0.5f * _world.Tiles.Width * viewport.Y / viewport.X;
+        float h = 0.5f * _world.World.Size.Y;
+        float w = 0.5f * _world.World.Size.X * viewport.Y / viewport.X;
         float mapDistance = Math.Max(h, w) / Mathf.Tan(Mathf.DegToRad(Fov / 2));
         _mapPhantomCamera.Node3D.Position = new Vector3(
-            0.5f * _world.Tiles.Width,
-            0.5f * _world.Tiles.Height,
+            0.5f * _world.World.Size.X,
+            0.5f * _world.World.Size.Y,
             mapDistance + 0.5f);
     }
 
@@ -167,8 +167,8 @@ public partial class CameraRig : Node3D
         Vector2 viewport = GetViewport().GetVisibleRect().Size;
         float halfWidth = HalfHeight * viewport.X / viewport.Y;
         _target.GlobalPosition = new Vector3(
-            Clamp(player.X, halfWidth, _world.Tiles.Width),
-            Clamp(player.Y + lookOffset, HalfHeight, _world.Tiles.Height),
+            Clamp(player.X, halfWidth, _world.World.Size.X),
+            Clamp(player.Y + lookOffset, HalfHeight, _world.World.Size.Y),
             0);
     }
 

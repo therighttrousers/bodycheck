@@ -24,12 +24,12 @@ public class TileGridTests
     }
 
     [Fact]
-    public void Outside_the_grid_is_solid()
+    public void Outside_the_grid_is_empty()
     {
         TileGrid grid = NewGrid();
 
-        Assert.True(grid.IsSolid(-1, 2));
-        Assert.True(grid.IsSolid(20, 2));
-        Assert.True(grid.IsSolid(5, 5));
+        Assert.False(grid.IsSolid(-1, 2));
+        Assert.False(grid.IsSolid(20, 2));
+        Assert.False(grid.IsSolid(5, 5));
     }
 }

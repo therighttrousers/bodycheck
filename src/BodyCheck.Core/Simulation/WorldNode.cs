@@ -28,24 +28,28 @@ public partial class WorldNode : Node3D
     /// <param name="mergeTiles">Whether to merge tiles into larger colliders, or give each tile its own.</param>
     public WorldNode(
         World world,
-        Func<EntityKind, BodyTuning, Node3D> visual,
-        bool mergeTiles = true,
+        IAssetLibrary assets,
         BodyTuning? playerBody = null)
     {
         World = world;
-        Tiles = world.CreateTiles();
-        AddChild(TileColliders.Build(Tiles, mergeTiles));
 
-        // A back wall, so that lights have something to fall on.
-        AddChild(new MeshInstance3D
+        var body = new StaticBody3D
         {
-            Mesh = new BoxMesh
-            {
-                Size = new Vector3(Tiles.Width, Tiles.Height, 0.2f),
-                Material = new StandardMaterial3D { AlbedoColor = new Color(0.12f, 0.13f, 0.16f) },
-            },
-            Position = new Vector3(Tiles.Width / 2f, Tiles.Height / 2f, -0.6f),
-        });
+            PhysicsMaterialOverride = new PhysicsMaterial { Friction = Features.Current.TileDefaultFriction, Bounce = 0 },
+            CollisionLayer = (uint)PhysicsLayer.Static,
+        };
+        foreach (Rect2I box in TileColliders(World))
+        {
+            var size = new Vector3(box.Size.X, box.Size.Y, 1);
+            var position = new Vector3(box.Position.X + box.Size.X / 2f, box.Position.Y + box.Size.Y / 2f, 0);
+            body.AddChild(new CollisionShape3D { Shape = new BoxShape3D { Size = size }, Position = position });
+        }
+        AddChild(body);
+
+        foreach (var room in world.Rooms)
+        {
+            AddChild(new RoomNode(room, assets));
+        }
 
         PlayerInput Input() => PlayerInput?.Invoke() ?? default;
 
@@ -53,10 +57,23 @@ public partial class WorldNode : Node3D
         {
             Entity entity = config.Kind switch
             {
-                EntityKind.Player => Player = CreatePlayer((EntityConfig.Player)config, visual(config.Kind, BodyTuning.Player), playerBody ?? BodyTuning.Player, PlayerController = new PlayerController(Input)),
-                EntityKind.Robot => CreateRobot((EntityConfig.Robot)config, visual(config.Kind, BodyTuning.Robot)),
-                EntityKind.Platform => CreatePlatform((EntityConfig.Platform)config, visual(config.Kind, BodyTuning.Platform)),
-                EntityKind.Block => CreateBlock((EntityConfig.Block)config, visual(config.Kind, BodyTuning.Block)),
+                EntityKind.Player => Player = CreatePlayer(
+                    (EntityConfig.Player)config,
+                    assets.GetEntityVisual(config.Kind, BodyTuning.Player.HalfSize),
+                    playerBody ?? BodyTuning.Player,
+                    PlayerController = new PlayerController(Input)),
+
+                EntityKind.Robot => CreateRobot(
+                    (EntityConfig.Robot)config,
+                    assets.GetEntityVisual(config.Kind, BodyTuning.Robot.HalfSize)),
+
+                EntityKind.Platform => CreatePlatform(
+                    (EntityConfig.Platform)config,
+                    assets.GetEntityVisual(config.Kind, BodyTuning.Platform.HalfSize)),
+
+                EntityKind.Block => CreateBlock(
+                    (EntityConfig.Block)config,
+                    assets.GetEntityVisual(config.Kind, BodyTuning.Block.HalfSize)),
             };
 
             entity.Position = new Vector3(config.Start.X, config.Start.Y + entity.HalfSize.Y, 0);
@@ -93,8 +110,49 @@ public partial class WorldNode : Node3D
         return new Entity(BodyTuning.Block, visual, axisLockAngularZ: false);
     }
 
+    /// <summary>
+    /// The solid tiles as boxes, in tile coordinates. Merging joins each horizontal run of tiles into one
+    /// box, then joins runs that sit directly above one another and span the same columns.
+    /// </summary>
+    private static List<Rect2I> TileColliders(ITileGrid tiles)
+    {
+        var boxes = new List<Rect2I>();
+
+        // The runs of the row below, by their first and last column, with the index of the box each belongs to.
+        var below = new Dictionary<(int, int), int>();
+        for (int y = 0; y < tiles.Size.Y; y++)
+        {
+            var current = new Dictionary<(int, int), int>();
+            for (int x = 0; x < tiles.Size.X; x++)
+            {
+                if (!tiles.IsSolid(x, y))
+                {
+                    continue;
+                }
+
+                int start = x;
+                while (x + 1 < tiles.Size.X && tiles.IsSolid(x + 1, y))
+                {
+                    x++;
+                }
+
+                if (below.TryGetValue((start, x), out int index))
+                {
+                    boxes[index] = new Rect2I(boxes[index].Position, boxes[index].Size + new Vector2I(0, 1));
+                }
+                else
+                {
+                    index = boxes.Count;
+                    boxes.Add(new Rect2I(start, y, x - start + 1, 1));
+                }
+                current[(start, x)] = index;
+            }
+            below = current;
+        }
+        return boxes;
+    }
+
     public World World { get; }
-    public TileGrid Tiles { get; }
 
     public WalkerEntity Player { get; } = null!;
     public PlayerController PlayerController { get; } = null!;

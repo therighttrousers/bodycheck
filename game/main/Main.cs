@@ -49,6 +49,7 @@ public partial class Main : Node
     private const string DefaultConfiguration = "defaults";
 
     private readonly GameModeManager _gameModeManager = new();
+    private readonly AssetLibrary _assets = new();
     private IReadOnlyList<World> _worlds = null!;
     private int _worldIndex;
     private IReadOnlyList<string> _configurations = [DefaultConfiguration];
@@ -269,10 +270,10 @@ public partial class Main : Node
     {
         _world?.QueueFree();
         Telemetry.Reset();
-        _world = new WorldNode(world, EntityVisuals.For, _mergeTiles);
+        _world = new WorldNode(world, _assets);
         if (world.Rooms.Contains(RoomLibrary.Look))
         {
-            _world.AddChild(new LookProps(_world.Tiles));
+            _world.AddChild(new LookProps(_world.World.Size));
         }
         _worldView.World.AddChild(_world);
         _cameraRig.Follow(_world);
@@ -297,8 +298,9 @@ public partial class Main : Node
     {
         var light = new DirectionalLight3D
         {
-            RotationDegrees = new Vector3(-35, -25, 0),
-            LightEnergy = 0.6f,
+            RotationDegrees = new Vector3(-35, 10, 0),
+            LightColor = new Color(1, 1, 0.9f),
+            LightEnergy = 0.5f,
             ShadowEnabled = true,
         };
         _worldView.World.AddChild(light);
@@ -308,8 +310,8 @@ public partial class Main : Node
             BackgroundMode = Godot.Environment.BGMode.Color,
             BackgroundColor = new Color(0.02f, 0.02f, 0.04f),
             AmbientLightSource = Godot.Environment.AmbientSource.Color,
-            AmbientLightColor = new Color(0.5f, 0.55f, 0.7f),
-            AmbientLightEnergy = 0.3f,
+            AmbientLightColor = new Color(0.5f, 0.5f, 1),
+            AmbientLightEnergy = 0.1f,
             SsaoEnabled = true,
             SsrEnabled = true,
             GlowEnabled = true,

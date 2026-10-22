@@ -7,20 +7,21 @@ namespace BodyCheck.Core.WorldData;
 /// starts in it. Its tiles and its entities' starts are in its own coordinates, with its bottom left tile at (0, 0).
 /// Rooms come from text (<see cref="FromText"/>) and from LDtk levels.
 /// </summary>
-public sealed class Room
+public sealed class Room : ITileGrid
 {
-    private readonly TileGrid _tiles;
+    private readonly ITileGrid _tiles;
 
     /// <param name="origin">Where the room's bottom left tile is in the world, in tiles.</param>
     /// <param name="tiles">The room's tiles. The room keeps it, so the caller must not change it afterwards.</param>
     /// <param name="entityConfigs">
     /// Each entity's configuration, including where the middle of its base starts, in the room's coordinates.
     /// </param>
-    public Room(string name, Vector2I origin, TileGrid tiles, IEnumerable<EntityConfig> entityConfigs)
+    public Room(string name, Vector2I origin, ITileGrid tiles, IEnumerable<EntityConfig> entityConfigs)
     {
         Name = name;
-        Origin = origin;
         _tiles = tiles;
+        Origin = origin;
+        Size = tiles.Size;
         EntityConfigs = [.. entityConfigs];
     }
 
@@ -67,16 +68,15 @@ public sealed class Room
 
     /// <summary>Where the room's bottom left tile is in the world, in tiles.</summary>
     public Vector2I Origin { get; }
-
+    public Vector2I Size { get; }
     /// <summary>The tiles the room covers, in the world's coordinates.</summary>
-    public Rect2I Bounds => new(Origin, _tiles.Width, _tiles.Height);
+    public Rect2I Bounds => new(Origin, Size);
+
+    public bool IsSolid(int x, int y) => _tiles.IsSolid(x, y);
 
     /// <summary>
     /// Each entity's configuration, including where the middle of its base starts, in the room's coordinates and in
     /// the order the room was given them.
     /// </summary>
     public IReadOnlyList<EntityConfig> EntityConfigs { get; }
-
-    /// <summary>Whether a tile is solid, in the room's coordinates. Everything outside the room is solid.</summary>
-    public bool IsSolid(int x, int y) => _tiles.IsSolid(x, y);
 }
