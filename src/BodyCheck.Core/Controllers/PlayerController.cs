@@ -179,7 +179,6 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
                 phaseThrow: Features.Current.PlayerPhaseThrow,
                 speed: Features.Current.PlayerPhaseSpeed);
 
-            _phaseCooldownLeft = Features.Current.PlayerPhaseCooldownTime;
             _phaseDirectionTimeLeft = 0;
             entity.RaiseCue(EntityCue.PhaseBegan);
         }
@@ -217,10 +216,12 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         {
             phase.Phase();
             _phaseMade = true;
+            _phaseCooldownLeft = Features.Current.PlayerPhaseThrowCooldownTime;
             entity.RaiseCue(EntityCue.PhaseThrown);
         }
         else
         {
+            _phaseCooldownLeft = Features.Current.PlayerPhaseCancelCooldownTime;
             entity.RaiseCue(EntityCue.PhaseCancelled);
         }
         Phase = null;
