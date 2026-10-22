@@ -4,6 +4,8 @@
 
 Inciting event (2026-10-21): issue #75, "Add event sound infrastructure and sound for the phase ability", on branch `phase-sounds`. The game has no sound yet. Neil is gathering placeholder sounds; the real ones will be our own, inspired by mid-1990s games.
 
+Closed on 2026-10-22. Outcomes are in the design docs: [architecture.md](../designs/architecture.md) and [models.md](../designs/models.md).
+
 Goal: sound for starting a phase and for the throw, in a shape that later sounds can follow, and background music, which is the best way to test muffling (section 2) by hand.
 
 Anti-goals, for now: sounds for NPCs and other abilities. Choosing music by world or room.
@@ -44,7 +46,7 @@ Tensions:
 
 ## 2. Muffling while a phase is aimed
 
-- [~] 2.1 How? Leaning: a low-pass filter on the `Master` bus, whose cutoff falls as the game slows down for a phase, over the same half second of real time, and rises when the phase is released or cancelled. Everything goes through `Master`, so it muffles the music, sounds still playing and the start sound itself.
+- [x] 2.1 How? Decision (Neil, 2026-10-22), as built and tuned (2.3): a low-pass filter on the `Master` bus, whose cutoff falls as the game slows down for a phase, over the same half second of real time, and rises when the phase is released or cancelled. Everything goes through `Master`, so it muffles the music, sounds still playing and the start sound itself.
 - [x] 2.2 What drives the cutoff? Decision (Neil, 2026-10-22): C. Options:
   - A. `GameModeManager`'s slowdown tween sets it beside the time scale. In step by construction, but the mode manager learns about audio.
   - B. A node in the game listens to `GameModeChanged` and runs its own tween over the same time. Two timers that must agree, and `SlowdownTime` shared between them.
@@ -57,7 +59,7 @@ Tensions:
   - Third try: the same curve and slope, with the closed cutoff up to 500 Hz, so that more of the sound's body comes through. Decision (Neil, 2026-10-22): perfect.
 - [x] 2.4 Does sound come back at once on release, as the time scale does, or over a few ticks? At once, as follows from 2.2: the mode is playing again, so the filter is open, and the throw's sound plays unmuffled.
 - [x] 2.5 Opening the menu or the map during an aim puts the time scale back to 1. Does the muffle go too? Decision (Neil, 2026-10-22): no. Sound is muffled while the menu or the map is open, whether or not a phase was being aimed. The filter itself, and whether it is the same as the phase's, is to be found by experiment (2.3).
-- [~] 2.6 Which sounds keep playing during the pause? If players that don't process while paused are paused with the tree (to be checked), an entity's sounds stop with the world, and the music, which processes always, plays on, muffled. Leaning: that is what we want; phase's start sound is made to end or fade within the slowdown.
+- [x] 2.6 Which sounds keep playing during the pause? If players that don't process while paused are paused with the tree (to be checked), an entity's sounds stop with the world, and the music, which processes always, plays on, muffled. Decision (Neil, 2026-10-22): that is what we want. Phase's start sound, at 0.75 seconds, would be cut off by the pause, and was clipped to 0.5 seconds, which ends in a lull in it, so it needs no fade.
 
 ## 3. Cancelling a phase
 
@@ -66,7 +68,7 @@ Tensions:
 ## 4. Buses and assets
 
 - [x] 4.1 Separate buses for sound effects and music, sending to `Master`? They are for setting their volumes apart, which nothing does yet; the muffle is on `Master` either way. Decision (Neil, 2026-10-22): yes, `Sfx` and `Music`, now, since they are cheap.
-- [ ] 4.2 The start sound lasts 0.5 seconds to match the slowdown, which is a constant in `GameModeManager`. If the slowdown is tuned, the sound won't follow.
+- [x] 4.2 The start sound lasts 0.5 seconds to match the slowdown, which is a constant in `GameModeManager`. If the slowdown is tuned, the sound won't follow. Decision (Neil, 2026-10-22): a constraint on the sound, documented for whoever makes it, not an open question: the start sound lasts 0.5 seconds or less.
 - [x] 4.3 Placeholders: Neil downloads only CC0 sounds for placeholders, from Freesound, which has plenty. They need no attribution. The first are in `game/assets/player_sounds/`.
 
 ## 5. Background music
@@ -74,4 +76,4 @@ Tensions:
 - [x] 5.1 How is music played? Decision (Neil, 2026-10-22): one `AudioStreamPlayer` in `Main.tscn` that processes always and plays on start, looping, so it plays through the pause, muffled. The loop is set in the track's import settings.
 - [x] 5.2 A placeholder track: Neil found a CC0 one on Freesound, now in `game/assets/music/`. Which music plays where is for later.
 - [x] 5.3 Does music play on while the menu or the map is open? Decision (Neil, 2026-10-22): yes, muffled (2.5).
-- [ ] 5.4 Run headless with `--quit-after`, the game now reports the music's playback and stream as leaked at exit. Stopping the player in `Main._ExitTree` didn't help. Likely Godot's shutdown with the dummy audio driver; unchecked with a real one. Probes, which quit the same way, will show it.
+- [x] 5.4 Run headless with `--quit-after`, the game now reports the music's playback and stream as leaked at exit. Stopping the player in `Main._ExitTree` didn't help. Likely Godot's shutdown with the dummy audio driver; unchecked with a real one. Probes, which quit the same way, will show it. Neil (2026-10-22): no such messages when the game runs from `play.cmd`, with a real audio driver, so it is headless only, and harmless.

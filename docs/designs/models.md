@@ -85,7 +85,7 @@ A character's sounds are in its wrapper scene, as its animation is: the scene is
 - **Cues.** A controller raises an `EntityCue` on its entity when something happens to it that the scene may react to, such as `PhaseBegan`. To give cues sounds, add a `CueSounds` node to the wrapper scene, and under it an `AudioStreamPlayer` or `AudioStreamPlayer3D` for each, named after its cue, on the `Sfx` bus. A cue with no player plays nothing; so does a misspelt name, silently.
 - **The cues:** `Jumped`, `PhaseBegan`, `PhaseThrown` and `PhaseCancelled`, all raised on the player.
 - **When to use which.** A cue says *when* something happens, on the tick it happens. An audio track in a clip says *where in a motion*, and plays only when the animation tree reaches that clip, which may be late or not at all after a transition's blend. So a sound that marks an event, such as a jump, is a cue. A sound that follows a motion is a track: footsteps, which keep time with the run cycle as its speed changes; sounds at points along a long animation, such as a door's creak as it swings or the stages of a death; sounds in an idle's fidgets. A cue can start such an animation, and its tracks then time the sounds within it (`021 §1.2`).
-- A character's sounds pause with the world, so the sound for a cue raised as the game pauses, such as `PhaseBegan`, should end or fade within the half second before it does (`021 §2.6`).
+- A character's sounds pause with the world. The game pauses half a second after `PhaseBegan`, so its sound lasts 0.5 seconds or less, or it is cut off by the pause (`021 §2.6`, `§4.2`).
 
 ### Adding an audio track to an imported animation
 
