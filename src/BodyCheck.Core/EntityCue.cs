@@ -6,6 +6,9 @@ namespace BodyCheck.Core;
 /// </summary>
 public enum EntityCue
 {
+    /// <summary>The player jumped.</summary>
+    Jumped,
+
     /// <summary>The player began aiming a phase.</summary>
     PhaseBegan,
 

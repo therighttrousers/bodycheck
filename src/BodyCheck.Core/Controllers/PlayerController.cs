@@ -321,6 +321,8 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             _jumpBufferLeft = 0;
             _thrustTimeLeft = Features.TicksToTime(Features.Current.PlayerJumpThrustTicks + 1); // +1 to include this tick
 
+            entity.RaiseCue(EntityCue.Jumped);
+
             // Thrust starts on the next tick.
             return;
         }

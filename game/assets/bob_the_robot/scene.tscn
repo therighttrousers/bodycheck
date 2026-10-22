@@ -4,6 +4,7 @@
 [ext_resource type="Script" uid="uid://bhce8wcrkqb6w" path="res://main/CueSounds.cs" id="2_512o4"]
 [ext_resource type="AudioStream" uid="uid://dnq26wds2nb26" path="res://assets/player_sounds/172207__leszek_szary__teleport.wav" id="2_elv8a"]
 [ext_resource type="AudioStream" uid="uid://ch8ghbvfp6t6n" path="res://assets/player_sounds/172206__leszek_szary__teleport.wav" id="3_512o4"]
+[ext_resource type="AudioStream" uid="uid://cq3spuybsurnp" path="res://assets/player_sounds/146726__leszek_szary__jumping.wav" id="3_a0sfp"]
 [ext_resource type="AudioStream" uid="uid://b8qt1lbwiencp" path="res://assets/player_sounds/844890__dan2008__critical-error.wav" id="5_hvsop"]
 
 [sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_2h3ep"]
@@ -176,6 +177,11 @@ parameters/Move/BlendSpace1D/blend_position = 0.0
 [node name="CueSounds" type="Node3D" parent="." unique_id=530044248]
 script = ExtResource("2_512o4")
 metadata/_custom_type_script = "uid://bhce8wcrkqb6w"
+
+[node name="Jumped" type="AudioStreamPlayer" parent="CueSounds" unique_id=609246016]
+stream = ExtResource("3_a0sfp")
+volume_db = -5.0
+bus = &"Sfx"
 
 [node name="PhaseBegan" type="AudioStreamPlayer" parent="CueSounds" unique_id=1608614738]
 stream = ExtResource("2_elv8a")
