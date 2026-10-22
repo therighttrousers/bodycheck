@@ -74,9 +74,6 @@ public partial class Entity : RigidBody3D
     // How fast what steadies an entity turns it towards level, in radians per second for each radian it is off.
     private const float LevelingRate = 10;
 
-    // Where to move to through entities before the engine's next step, if anywhere.
-    private Vector3? _destination;
-
     // The joint whose motor grips what the entity stands on: friction, and a walker's traction. It constrains
     // nothing: every limit is off, so its only effect is the X motor. The entity is the joint's second body, and
     // the first is what it is anchored to, or nothing for tiles. It has no bodies until it is first anchored.
@@ -214,27 +211,16 @@ public partial class Entity : RigidBody3D
     private float? CarryTorque => Tuning.CarryTorque?.Invoke(Features.Current);
 
     /// <summary>
-    /// Moves the entity toward <paramref name="destination"/> before the engine's next step, through other entities
-    /// but not through tiles: where it meets one, it slides along it, so it may stop short. It keeps its velocity, and
-    /// the engine pushes it apart from whatever it ends up overlapping. Until then it stays where it is, so that
-    /// controllers stepped after this one in the same tick still see the world as of the engine's last step.
+    /// Moves the entity toward <paramref name="destination"/> at once, through other entities but not through tiles:
+    /// where it meets one, it slides along it, so it may stop short. It keeps its velocity, and the engine pushes it
+    /// apart from whatever it ends up overlapping. A controller defers it to the end of the tick
+    /// (<see cref="IEndOfTick"/>), so that the controllers stepped after it still see the world as of the engine's last
+    /// step.
     /// </summary>
     public void MoveThroughEntities(Vector3 destination)
     {
-        _destination = destination;
         // What it stands on is from before the move, so it has no grip until the engine's next step.
         ReleaseGrip();
-    }
-
-    // Every entity's step runs before this, because the room that steps them is their parent, and a parent is
-    // processed before its children.
-    public override void _PhysicsProcess(double delta)
-    {
-        if (_destination is not Vector3 destination)
-        {
-            return;
-        }
-        _destination = null;
 
         // Only for this move, which is over within the call: the engine's step sees the mask as it was.
         uint mask = CollisionMask;
@@ -266,8 +252,9 @@ public partial class Entity : RigidBody3D
     /// <summary>Call once per physics tick, before the engine's step.</summary>
     /// <param name="gameDt">The tick's length in game time, which the engine's time scale shortens.</param>
     /// <param name="realDt">The tick's length in real time, which the time scale doesn't change.</param>
+    /// <param name="endOfTick">Runs actions once every entity has been stepped this tick.</param>
     /// <param name="controlled">Whether the controller runs. Without it, the entity only coasts, under drag, gravity and friction.</param>
-    public void Step(float gameDt, float realDt, bool controlled = true)
+    public void Step(float gameDt, float realDt, IEndOfTick endOfTick, bool controlled = true)
     {
         // A motor's push lasts one tick, like a force: it is off unless friction or the controller uses it again.
         ReleaseGrip();
@@ -276,7 +263,7 @@ public partial class Entity : RigidBody3D
 
         if (controlled)
         {
-            Control(gameDt, realDt);
+            Control(gameDt, realDt, endOfTick);
         }
 
         ApplyCentralForce(-Tuning.Drag * LinearVelocity);
@@ -287,13 +274,14 @@ public partial class Entity : RigidBody3D
     /// <see cref="RequestsPause"/>), instead of <see cref="Step"/>. It runs the controller's paused step only.
     /// </summary>
     /// <param name="realDt">The tick's length in real time. No game time passes.</param>
-    public void StepPaused(float realDt) => ControlPaused(realDt);
+    /// <param name="endOfTick">Runs actions once every entity has been stepped this tick.</param>
+    public void StepPaused(float realDt, IEndOfTick endOfTick) => ControlPaused(realDt, endOfTick);
 
     /// <summary>Whether this entity's controller asks for the game to be paused.</summary>
     public virtual bool RequestsPause => false;
 
     /// <summary>Runs the paused step of the controller of this kind of body, if it has one.</summary>
-    protected virtual void ControlPaused(float realDt)
+    protected virtual void ControlPaused(float realDt, IEndOfTick endOfTick)
     {
     }
 
@@ -302,8 +290,7 @@ public partial class Entity : RigidBody3D
     // entity's own. The engine's bodies aren't rough, so it uses the smaller of their two coefficients.
     private void ApplyFriction(float gameDt)
     {
-        // Before a move through entities, what it stands on is from before the move.
-        if (!OnGround || _destination is not null)
+        if (!OnGround)
         {
             return;
         }
@@ -429,7 +416,7 @@ public partial class Entity : RigidBody3D
     }
 
     /// <summary>Runs the controller of this kind of body, if it has one.</summary>
-    protected virtual void Control(float gameDt, float realDt)
+    protected virtual void Control(float gameDt, float realDt, IEndOfTick endOfTick)
     {
     }
 

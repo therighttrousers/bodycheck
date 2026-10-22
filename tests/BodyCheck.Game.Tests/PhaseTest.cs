@@ -310,7 +310,7 @@ public class PhaseTest
     }
 
     [TestCase]
-    public async Task AimingWhilePausedPhasesOnTheTickAfterRelease()
+    public async Task AimingWhilePausedPhasesOnRelease()
     {
         var (player, robot) = await Start(
             "####################",
@@ -330,9 +330,10 @@ public class PhaseTest
         AssertThat(world.PlayerController.Phase?.Direction).IsEqual(Vector3.Right);
         AssertFloat(player.Position.DistanceTo(start)).IsEqual(0);
 
+        // The bodies move once every controller has run, on the tick of the release, though the game is paused.
         await _run.PausedTick(RoomRun.Right);
         AssertBool(world.PauseRequested).IsFalse();
-        AssertFloat(player.Position.DistanceTo(start)).IsEqual(0);
+        AssertFloat(player.Position.X).IsGreater(robot.Position.X);
         Tree.Paused = false;
         await _run.Tick(RoomRun.Right);
         AssertFloat(player.Position.X).IsGreater(robot.Position.X);

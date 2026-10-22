@@ -8,6 +8,7 @@ Relevant decision records:
 - [015: The phase ability](../decision-records/015-phase.md)
 - [018: Game time and real time](../decision-records/018-game-and-real-time.md)
 - [019: Carrying blocks on walkers](../decision-records/019-carrying-blocks.md)
+- [022: Actions at the end of a tick](../decision-records/022-end-of-tick-actions.md)
 
 ## Player movement
 
@@ -59,7 +60,7 @@ Rationale: decision record `001`.
 - A controller pushes its entity with the engine's own forces and impulses, and a walker's also with traction, below.
 - A motor earns its place when its target speed binds, as in braking or holding against pushes, or when its push must land on another body. Otherwise a plain force does the same with less. So a platform moves itself with forces, and holds its height with a PD controller of our own, whose thrust is capped so that enough load sinks it, and which sags under a rider (`005 §3.6`).
 - A controller sees the world as of the engine's last step. Neither the forces nor the impulses applied this tick show in any entity's velocity until the next step, so what a controller decides doesn't depend on the order in which entities are stepped (`005 §3.4`).
-- A move through other entities, such as a phase's, waits until every entity has been stepped, and happens before the engine's step, so that it doesn't show to controllers stepped later in the same tick either. The entity's own `_PhysicsProcess` does it, since Godot processes a parent before its children. It sweeps the body toward where it goes against tiles only, sliding along any it meets, and leaves the engine's step to push apart whatever ends up overlapping. It resets physics interpolation, so the body isn't drawn sliding to where it went (`015 §4.2`, `§5.21`).
+- A move through other entities, such as a phase's, waits until every entity has been stepped, and happens before the engine's step, so that it doesn't show to controllers stepped later in the same tick either. The controller defers it to the end of the tick, with the `IEndOfTick` it is given, which the world runs once it has stepped every entity, whether the game is playing or paused for a controller (`022 §2.1`). The move sweeps the body toward where it goes against tiles only, sliding along any it meets, and leaves the engine's step to push apart whatever ends up overlapping. It resets physics interpolation, so the body isn't drawn sliding to where it went (`015 §4.2`, `§5.21`).
 - On the tick of play on which such a move happens, every entity's contacts are still from before it. The player's controller neither runs nor jumps then, nor counts itself on the ground (`015 §5.21`). An entity asked to move through entities has no friction until the engine's next step (`019 §4.2`).
 - Gravity is set in one place: the project setting `physics/3d/default_gravity`, which the test project copies. An entity's weight uses the engine's figure for the gravity on it.
 

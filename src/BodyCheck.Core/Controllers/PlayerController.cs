@@ -59,14 +59,14 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     /// Aims the phase while the game is paused for it. Releasing phase ends the aim, and the bodies move on the next
     /// tick of play.
     /// </summary>
-    public void ApplyPaused(WalkerEntity entity, float realDt)
+    public void ApplyPaused(WalkerEntity entity, float realDt, IEndOfTick endOfTick)
     {
         PlayerInput input = _input();
-        ApplyPhase(entity, input, 0, realDt);
+        ApplyPhase(entity, input, 0, realDt, endOfTick);
         _jumpWasHeld = input.JumpHeld;
     }
 
-    public void Apply(WalkerEntity entity, float gameDt, float realDt)
+    public void Apply(WalkerEntity entity, float gameDt, float realDt, IEndOfTick endOfTick)
     {
         PlayerInput input = _input();
         float weight = entity.Weight;
@@ -83,7 +83,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             _jumpBufferLeft = Features.TicksToTime(Features.Current.PlayerJumpBufferTicks);
         }
 
-        if (!ApplyPhase(entity, input, gameDt, realDt))
+        if (!ApplyPhase(entity, input, gameDt, realDt, endOfTick))
         {
             // A press buffered in the air jumps on landing even if jump has been let go of since, as a tap.
             bool jumps = _jumpBufferLeft > 0 && _groundTimeLeft > 0 && _thrustTimeLeft == 0;
@@ -161,7 +161,8 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     /// </summary>
     /// <param name="gameDt">The tick's length in game time: 0 while the game is paused.</param>
     /// <param name="realDt">The tick's length in real time.</param>
-    private bool ApplyPhase(WalkerEntity entity, PlayerInput input, float gameDt, float realDt)
+    /// <param name="endOfTick">Where the phase defers moving the bodies.</param>
+    private bool ApplyPhase(WalkerEntity entity, PlayerInput input, float gameDt, float realDt, IEndOfTick endOfTick)
     {
         // Made while paused, and moving on this tick.
         if (_phaseMade)
@@ -219,7 +220,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
 
         if (phase.Direction != Vector3.Zero)
         {
-            phase.Phase();
+            phase.Phase(endOfTick);
             _phaseMade = true;
             _phaseCooldownLeft = Features.Current.PlayerPhaseThrowCooldownTime;
             entity.RaiseCue(EntityCue.PhaseThrown);

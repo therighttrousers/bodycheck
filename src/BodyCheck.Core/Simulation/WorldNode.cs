@@ -21,6 +21,32 @@ namespace BodyCheck.Core.Simulation;
 /// </summary>
 public partial class WorldNode : Node3D
 {
+    private class EndOfTick : IEndOfTick
+    {
+        public void Defer(Action action) => _actions.Add(action);
+
+        private readonly List<Action> _actions = [];
+
+        /// <summary>
+        /// Runs the deferred actions, in the order they were deferred, and forgets them. For whatever steps the
+        /// controllers, once they all have. An action can't defer another.
+        /// </summary>
+        public void Run()
+        {
+            foreach (Action action in _actions)
+            {
+                action();
+            }
+            _actions.Clear();
+        }
+    }
+
+    /// <summary>
+    /// The world's physics priority. What must step before the world in a tick or after it, such as whatever pauses it,
+    /// sets its own priority from this one.
+    /// </summary>
+    public const int PhysicsPriority = 0;
+
     private readonly List<Entity> _entities = [];
 
     /// <param name="assets">What to draw for each entity and for tiles.</param>
@@ -30,6 +56,7 @@ public partial class WorldNode : Node3D
         BodyTuning? playerBody = null)
     {
         World = world;
+        ProcessPhysicsPriority = PhysicsPriority;
 
         var body = new StaticBody3D
         {
@@ -187,21 +214,25 @@ public partial class WorldNode : Node3D
         {
             return;
         }
+        var endOfTick = new EndOfTick();
         foreach (Entity entity in _entities)
         {
-            entity.StepPaused(RealDt);
+            entity.StepPaused(RealDt, endOfTick);
         }
+        endOfTick.Run();
     }
 
     public override void _PhysicsProcess(double delta)
     {
+        var endOfTick = new EndOfTick();
         foreach (Entity entity in _entities)
         {
             if (entity.CanProcess())
             {
-                entity.Step((float)delta, RealDt, ControllersEnabled);
+                entity.Step((float)delta, RealDt, endOfTick, ControllersEnabled);
             }
         }
+        endOfTick.Run();
     }
 
     /// <summary>

@@ -47,10 +47,9 @@ public partial class GameModeManager : Node
     public override void _Ready()
     {
         ProcessMode = ProcessModeEnum.Always;
-        // Before the world, so that play resumes on the tick a phase is released while paused: the world then steps,
-        // and moves the bodies before the engine's step, as the phase expects. After it, the engine would step once
-        // with the phase's velocities from where the bodies were, before the move, as into the target.
-        ProcessPhysicsPriority = -1;
+        // After the world, so that a tick is either played or paused, never both: on the tick this pauses or unpauses
+        // the world, the world's turn has already come and gone.
+        ProcessPhysicsPriority = WorldNode.PhysicsPriority + 1;
     }
 
     public override void _UnhandledInput(InputEvent @event)

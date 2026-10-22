@@ -82,14 +82,21 @@ public sealed class PhaseAction(
     /// moves through entities, but not through tiles, sliding along them, and the engine pushes apart whatever ends up
     /// overlapping. The player is thrown in that direction, and the target the other way, as the throw says.
     /// </summary>
-    public void Phase()
+    /// <param name="endOfTick">Where the moves wait, so that every controller this tick sees the bodies where they
+    /// were.</param>
+    public void Phase(IEndOfTick endOfTick)
     {
         // Each moves in proportion to the other's mass.
         float totalMass = Player.Mass + Target.Mass;
         Vector3 center = CenterOfMass();
         float separation = Separation();
-        Player.MoveThroughEntities(center + Target.Mass / totalMass * separation * Direction);
-        Target.MoveThroughEntities(center - Player.Mass / totalMass * separation * Direction);
+        Vector3 playerDestination = center + Target.Mass / totalMass * separation * Direction;
+        Vector3 targetDestination = center - Player.Mass / totalMass * separation * Direction;
+        endOfTick.Defer(() =>
+        {
+            Player.MoveThroughEntities(playerDestination);
+            Target.MoveThroughEntities(targetDestination);
+        });
 
         var (playerImpulse, targetImpulse) = Impulses();
         Player.ApplyCentralImpulse(playerImpulse);
