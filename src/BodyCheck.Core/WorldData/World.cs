@@ -3,11 +3,13 @@ using Godot;
 namespace BodyCheck.Core.WorldData;
 
 /// <summary>
-/// A named world: rooms that don't overlap, with one player start among them. Its tiles are its rooms', and everywhere
-/// outside a room is solid. A world comes from an LDtk project, one room per level, or from one text room.
+/// A named world: rooms that don't overlap, with one player start among them. Its tiles are the union of its rooms', and
+/// everywhere outside a room is empty. A world comes from an LDtk project, one room per level, or from one text room.
 /// </summary>
 public sealed class World
 {
+    private readonly TileGrid _tiles;
+
     /// <param name="rooms">
     /// The rooms, each with its bottom left tile at or above and to the right of the world's origin. There must be at
     /// least one, and exactly one player start among them.
@@ -15,27 +17,38 @@ public sealed class World
     public World(string name, IEnumerable<Room> rooms)
     {
         Name = name;
-        Rooms = [.. rooms];
 
+        Rooms = [.. rooms];
         if (Rooms.Count == 0)
         {
             throw new ArgumentException($"World '{name}' has no rooms.", nameof(rooms));
         }
-        foreach (Room room in Rooms)
-        {
-            if (room.Origin.X < 0 || room.Origin.Y < 0)
-            {
-                throw new ArgumentException($"In world '{name}', room '{room.Name}' is left of or below the origin.", nameof(rooms));
-            }
-        }
         for (int i = 0; i < Rooms.Count; i++)
         {
+            if (Rooms[i].Origin.X < 0 || Rooms[i].Origin.Y < 0)
+            {
+                throw new ArgumentException(
+                    $"In world '{name}', the origin of room '{Rooms[i].Name}' is {Rooms[i].Origin.X},{Rooms[i].Origin.Y}.", nameof(rooms));
+            }
             for (int j = i + 1; j < Rooms.Count; j++)
             {
                 if (Rooms[i].Bounds.Intersects(Rooms[j].Bounds))
                 {
                     throw new ArgumentException(
                         $"In world '{name}', rooms '{Rooms[i].Name}' and '{Rooms[j].Name}' overlap.", nameof(rooms));
+                }
+            }
+        }
+
+        Size = new Vector2I(Rooms.Max(room => room.Bounds.End.X), Rooms.Max(room => room.Bounds.End.Y));
+        _tiles = new TileGrid(Size.X, Size.Y);
+        foreach (Room room in Rooms)
+        {
+            for (int y = 0; y < room.Size.Y; y++)
+            {
+                for (int x = 0; x < room.Size.X; x++)
+                {
+                    _tiles.SetSolid(x + room.Origin.X, y + room.Origin.Y, room.IsSolid(x, y));
                 }
             }
         }
@@ -56,36 +69,12 @@ public sealed class World
 
     public IReadOnlyList<Room> Rooms { get; }
 
+    public Vector2I Size { get; }
+    public bool IsSolid(int x, int y) => _tiles.IsSolid(x, y);
+
     /// <summary>
     /// Every entity's configuration, in the world's coordinates: each room's, in the order of the rooms and then of the
     /// room's own.
     /// </summary>
     public IReadOnlyList<EntityConfig> EntityConfigs { get; }
-
-    /// <summary>
-    /// Builds a fresh grid of the world's tiles, over its rooms' bounding box from the origin, so that changes to the
-    /// tiles while it plays don't reach the world. Tiles outside every room are solid.
-    /// </summary>
-    public TileGrid CreateTiles()
-    {
-        var tiles = new TileGrid(Rooms.Max(room => room.Bounds.End.X), Rooms.Max(room => room.Bounds.End.Y));
-        for (int y = 0; y < tiles.Height; y++)
-        {
-            for (int x = 0; x < tiles.Width; x++)
-            {
-                tiles.SetSolid(x, y, true);
-            }
-        }
-        foreach (Room room in Rooms)
-        {
-            for (int y = 0; y < room.Bounds.Size.Y; y++)
-            {
-                for (int x = 0; x < room.Bounds.Size.X; x++)
-                {
-                    tiles.SetSolid(room.Origin.X + x, room.Origin.Y + y, room.IsSolid(x, y));
-                }
-            }
-        }
-        return tiles;
-    }
 }

@@ -25,7 +25,7 @@ public sealed class RoomRun
 
     public RoomRun(Room room, BodyTuning? playerBody = null, bool controllersEnabled = true)
     {
-        Node = new WorldNode(new World(room), EntityVisuals.For, playerBody: playerBody)
+        Node = new WorldNode(new World(room), new AssetLibrary(), playerBody: playerBody)
         {
             PlayerInput = () => _input,
             ControllersEnabled = controllersEnabled,

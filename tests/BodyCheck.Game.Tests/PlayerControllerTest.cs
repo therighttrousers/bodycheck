@@ -54,7 +54,7 @@ public class PlayerControllerTest
         Features.Set(features ?? new());
         _input = Idle;
         Room frame = room ?? TestRoomLibrary.EmptyFrame(60, height, playerX, playerY);
-        _world = new WorldNode(new World(frame), EntityVisuals.For, playerBody: body)
+        _world = new WorldNode(new World(frame), new AssetLibrary(), playerBody: body)
         {
             PlayerInput = () => _input,
         };

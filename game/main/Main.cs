@@ -35,10 +35,8 @@ namespace BodyCheck;
 /// </para>
 /// <para>
 /// User arguments, after "--" on the command line: a world's name; "--configuration=" and a configuration's
-/// name; "--tiles=single" for one collider per
-/// tile instead of merged boxes; "--probe=" and a probe's name to run that probe and quit; "--overlay" to
-/// start with the <see cref="DebugOverlay"/> showing; "--shapes" to start with the <see cref="ShapeWireframes"/> showing.
-/// F3 switches the overlay on and off, and F4 the shapes.
+/// name; "--probe=" and a probe's name to run that probe and quit; "--overlay" to start with the
+/// <see cref="DebugOverlay"/> showing; "--shapes" to start with the <see cref="ShapeWireframes"/> showing. F3 switches the overlay on and off, and F4 the shapes.
 /// </para>
 /// </summary>
 public partial class Main : Node
@@ -49,13 +47,13 @@ public partial class Main : Node
     private const string DefaultConfiguration = "defaults";
 
     private readonly GameModeManager _gameModeManager = new();
+    private readonly AssetLibrary _assets = new();
     private IReadOnlyList<World> _worlds = null!;
     private int _worldIndex;
     private IReadOnlyList<string> _configurations = [DefaultConfiguration];
     private int _configurationIndex;
     private string? _levelsError;
     private string? _configurationError;
-    private bool _mergeTiles = true;
     private WorldNode _world = null!;
     private readonly CameraRig _cameraRig = new();
     private LookSwitches _look = null!;
@@ -87,11 +85,7 @@ public partial class Main : Node
         string? probeName = null;
         foreach (string arg in OS.GetCmdlineUserArgs())
         {
-            if (arg == "--tiles=single")
-            {
-                _mergeTiles = false;
-            }
-            else if (arg == "--overlay")
+            if (arg == "--overlay")
             {
                 _overlay.Visible = true;
             }
@@ -118,7 +112,7 @@ public partial class Main : Node
 
         if (probeName is not null)
         {
-            _probe = Probe.Start(probeName, world => LoadWorld(world), _mergeTiles);
+            _probe = Probe.Start(probeName, world => LoadWorld(world));
             // A probe's input comes from this node's physics tick, which stops while the game is paused, so nothing
             // pauses for its player. Unpaused, the player aims a phase while the world runs.
             _gameModeManager.World = null;
@@ -269,10 +263,10 @@ public partial class Main : Node
     {
         _world?.QueueFree();
         Telemetry.Reset();
-        _world = new WorldNode(world, EntityVisuals.For, _mergeTiles);
+        _world = new WorldNode(world, _assets);
         if (world.Rooms.Contains(RoomLibrary.Look))
         {
-            _world.AddChild(new LookProps(_world.Tiles));
+            _world.AddChild(new LookProps(_world.World.Size));
         }
         _worldView.World.AddChild(_world);
         _cameraRig.Follow(_world);
@@ -297,8 +291,9 @@ public partial class Main : Node
     {
         var light = new DirectionalLight3D
         {
-            RotationDegrees = new Vector3(-35, -25, 0),
-            LightEnergy = 0.6f,
+            RotationDegrees = new Vector3(-35, 10, 0),
+            LightColor = new Color(1, 1, 0.9f),
+            LightEnergy = 0.5f,
             ShadowEnabled = true,
         };
         _worldView.World.AddChild(light);
@@ -308,8 +303,8 @@ public partial class Main : Node
             BackgroundMode = Godot.Environment.BGMode.Color,
             BackgroundColor = new Color(0.02f, 0.02f, 0.04f),
             AmbientLightSource = Godot.Environment.AmbientSource.Color,
-            AmbientLightColor = new Color(0.5f, 0.55f, 0.7f),
-            AmbientLightEnergy = 0.3f,
+            AmbientLightColor = new Color(0.5f, 0.5f, 1),
+            AmbientLightEnergy = 0.1f,
             SsaoEnabled = true,
             SsrEnabled = true,
             GlowEnabled = true,

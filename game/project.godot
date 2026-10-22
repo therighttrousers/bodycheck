@@ -37,6 +37,10 @@ text_editor/behavior/indent/type=1
 
 enabled=PackedStringArray("res://addons/phantom_camera/plugin.cfg")
 
+[filesystem]
+
+import/blender/enabled=false
+
 [layer_names]
 
 3d_physics/layer_1="Static"

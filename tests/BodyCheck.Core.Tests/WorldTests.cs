@@ -36,21 +36,20 @@ public class WorldTests
     }
 
     [Fact]
-    public void Puts_tiles_and_starts_at_their_rooms_origins_with_solid_tiles_between()
+    public void Puts_tiles_and_starts_at_their_rooms_origins_with_empty_tiles_between()
     {
         // Two 3x2 rooms, the second a tile to the right of the first and a tile up.
         Room left = Room.FromText("Left", "#..\n.P.");
         Room right = Room.FromText("Right", "...\nB.#", new Vector2I(4, 1));
         var world = new World("Test", [left, right]);
-        TileGrid tiles = world.CreateTiles();
 
-        Assert.Equal((7, 3), (tiles.Width, tiles.Height));
-        Assert.True(tiles.IsSolid(0, 1)); // Left's '#'
-        Assert.False(tiles.IsSolid(1, 0));
-        Assert.True(tiles.IsSolid(6, 1)); // Right's '#'
-        Assert.False(tiles.IsSolid(5, 2));
-        Assert.True(tiles.IsSolid(3, 1)); // Between the rooms
-        Assert.True(tiles.IsSolid(0, 2)); // Above the left room
+        Assert.Equal((7, 3), (world.Size.X, world.Size.Y));
+        Assert.True(world.IsSolid(0, 1)); // Left's '#'
+        Assert.False(world.IsSolid(1, 0));
+        Assert.True(world.IsSolid(6, 1)); // Right's '#'
+        Assert.False(world.IsSolid(5, 2));
+        Assert.False(world.IsSolid(3, 1)); // Between the rooms
+        Assert.False(world.IsSolid(0, 2)); // Above the left room
 
         Assert.Equal(
             [(EntityKind.Player, new Vector2(1.5f, 0)), (EntityKind.Block, new Vector2(4.5f, 1))],

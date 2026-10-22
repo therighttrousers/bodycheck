@@ -85,6 +85,7 @@ public sealed record Features
         }
     }
 
+    #region Tuning
     /// <summary>The tick rate that features given in ticks count at.</summary>
     public const int TuningTicksPerSecond = 60;
 
@@ -94,6 +95,15 @@ public sealed record Features
     /// spare either way however the lengths round.
     /// </summary>
     public static float TicksToTime(int ticks) => (ticks - 0.5f) / TuningTicksPerSecond;
+    #endregion
+
+    #region World
+    /// <summary>
+    /// The default friction for static tiles. Walkers have no engine friction, and the smaller of two coefficients
+    /// wins, so this only affects bodies that have some.
+    /// </summary>
+    public float TileDefaultFriction { get; init; } = 1;
+    #endregion
 
     #region Player
     /// <summary>Speed at which the player's run drive force falls to zero.</summary>

@@ -2,9 +2,11 @@
 
 A metroidvania in low-resolution 3D, in the style of mid-1990s games, in which the player is a maintenance robot whose job is to switch on all of a facility's defenses, so the world grows more dangerous with each one. Gameplay emphasizes physics-based movement and physics puzzles.
 
-See [docs/designs/high-level-design.md](docs/designs/high-level-design.md) for more details.
-
 This README is written for game developers, not players.
+
+See
+- [docs/designs/high-level-design.md](docs/designs/high-level-design.md) for more high-level details and a table of contents.
+- [docs/designs/architecture.md](docs/designs/architecture.md) for tech details, directory structure, and system components.
 
 ## Initial dev setup
 
@@ -12,30 +14,50 @@ Prerequisites:
 - Windows
 - Git with LFS extension to efficiently handle large binaries
   - Download Git from https://git-scm.com/, install
-  - Download Git LFS from https://git-lfs.com/, install, run `git lfs install` once
-- .NET SDK 10
-- Visual Studio Code
-- If you want to edit the map, the [LDtk editor](https://ldtk.io/download/)
+  - Download Git LFS from https://git-lfs.com/, install, run `git lfs install` in a command line once
+- A GitHub account
+- GitHub CLI
+- .NET SDK >=10
+- If you want to edit the code, Visual Studio Code
+- If you want to edit the map, version 1.5.3 of the [LDtk editor](https://ldtk.io/download/)
+- If you want to edit models, Blender
+- A parent directory to clone the repository into, **which must not contain spaces anywhere in its path** because Blender is dumb
 
 Steps:
-1. Run `git clone <repo-url>`.
-2. `cd` to the repo directory.
-3. Run `.\dev-setup.ps1` to install Godot locally, restore dependencies, and set up pre-commit hooks.
-4. Open the repo folder in VS Code and install the extensions recommended for this repository.
-5. Press Ctrl+`` ` `` (Ctrl+backtick) to open a terminal in VS Code.
-6. Run `dotnet build && dotnet test` to build everything and run the tests.
-
-See [docs/designs/architecture.md](docs/designs/architecture.md) for tech details, directory structure, and system components.
+1. Open a terminal where `dotnet --version` prints a version >=10.0.0.
+2. Run `gh auth login`, and choose options to log in to GitHub.com, using HTTPS, with a web browser.
+3. Change to some `<parent-directory>`.
+4. Run `git clone https://github.com/therighttrousers/bodycheck.git`.
+5. Run `cd bodycheck`.
+6. Run `.\dev-setup.ps1` to install Godot locally, install C# dependencies, and set up pre-commit hooks.
+7. If you want to edit the code:
+   - Run `code` to open a new VS Code window. (You can close the terminal after this.)
+   - In VS Code, open the `<parent-directory>\bodycheck` directory.
+   - Install the extensions recommended for this repository.
+   - Press Ctrl+backtick to open a new terminal in VS Code.
+8. Run `dotnet build && dotnet test` to build everything and run the tests.
+9. Run `play.cmd` to launch the game.
+10. If you want to edit the map:
+    - Launch LDtk.
+    - Open `<parent-directory>\bodycheck\game\levels\main.ldtk`.
 
 ## Common tasks
 
 - Build everything: `dotnet build`
-- Run the unit tests: `dotnet test`
-- Run the game from the terminal: `dotnet build && .\Godot\Godot.exe --path game` - note that building first is required
-- Run the game without a terminal: double-click `play.cmd`, which builds the game and runs it
-- Run the game from Godot's editor: double-click `godot-editor.cmd`, or run `.\Godot\Godot.exe --path game --editor`, then press the `▶` button to build and run. The editor's Game tab has a toolbar that changes the game's speed, which a game started any other way doesn't get
+- Run the unit tests: build, then run `dotnet test`
+- Build and run the game: run `play.cmd` or double-click it in File Explorer
+- Run the game from Godot's editor: double-click or run `godot-editor.cmd`, then press the `▶` button to build and run
 
-Development doesn't make much use of Godot's editor because the game world is programmatically generated from tile-based maps, and because agents are much better at writing config files and code than using the editor.
+## Godot editor
+
+A pinned version of Godot is installed (by `dev-setup.ps1`) in the `Godot` directory of the repo root. Please don't use a different version of Godot to develop the game. To pass arguments to Godot itself, run `.\Godot\Godot.exe --path game <more-arguments> -- <game-arguments>`; otherwise you can just run `play.cmd` or `godot-editor.cmd`.
+
+Most day-to-day coding doesn't use Godot's editor much because the game world is programmatically generated from (tile-based) LDtk maps, and because agents are much better at writing code than using the editor. However, they can adeptly create and edit `project.godot` and `*.tscn` (scene) files. When they do, the Godot editor will prompt you to reload the project.
+
+We primarily use the editor for
+- Importing models and transforming them.
+- Creating `AnimationTree` state machines.
+- Starting the game with Godot's debug toolbar, which allows dynamically changing the timescale (pause, step, slow, fast).
 
 ## Controls
 
@@ -60,10 +82,7 @@ Hold the jump button to jump higher.
 
 Phase goes through the robot, block or platform nearest the player. Holding it with one in reach, or coming within reach of one while holding it, slows the game to a pause, with arrows to aim with; release it while holding a direction to phase that way, or with no direction to cancel.
 
-The debug overlay, the wireframes and the rendering switches below work while the game is paused.
-
-Rendering switches, for judging the look. The window's title shows their state. The room named "Look" has shapes to judge it on.
-
+Rendering switches:
 - 1: low resolution on or off
 - 2: next low-resolution size
 - 3: next anti-aliasing level
@@ -72,6 +91,8 @@ Rendering switches, for judging the look. The window's title shows their state. 
 - 6: the palette, in place of the game, on or off
 - [ and ]: the dither's lightness spread, down and up
 - ; and ': the dither's chroma spread, down and up
+
+The window's title shows the rendering switches' state.
 
 ## Worlds
 

@@ -9,6 +9,7 @@ What the game asks of a 3D model, and how code and art meet in it. The models in
 ## A model
 
 - **Made in Blender**, exported as glTF, and imported by Godot. The import settings are in the `.import` file beside the glTF, and the Godot editor changes them in its Import dock.
+- **Godot imports only the glTF**, never a `.blend` file: the project setting `filesystem/import/blender/enabled` is off. Importing a `.blend` runs Blender, so every machine that opens the project would need it installed and configured, CI's included. Where it isn't, the model doesn't load.
 - **A wrapper scene** beside the glTF, `scene.tscn` in the model's folder in `game/assets/`, is what the game loads. It holds what Godot adds to the model: an animation tree, material overrides, and any adjustment to the model's position, size or direction.
 - **The wrapper's layout** (`006 §1.3`): its root is a plain `Node3D` with no transform, which the game moves and turns. The glTF is the root's child, named `Model`, which the artist moves, scales and turns. Each transform has one owner. The child's transform applies first, so the game turns the model about the root's origin, which is the model's base, wherever the glTF's own origin was.
 - **Units:** one unit is one tile. The player is 0.8 tiles wide and 1.8 tall ([movement.md](movement.md)).
@@ -16,9 +17,17 @@ What the game asks of a 3D model, and how code and art meet in it. The models in
 - **It faces +Z**, towards the camera. The game turns it to face left or right.
 - **A variant**, such as a robot in the player's shape with another colour, is an inherited scene of the model's wrapper scene, with what differs set in the editor. `robot.tscn` beside Bob's wrapper scene overrides the body's material.
 
+## A model made in Blender
+
+1. **Keep the `.blend` in the model's folder** in `game/assets/`, beside its export. It is the source; the export is what the game uses.
+2. **Export it** with **File → Export → glTF 2.0**, as a `.glb` beside the `.blend`, named after it, with **+Y Up** on (the default). The exporter turns Blender's Z up into glTF's Y up, so a model that faces -Y in Blender faces +Z in Godot.
+3. **Export again after every change**, and commit the `.blend` and the `.glb` together. Godot reimports the `.glb` when its editor next has focus. Nothing reads the `.blend`, so a change saved only there doesn't reach the game.
+
+Then wrap it as below, from step 2, using the `.glb` where the steps say `.gltf`.
+
 ## Adding a model
 
-1. **Copy the model's folder** into `game/assets/`: the glTF, its `.bin`, its textures and its licence. Godot imports it when its editor next has focus.
+1. **Copy the model's folder** into `game/assets/`: the glTF (a `.gltf` with its `.bin`, or a `.glb`), its textures and its licence. Godot imports it when its editor next has focus.
 2. **For an animated model, import the rest pose.** Select the `.gltf` in the FileSystem dock, open the **Import** tab, check **Import Rest as RESET** (under Animation), and click **Reimport**.
    - If you don't do this, Godot will make changes to your `.tscn` file whenever the editor plays an animation.
 3. **Make the wrapper scene.** **Scene → New Scene**, and choose **3D Scene** for the root, which makes a plain `Node3D`. Name it after the model.

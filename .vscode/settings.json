@@ -3,14 +3,8 @@
         "Godot": true,
     },
 
-    "godotTools.editorPath.godot4": ".\\Godot\\Godot.exe",
-    "dotnet.unitTests.runSettingsPath": ".runsettings",
-
-    "editor.formatOnSave": true,
-    "rewrap.wrappingColumn": 120,
-
-    "[csharp]": {
-        "editor.defaultFormatter": "ms-dotnettools.csharp"
+    "search.exclude": {
+        "game/addons/**/*": true,
     },
 
     "explorer.fileNesting.enabled": true,
@@ -19,6 +13,16 @@
         "*.cs": "${basename}.cs.uid",
         "*.gdshader": "${basename}.gdshader.uid",
         "*.gltf": "${basename}.gltf.import",
+    },
+
+    "godotTools.editorPath.godot4": ".\\Godot\\Godot.exe",
+    "dotnet.unitTests.runSettingsPath": ".runsettings",
+
+    "editor.formatOnSave": true,
+    "rewrap.wrappingColumn": 120,
+
+    "[csharp]": {
+        "editor.defaultFormatter": "ms-dotnettools.csharp"
     },
 
     "json.format.keepLines": true,

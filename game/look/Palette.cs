@@ -11,7 +11,7 @@ namespace BodyCheck.Look;
 /// </summary>
 public static class Palette
 {
-    private const int Width = 8;
+    private const int Width = 4; // Change this to increase or decrease the number of colors
     private const int Height = 32;
 
     // The values of the coloured ramps: evenly spaced lightness, by CIE L*, turned into the luminance that has
@@ -40,17 +40,18 @@ public static class Palette
             data[index++] = (byte)color.B8;
         }
 
-        for (int value = 0; value < 16; value++)
+        for (int value = 0; value < Width * 2; value++)
         {
-            Add(Color.FromHsv(0, 0, value / 15f));
+            Add(Color.FromHsv(0, 0, (float)value / (Width * 2 - 1)));
         }
         foreach ((int saturation, int hues) in new[] { (1, 6), (2, 12), (3, 12) })
         {
             for (int hue = 0; hue < hues; hue++)
             {
-                for (int value = 2; value <= 9; value++)
+                int maxValue = 2 + Width - 1;
+                for (int value = 2; value <= maxValue; value++)
                 {
-                    Add(Color.FromHsv((float)hue / hues, MathF.Pow(saturation / 3f, 1.5f), ValueRamp(value / 9f)));
+                    Add(Color.FromHsv((float)hue / hues, MathF.Pow(saturation / 3f, 1.5f), ValueRamp((float)value / maxValue)));
                 }
             }
         }
