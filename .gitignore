@@ -24,3 +24,6 @@ tests/BodyCheck.Game.Tests/project.godot
 tests/BodyCheck.Game.Tests/**/*.uid
 
 tmp/
+
+# Blender backups
+*.blend1

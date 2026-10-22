@@ -3,10 +3,10 @@ using Godot;
 namespace BodyCheck.Core.WorldData;
 
 /// <summary>
-/// A named world: rooms that don't overlap, with one player start among them. Its tiles are its rooms', and everywhere
-/// outside a room is solid. A world comes from an LDtk project, one room per level, or from one text room.
+/// A named world: rooms that don't overlap, with one player start among them. Its tiles are the union of its rooms', and
+/// everywhere outside a room is empty. A world comes from an LDtk project, one room per level, or from one text room.
 /// </summary>
-public sealed class World : IOffsetTileGrid
+public sealed class World
 {
     private readonly TileGrid _tiles;
 
@@ -25,6 +25,11 @@ public sealed class World : IOffsetTileGrid
         }
         for (int i = 0; i < Rooms.Count; i++)
         {
+            if (Rooms[i].Origin.X < 0 || Rooms[i].Origin.Y < 0)
+            {
+                throw new ArgumentException(
+                    $"In world '{name}', the origin of room '{Rooms[i].Name}' is {Rooms[i].Origin.X},{Rooms[i].Origin.Y}.", nameof(rooms));
+            }
             for (int j = i + 1; j < Rooms.Count; j++)
             {
                 if (Rooms[i].Bounds.Intersects(Rooms[j].Bounds))
@@ -35,16 +40,15 @@ public sealed class World : IOffsetTileGrid
             }
         }
 
-        Origin = new Vector2I(Rooms.Min(room => room.Origin.X), Rooms.Min(room => room.Origin.Y));
-        Size = new Vector2I(Rooms.Max(room => room.Bounds.End.X), Rooms.Max(room => room.Bounds.End.Y)) - Origin;
+        Size = new Vector2I(Rooms.Max(room => room.Bounds.End.X), Rooms.Max(room => room.Bounds.End.Y));
         _tiles = new TileGrid(Size.X, Size.Y);
-        foreach (Room room in rooms)
+        foreach (Room room in Rooms)
         {
             for (int y = 0; y < room.Size.Y; y++)
             {
                 for (int x = 0; x < room.Size.X; x++)
                 {
-                    _tiles.SetSolid(x + room.Origin.X - Origin.X, y + room.Origin.Y - Origin.Y, room.IsSolid(x, y));
+                    _tiles.SetSolid(x + room.Origin.X, y + room.Origin.Y, room.IsSolid(x, y));
                 }
             }
         }
@@ -65,9 +69,7 @@ public sealed class World : IOffsetTileGrid
 
     public IReadOnlyList<Room> Rooms { get; }
 
-    public Vector2I Origin { get; }
     public Vector2I Size { get; }
-    public Rect2I Bounds => new(Origin, Size);
     public bool IsSolid(int x, int y) => _tiles.IsSolid(x, y);
 
     /// <summary>

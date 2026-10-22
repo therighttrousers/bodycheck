@@ -35,10 +35,8 @@ namespace BodyCheck;
 /// </para>
 /// <para>
 /// User arguments, after "--" on the command line: a world's name; "--configuration=" and a configuration's
-/// name; "--tiles=single" for one collider per
-/// tile instead of merged boxes; "--probe=" and a probe's name to run that probe and quit; "--overlay" to
-/// start with the <see cref="DebugOverlay"/> showing; "--shapes" to start with the <see cref="ShapeWireframes"/> showing.
-/// F3 switches the overlay on and off, and F4 the shapes.
+/// name; "--probe=" and a probe's name to run that probe and quit; "--overlay" to start with the
+/// <see cref="DebugOverlay"/> showing; "--shapes" to start with the <see cref="ShapeWireframes"/> showing. F3 switches the overlay on and off, and F4 the shapes.
 /// </para>
 /// </summary>
 public partial class Main : Node
@@ -56,7 +54,6 @@ public partial class Main : Node
     private int _configurationIndex;
     private string? _levelsError;
     private string? _configurationError;
-    private bool _mergeTiles = true;
     private WorldNode _world = null!;
     private readonly CameraRig _cameraRig = new();
     private LookSwitches _look = null!;
@@ -88,11 +85,7 @@ public partial class Main : Node
         string? probeName = null;
         foreach (string arg in OS.GetCmdlineUserArgs())
         {
-            if (arg == "--tiles=single")
-            {
-                _mergeTiles = false;
-            }
-            else if (arg == "--overlay")
+            if (arg == "--overlay")
             {
                 _overlay.Visible = true;
             }
@@ -119,7 +112,7 @@ public partial class Main : Node
 
         if (probeName is not null)
         {
-            _probe = Probe.Start(probeName, world => LoadWorld(world), _mergeTiles);
+            _probe = Probe.Start(probeName, world => LoadWorld(world));
             // A probe's input comes from this node's physics tick, which stops while the game is paused, so nothing
             // pauses for its player. Unpaused, the player aims a phase while the world runs.
             _gameModeManager.World = null;

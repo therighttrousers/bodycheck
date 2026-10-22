@@ -9,22 +9,21 @@ using Godot;
 namespace BodyCheck.Core.Simulation;
 
 /// <summary>
-/// One world, simulated: its tiles, and the entities in it with their controllers. Each physics tick it
+/// One world, simulated: its tiles, drawn room by room, and the entities in it with their controllers. Each physics tick it
 /// steps every entity that can process, before the engine's own step, so that an entity's controller stops with
 /// whatever pauses or disables its body. It has no camera, lights or input of its own, so that tests can use it as it
 /// is.
 /// <para>
-/// It is given what to draw for each kind of entity, so that it doesn't know the game's assets.
+/// It is given what to draw for each kind of entity and for tiles, so that it doesn't know the game's assets. Its
+/// colliders are one static body for the whole world, not one for each room, since the engine removes ghost collisions
+/// at the seams between shapes of one body, but not between bodies.
 /// </para>
 /// </summary>
 public partial class WorldNode : Node3D
 {
     private readonly List<Entity> _entities = [];
 
-    /// <param name="visual">
-    /// Makes what to draw for an entity of a kind, with the given body, with its origin at the middle of its base.
-    /// It is called once for each entity.
-    /// </param>
+    /// <param name="assets">What to draw for each entity and for tiles.</param>
     public WorldNode(
         World world,
         IAssetLibrary assets,
@@ -113,24 +112,24 @@ public partial class WorldNode : Node3D
     /// The solid tiles as boxes, in tile coordinates. Merging joins each horizontal run of tiles into one
     /// box, then joins runs that sit directly above one another and span the same columns.
     /// </summary>
-    private static List<Rect2I> TileColliders(IOffsetTileGrid tiles)
+    private static List<Rect2I> TileColliders(World world)
     {
         var boxes = new List<Rect2I>();
 
         // The runs of the row below, by their first and last column, with the index of the box each belongs to.
         var below = new Dictionary<(int, int), int>();
-        for (int y = 0; y < tiles.Size.Y; y++)
+        for (int y = 0; y < world.Size.Y; y++)
         {
             var current = new Dictionary<(int, int), int>();
-            for (int x = 0; x < tiles.Size.X; x++)
+            for (int x = 0; x < world.Size.X; x++)
             {
-                if (!tiles.IsSolid(x, y))
+                if (!world.IsSolid(x, y))
                 {
                     continue;
                 }
 
                 int start = x;
-                while (x + 1 < tiles.Size.X && tiles.IsSolid(x + 1, y))
+                while (x + 1 < world.Size.X && world.IsSolid(x + 1, y))
                 {
                     x++;
                 }
@@ -148,7 +147,7 @@ public partial class WorldNode : Node3D
             }
             below = current;
         }
-        return [.. boxes.Select(box => new Rect2I(box.Position + tiles.Origin, box.Size))];
+        return boxes;
     }
 
     public World World { get; }

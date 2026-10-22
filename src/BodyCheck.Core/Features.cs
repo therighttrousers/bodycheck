@@ -98,7 +98,10 @@ public sealed record Features
     #endregion
 
     #region World
-    /// <summary>The default friction for static tiles.</summary>
+    /// <summary>
+    /// The default friction for static tiles. Walkers have no engine friction, and the smaller of two coefficients
+    /// wins, so this only affects bodies that have some.
+    /// </summary>
     public float TileDefaultFriction { get; init; } = 1;
     #endregion
 

@@ -39,8 +39,8 @@ public enum Contacts
 /// </summary>
 public partial class Entity : RigidBody3D
 {
-    /// <summary>How far every entity extends along Z, which gameplay doesn't use.</summary>
-    public const float Depth = 0.8f;
+    // How far every entity's collider extends along Z, which gameplay doesn't use.
+    private const float Depth = 0.8f;
 
     // How closely a contact normal must line up with an axis to count as a contact on that side.
     private const float SideThreshold = 0.7f;

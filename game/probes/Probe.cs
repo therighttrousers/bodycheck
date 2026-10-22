@@ -33,7 +33,7 @@ public static class Probe
     /// world.
     /// </summary>
     /// <param name="load">Loads a world into the scene.</param>
-    public static IProbe Start(string name, Func<World, WorldNode> load, bool mergeTiles)
+    public static IProbe Start(string name, Func<World, WorldNode> load)
     {
         WorldNode Load(Room room) => load(new World(room));
 
@@ -46,7 +46,7 @@ public static class Probe
                 // Nothing may brake the sliding body, so the controllers and ground friction are off.
                 world.ControllersEnabled = false;
                 Features.Set(Features.Current with { PlayerGroundFriction = 0 });
-                GD.Print($"Seam probe: tiles {(mergeTiles ? "merged" : "single")}");
+                GD.Print("Seam probe:");
                 probe = new SeamProbe(world.Player, speed: Features.Current.PlayerTopSpeed);
                 break;
             case "player":

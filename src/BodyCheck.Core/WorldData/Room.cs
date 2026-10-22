@@ -66,10 +66,16 @@ public sealed class Room : IOffsetTileGrid
 
     public string Name { get; }
 
+    /// <summary>Where the room's bottom left tile is in the world, in tiles.</summary>
     public Vector2I Origin { get; }
+
+    /// <summary>The room's size, in tiles.</summary>
     public Vector2I Size { get; }
+
+    /// <summary>The tiles the room covers, in the world's coordinates.</summary>
     public Rect2I Bounds => new(Origin, Size);
 
+    /// <summary>Whether a tile is solid, in the room's coordinates. Everything outside the room is empty.</summary>
     public bool IsSolid(int x, int y) => _tiles.IsSolid(x, y);
 
     /// <summary>

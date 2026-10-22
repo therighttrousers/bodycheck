@@ -4,7 +4,7 @@ namespace BodyCheck.Core.WorldData;
 
 /// <summary>
 /// A grid of unit tiles. Tile (x, y) covers [x, x+1] × [y, y+1], with y up and row 0 at the bottom.
-/// Everything outside the grid is solid.
+/// Everything outside the grid is empty.
 /// </summary>
 public sealed class TileGrid
 {
