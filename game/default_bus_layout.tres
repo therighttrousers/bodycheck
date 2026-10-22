@@ -2,7 +2,8 @@
 
 [sub_resource type="AudioEffectLowPassFilter" id="AudioEffectLowPassFilter_muffle"]
 resource_name = "LowPassFilter"
-cutoff_hz = 400.0
+cutoff_hz = 500.0
+db = 1
 
 [resource]
 bus/0/effect/0/effect = SubResource("AudioEffectLowPassFilter_muffle")
