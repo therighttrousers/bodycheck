@@ -2,7 +2,7 @@
 
 ## What it is
 
-The game's rules, as a class library, split into subsystems, one per subdirectory. The root holds only what several subsystems, or the game, share: utilities, such as telemetry; constants; the cues that entities raise for the game to react to, such as with sounds; and the features, the values that shape gameplay, which the subsystems read and the game will let developers change.
+The game's rules, as a class library, split into subsystems, one per subdirectory. The root holds only what several subsystems, or the game, share: utilities, such as telemetry; constants; and the features, the values that shape gameplay, which the subsystems read and the game will let developers change.
 
 ## How it relates to the rest
 

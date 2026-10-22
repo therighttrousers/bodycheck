@@ -13,6 +13,26 @@ public enum Contacts
 }
 
 /// <summary>
+/// Something that happened to an entity, for the scene that draws it to react to: for now, by playing the sound named
+/// after it, if it has one. A controller raises it on its entity with <see cref="Entity.RaiseCue"/> (decision record
+/// 021).
+/// </summary>
+public enum EntityCue
+{
+    /// <summary>The player jumped.</summary>
+    Jumped,
+
+    /// <summary>The player began aiming a phase.</summary>
+    PhaseBegan,
+
+    /// <summary>The player phased: released it with a direction held.</summary>
+    PhaseThrown,
+
+    /// <summary>The player cancelled a phase: released it with no direction held.</summary>
+    PhaseCancelled,
+}
+
+/// <summary>
 /// Something in a room that has a body: the player, a robot, a platform, a block. It is the engine's rigid
 /// body itself, a box that can only move in the XY plane, so that what the engine reports about bodies
 /// (contacts, what stands on what) is about entities. Entities may only rotate about Z (default off).
