@@ -47,6 +47,9 @@ public partial class GameModeManager : Node
     public override void _Ready()
     {
         ProcessMode = ProcessModeEnum.Always;
+        // After the world, so that a tick is either played or paused, never both: on the tick this pauses or unpauses
+        // the world, the world's turn has already come and gone.
+        ProcessPhysicsPriority = WorldNode.PhysicsPriority + 1;
     }
 
     public override void _UnhandledInput(InputEvent @event)

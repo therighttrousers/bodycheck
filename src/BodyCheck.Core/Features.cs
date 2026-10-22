@@ -191,8 +191,11 @@ public sealed record Features
     /// </summary>
     public float PlayerPhaseSpeed { get; init; } = 12.7f;
 
-    /// <summary>The minimum time between phase uses, according to the game clock.</summary>
-    public float PlayerPhaseCooldownTime { get; init; } = 0.5f;
+    /// <summary>The minimum delay after phasing successfully, according to the game clock.</summary>
+    public float PlayerPhaseThrowCooldownTime { get; init; } = 0.125f;
+
+    /// <summary>The minimum delay after canceling phasing, according to the game clock.</summary>
+    public float PlayerPhaseCancelCooldownTime { get; init; } = 0.25f;
 
     /// <summary>
     /// How long the last direction held while aiming a phase still counts once it is let go of, in ticks at

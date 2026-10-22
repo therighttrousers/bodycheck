@@ -12,7 +12,9 @@ public partial class SimpleControlledEntity(BodyTuning tuning, Node3D? visual = 
 
     public override bool RequestsPause => Controller?.RequestsPause ?? false;
 
-    protected override void Control(float gameDt, float realDt) => Controller?.Apply(this, gameDt, realDt);
+    protected override void Control(float gameDt, float realDt, IEndOfTick endOfTick) =>
+        Controller?.Apply(this, gameDt, realDt, endOfTick);
 
-    protected override void ControlPaused(float realDt) => Controller?.ApplyPaused(this, realDt);
+    protected override void ControlPaused(float realDt, IEndOfTick endOfTick) =>
+        Controller?.ApplyPaused(this, realDt, endOfTick);
 }
