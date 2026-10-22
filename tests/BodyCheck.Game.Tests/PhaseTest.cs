@@ -336,6 +336,32 @@ public class PhaseTest
     }
 
     [TestCase]
+    public async Task ALongPauseDoesntChangeThePhase()
+    {
+        // In the air beside a hovering platform, where the grab has drift to take back.
+        _run = new RoomRun(RoomRun.RoomOf(
+            "############",
+            "#..........#",
+            "#..........#",
+            "#P.H.......#",
+            "#..........#",
+            "#..........#",
+            "############"));
+        Entity player = _run.Player;
+        var aimUp = new PlayerInput(0, 1, false, PhaseHeld: true);
+        await _run.Tick(aimUp, 30);
+
+        Tree.Paused = true;
+        await _run.PausedTick(aimUp, 120);
+        await _run.PausedTick(RoomRun.Idle);
+        Tree.Paused = false;
+        await _run.Tick(RoomRun.Idle);
+
+        AssertFloat(player.LinearVelocity.X).IsEqualApprox(0, 0.5f);
+        AssertFloat(player.LinearVelocity.Y).IsEqualApprox(Features.Current.PlayerPhaseSpeed, 0.5f);
+    }
+
+    [TestCase]
     public async Task JumpRightAfterAPausedPhaseDoesNothing()
     {
         var (player, _) = await Start(

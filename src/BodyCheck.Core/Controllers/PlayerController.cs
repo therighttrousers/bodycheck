@@ -188,7 +188,12 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             return false;
         }
 
-        phase.Grab(gameDt);
+        // Only on ticks of play: while paused, nothing drifts, and the velocities read are from the engine's last step,
+        // so every grab would add the same impulses again.
+        if (gameDt > 0)
+        {
+            phase.Grab(gameDt);
+        }
 
         // The direction held, or the last one held if it was let go of only just now, so that letting go of it just
         // before phase, or with it, still phases.
