@@ -1,8 +1,8 @@
-[gd_scene format=3 uid="uid://wmwmia5tmyad"]
+[gd_scene format=3 uid="uid://c28bn37gbmd3s"]
 
-[ext_resource type="PackedScene" uid="uid://bqdye4ax5bkbf" path="res://assets/tile/tile.blend" id="1_l3u4y"]
+[ext_resource type="PackedScene" uid="uid://b8nisnstkmwkf" path="res://assets/tile/tile.glb" id="1_l3u4y"]
 
-[node name="Tile" type="Node3D" unique_id=676586767]
+[node name="Tile" type="Node3D" unique_id=1971791734]
 
-[node name="tile" parent="." unique_id=1567955180 instance=ExtResource("1_l3u4y")]
+[node name="tile" parent="." unique_id=1666371800 instance=ExtResource("1_l3u4y")]
 transform = Transform3D(0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0, 0, 0)

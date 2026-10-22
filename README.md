@@ -21,7 +21,7 @@ Prerequisites:
 - If you want to edit the code, Visual Studio Code
 - If you want to edit the map, version 1.5.3 of the [LDtk editor](https://ldtk.io/download/)
 - If you want to edit models, Blender
-- A parent directory to clone the repository into, **which must not contain spaces anywhere in its path**
+- A parent directory to clone the repository into, **which must not contain spaces anywhere in its path** because Blender is dumb
 
 Steps:
 1. Open a terminal where `dotnet --version` prints a version >=10.0.0.
