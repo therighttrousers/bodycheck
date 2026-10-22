@@ -32,10 +32,14 @@ public class PhaseTest
     private static SceneTree Tree => (SceneTree)Engine.GetMainLoop();
 
     private RoomRun? _run;
+    private GameModeManager? _manager;
 
     [AfterTest]
     public void TearDown()
     {
+        _manager?.Free();
+        _manager = null;
+        Engine.TimeScale = 1;
         Tree.Paused = false;
         _run?.Free();
         _run = null;
@@ -359,6 +363,41 @@ public class PhaseTest
 
         AssertFloat(player.LinearVelocity.X).IsEqualApprox(0, 0.5f);
         AssertFloat(player.LinearVelocity.Y).IsEqualApprox(Features.Current.PlayerPhaseSpeed, 0.5f);
+    }
+
+    [TestCase]
+    public async Task ReleasedWhilePausedByTheGamePhasesUpThroughAPlatform()
+    {
+        // Jumping into a platform from below, as the game pauses for it.
+        _run = new RoomRun(RoomRun.RoomOf(
+            "############",
+            "#..........#",
+            "#..........#",
+            "#..........#",
+            "#....H.....#",
+            "#..........#",
+            "#..........#",
+            "#....P.....#",
+            "############"));
+        // Added after the world, as the game adds it.
+        _manager = new GameModeManager { World = _run.Node };
+        Tree.Root.AddChild(_manager);
+        Entity player = _run.Player;
+        Entity platform = _run.Node.EntitiesOf(EntityKind.Platform).Single();
+        await _run.Tick(RoomRun.Idle, 30);
+        await _run.Tick(RoomRun.Jump, 7);
+
+        var aimUp = new PlayerInput(0, 1, false, PhaseHeld: true);
+        for (int i = 0; i < 120 && _manager.GameMode != GameMode.Phasing; i++)
+        {
+            await _run.Tick(aimUp);
+        }
+        AssertThat(_manager.GameMode).IsEqual(GameMode.Phasing);
+        await _run.Tick(RoomRun.Idle);
+
+        // Moved above the platform before the engine's step, not thrown into it from below.
+        AssertFloat(player.Bottom()).IsGreater(platform.Top());
+        AssertFloat(player.LinearVelocity.Y).IsEqualApprox(Features.Current.PlayerPhaseSpeed, 1);
     }
 
     [TestCase]
