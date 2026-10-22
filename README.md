@@ -21,6 +21,7 @@ Prerequisites:
 - If you want to edit the code, Visual Studio Code
 - If you want to edit the map, version 1.5.3 of the [LDtk editor](https://ldtk.io/download/)
 - If you want to edit models, Blender
+- If you want to edit sounds, Audacity (`winget install Audacity.Audacity`)
 - A parent directory to clone the repository into, **which must not contain spaces anywhere in its path** because Blender is dumb
 
 Steps:

@@ -134,6 +134,12 @@ public partial class Entity : RigidBody3D
     protected Node3D? Visual { get; }
     protected AnimationTree? AnimationTree { get; }
 
+    /// <summary>Raised by <see cref="RaiseCue"/>, for the scene that draws the entity to react to, such as by playing a sound.</summary>
+    public event Action<EntityCue>? CueRaised;
+
+    /// <summary>Says that <paramref name="cue"/> happened to the entity, so that what draws it may react.</summary>
+    public void RaiseCue(EntityCue cue) => CueRaised?.Invoke(cue);
+
     public BodyTuning Tuning { get; }
 
     public Vector2 HalfSize => Tuning.HalfSize;

@@ -3,6 +3,7 @@
 Relevant decision records:
 - [006: Models, their base point, and animation](../decision-records/006-models-and-animation.md)
 - [019: Carrying blocks on walkers](../decision-records/019-carrying-blocks.md)
+- [021: Sound](../decision-records/021-sound.md)
 
 What the game asks of a 3D model, and how code and art meet in it. The models in the game now are placeholders.
 
@@ -76,6 +77,15 @@ The tree is the interface between code and art (`006 §4`).
   - A model whose tree has no such parameter ignores it. A misspelt parameter name is ignored too, silently. A misspelt name in an expression is an error.
 - **Bob's tree**, the player's and the robots' model: a state machine of `Idle`, `Move`, `Jump` and `InAir`. `Move` is a blend space of idle at 0 tiles per second, walk at 4 and run at 15, followed by a time scale.
 - **Rest pose:** the import setting `animation/import_rest_as_RESET` is on for animated models. The editor plays the tree while the scene is open, and without a `RESET` animation it would save the pose it happened to show into the wrapper scene.
+
+## Sounds
+
+A character's sounds are in its wrapper scene, as its animation is: the scene is the interface between code and art for both (`021 §1.3`).
+
+- **Cues.** A controller raises an `EntityCue` on its entity when something happens to it that the scene may react to, such as `PhaseBegan`. To give cues sounds, add a `CueSounds` node to the wrapper scene, and under it an `AudioStreamPlayer` or `AudioStreamPlayer3D` for each, named after its cue, on the `Sfx` bus. A cue with no player plays nothing; so does a misspelt name, silently.
+- **The cues:** `PhaseBegan`, `PhaseThrown` and `PhaseCancelled`, all raised on the player.
+- **Sounds that follow the animation**, such as footsteps, are audio tracks in its clips, and need no cue (`021 §1.2`).
+- A character's sounds pause with the world, so the sound for a cue raised as the game pauses, such as `PhaseBegan`, should end or fade within the half second before it does (`021 §2.6`).
 
 ## Tests
 

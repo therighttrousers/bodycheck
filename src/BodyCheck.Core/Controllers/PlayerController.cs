@@ -181,6 +181,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
 
             _phaseCooldownLeft = Features.Current.PlayerPhaseCooldownTime;
             _phaseDirectionTimeLeft = 0;
+            entity.RaiseCue(EntityCue.PhaseBegan);
         }
 
         if (Phase is not PhaseAction phase)
@@ -216,6 +217,11 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         {
             phase.Phase();
             _phaseMade = true;
+            entity.RaiseCue(EntityCue.PhaseThrown);
+        }
+        else
+        {
+            entity.RaiseCue(EntityCue.PhaseCancelled);
         }
         Phase = null;
 

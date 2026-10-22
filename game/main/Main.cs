@@ -79,6 +79,7 @@ public partial class Main : Node
 
         _gameModeManager.GameModeChanged += _cameraRig.OnGameModeChanged;
         AddChild(_gameModeManager);
+        AddChild(new Muffler(_gameModeManager));
 
         string? worldName = null;
         string? configurationName = null;

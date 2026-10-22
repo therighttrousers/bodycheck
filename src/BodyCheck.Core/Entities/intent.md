@@ -2,7 +2,7 @@
 
 ## What it is
 
-The things in a room that have a body, as the engine's own rigid bodies: their shape and mass, their contacts, and the motors with which they grip what they stand on: friction, a walker's traction, and a carrier's steadying of what it carries. It also says what a controller of a body is, without any particular one.
+The things in a room that have a body, as the engine's own rigid bodies: their shape and mass, their contacts, and the motors with which they grip what they stand on: friction, a walker's traction, and a carrier's steadying of what it carries. It also says what a controller of a body is, without any particular one, and lets an entity raise cues for whatever draws it to react to.
 
 ## How it relates to the rest
 
