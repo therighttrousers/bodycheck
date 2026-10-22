@@ -7,16 +7,16 @@ namespace BodyCheck.Core.WorldData;
 /// starts in it. Its tiles and its entities' starts are in its own coordinates, with its bottom left tile at (0, 0).
 /// Rooms come from text (<see cref="FromText"/>) and from LDtk levels.
 /// </summary>
-public sealed class Room : ITileGrid
+public sealed class Room : IOffsetTileGrid
 {
-    private readonly ITileGrid _tiles;
+    private readonly TileGrid _tiles;
 
     /// <param name="origin">Where the room's bottom left tile is in the world, in tiles.</param>
     /// <param name="tiles">The room's tiles. The room keeps it, so the caller must not change it afterwards.</param>
     /// <param name="entityConfigs">
     /// Each entity's configuration, including where the middle of its base starts, in the room's coordinates.
     /// </param>
-    public Room(string name, Vector2I origin, ITileGrid tiles, IEnumerable<EntityConfig> entityConfigs)
+    public Room(string name, Vector2I origin, TileGrid tiles, IEnumerable<EntityConfig> entityConfigs)
     {
         Name = name;
         _tiles = tiles;
@@ -66,10 +66,8 @@ public sealed class Room : ITileGrid
 
     public string Name { get; }
 
-    /// <summary>Where the room's bottom left tile is in the world, in tiles.</summary>
     public Vector2I Origin { get; }
     public Vector2I Size { get; }
-    /// <summary>The tiles the room covers, in the world's coordinates.</summary>
     public Rect2I Bounds => new(Origin, Size);
 
     public bool IsSolid(int x, int y) => _tiles.IsSolid(x, y);

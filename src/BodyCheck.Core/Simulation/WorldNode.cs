@@ -114,7 +114,7 @@ public partial class WorldNode : Node3D
     /// The solid tiles as boxes, in tile coordinates. Merging joins each horizontal run of tiles into one
     /// box, then joins runs that sit directly above one another and span the same columns.
     /// </summary>
-    private static List<Rect2I> TileColliders(ITileGrid tiles)
+    private static List<Rect2I> TileColliders(IOffsetTileGrid tiles)
     {
         var boxes = new List<Rect2I>();
 
@@ -149,7 +149,7 @@ public partial class WorldNode : Node3D
             }
             below = current;
         }
-        return boxes;
+        return [.. boxes.Select(box => new Rect2I(box.Position + tiles.Origin, box.Size))];
     }
 
     public World World { get; }

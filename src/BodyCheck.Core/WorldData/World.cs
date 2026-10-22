@@ -6,7 +6,7 @@ namespace BodyCheck.Core.WorldData;
 /// A named world: rooms that don't overlap, with one player start among them. Its tiles are its rooms', and everywhere
 /// outside a room is solid. A world comes from an LDtk project, one room per level, or from one text room.
 /// </summary>
-public sealed class World : ITileGrid
+public sealed class World : IOffsetTileGrid
 {
     private readonly TileGrid _tiles;
 
@@ -17,21 +17,11 @@ public sealed class World : ITileGrid
     public World(string name, IEnumerable<Room> rooms)
     {
         Name = name;
-        Rooms = [.. rooms];
-        Origin = new Vector2I(Rooms.Min(room => room.Origin.X), Rooms.Min(room => room.Origin.Y));
-        Size = new Vector2I(Rooms.Max(room => room.Bounds.End.X), Rooms.Max(room => room.Bounds.End.Y)) - Origin;
-        _tiles = CreateTiles(Size, Rooms);
 
+        Rooms = [.. rooms];
         if (Rooms.Count == 0)
         {
             throw new ArgumentException($"World '{name}' has no rooms.", nameof(rooms));
-        }
-        foreach (Room room in Rooms)
-        {
-            if (room.Origin.X < 0 || room.Origin.Y < 0)
-            {
-                throw new ArgumentException($"In world '{name}', room '{room.Name}' is left of or below the origin.", nameof(rooms));
-            }
         }
         for (int i = 0; i < Rooms.Count; i++)
         {
@@ -45,6 +35,20 @@ public sealed class World : ITileGrid
             }
         }
 
+        Origin = new Vector2I(Rooms.Min(room => room.Origin.X), Rooms.Min(room => room.Origin.Y));
+        Size = new Vector2I(Rooms.Max(room => room.Bounds.End.X), Rooms.Max(room => room.Bounds.End.Y)) - Origin;
+        _tiles = new TileGrid(Size.X, Size.Y);
+        foreach (Room room in rooms)
+        {
+            for (int y = 0; y < room.Size.Y; y++)
+            {
+                for (int x = 0; x < room.Size.X; x++)
+                {
+                    _tiles.SetSolid(x + room.Origin.X - Origin.X, y + room.Origin.Y - Origin.Y, room.IsSolid(x, y));
+                }
+            }
+        }
+
         EntityConfigs = [.. Rooms.SelectMany(room => room.EntityConfigs.Select(config => config with { Start = config.Start + room.Origin }))];
 
         int numPlayerStarts = EntityConfigs.Count(c => c.Kind == EntityKind.Player);
@@ -52,23 +56,6 @@ public sealed class World : ITileGrid
         {
             throw new ArgumentException($"World '{name}' has {numPlayerStarts} player starts, not 1.", nameof(rooms));
         }
-    }
-
-    /// <summary>Builds a fresh grid containing all of the world's tiles.</summary>
-    private static TileGrid CreateTiles(Vector2I size, IReadOnlyList<Room> rooms)
-    {
-        var tiles = new TileGrid(size.X, size.Y);
-        foreach (Room room in rooms)
-        {
-            for (int y = 0; y < room.Size.Y; y++)
-            {
-                for (int x = 0; x < room.Size.X; x++)
-                {
-                    tiles.SetSolid(room.Origin.X + x, room.Origin.Y + y, room.IsSolid(x, y));
-                }
-            }
-        }
-        return tiles;
     }
 
     /// <summary>A world of one room, with the room's name.</summary>

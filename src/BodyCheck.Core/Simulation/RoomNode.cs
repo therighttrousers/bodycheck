@@ -23,13 +23,14 @@ public partial class RoomNode : Node3D
 
         // Start with wall coordinates = solid tile coordinates.
         var wallCoords = new HashSet<Vector2I>(solidCoords);
-        // For a few iterations, grow the set from existing members in each of 4 directions with some probability
-        // to get a back wall with holes in it, and tiles concentrated near the solid tiles.
+        // For a few iterations, grow the set from existing members in each of 4 directions with some probability.
+        // This will result in a back wall with large holes in it and wall tiles concentrated near the solid tiles.
         const float growProb = 0.4f;
         for (int i = 0; i < 3; i++)
         {
             foreach (var coord in wallCoords.ToArray())
             {
+                var c = room.Origin + coord;
                 if (RandomishForXy(coord.X + 53, coord.Y + 429) < growProb)
                 {
                     wallCoords.Add(coord + new Vector2I(0, -1));
@@ -52,21 +53,24 @@ public partial class RoomNode : Node3D
         var solidBoxes = new List<Aabb>();
         foreach (var coord in solidCoords)
         {
-            float h = 1 + MathF.Floor(RandomishForXy(-coord.X, -coord.Y) * 4) / 4;
+            var c = room.Origin + coord;
+            float h = 1 + MathF.Floor(RandomishForXy(-c.X, -c.Y) * 4) / 4;
             solidBoxes.Add(new Aabb(new Vector3(coord.X, coord.Y, -0.5f), new Vector3(1, 1, h)));
         }
 
         var backBoxes = new List<Aabb>();
         foreach (var coord in solidCoords)
         {
-            float h = 1 + MathF.Floor(RandomishForXy(coord.X, coord.Y) * 4) / 4;
+            var c = room.Origin + coord;
+            float h = 1 + MathF.Floor(RandomishForXy(c.X, c.Y) * 4) / 4;
             backBoxes.Add(new Aabb(new Vector3(coord.X, coord.Y, -0.5f - h), new Vector3(1, 1, h)));
         }
 
         var wallBoxes = new List<Aabb>();
         foreach (var coord in wallCoords)
         {
-            float h = 1 + MathF.Floor(RandomishForXy(coord.X, coord.Y) * 4) / 4;
+            var c = room.Origin + coord;
+            float h = 1 + MathF.Floor(RandomishForXy(c.X, c.Y) * 4) / 4;
             wallBoxes.Add(new Aabb(new Vector3(coord.X, coord.Y, -0.5f - h - 1), new Vector3(1, 1, 1)));
         }
 
