@@ -4,6 +4,7 @@
 [ext_resource type="Script" uid="uid://bhce8wcrkqb6w" path="res://main/CueSounds.cs" id="2_512o4"]
 [ext_resource type="AudioStream" uid="uid://dnq26wds2nb26" path="res://assets/player_sounds/172207__leszek_szary__teleport.wav" id="2_elv8a"]
 [ext_resource type="AudioStream" uid="uid://ch8ghbvfp6t6n" path="res://assets/player_sounds/172206__leszek_szary__teleport.wav" id="3_512o4"]
+[ext_resource type="AudioStream" uid="uid://b8qt1lbwiencp" path="res://assets/player_sounds/844890__dan2008__critical-error.wav" id="5_hvsop"]
 
 [sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_2h3ep"]
 animation = &"bob_rig|idle"
@@ -185,5 +186,9 @@ bus = &"Sfx"
 stream = ExtResource("3_512o4")
 volume_db = -10.0
 bus = &"Sfx"
+
+[node name="PhaseCancelled" type="AudioStreamPlayer" parent="CueSounds" unique_id=841733799]
+stream = ExtResource("5_hvsop")
+volume_db = -10.0
 
 [editable path="Model"]
