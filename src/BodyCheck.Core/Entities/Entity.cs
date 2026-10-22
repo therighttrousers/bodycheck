@@ -30,6 +30,9 @@ public enum EntityCue
 
     /// <summary>The player cancelled a phase: released it with no direction held.</summary>
     PhaseCancelled,
+
+    /// <summary>The player boosted.</summary>
+    Boosted,
 }
 
 /// <summary>
@@ -43,7 +46,8 @@ public enum EntityCue
 /// physics tick.
 /// </para>
 /// <para>
-/// Bounce and damping are off in the engine. Drag is the entity's own force.
+/// Bounce and damping are off in the engine, except where a controller turns bounce on, through the entity's physics
+/// material. Drag is the entity's own force.
 /// </para>
 /// <para>
 /// Every entity grips what it stands on with the motor of a joint between the two, along X. On its own, the

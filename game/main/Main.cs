@@ -125,7 +125,8 @@ public partial class Main : Node
             Input.GetAxis("move_left", "move_right"),
             Input.GetAxis("move_down", "move_up"),
             Input.IsActionPressed("jump"),
-            Input.IsActionPressed("phase"));
+            Input.IsActionPressed("phase"),
+            Input.IsActionPressed("boost"));
     }
 
     public override void _PhysicsProcess(double delta)

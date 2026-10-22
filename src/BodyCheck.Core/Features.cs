@@ -207,6 +207,35 @@ public sealed record Features
 
     /// <summary>What momentum a phase gives the player and the target. To be chosen by playing.</summary>
     public PhaseThrow PlayerPhaseThrow { get; init; } = PhaseThrow.Fixed;
+
+    /// <summary>
+    /// How long a press of boost still counts, in ticks at <see cref="TuningTicksPerSecond"/> of real time,
+    /// counting the tick it is pressed on, before a direction is held. Landing within it boosts. At 1, only
+    /// a boost at the same time as holding a direction counts.
+    /// </summary>
+    public int PlayerBoostBufferTicks { get; init; } = 4;
+
+    /// <summary>The speed of the momentum a boost gives the player.</summary>
+    public float PlayerBoostSpeed { get; init; } = 17.98f; // Air rise: 4.57, like a full jump
+
+    /// <summary>
+    /// How long the player should be bouncy after boosting, in ticks at <see cref="TuningTicksPerSecond"/> of
+    /// game time. This should be set to allow a few tiles' worth of movement (how many is TBD) in the direction
+    /// of the boost before restoring the player to sliding when colliding against other objects.
+    /// </summary>
+    public int PlayerBoostBounceTicks { get; init; } = 15;
+
+    /// <summary>
+    /// The engine's bounce for the player while bouncy after boosting: from 0, where a collision sticks, to 1, where it
+    /// is elastic and loses no energy.
+    /// </summary>
+    public float PlayerBoostBounce { get; init; } = 1;
+
+    /// <summary>
+    /// The minimum time between the first frame of boosts, in game time. This should be set to disallow flying,
+    /// but possibly allow upward progress in water (when we have water).
+    /// </summary>
+    public float PlayerBoostCooldownTime { get; init; } = 1.25f;
     #endregion
 
     #region Robots

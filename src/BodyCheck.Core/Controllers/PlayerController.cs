@@ -6,9 +6,14 @@ namespace BodyCheck.Core.Controllers;
 
 /// <param name="XAxis">Horizontal input, from -1 (left) to 1 (right).</param>
 /// <param name="YAxis">Vertical input, from -1 (down) to 1 (up).</param>
-public readonly record struct PlayerInput(float XAxis, float YAxis, bool JumpHeld, bool PhaseHeld = false)
+public readonly record struct PlayerInput(
+    float XAxis,
+    float YAxis,
+    bool JumpHeld,
+    bool PhaseHeld = false,
+    bool BoostHeld = false)
 {
-    public bool CanLook => YAxis != 0 && XAxis == 0 && !JumpHeld && !PhaseHeld;
+    public bool CanLook => YAxis != 0 && XAxis == 0 && !JumpHeld && !PhaseHeld && !BoostHeld;
 }
 
 /// <summary>
@@ -31,6 +36,10 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     private float _phaseCooldownLeft;
     // In real time: how much longer the last direction held while a phase is aimed still counts, once let go of.
     private float _phaseDirectionTimeLeft;
+    private bool _boostWasHeld;
+    private float _boostBufferLeft;
+    private float _boostCooldownLeft;
+    private float _boostBounceTimeLeft;
 
     // The current time in the air, for telemetry: where the feet were on the last tick on the ground.
     private bool _inAir;
@@ -61,6 +70,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         PlayerInput input = _input();
         ApplyPhase(entity, input, 0, realDt, endOfTick);
         _jumpWasHeld = input.JumpHeld;
+        _boostWasHeld = input.BoostHeld;
     }
 
     public void Apply(WalkerEntity entity, float gameDt, float realDt, IEndOfTick endOfTick)
@@ -80,7 +90,12 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             _jumpBufferLeft = Features.TicksToTime(Features.Current.PlayerJumpBufferTicks);
         }
 
-        if (!ApplyPhase(entity, input, gameDt, realDt, endOfTick))
+        if (input.BoostHeld && !_boostWasHeld)
+        {
+            _boostBufferLeft = Features.TicksToTime(Features.Current.PlayerBoostBufferTicks);
+        }
+
+        if (!ApplyPhase(entity, input, gameDt, realDt, endOfTick) && !ApplyBoost(entity, input, gameDt))
         {
             // A press buffered in the air jumps on landing even if jump has been let go of since, as a tap.
             bool jumps = _jumpBufferLeft > 0 && _groundTimeLeft > 0 && _thrustTimeLeft == 0;
@@ -105,6 +120,14 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         _jumpBufferLeft = Math.Max(0, _jumpBufferLeft - realDt);
         _jumpWasHeld = input.JumpHeld;
         _phaseCooldownLeft = Math.Max(0, _phaseCooldownLeft - gameDt);
+        _boostWasHeld = input.BoostHeld;
+        _boostBufferLeft = Math.Max(0, _boostBufferLeft - realDt);
+        _boostCooldownLeft = Math.Max(0, _boostCooldownLeft - gameDt);
+        _boostBounceTimeLeft = Math.Max(0, _boostBounceTimeLeft - gameDt);
+        if (_boostBounceTimeLeft == 0)
+        {
+            entity.PhysicsMaterialOverride.Bounce = 0;
+        }
     }
 
     /// <summary>Reports the player's measurements to <see cref="Telemetry"/>, as of the engine's last step.</summary>
@@ -222,11 +245,41 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         }
         Phase = null;
 
-        // A phase ends a jump's thrust, coyote time and buffered press, and so does cancelling one: the aim took them.
+        // A phase ends a jump's thrust, coyote time, and buffered presses, and so does cancelling one: the aim took them.
         _groundTimeLeft = 0;
         _thrustTimeLeft = 0;
         _jumpBufferLeft = 0;
+        _boostBufferLeft = 0;
         return phased;
+    }
+
+    private bool ApplyBoost(WalkerEntity entity, PlayerInput input, float gameDt)
+    {
+        var held = DirectionHeld(input);
+        if (_boostBufferLeft > 0 && _boostCooldownLeft <= 0 && held != Vector3.Zero)
+        {
+            // var impulse = entity.Mass * Features.Current.PlayerBoostSpeed * held;
+            var speed = Math.Max(0, Features.Current.PlayerBoostSpeed - entity.LinearVelocity.Dot(held));
+            var impulse = entity.Mass * speed * held;
+            var current = Vector3.Zero; // entity.Mass * entity.LinearVelocity;
+            entity.ApplyCentralImpulse(impulse - current);
+            _boostCooldownLeft = Features.Current.PlayerBoostCooldownTime;
+
+            // For a while, the player bounces off whatever it hits, as the engine's collisions do with bounce on.
+            _boostBounceTimeLeft = Features.TicksToTime(Features.Current.PlayerBoostBounceTicks + 1); // +1 to include this tick
+            entity.PhysicsMaterialOverride.Bounce = Features.Current.PlayerBoostBounce;
+
+            // A boost ends a jump's thrust, coyote time and buffered presses.
+            _groundTimeLeft = 0;
+            _thrustTimeLeft = 0;
+            _jumpBufferLeft = 0;
+            _boostBufferLeft = 0;
+
+            entity.RaiseCue(EntityCue.Jumped);
+
+            return true;
+        }
+        return false;
     }
 
     /// <summary>One of the eight directions, from the input, as a unit vector in the plane of play, or zero if none.</summary>
@@ -316,6 +369,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             entity.Support?.ApplyCentralImpulse(-impulse);
             _groundTimeLeft = 0;
             _jumpBufferLeft = 0;
+            _boostBufferLeft = 0;
             _thrustTimeLeft = Features.TicksToTime(Features.Current.PlayerJumpThrustTicks + 1); // +1 to include this tick
 
             entity.RaiseCue(EntityCue.Jumped);
