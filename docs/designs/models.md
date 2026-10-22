@@ -3,6 +3,7 @@
 Relevant decision records:
 - [006: Models, their base point, and animation](../decision-records/006-models-and-animation.md)
 - [019: Carrying blocks on walkers](../decision-records/019-carrying-blocks.md)
+- [021: Sound](../decision-records/021-sound.md)
 
 What the game asks of a 3D model, and how code and art meet in it. The models in the game now are placeholders.
 
@@ -76,6 +77,29 @@ The tree is the interface between code and art (`006 §4`).
   - A model whose tree has no such parameter ignores it. A misspelt parameter name is ignored too, silently. A misspelt name in an expression is an error.
 - **Bob's tree**, the player's and the robots' model: a state machine of `Idle`, `Move`, `Jump` and `InAir`. `Move` is a blend space of idle at 0 tiles per second, walk at 4 and run at 15, followed by a time scale.
 - **Rest pose:** the import setting `animation/import_rest_as_RESET` is on for animated models. The editor plays the tree while the scene is open, and without a `RESET` animation it would save the pose it happened to show into the wrapper scene.
+
+## Sounds
+
+A character's sounds are in its wrapper scene, as its animation is: the scene is the interface between code and art for both (`021 §1.3`).
+
+- **Cues.** A controller raises an `EntityCue` on its entity when something happens to it that the scene may react to, such as `PhaseBegan`. To give cues sounds, add a `CueSounds` node to the wrapper scene, and under it an `AudioStreamPlayer` or `AudioStreamPlayer3D` for each, named after its cue, on the `Sfx` bus. A cue with no player plays nothing; so does a misspelt name, silently.
+- **The cues:** `Jumped`, `PhaseBegan`, `PhaseThrown` and `PhaseCancelled`, all raised on the player.
+- **When to use which.** A cue says *when* something happens, on the tick it happens. An audio track in a clip says *where in a motion*, and plays only when the animation tree reaches that clip, which may be late or not at all after a transition's blend. So a sound that marks an event, such as a jump, is a cue. A sound that follows a motion is a track: footsteps, which keep time with the run cycle as its speed changes; sounds at points along a long animation, such as a door's creak as it swings or the stages of a death; sounds in an idle's fidgets. A cue can start such an animation, and its tracks then time the sounds within it (`021 §1.2`).
+- A character's sounds pause with the world. The game pauses half a second after `PhaseBegan`, so its sound lasts 0.5 seconds or less, or it is cut off by the pause (`021 §2.6`, `§4.2`).
+
+### Adding an audio track to an imported animation
+
+An imported glTF's animations can't be edited, so an animation that gets a track is saved to a file of its own first, keeping the tracks added to it when the glTF is imported again.
+
+1. In the FileSystem dock, double-click the character's `.gltf` file to open **Advanced Import Settings**.
+2. In its Scene tree, under the `AnimationPlayer`, select the animation.
+3. On the right, under **Save to File**, turn on **Enabled** and **Keep Custom Tracks**, and set **Path** to `<animation name>.tres` beside the `.gltf` file.
+4. Click **Reimport**. The `.gltf.import` file grows by about 2,000 lines of empty slice settings, which the editor writes; commit it with the `.tres`.
+5. Open the character's wrapper scene. Right-click the `AnimationPlayer`, choose **Add Child Node…**, and add an `AudioStreamPlayer`. One serves every animation. Set its **Bus** to `Sfx`, and leave its **Stream** empty: the track's keys carry the sounds, and the editor clears the player's stream when it saves.
+6. Select the `AnimationPlayer`, and in the Animation panel pick the animation.
+7. Click **+** on the left of the panel, which saving to a file enabled, and choose **Audio Playback Track…**, and the player.
+8. Right-click the track's timeline, choose **Insert Key…**, and drag the key to its time. Or drag the sound file from the FileSystem dock onto the track.
+9. Select the key, and set its **Stream** in the Inspector.
 
 ## Tests
 

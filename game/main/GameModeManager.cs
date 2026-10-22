@@ -19,8 +19,8 @@ public enum GameMode { Playing, Menu, Map, SlowingForPhase, Phasing }
 /// "map" the map; either opens its own from the other. There is no menu to show yet, so the menu is only a pause.
 /// <para>
 /// When the <see cref="World"/> asks for a pause, for the player aiming a phase, the game first slows down to it: the
-/// mode is <see cref="GameMode.SlowingForPhase"/>, and the engine's time scale falls in a straight line from 1 to 0
-/// over <see cref="SlowdownTime"/> real seconds, while the world runs and the player aims. Then the mode is
+/// mode is <see cref="GameMode.SlowingForPhase"/>, and the engine's time scale falls in a straight line from 1 to
+/// <see cref="SlowestTimeScale"/> over <see cref="SlowdownTime"/> real seconds, while the world runs and the player aims. Then the mode is
 /// <see cref="GameMode.Phasing"/>, the time scale is 1 again, and this steps the world's controllers each physics
 /// tick in the world's place. When the world stops asking, play resumes at full speed at once, even partway through the
 /// slowdown. The menu and the map can still be opened; closing them goes back to playing, and so to the phase again.
@@ -30,6 +30,9 @@ public partial class GameModeManager : Node
 {
     /// <summary>How long, in real seconds, the game takes to slow down to the pause for a phase.</summary>
     private const float SlowdownTime = 0.5f;
+
+    /// <summary>The time scale the slowdown for a phase falls to, short of 0 to avoid very small steps.</summary>
+    public const double SlowestTimeScale = 0.05;
 
     private Tween? _slowdown;
 
@@ -114,7 +117,7 @@ public partial class GameModeManager : Node
         {
             // In real time, since the tween would otherwise slow itself down.
             _slowdown = CreateTween().SetIgnoreTimeScale();
-            _slowdown.TweenMethod(Callable.From<double>(scale => Engine.TimeScale = scale), 1.0, 0.05, SlowdownTime);
+            _slowdown.TweenMethod(Callable.From<double>(scale => Engine.TimeScale = scale), 1.0, SlowestTimeScale, SlowdownTime);
             _slowdown.TweenCallback(Callable.From(() => SetGameMode(GameMode.Phasing)));
         }
         GameModeChanged?.Invoke(GameMode);

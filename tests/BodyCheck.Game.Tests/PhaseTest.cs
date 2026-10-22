@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -221,6 +222,23 @@ public class PhaseTest
         float height = player.Position.Y - platform.Position.Y;
         await _run.Tick(AimNowhere, 30);
         AssertFloat(player.Position.Y - platform.Position.Y).IsEqualApprox(height, 0.05f);
+    }
+
+    [TestCase]
+    public async Task PhaseRaisesCues()
+    {
+        var (player, _) = await Start(
+            "##########",
+            "#........#",
+            "#........#",
+            "#...PR...#",
+            "##########");
+        var cues = new List<EntityCue>();
+        player.CueRaised += cues.Add;
+
+        await _run!.Tick(AimRight, 2);
+        await _run.Tick(RoomRun.Right);
+        AssertThat(cues).IsEqual(new List<EntityCue> { EntityCue.PhaseBegan, EntityCue.PhaseThrown });
     }
 
     [TestCase]

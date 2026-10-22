@@ -181,6 +181,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
 
             _phaseCooldownLeft = Features.Current.PlayerPhaseCooldownTime;
             _phaseDirectionTimeLeft = 0;
+            entity.RaiseCue(EntityCue.PhaseBegan);
         }
 
         if (Phase is not PhaseAction phase)
@@ -216,6 +217,11 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         {
             phase.Phase();
             _phaseMade = true;
+            entity.RaiseCue(EntityCue.PhaseThrown);
+        }
+        else
+        {
+            entity.RaiseCue(EntityCue.PhaseCancelled);
         }
         Phase = null;
 
@@ -314,6 +320,8 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             _groundTimeLeft = 0;
             _jumpBufferLeft = 0;
             _thrustTimeLeft = Features.TicksToTime(Features.Current.PlayerJumpThrustTicks + 1); // +1 to include this tick
+
+            entity.RaiseCue(EntityCue.Jumped);
 
             // Thrust starts on the next tick.
             return;

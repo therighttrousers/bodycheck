@@ -1,6 +1,13 @@
 [gd_scene format=3 uid="uid://cgqe7ga88n8dy"]
 
 [ext_resource type="Script" uid="uid://cakqgwylp40r" path="res://main/Main.cs" id="1"]
+[ext_resource type="AudioStream" uid="uid://du1w2vwuoi8qu" path="res://assets/music/854317__bassimat__experimental-piano-loops-superpositions.ogg" id="2_wbnyf"]
 
 [node name="Main" type="Node" unique_id=245510479]
 script = ExtResource("1")
+
+[node name="Music" type="AudioStreamPlayer" parent="." unique_id=1730481926]
+process_mode = 3
+stream = ExtResource("2_wbnyf")
+autoplay = true
+bus = &"Music"
