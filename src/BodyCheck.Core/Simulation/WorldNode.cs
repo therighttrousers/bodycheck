@@ -25,7 +25,6 @@ public partial class WorldNode : Node3D
     /// Makes what to draw for an entity of a kind, with the given body, with its origin at the middle of its base.
     /// It is called once for each entity.
     /// </param>
-    /// <param name="mergeTiles">Whether to merge tiles into larger colliders, or give each tile its own.</param>
     public WorldNode(
         World world,
         IAssetLibrary assets,

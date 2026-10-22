@@ -99,7 +99,7 @@ public sealed record Features
 
     #region World
     /// <summary>The default friction for static tiles.</summary>
-    public float TileDefaultFriction = 1;
+    public float TileDefaultFriction { get; init; } = 1;
     #endregion
 
     #region Player
