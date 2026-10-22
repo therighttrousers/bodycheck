@@ -6,7 +6,7 @@ Inciting event (2026-10-21): issue #75, "Add event sound infrastructure and soun
 
 Goal: sound for starting a phase and for the throw, in a shape that later sounds can follow, and background music, which is the best way to test muffling (section 2) by hand.
 
-Anti-goals, for now: sounds for cancelling a phase, NPCs and other abilities. Choosing music by world or room.
+Anti-goals, for now: sounds for NPCs and other abilities. Choosing music by world or room.
 
 Overarching questions:
 - How does logic, which knows when something happens, get a sound played without knowing the game's assets?
@@ -25,6 +25,8 @@ Tensions:
 
 - [x] 1.1 Who decides that a sound plays? Decision (Neil, 2026-10-21): logic raises events, such as a phase starting or its throw, and something in the game listens and plays the sound. Controllers and entities stay logic, and only the game knows the sounds.
 - [x] 1.2 What about sounds that follow a body's animation, such as footsteps? They are audio tracks in the animation's clips, in the character's scene, timed by the artist, and need no code: the scene is the interface between code and art, as for animation (`006 §4.1`). None are planned yet.
+  - Tried (Neil, 2026-10-22) with a jump sound on Bob's `bob_rig|jump`. It took a dozen steps across two dialogs, since an imported animation must first be saved to a file of its own to take a track (now in [models.md](../designs/models.md#adding-an-audio-track-to-an-imported-animation)). The sound goes on the track's key, not on the player, whose stream the editor clears on saving. And it played late, sometimes very late, and sometimes not at all: a track plays only when the state machine reaches its clip, after the transition's blend. Jumping became a cue, `Jumped`, which was easy and plays on the tick.
+  - So a cue is for a sound that marks when something happens, and a track for one that follows a motion: footsteps, which keep time with the run cycle's speed; points along a long animation, such as a door's creak or the stages of a death; an idle's fidgets. A cue can start such an animation, and its tracks time the sounds within it.
   - They can't carry phase's sounds: the aim begins as the tree pauses, phase is not something the body animates, and a throw that lasts one tick is easy for an animation tree to miss.
 - [x] 1.3 Where do phase's events live? Decision (Neil, 2026-10-22): D, named cues, because the sounds then belong to the art, as animation does. Options:
   - A. C# events on `PlayerController`, raised by `ApplyPhase` when an aim begins and when it throws, each with the `PhaseAction`. A node in the game subscribes through `WorldNode.PlayerController`, as `PhaseAimMarker` reads the controller's `Phase`. Core already raises events this way (`Features.Changed`). Leaning (Claude).
@@ -56,7 +58,7 @@ Tensions:
 
 ## 3. Cancelling a phase
 
-- [ ] 3.1 Does cancelling need a sound? Neil (2026-10-21): perhaps not. The sound coming back without the throw's sound may be cue enough. To be decided by playing. As built, the controller raises a `PhaseCancelled` cue, which costs nothing and is silent until the player's scene gives it a sound, so a cancel sound can be tried without code.
+- [x] 3.1 Does cancelling need a sound? Decision (Neil, 2026-10-22), after trying one: yes, a "critical error" sound from Freesound, CC0. Neil (2026-10-21): perhaps not. The sound coming back without the throw's sound may be cue enough. To be decided by playing. As built, the controller raises a `PhaseCancelled` cue, which costs nothing and is silent until the player's scene gives it a sound, so a cancel sound can be tried without code.
 
 ## 4. Buses and assets
 
