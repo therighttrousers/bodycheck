@@ -31,9 +31,6 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     private float _phaseCooldownLeft;
     // In real time: how much longer the last direction held while a phase is aimed still counts, once let go of.
     private float _phaseDirectionTimeLeft;
-    // Whether a phase has been made that the engine hasn't stepped since. Its bodies move just before the engine's step
-    // on the first tick of play, so until then contacts are from before the phase.
-    private bool _phaseMade;
 
     // The current time in the air, for telemetry: where the feet were on the last tick on the ground.
     private bool _inAir;
@@ -72,7 +69,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         float weight = entity.Weight;
         float move = Math.Clamp(input.XAxis, -1, 1);
 
-        if (entity.OnGround && !_phaseMade)
+        if (entity.OnGround)
         {
             _groundTimeLeft = Features.TicksToTime(Features.Current.PlayerCoyoteTicks + 1); // +1 to include this tick
             _lastGroundVelocity = entity.GroundVelocity;
@@ -108,7 +105,6 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         _jumpBufferLeft = Math.Max(0, _jumpBufferLeft - realDt);
         _jumpWasHeld = input.JumpHeld;
         _phaseCooldownLeft = Math.Max(0, _phaseCooldownLeft - gameDt);
-        _phaseMade = false;
     }
 
     /// <summary>Reports the player's measurements to <see cref="Telemetry"/>, as of the engine's last step.</summary>
@@ -156,20 +152,14 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
 
     /// <summary>
     /// Begins, holds, aims and releases a phase. Returns whether the phase takes the place of running and jumping on
-    /// this tick: while it is aimed, and on the tick of play on which a phase made moves the bodies, when the contacts
-    /// are from before it.
+    /// this tick: while it is aimed, and on the tick it is made, when the bodies move at the end of the tick and the
+    /// contacts are from before it.
     /// </summary>
     /// <param name="gameDt">The tick's length in game time: 0 while the game is paused.</param>
     /// <param name="realDt">The tick's length in real time.</param>
     /// <param name="endOfTick">Where the phase defers moving the bodies.</param>
     private bool ApplyPhase(WalkerEntity entity, PlayerInput input, float gameDt, float realDt, IEndOfTick endOfTick)
     {
-        // Made while paused, and moving on this tick.
-        if (_phaseMade)
-        {
-            return true;
-        }
-
         if (Phase is null && input.PhaseHeld && _phaseCooldownLeft <= 0 && TargetedEntity(entity, input) is Entity target)
         {
             Phase = new PhaseAction(
@@ -218,10 +208,10 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             return true;
         }
 
-        if (phase.Direction != Vector3.Zero)
+        bool phased = phase.Direction != Vector3.Zero;
+        if (phased)
         {
             phase.Phase(endOfTick);
-            _phaseMade = true;
             _phaseCooldownLeft = Features.Current.PlayerPhaseThrowCooldownTime;
             entity.RaiseCue(EntityCue.PhaseThrown);
         }
@@ -236,7 +226,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         _groundTimeLeft = 0;
         _thrustTimeLeft = 0;
         _jumpBufferLeft = 0;
-        return _phaseMade;
+        return phased;
     }
 
     /// <summary>One of the eight directions, from the input, as a unit vector in the plane of play, or zero if none.</summary>

@@ -400,25 +400,4 @@ public class PhaseTest
         AssertFloat(player.Bottom()).IsGreater(platform.Top());
         AssertFloat(player.LinearVelocity.Y).IsEqualApprox(Features.Current.PlayerPhaseSpeed, 1);
     }
-
-    [TestCase]
-    public async Task JumpRightAfterAPausedPhaseDoesNothing()
-    {
-        var (player, _) = await Start(
-            "####################",
-            "#..................#",
-            "#..................#",
-            "#..PR..............#",
-            "####################");
-
-        // Released while paused, and jump pressed on the first tick of play, when the contacts are still those of
-        // the floor where the player was.
-        await _run!.Tick(AimRight);
-        Tree.Paused = true;
-        await _run.PausedTick(RoomRun.Right);
-        Tree.Paused = false;
-        await _run.Tick(new PlayerInput(1, 0, true));
-
-        AssertFloat(player.LinearVelocity.Y).IsLess(1);
-    }
 }
