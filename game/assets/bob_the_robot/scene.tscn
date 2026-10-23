@@ -196,5 +196,11 @@ bus = &"Sfx"
 [node name="PhaseCancelled" type="AudioStreamPlayer" parent="CueSounds" unique_id=841733799]
 stream = ExtResource("5_hvsop")
 volume_db = -10.0
+bus = &"Sfx"
+
+[node name="SpawnCancelled" type="AudioStreamPlayer" parent="CueSounds" unique_id=1950364817]
+stream = ExtResource("5_hvsop")
+volume_db = -10.0
+bus = &"Sfx"
 
 [editable path="Model"]

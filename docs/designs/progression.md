@@ -60,7 +60,8 @@ Run and jump. See [movement.md](movement.md).
 A prototype, which may take boost's place (`023`). Where it comes in the progression is undecided.
 
 - The player has one block, a see-through ghost of a block, which looks like a companion cube, with the player's mass. Spawn is Z or L on the keyboard, the right trigger on a gamepad, and needs no direction (`023 §1.1`, `§1.3`, `§2.4`).
-- Spawning puts the block under the player. It appears at the player's center and moves straight down through entities until it is under the player or meets a tile; then the player moves up through entities by as much as the block fell short, onto it. On the floor, that lifts the player by the block's height; in the open air, the player doesn't move. There is no check for room first, so under a low ceiling they may end up overlapping (`023 §2.1`, `§2.2`).
+- Spawning puts the block under the player. It goes at the player's height, as near its center as it fits beside the tiles, and as far straight down from there, through entities, as it can go until it is under the player or meets a tile; then the player moves up through entities by as much as the block fell short, onto it. On the floor, that lifts the player by the block's height; in the open air, the player doesn't move. A block that only just fits, as in a shaft one tile wide, counts as fitting (`023 §2.1`, `024 §2.2`, `§2.3`).
+- Where the block doesn't fit beside the tiles, or the player has no room to rise onto it, such as under a ceiling less than 2.8 tiles above the floor, the spawn is cancelled, with phase's cancel sound for now. Spawning can then be tried again after 0.25 seconds of game time (`024 §2.2`).
 - Spawning it again takes it from wherever it was. It is never removed for being far from the player (`023 §1.1`, `§1.2`).
 - It spawns at rest, or moving as the player does, chosen by the feature `PlayerSpawnMotion` (`023 §2.3`).
 - Spawning can't be repeated until 1.5 seconds of game time after the last spawn, which keeps jumping off the block from being flight. Nothing else about the block is limited (`023 §2.5`).
@@ -127,7 +128,6 @@ The spawned block:
 - Does it spawn at rest or moving as the player does? Both are built, chosen by `PlayerSpawnMotion`; to be chosen by playing (`023 §2.3`).
 - Tuning to be checked by playing: the cooldown of 1.5 seconds, and the block's mass of 1 (`023 §1.3`, `§2.5`).
 - How are puzzles isolated from it? Ideas: make it wider than a tile, so that it can't go into a one-tile shaft, and require room to spawn it; lasers that destroy it when it crosses them, which a clever player may get around (`023 §3.1`, `§3.2`).
-- Should spawning check for room first, and fail with a sound, such as phase's cancel, where the player and the block don't fit? Without it, under a low ceiling they may end up overlapping, for the engine to push apart. Put off as likely to take a while to get right (`023 §2.2`).
 - How does the block talk, and what does it say? It accepts whatever life throws at it, or whatever throws it at life. It raises a cue when it is spawned, for whatever reacts (`023 §1.5`).
 
 Lasers and water:

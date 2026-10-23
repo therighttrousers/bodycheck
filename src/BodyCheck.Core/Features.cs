@@ -225,6 +225,9 @@ public sealed record Features
     /// </summary>
     public float PlayerSpawnCooldownTime { get; init; } = 1.5f;
 
+    /// <summary>The minimum delay after a spawn is cancelled for want of room, in game time.</summary>
+    public float PlayerSpawnCancelCooldownTime { get; init; } = 0.25f;
+
     /// <summary>How the player's block moves when it is spawned. To be chosen by playing.</summary>
     public SpawnMotion PlayerSpawnMotion { get; init; } = SpawnMotion.AtRest;
     #endregion

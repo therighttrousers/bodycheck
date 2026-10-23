@@ -33,6 +33,9 @@ public enum EntityCue
 
     /// <summary>The player spawned this block under itself.</summary>
     Spawned,
+
+    /// <summary>The player pressed spawn where its block doesn't fit, or where there is no room to rise onto it.</summary>
+    SpawnCancelled,
 }
 
 /// <summary>
@@ -64,6 +67,12 @@ public partial class Entity : RigidBody3D
 {
     // How far every entity's collider extends along Z, which gameplay doesn't use.
     private const float Depth = 0.8f;
+
+    /// <summary>
+    /// How far, in tiles, a box may overlap a collider and still count as only touching it: what <see cref="RoomToMove"/>
+    /// ignores where a box starts, and so how far short of a fit its answers may come.
+    /// </summary>
+    public const float ContactTolerance = 0.01f;
 
     // How closely a contact normal must line up with an axis to count as a contact on that side.
     private const float SideThreshold = 0.7f;
@@ -258,6 +267,19 @@ public partial class Entity : RigidBody3D
         ResetPhysicsInterpolation();
     }
 
+    /// <summary>
+    /// Moves the entity to <paramref name="destination"/> at once, through everything, for a place already found to be
+    /// clear of tiles, such as with <see cref="RoomToMove"/>. Otherwise like <see cref="MoveThroughEntities"/>: it keeps
+    /// its velocity, the engine pushes it apart from whatever it ends up overlapping, and a controller defers it to the
+    /// end of the tick.
+    /// </summary>
+    public void MoveTo(Vector3 destination)
+    {
+        ReleaseGrip();
+        GlobalPosition = destination;
+        ResetPhysicsInterpolation();
+    }
+
     /// <summary>The colliders, other than this entity, that overlap a shape centered at a place.</summary>
     public IEnumerable<GodotObject> Overlapping(Shape3D shape, Vector3 center)
     {
@@ -269,6 +291,30 @@ public partial class Entity : RigidBody3D
         };
         return GetWorld3D().DirectSpaceState.IntersectShape(query)
             .Select(result => result["collider"].AsGodotObject());
+    }
+
+    /// <summary>
+    /// How far a box as deep as an entity's, centered at a place, can move in a direction before it meets a collider in
+    /// the given layers, up to a distance, as of the engine's last step. It doesn't meet this entity. What it only
+    /// touches where it starts doesn't stop it, but what it starts overlapping by more than that may not either.
+    /// </summary>
+    /// <param name="direction">A unit vector.</param>
+    public float RoomToMove(Vector2 halfSize, Vector3 center, Vector3 direction, float distance, PhysicsLayer layers)
+    {
+        // The engine's cast misses everything when the box starts touching something, which a box beside a wall or on
+        // the floor does. So it casts a box smaller by a little on every side, which starts clear, that much further.
+        var shrunk = new Vector3(2 * (halfSize.X - ContactTolerance), 2 * (halfSize.Y - ContactTolerance), Depth);
+        var query = new PhysicsShapeQueryParameters3D
+        {
+            Shape = new BoxShape3D { Size = shrunk },
+            Transform = new Transform3D(Basis.Identity, center),
+            Motion = (distance + ContactTolerance) * direction,
+            CollisionMask = (uint)layers,
+            Exclude = [GetRid()],
+        };
+        // The fraction of the motion it can make without touching anything, then the fraction where it first would.
+        float safe = GetWorld3D().DirectSpaceState.CastMotion(query)[0];
+        return Math.Clamp(safe * (distance + ContactTolerance) - ContactTolerance, 0, distance);
     }
 
     /// <summary>Call once per physics tick, before the engine's step.</summary>

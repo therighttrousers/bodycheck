@@ -4,6 +4,7 @@ Relevant decision records:
 - [006: Models, their base point, and animation](../decision-records/006-models-and-animation.md)
 - [019: Carrying blocks on walkers](../decision-records/019-carrying-blocks.md)
 - [021: Sound](../decision-records/021-sound.md)
+- [024: Playtesting feedback](../decision-records/024-playtesting-feedback.md)
 
 What the game asks of a 3D model, and how code and art meet in it. The models in the game now are placeholders.
 
@@ -83,7 +84,7 @@ The tree is the interface between code and art (`006 §4`).
 A character's sounds are in its wrapper scene, as its animation is: the scene is the interface between code and art for both (`021 §1.3`).
 
 - **Cues.** A controller raises an `EntityCue` on its entity when something happens to it that the scene may react to, such as `PhaseBegan`. To give cues sounds, add a `CueSounds` node to the wrapper scene, and under it an `AudioStreamPlayer` or `AudioStreamPlayer3D` for each, named after its cue, on the `Sfx` bus. A cue with no player plays nothing; so does a misspelt name, silently.
-- **The cues:** `Jumped`, `PhaseBegan`, `PhaseThrown` and `PhaseCancelled`, all raised on the player.
+- **The cues:** `Jumped`, `PhaseBegan`, `PhaseThrown`, `PhaseCancelled` and `SpawnCancelled`, all raised on the player.
 - **When to use which.** A cue says *when* something happens, on the tick it happens. An audio track in a clip says *where in a motion*, and plays only when the animation tree reaches that clip, which may be late or not at all after a transition's blend. So a sound that marks an event, such as a jump, is a cue. A sound that follows a motion is a track: footsteps, which keep time with the run cycle as its speed changes; sounds at points along a long animation, such as a door's creak as it swings or the stages of a death; sounds in an idle's fidgets. A cue can start such an animation, and its tracks then time the sounds within it (`021 §1.2`).
 - A character's sounds pause with the world. The game pauses half a second after `PhaseBegan`, so its sound lasts 0.5 seconds or less, or it is cut off by the pause (`021 §2.6`, `§4.2`).
 
