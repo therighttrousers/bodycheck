@@ -182,16 +182,16 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             Phase = new PhaseAction(
                 player: entity,
                 target: target,
-                grabOffset: target.Position - entity.Position,
                 gap: Features.Current.PlayerPhaseGap,
                 phaseThrow: Features.Current.PlayerPhaseThrow,
-                speed: Features.Current.PlayerPhaseSpeed);
+                speed: Features.Current.PlayerPhaseSpeed,
+                endOfTick: endOfTick);
 
             _phaseDirectionTimeLeft = 0;
             entity.RaiseCue(EntityCue.PhaseBegan);
         }
 
-        if (Phase is not PhaseAction phase)
+        if (Phase is null)
         {
             return false;
         }
@@ -201,7 +201,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         Vector3 held = DirectionHeld(input);
         if (held != Vector3.Zero)
         {
-            phase.Direction = held;
+            Phase.Direction = held;
             _phaseDirectionTimeLeft = Features.TicksToTime(Features.Current.PlayerPhaseReleaseTicks + 1); // +1 to include this tick
         }
         else
@@ -209,7 +209,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             _phaseDirectionTimeLeft = Math.Max(0, _phaseDirectionTimeLeft - realDt);
             if (_phaseDirectionTimeLeft == 0)
             {
-                phase.Direction = Vector3.Zero;
+                Phase.Direction = Vector3.Zero;
             }
         }
 
@@ -220,15 +220,15 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             // the velocities it replaces.
             if (gameDt > 0)
             {
-                phase.Grab(gameDt);
+                Phase.Grab(gameDt);
             }
             return true;
         }
 
-        bool phased = phase.Direction != Vector3.Zero;
+        bool phased = Phase.Direction != Vector3.Zero;
         if (phased)
         {
-            phase.Phase(endOfTick);
+            Phase.Phase(endOfTick);
             _phaseCooldownLeft = Features.Current.PlayerPhaseThrowCooldownTime;
             entity.RaiseCue(EntityCue.PhaseThrown);
         }
@@ -237,6 +237,8 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             _phaseCooldownLeft = Features.Current.PlayerPhaseCancelCooldownTime;
             entity.RaiseCue(EntityCue.PhaseCancelled);
         }
+
+        Phase.Stop(endOfTick);
         Phase = null;
 
         // A phase ends a jump's thrust, coyote time and buffered press, and so does cancelling one: the aim took them.
@@ -311,6 +313,9 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     /// <param name="jumps">Whether the entity jumps on this tick.</param>
     private void ApplyRun(WalkerEntity entity, float move, float gameDt, bool jumps)
     {
+        // Don't try to run if weightless. There's no use-case right now, just being defensive against divide by zero.
+        if (entity.Weight == 0) return;
+
         Features features = Features.Current;
 
         // Speed is relative to whatever the entity stands on, so running on a robot works like running on tiles.

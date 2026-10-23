@@ -6,6 +6,7 @@ Relevant decision records:
 - [016: Features](../decision-records/016-features.md)
 - [018: Game time and real time](../decision-records/018-game-and-real-time.md)
 - [023: The player's spawned block](../decision-records/023-spawned-block.md)
+- [024: Playtesting feedback](../decision-records/024-playtesting-feedback.md)
 
 Abilities and world changes, in the order the player meets them.
 
@@ -40,6 +41,7 @@ Run and jump. See [movement.md](movement.md).
 - The player moves at once to the other side of an object, and the object moves too, the other way.
 - The target is the entity in reach whose box is nearest a point 0.5 tiles from the player's center in the direction held, or nearest the center itself with none held, so that holding toward an entity favors it (`015 §5.22`). In reach is whatever a sphere around the player's center meets, whose radius is half the player's diagonal, 0.985 tiles, plus a reach of 0.165 tiles, 1.15 in all. Everything touching the player is in reach. It reaches 0.75 tiles beyond the player's sides and 0.25 above and below (`015 §5.16`). Every kind of entity can be phased through (`015 §1.2`, `§1.3`).
 - Phase is K or X on the keyboard, X on a gamepad (`015 §1.1`). Holding it with a target in reach, or coming within reach of one while holding it, fixes the target, holds the player and the target together, moving at the velocity of their center of mass, and pauses the game, slowing down to the pause over half a second, showing the target and, with a direction held, arrows for the velocity the player and the target would each leave with, for as long as it is held. Releasing it unpauses and phases in the direction held, or cancels with none (`015 §5.5`, `§5.6`, `§5.7`, `§5.15`).
+- While the grab holds them, gravity doesn't pull on the player or the target, so that juggling is more effective. They keep the velocity they had when the aim began, so a pair grabbed while falling drifts down at that speed. Gravity comes back on the release, whether it phases or cancels. Both changes take effect from the engine's step after the tick they are made on (`024 §1.1`, `§1.2`).
 - The last direction held still counts for 4 ticks of real time after it is let go of, counting the tick it is let go on, so that letting go of it with phase, or just before, still phases (`018 §3.1`).
 - A new aim can't begin until 0.125 seconds of game time after a phase, or 0.25 seconds after a cancel, so that mashing phase can't ride a platform (`015 §5.15`).
 - The phase's direction is one of eight, chosen by player input (`015 §2.1`). The player and the target get equal and opposite momentum along it, at the player's speed of 12.7 tiles per second, which either replaces how they were moving or adds to it (`015 §3.2`).
@@ -102,6 +104,7 @@ Where these appear in the progression is undecided.
 - A platform holds its height with thrust and patrols horizontally.
 - It sags under load in proportion to the weight it carries, and dips when landed on.
 - Its thrust is limited, so enough weight makes it sink.
+- While a phase's grab holds it, it has no weight, and doesn't thrust to hold its height (`024 §1.1`).
 - Puzzle material: lower a platform for a while by dropping a heavy object on it, or by adding a rider or two.
 
 ## Open questions

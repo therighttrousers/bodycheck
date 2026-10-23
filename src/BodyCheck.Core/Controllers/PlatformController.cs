@@ -6,13 +6,13 @@ namespace BodyCheck.Core.Controllers;
 
 public sealed class PlatformController : ICharacterController<SimpleControlledEntity>
 {
-    private readonly float _startHeight;
+    private readonly float _startY;
     private float _move = 1;
 
-    /// <param name="startHeight">The height of the platform's center that it tries to hold.</param>
-    public PlatformController(float startHeight)
+    /// <param name="startY">The height of the platform's center that it tries to hold.</param>
+    public PlatformController(float startY)
     {
-        _startHeight = startHeight;
+        _startY = startY;
     }
 
     public void Apply(SimpleControlledEntity entity, float gameDt, float realDt, IEndOfTick endOfTick)
@@ -44,11 +44,14 @@ public sealed class PlatformController : ICharacterController<SimpleControlledEn
 
     private void ApplyVerticalThrust(SimpleControlledEntity entity)
     {
+        // Don't try to return to starting altitude if weightless (e.g. being grabbed).
+        if (entity.Weight == 0) return;
+
         // PD controller: correction = K_p * (target - current) + K_d * -rate
         Features features = Features.Current;
         float weight = entity.Weight;
         var damping = 2 * MathF.Sqrt(features.PlatformVerticalStiffness * entity.Mass);
-        var correction = features.PlatformVerticalStiffness * (_startHeight - entity.Position.Y) + damping * -entity.LinearVelocity.Y;
+        var correction = features.PlatformVerticalStiffness * (_startY - entity.Position.Y) + damping * -entity.LinearVelocity.Y;
 
         var thrust = Math.Clamp(weight + correction, 0, weight * features.PlatformMaxVerticalThrustFrac);
         entity.ApplyCentralForce(new Vector3(0, thrust, 0));

@@ -185,6 +185,25 @@ public partial class Entity : RigidBody3D
     public float Weight => Mass * -GetGravity().Y;
 
     /// <summary>
+    /// <para>
+    /// At the end of this tick, sets the gravity scale and adds a compensating force. The compensating force
+    /// allows controllers, which run before the engine, to assume `GetGravity` accurately reflects the gravity the
+    /// engine will add.
+    /// </para>
+    /// <para>
+    /// Prefer to call this instead of calling SetGravityScale or setting GravityScale, for step-order-independence.
+    /// </para>
+    /// </summary>
+    public void SetGravityScaleDeferred(float scale, IEndOfTick endOfTick) =>
+        endOfTick.Defer(() =>
+        {
+            Vector3 before = GetGravity();
+            base.GravityScale = scale;
+            // Controllers this tick reckoned with the old gravity, so the step gets the difference back.
+            ApplyCentralForce(Mass * (before - GetGravity()));
+        });
+
+    /// <summary>
     /// The entity's weight and the loads of the entities that stand on it, and so on up the stack, as of the engine's
     /// last step: how hard it presses on what it stands on, at rest.
     /// </summary>

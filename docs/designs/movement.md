@@ -9,6 +9,7 @@ Relevant decision records:
 - [018: Game time and real time](../decision-records/018-game-and-real-time.md)
 - [019: Carrying blocks on walkers](../decision-records/019-carrying-blocks.md)
 - [022: Actions at the end of a tick](../decision-records/022-end-of-tick-actions.md)
+- [024: Playtesting feedback](../decision-records/024-playtesting-feedback.md)
 
 ## Player movement
 
@@ -62,7 +63,7 @@ Rationale: decision record `001`.
 - A controller sees the world as of the engine's last step. Neither the forces nor the impulses applied this tick show in any entity's velocity until the next step, so what a controller decides doesn't depend on the order in which entities are stepped (`005 §3.4`).
 - A move through other entities, such as a phase's, waits until every entity has been stepped, and happens before the engine's step, so that it doesn't show to controllers stepped later in the same tick either. The controller defers it to the end of the tick, with the `IEndOfTick` it is given, which the world runs once it has stepped every entity, whether the game is playing or paused for a controller (`022 §2.1`). The move sweeps the body toward where it goes against tiles only, sliding along any it meets, and leaves the engine's step to push apart whatever ends up overlapping. It resets physics interpolation, so the body isn't drawn sliding to where it went (`015 §4.2`, `§5.21`).
 - On the tick a phase is made, the contacts are from before the move, so the player's controller neither runs nor jumps then, and the phase clears its coyote time and buffered jump (`015 §5.21`). By the next tick, the engine has stepped from where the bodies went, whether the phase was made during play or while paused (`022 §3.1`). An entity asked to move through entities has no friction until the engine's next step (`019 §4.2`).
-- Gravity is set in one place: the project setting `physics/3d/default_gravity`, which the test project copies. An entity's weight uses the engine's figure for the gravity on it.
+- Gravity is set in one place: the project setting `physics/3d/default_gravity`, which the test project copies. An entity's weight uses the engine's figure for the gravity on it, which includes its gravity scale. Only a phase's grab changes the scale after an entity is built, to 0, so a held entity has no weight, and a walker with none doesn't run (`024 §1.1`). A change of gravity scale takes effect between two steps: the entity makes it at the end of the tick, and adds a force so that the engine's next step still feels the old gravity. So every controller on that tick, and the step after it, see the gravity from before the change, whatever order the entities are stepped in (`024 §1.2`).
 
 ## Ground contact, friction and traction
 

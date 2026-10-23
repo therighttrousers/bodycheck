@@ -140,8 +140,10 @@ public class PhaseTest
         }
         AssertObject(controller.Phase?.Target).IsSame(robot);
 
-        // They move together, at the velocity of their center of mass, from the step after the grab.
-        await _run.Tick(AimRight);
+        // They move together, at the velocity of their center of mass, from the second step after the grab. On the
+        // first, the player's friction is still from its weight, and the next grab takes back the drift it leaves
+        // (024 §1.1).
+        await _run.Tick(AimRight, 2);
         AssertFloat(player.LinearVelocity.X).IsGreater(1);
         AssertFloat(player.LinearVelocity.X - robot.LinearVelocity.X).IsEqualApprox(0, 0.5f);
     }
