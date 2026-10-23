@@ -85,6 +85,15 @@ public sealed record BodyTuning
         CollisionLayer = PhysicsLayer.Character
     };
 
+    /// <summary>The block the player spawns: a block, but light enough to carry and jump with.</summary>
+    public static BodyTuning PlayerBlock { get; } = new()
+    {
+        HalfSize = new(0.5f, 0.5f),
+        Mass = 1,
+        EngineFriction = 1,
+        CollisionLayer = PhysicsLayer.Prop
+    };
+
     /// <summary>A block, which has no controller: it is only pushed, carried and stood on.</summary>
     public static BodyTuning Block { get; } = new()
     {

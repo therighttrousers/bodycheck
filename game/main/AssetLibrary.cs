@@ -15,6 +15,10 @@ namespace BodyCheck;
 public class AssetLibrary : IAssetLibrary
 {
     private const string TilePath = "res://assets/tile/tile.tscn";
+    private const string BlockPath = "res://assets/portal_cube/scene.tscn";
+
+    // How opaque the player's block is: a ghost of a block.
+    private const float PlayerBlockAlpha = 0.4f;
 
     private static readonly Color PlatformColor = new(0.9f, 0.1f, 0.7f);
 
@@ -26,8 +30,15 @@ public class AssetLibrary : IAssetLibrary
         EntityKind.Player => InstantiateModel("res://assets/bob_the_robot/scene.tscn"),
         EntityKind.Robot => InstantiateModel("res://assets/bob_the_robot/robot.tscn"),
         EntityKind.Platform => BoxVisual(halfSize, PlatformColor),
-        EntityKind.Block => InstantiateModel("res://assets/portal_cube/scene.tscn"),
+        EntityKind.Block => InstantiateModel(BlockPath),
     };
+
+    public Node3D GetPlayerBlockVisual(Vector2 halfSize)
+    {
+        Node3D model = InstantiateModel(BlockPath);
+        MakeGhostly(model);
+        return model;
+    }
 
     public (Mesh Mesh, Transform3D Transform) GetTileMesh(float darkening = 0)
     {
@@ -114,18 +125,39 @@ public class AssetLibrary : IAssetLibrary
     }
 
     /// <summary>A copy of <paramref name="mesh"/> with each surface's albedo darkened by <paramref name="factor"/>.</summary>
-    private static Mesh DarkenedMesh(Mesh mesh, float factor)
+    private static Mesh DarkenedMesh(Mesh mesh, float factor) =>
+        WithMaterials(mesh, material => material.AlbedoColor = material.AlbedoColor.Darkened(factor));
+
+    // Makes every mesh under the node see-through, with copies of their meshes, so that the scene's own are unchanged.
+    private static void MakeGhostly(Node node)
     {
-        var darkMesh = (Mesh)mesh.Duplicate();
-        for (int i = 0; i < darkMesh.GetSurfaceCount(); i++)
+        if (node is MeshInstance3D meshInstance)
         {
-            if (darkMesh.SurfaceGetMaterial(i) is StandardMaterial3D material)
+            meshInstance.Mesh = WithMaterials(meshInstance.Mesh, material =>
             {
-                var darkMaterial = (StandardMaterial3D)material.Duplicate();
-                darkMaterial.AlbedoColor = darkMaterial.AlbedoColor.Darkened(factor);
-                darkMesh.SurfaceSetMaterial(i, darkMaterial);
+                material.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
+                material.AlbedoColor = material.AlbedoColor with { A = PlayerBlockAlpha };
+            });
+        }
+        foreach (Node child in node.GetChildren())
+        {
+            MakeGhostly(child);
+        }
+    }
+
+    /// <summary>A copy of <paramref name="mesh"/> with a copy of each surface's material, changed by <paramref name="change"/>.</summary>
+    private static Mesh WithMaterials(Mesh mesh, Action<BaseMaterial3D> change)
+    {
+        var copy = (Mesh)mesh.Duplicate();
+        for (int i = 0; i < copy.GetSurfaceCount(); i++)
+        {
+            if (copy.SurfaceGetMaterial(i) is BaseMaterial3D material)
+            {
+                var changed = (BaseMaterial3D)material.Duplicate();
+                change(changed);
+                copy.SurfaceSetMaterial(i, changed);
             }
         }
-        return darkMesh;
+        return copy;
     }
 }

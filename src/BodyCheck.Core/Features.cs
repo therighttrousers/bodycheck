@@ -23,6 +23,17 @@ public enum PhaseThrow
     Conserved,
 }
 
+/// <summary>How the player's block moves when it is spawned under the player.</summary>
+[JsonConverter(typeof(StrictEnumConverter<SpawnMotion>))]
+public enum SpawnMotion
+{
+    /// <summary>It is still, so a player in the air lands on it, and pushes it down.</summary>
+    AtRest,
+
+    /// <summary>It moves as the player does, so a player in the air stands on it at once, and can jump off it.</summary>
+    WithPlayer,
+}
+
 /// <summary>
 /// The values that shape gameplay, in one place: the only source of each (decision record 016). Read them from
 /// <see cref="Current"/> where they are used. A feature must be a simple value that nothing derives from or caches.
@@ -207,6 +218,15 @@ public sealed record Features
 
     /// <summary>What momentum a phase gives the player and the target. To be chosen by playing.</summary>
     public PhaseThrow PlayerPhaseThrow { get; init; } = PhaseThrow.Fixed;
+
+    /// <summary>
+    /// The minimum time between spawning the player's block and spawning it again, in game time: long enough that
+    /// spawning it under the player again and again can't be flight.
+    /// </summary>
+    public float PlayerSpawnCooldownTime { get; init; } = 1.5f;
+
+    /// <summary>How the player's block moves when it is spawned. To be chosen by playing.</summary>
+    public SpawnMotion PlayerSpawnMotion { get; init; } = SpawnMotion.AtRest;
     #endregion
 
     #region Robots

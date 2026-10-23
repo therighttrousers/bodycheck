@@ -5,6 +5,7 @@ Relevant decision records:
 - [015: The phase ability](../decision-records/015-phase.md)
 - [016: Features](../decision-records/016-features.md)
 - [018: Game time and real time](../decision-records/018-game-and-real-time.md)
+- [023: The player's spawned block](../decision-records/023-spawned-block.md)
 
 Abilities and world changes, in the order the player meets them.
 
@@ -51,6 +52,19 @@ Run and jump. See [movement.md](movement.md).
 - Traversal: phase through objects and NPCs to go faster and reach high places.
 - Phasing straight down juggles robots, puts robots on platforms, picks up blocks, and falls through platforms while they can be phased through (`015 §5.18`).
 - Combat: throw an NPC into the air, into spikes or into a pit. For example, jump near a spike pit and phase diagonally down through an NPC to lob it up and into the pit.
+
+## Ability: spawn a block
+
+A prototype, which may take boost's place (`023`). Where it comes in the progression is undecided.
+
+- The player has one block, a see-through ghost of a block, which looks like a companion cube, with the player's mass. Spawn is Z or L on the keyboard, the right trigger on a gamepad, and needs no direction (`023 §1.1`, `§1.3`, `§2.4`).
+- Spawning puts the block under the player. It appears at the player's center and moves straight down through entities until it is under the player or meets a tile; then the player moves up through entities by as much as the block fell short, onto it. On the floor, that lifts the player by the block's height; in the open air, the player doesn't move. There is no check for room first, so under a low ceiling they may end up overlapping (`023 §2.1`, `§2.2`).
+- Spawning it again takes it from wherever it was. It is never removed for being far from the player (`023 §1.1`, `§1.2`).
+- It spawns at rest, or moving as the player does, chosen by the feature `PlayerSpawnMotion` (`023 §2.3`).
+- Spawning can't be repeated until 1.5 seconds of game time after the last spawn, which keeps jumping off the block from being flight. Nothing else about the block is limited (`023 §2.5`).
+- Traversal: a phase target anywhere, a step, and a shield.
+- Puzzles: a puzzle element the player always has, so the player can break puzzles out of their isolation (`023`, Context).
+- The block talks: the only thing in the world that can't move by itself, and talks (`023 §1.5`). Not built.
 
 ## World change: activate laser turrets
 
@@ -104,6 +118,14 @@ Boost:
 - How is boost kept from becoming flight? Option: a long enough cooldown. Option: boost must always be against a designated object.
 - Does boost double as swimming? It could, if water is like air with higher resistance and some buoyancy. This is the current leaning.
 - Should boosting into spiky NPCs be safe through invulnerability frames? Options: always, never, or as a later upgrade.
+- Does boost stay, in some form, or does the spawned block replace it? A version of boost that tops up the player's speed and bounces is parked on branch `boost-ability` (`023 §3.3`).
+
+The spawned block:
+- Does it spawn at rest or moving as the player does? Both are built, chosen by `PlayerSpawnMotion`; to be chosen by playing (`023 §2.3`).
+- Tuning to be checked by playing: the cooldown of 1.5 seconds, and the block's mass of 1 (`023 §1.3`, `§2.5`).
+- How are puzzles isolated from it? Ideas: make it wider than a tile, so that it can't go into a one-tile shaft, and require room to spawn it; lasers that destroy it when it crosses them, which a clever player may get around (`023 §3.1`, `§3.2`).
+- Should spawning check for room first, and fail with a sound, such as phase's cancel, where the player and the block don't fit? Without it, under a low ceiling they may end up overlapping, for the engine to push apart. Put off as likely to take a while to get right (`023 §2.2`).
+- How does the block talk, and what does it say? It accepts whatever life throws at it, or whatever throws it at life. It raises a cue when it is spawned, for whatever reacts (`023 §1.5`).
 
 Lasers and water:
 - Can robot lasers be designed to add traversal options naturally, beyond breaking blocks and activating switches?

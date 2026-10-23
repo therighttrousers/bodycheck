@@ -58,6 +58,16 @@ public partial class WorldNode : Node3D
 
         PlayerInput Input() => PlayerInput?.Invoke() ?? default;
 
+        // Out of the world until the player spawns it: a disabled body is out of the engine's space, and isn't stepped.
+        PlayerBlock = new Entity(
+            BodyTuning.PlayerBlock,
+            assets.GetPlayerBlockVisual(BodyTuning.PlayerBlock.HalfSize),
+            axisLockAngularZ: false)
+        {
+            ProcessMode = ProcessModeEnum.Disabled,
+            Visible = false,
+        };
+
         foreach (EntityConfig config in world.EntityConfigs)
         {
             Entity entity = config.Kind switch
@@ -66,7 +76,7 @@ public partial class WorldNode : Node3D
                     (EntityConfig.Player)config,
                     assets.GetEntityVisual(config.Kind, BodyTuning.Player.HalfSize),
                     playerBody ?? BodyTuning.Player,
-                    PlayerController = new PlayerController(Input)),
+                    PlayerController = new PlayerController(Input, PlayerBlock)),
 
                 EntityKind.Robot => CreateRobot(
                     (EntityConfig.Robot)config,
@@ -85,6 +95,10 @@ public partial class WorldNode : Node3D
             AddChild(entity);
             _entities.Add(entity);
         }
+
+        // Last, since no configuration builds it.
+        AddChild(PlayerBlock);
+        _entities.Add(PlayerBlock);
 
         // Redundant but harmless: the `World` constructor also ensures this.
         Debug.Assert(Player is not null);
@@ -160,17 +174,21 @@ public partial class WorldNode : Node3D
     public World World { get; }
 
     public WalkerEntity Player { get; } = null!;
+
+    /// <summary>The block the player spawns, the last of <see cref="Entities"/>.</summary>
+    public Entity PlayerBlock { get; }
     public PlayerController PlayerController { get; } = null!;
 
     /// <summary>
-    /// Every entity in the world, in the order they are stepped, which is the order of the world's
-    /// <see cref="World.EntityConfigs"/>: <c>Entities[i]</c> was built from <c>World.EntityConfigs[i]</c>.
+    /// Every entity in the world, in the order they are stepped: those the world's <see cref="World.EntityConfigs"/>
+    /// build, in their order, so that <c>Entities[i]</c> was built from <c>World.EntityConfigs[i]</c>, then
+    /// <see cref="PlayerBlock"/>, which no configuration builds.
     /// </summary>
     public IReadOnlyList<Entity> Entities => _entities;
 
-    /// <summary>The entities of one kind, in the order they are stepped.</summary>
+    /// <summary>The entities of one kind that the world's configurations build, in the order they are stepped.</summary>
     public IEnumerable<Entity> EntitiesOf(EntityKind kind) =>
-        _entities.Where((entity, i) => World.EntityConfigs[i].Kind == kind);
+        _entities.Where((entity, i) => i < World.EntityConfigs.Count && World.EntityConfigs[i].Kind == kind);
 
     /// <summary>Supplies the player's input, once per tick. The player stands idle if this is null.</summary>
     public Func<PlayerInput>? PlayerInput { get; set; }
