@@ -71,6 +71,13 @@ public partial class Entity : RigidBody3D
     /// <summary>
     /// How far, in tiles, a box may overlap a collider and still count as only touching it: what <see cref="RoomToMove"/>
     /// ignores where a box starts, and so how far short of a fit its answers may come.
+    /// <para>
+    /// It must be above zero, since the engine's cast misses everything when the box starts touching something, and
+    /// above how far short the cast's answers come, about 0.002 (measured under Jolt). It isn't Jolt's collision margin
+    /// (the project setting <c>collision_margin_fraction</c>), which rounds a box's corners by a fraction of its
+    /// shortest side, 0.005 on a tile, without moving its faces, so it doesn't change where boxes touch. Changing one
+    /// doesn't call for changing the other.
+    /// </para>
     /// </summary>
     public const float ContactTolerance = 0.01f;
 
