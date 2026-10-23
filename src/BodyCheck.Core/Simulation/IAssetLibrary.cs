@@ -14,6 +14,12 @@ public interface IAssetLibrary
     Node3D GetEntityVisual(EntityKind kind, Vector2 halfSize);
 
     /// <summary>
+    /// Makes what to draw for the block the player spawns, with a body of <paramref name="halfSize"/>, with its origin at
+    /// the middle of its base. It is called once for each world.
+    /// </summary>
+    Node3D GetPlayerBlockVisual(Vector2 halfSize);
+
+    /// <summary>
     /// The mesh to draw a tile with, darkened by <paramref name="darkening"/> from 0 to 1, and the transform that fits it
     /// to a unit cube centred on the origin. Callers share the mesh, so they must not change it.
     /// </summary>

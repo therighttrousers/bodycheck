@@ -1,5 +1,7 @@
 # 023: The player's spawned block
 
+Closed on 2026-10-22. Outcomes and unresolved items are in the design docs: [progression.md](../designs/progression.md) and [architecture.md](../designs/architecture.md).
+
 ## Context
 
 Inciting event (2026-10-22): boost, as built on branch `boost-ability`, was underwhelming. Added to the player's momentum in any direction, it let a jump plus a boost reach a ridiculous height, built speed over time, and by itself barely moved the player. Changed to top up the player's speed along the direction held, with the engine's bounce for a while after, it worked as designed, but Neil didn't like it more. Phase is the game's most interesting ability, and he would rather have one that beats it in interest or makes it better. Boost is parked on that branch.
@@ -16,7 +18,7 @@ Neil's constraints: at most one block at a time; a limit in space rather than ti
   - As built: `WorldNode` builds the one block with the world, disabled and hidden, which takes it out of the engine's space, and gives it to the player's controller. Spawning enables and shows it. Being one entity for the world's whole life, it needs no code to create or free entities while the world runs.
 - [x] 1.2 Is it removed when it is far from the player? Decision (Neil): no. With at most one, the player can't lose it, and removing it would undo what the player built in a puzzle.
 - [x] 1.3 Its body. Decision (Neil): a block's size, with mass 1, the player's, to start with. The existing blocks are cumbersome to carry; this one should be less so. To be tuned by playing.
-- [x] 1.4 Its looks. As built: the same model as a block, a cube like Portal's companion cube without its markings.
+- [x] 1.4 Its looks. Decision (Neil): a ghost of a block, for now: the block's model, a cube like Portal's companion cube without its markings, see-through. As built: at 40% opacity.
 - [~] 1.5 Neil: the block talks. It is the only thing in the world that can't move by itself, and talks; even doors open and close. It has to accept whatever life throws at it, or whatever throws it at life. Not built: there is no speech yet. The block raises a cue when it is spawned, for whatever reacts.
 
 ## 2. Spawning
