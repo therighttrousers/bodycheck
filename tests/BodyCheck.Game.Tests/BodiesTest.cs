@@ -313,6 +313,26 @@ public class BodiesTest
         AssertThat(block.Position.X).IsEqualApprox(blockStart, 0.01f);
     }
 
+    [TestCase]
+    public async Task Regression_the_player_is_on_the_ground_against_a_wall_of_several_tile_boxes()
+    {
+        // The tiles beside the player are two boxes, one above the other, since the hole beside them splits the wall.
+        // Every box the player touches gives the engine four contacts, at the corners of the face, so the wall gives
+        // eight, and the floor four more. The player slides down the wall, so the floor's contacts come last.
+        RoomRun run = Start(RoomOf(
+            "########",
+            "#......#",
+            "#......#",
+            "#......#",
+            "####P###",
+            "#.##.###",
+            "####.###",
+            "########"));
+        await run.Tick(Left, 30);
+
+        AssertThat(run.Player.Contacts).IsEqual(Contacts.Floor | Contacts.Left);
+    }
+
     public static IEnumerable<(float, int)> BoostTestData =>
         from position in new float[] { -0.3f, -0.4f, -0.5f, -0.6f }
         from ticks in new int[] { 5, 6, 7, 8, 9, 10 }

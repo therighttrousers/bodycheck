@@ -81,6 +81,11 @@ public partial class Entity : RigidBody3D
     /// </summary>
     public const float ContactTolerance = 0.01f;
 
+    // How many contacts the engine reports for an entity. Past it, it drops contacts, which may be all the floor's
+    // (024 §3.1). Every collider an entity touches gives 4, at the corners of the face, so this allows for 16: a
+    // player against several tile boxes on each side, the floor and the ceiling, and entities, with room to spare.
+    private const int MaxContacts = 64;
+
     // How closely a contact normal must line up with an axis to count as a contact on that side.
     private const float SideThreshold = 0.7f;
 
@@ -115,6 +120,9 @@ public partial class Entity : RigidBody3D
     // The entities that touched this one from above during the engine's last step.
     private readonly List<Entity> _above = [];
 
+    // Whether the entity has warned that the engine reported as many contacts as it may, once, so as not to every tick.
+    private bool _warnedOfMaxContacts;
+
     /// <param name="visual">What to draw for the entity, centered on the middle of its box.</param>
     public Entity(BodyTuning tuning, Node3D? visual = null, bool axisLockAngularZ = true)
         : this(tuning, visual, tuning.EngineFriction, continuousCd: false, axisLockAngularZ)
@@ -141,7 +149,7 @@ public partial class Entity : RigidBody3D
         CollisionLayer = (uint)tuning.CollisionLayer;
         CollisionMask = (uint)PhysicsLayer.DefaultCollisionMask;
         ContactMonitor = true;
-        MaxContactsReported = 8;
+        MaxContactsReported = MaxContacts;
         ContinuousCd = continuousCd;
 
         var size = new Vector3(2 * tuning.HalfSize.X, 2 * tuning.HalfSize.Y, Depth);
@@ -506,6 +514,11 @@ public partial class Entity : RigidBody3D
         Vector3 groundContact = Vector3.Zero;
         int groundContacts = 0;
         _above.Clear();
+        if (state.GetContactCount() >= MaxContacts && !_warnedOfMaxContacts)
+        {
+            _warnedOfMaxContacts = true;
+            GD.PushWarning($"{Name} has {MaxContacts} contacts, as many as the engine reports, so it may have lost some.");
+        }
         for (int i = 0; i < state.GetContactCount(); i++)
         {
             // The normal points away from the other collider, towards this body.
