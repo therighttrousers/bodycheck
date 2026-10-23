@@ -58,6 +58,17 @@ public partial class WorldNode : Node3D
 
         PlayerInput Input() => PlayerInput?.Invoke() ?? default;
 
+        // Out of the world until the player spawns it: a disabled body is out of the engine's space, and isn't stepped.
+        PlayerBlock = new Entity(
+            BodyTuning.PlayerBlock,
+            assets.GetEntityVisual(EntityKind.Block, BodyTuning.PlayerBlock.HalfSize),
+            axisLockAngularZ: false)
+        {
+            ProcessMode = ProcessModeEnum.Disabled,
+            Visible = false,
+        };
+        AddChild(PlayerBlock);
+
         foreach (EntityConfig config in world.EntityConfigs)
         {
             Entity entity = config.Kind switch
@@ -66,7 +77,7 @@ public partial class WorldNode : Node3D
                     (EntityConfig.Player)config,
                     assets.GetEntityVisual(config.Kind, BodyTuning.Player.HalfSize),
                     playerBody ?? BodyTuning.Player,
-                    PlayerController = new PlayerController(Input)),
+                    PlayerController = new PlayerController(Input, PlayerBlock)),
 
                 EntityKind.Robot => CreateRobot(
                     (EntityConfig.Robot)config,
@@ -160,11 +171,15 @@ public partial class WorldNode : Node3D
     public World World { get; }
 
     public WalkerEntity Player { get; } = null!;
+
+    /// <summary>The block the player spawns. It isn't one of <see cref="Entities"/>, since no configuration builds it.</summary>
+    public Entity PlayerBlock { get; }
     public PlayerController PlayerController { get; } = null!;
 
     /// <summary>
-    /// Every entity in the world, in the order they are stepped, which is the order of the world's
-    /// <see cref="World.EntityConfigs"/>: <c>Entities[i]</c> was built from <c>World.EntityConfigs[i]</c>.
+    /// Every entity that the world's <see cref="World.EntityConfigs"/> build, in the order they are stepped, which is
+    /// theirs: <c>Entities[i]</c> was built from <c>World.EntityConfigs[i]</c>. <see cref="PlayerBlock"/> is stepped
+    /// after them.
     /// </summary>
     public IReadOnlyList<Entity> Entities => _entities;
 
@@ -182,7 +197,7 @@ public partial class WorldNode : Node3D
     /// Whether any entity's controller asks for the game to be paused. Whatever pauses the game for it calls
     /// <see cref="StepPaused"/> each physics tick until nothing asks.
     /// </summary>
-    public bool PauseRequested => _entities.Any(entity => entity.RequestsPause);
+    public bool PauseRequested => Stepped.Any(entity => entity.RequestsPause);
 
     /// <summary>
     /// Steps every entity's controller while the game is paused because a controller asked: call once per physics
@@ -195,7 +210,7 @@ public partial class WorldNode : Node3D
             return;
         }
         var endOfTick = new EndOfTick();
-        foreach (Entity entity in _entities)
+        foreach (Entity entity in Stepped)
         {
             entity.StepPaused(RealDt, endOfTick);
         }
@@ -205,7 +220,7 @@ public partial class WorldNode : Node3D
     public override void _PhysicsProcess(double delta)
     {
         var endOfTick = new EndOfTick();
-        foreach (Entity entity in _entities)
+        foreach (Entity entity in Stepped)
         {
             if (entity.CanProcess())
             {
@@ -214,6 +229,9 @@ public partial class WorldNode : Node3D
         }
         endOfTick.Run();
     }
+
+    // Every entity, in the order they are stepped.
+    private IEnumerable<Entity> Stepped => _entities.Append(PlayerBlock);
 
     /// <summary>
     /// A physics tick's length in real time. The engine's time scale shortens the delta it gives each tick, but not

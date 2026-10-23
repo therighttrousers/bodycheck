@@ -6,9 +6,14 @@ namespace BodyCheck.Core.Controllers;
 
 /// <param name="XAxis">Horizontal input, from -1 (left) to 1 (right).</param>
 /// <param name="YAxis">Vertical input, from -1 (down) to 1 (up).</param>
-public readonly record struct PlayerInput(float XAxis, float YAxis, bool JumpHeld, bool PhaseHeld = false)
+public readonly record struct PlayerInput(
+    float XAxis,
+    float YAxis,
+    bool JumpHeld,
+    bool PhaseHeld = false,
+    bool SpawnHeld = false)
 {
-    public bool CanLook => YAxis != 0 && XAxis == 0 && !JumpHeld && !PhaseHeld;
+    public bool CanLook => YAxis != 0 && XAxis == 0 && !JumpHeld && !PhaseHeld && !SpawnHeld;
 }
 
 /// <summary>
@@ -20,6 +25,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     private const float DirectionDeadZone = 0.5f;
 
     private readonly Func<PlayerInput> _input;
+    private readonly Entity _block;
 
     // Timers count down in game time, except where they say otherwise.
     private bool _jumpWasHeld;
@@ -31,6 +37,8 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     private float _phaseCooldownLeft;
     // In real time: how much longer the last direction held while a phase is aimed still counts, once let go of.
     private float _phaseDirectionTimeLeft;
+    private bool _spawnWasHeld;
+    private float _spawnCooldownLeft;
 
     // The current time in the air, for telemetry: where the feet were on the last tick on the ground.
     private bool _inAir;
@@ -39,9 +47,13 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     private float _airTime;
 
     /// <param name="input">Supplies the player's input, once per tick.</param>
-    public PlayerController(Func<PlayerInput> input)
+    /// <param name="block">
+    /// The player's block, which it spawns. Until then it is disabled and hidden, so that it is out of the world.
+    /// </param>
+    public PlayerController(Func<PlayerInput> input, Entity block)
     {
         _input = input;
+        _block = block;
     }
 
     /// <summary>
@@ -61,6 +73,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         PlayerInput input = _input();
         ApplyPhase(entity, input, 0, realDt, endOfTick);
         _jumpWasHeld = input.JumpHeld;
+        _spawnWasHeld = input.SpawnHeld;
     }
 
     public void Apply(WalkerEntity entity, float gameDt, float realDt, IEndOfTick endOfTick)
@@ -82,6 +95,8 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
 
         if (!ApplyPhase(entity, input, gameDt, realDt, endOfTick))
         {
+            ApplySpawn(entity, input, endOfTick);
+
             // A press buffered in the air jumps on landing even if jump has been let go of since, as a tap.
             bool jumps = _jumpBufferLeft > 0 && _groundTimeLeft > 0 && _thrustTimeLeft == 0;
             ApplyRun(entity, move, gameDt, jumps);
@@ -105,6 +120,8 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         _jumpBufferLeft = Math.Max(0, _jumpBufferLeft - realDt);
         _jumpWasHeld = input.JumpHeld;
         _phaseCooldownLeft = Math.Max(0, _phaseCooldownLeft - gameDt);
+        _spawnWasHeld = input.SpawnHeld;
+        _spawnCooldownLeft = Math.Max(0, _spawnCooldownLeft - gameDt);
     }
 
     /// <summary>Reports the player's measurements to <see cref="Telemetry"/>, as of the engine's last step.</summary>
@@ -227,6 +244,43 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         _thrustTimeLeft = 0;
         _jumpBufferLeft = 0;
         return phased;
+    }
+
+    /// <summary>
+    /// Spawns the player's block under the player, on a press of spawn, after the cooldown. The block appears at the
+    /// player's center, and moves straight down through entities until it is under the player, or meets a tile. Then
+    /// the player moves up through entities by as much as the block fell short, onto it: on the ground, by the block's
+    /// height, and in the open air, not at all. Either may stop short at a tile, which leaves them overlapping, for the
+    /// engine to push apart. There is only one block, so spawning it takes it from wherever it was. The moves wait for
+    /// the end of the tick, like a phase's.
+    /// </summary>
+    private void ApplySpawn(WalkerEntity entity, PlayerInput input, IEndOfTick endOfTick)
+    {
+        if (!input.SpawnHeld || _spawnWasHeld || _spawnCooldownLeft > 0)
+        {
+            return;
+        }
+        _spawnCooldownLeft = Features.Current.PlayerSpawnCooldownTime;
+
+        Vector3 velocity = Features.Current.PlayerSpawnMotion == SpawnMotion.WithPlayer ? entity.LinearVelocity : Vector3.Zero;
+        Vector3 center = entity.Position;
+        Vector3 under = center - new Vector3(0, entity.HalfSize.Y + _block.HalfSize.Y, 0);
+        endOfTick.Defer(() =>
+        {
+            // A new block, as far as anyone can tell: back in the world, level, and moving only as the spawn says.
+            _block.ProcessMode = Node.ProcessModeEnum.Inherit;
+            _block.Visible = true;
+            _block.GlobalTransform = new Transform3D(Basis.Identity, center);
+            _block.LinearVelocity = velocity;
+            _block.AngularVelocity = Vector3.Zero;
+            _block.MoveThroughEntities(under);
+            float shortfall = _block.Position.Y - under.Y;
+            if (shortfall > 0)
+            {
+                entity.MoveThroughEntities(center + new Vector3(0, shortfall, 0));
+            }
+            _block.RaiseCue(EntityCue.Spawned);
+        });
     }
 
     /// <summary>One of the eight directions, from the input, as a unit vector in the plane of play, or zero if none.</summary>

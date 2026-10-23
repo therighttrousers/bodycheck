@@ -125,7 +125,8 @@ public partial class Main : Node
             Input.GetAxis("move_left", "move_right"),
             Input.GetAxis("move_down", "move_up"),
             Input.IsActionPressed("jump"),
-            Input.IsActionPressed("phase"));
+            Input.IsActionPressed("phase"),
+            Input.IsActionPressed("spawn"));
     }
 
     public override void _PhysicsProcess(double delta)
@@ -351,7 +352,7 @@ public partial class Main : Node
             new InputEventKey { PhysicalKeycode = Key.K },
             new InputEventKey { PhysicalKeycode = Key.X },
             new InputEventJoypadButton { ButtonIndex = JoyButton.X });
-        AddAction("boost",
+        AddAction("spawn",
             new InputEventKey { PhysicalKeycode = Key.L },
             new InputEventKey { PhysicalKeycode = Key.Z },
             new InputEventJoypadMotion { Axis = JoyAxis.TriggerRight });

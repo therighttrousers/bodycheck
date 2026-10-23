@@ -30,6 +30,9 @@ public enum EntityCue
 
     /// <summary>The player cancelled a phase: released it with no direction held.</summary>
     PhaseCancelled,
+
+    /// <summary>The player spawned this block under itself.</summary>
+    Spawned,
 }
 
 /// <summary>
