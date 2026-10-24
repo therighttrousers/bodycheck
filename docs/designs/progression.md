@@ -131,6 +131,10 @@ The spawned block:
 - How are puzzles isolated from it? Ideas: make it wider than a tile, so that it can't go into a one-tile shaft, and require room to spawn it; lasers that destroy it when it crosses them, which a clever player may get around (`023 §3.1`, `§3.2`).
 - How does the block talk, and what does it say? It accepts whatever life throws at it, or whatever throws it at life. It raises a cue when it is spawned, for whatever reacts (`023 §1.5`).
 
+Hovering platforms:
+- The drive's tuning, its top speed, gain and braking, and the stall's, to be checked by playing (`025 §2.3`, `§5.2`).
+- Should a platform's mass come from its width, its `Width` field in LDtk? The caps, being fractions of its weight, would scale with it (`025 §2.2`).
+
 Lasers and water:
 - Can robot lasers be designed to add traversal options naturally, beyond breaking blocks and activating switches?
 - What else does water do for traversal, and how does it interact with the abilities?

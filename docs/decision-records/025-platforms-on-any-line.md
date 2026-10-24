@@ -1,5 +1,7 @@
 # 025: Platforms that move along any line
 
+Closed on 2026-10-24. Outcomes and unresolved items are in the design docs: [progression.md](../designs/progression.md), [movement.md](../designs/movement.md) and [architecture.md](../designs/architecture.md).
+
 ## Context
 
 Inciting event (2026-10-23): issue #84, vertical platforms. Platforms patrolled horizontally until something stopped them, and held their height with a PD controller whose thrust, capped at 1.5 times their weight, cancelled their weight too. Neil wants one kind of platform that moves between two points in any direction, reusing what there is.
@@ -39,7 +41,7 @@ Neil's objectives for the thrust:
 - [ ] 4.1 The drive's tuning, to be seen by playing.
 - [x] 4.2 Turning around when stalled (§3.1). Built: see §5.2. Neil wants something similar for robots.
 - [ ] 4.3 A platform's mass from its `Width` field.
-- [ ] 4.4 Seen once with a platform that moved up and down: the player bounced on it each time it landed on the platform (`005 §3.6`).
+- [x] 4.4 Seen once with a platform that moved up and down: the player bounced on it each time it landed on the platform (`005 §3.6`). Not seen with these platforms (Neil, 2026-10-24).
 
 ## 5. After the first playtest
 
