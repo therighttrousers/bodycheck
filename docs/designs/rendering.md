@@ -11,6 +11,7 @@ Relevant decision records:
 - [012: Subsystems in `BodyCheck.Core`](../decision-records/012-core-subsystems.md)
 - [014: Less disruptive looking](../decision-records/014-less-disruptive-looking.md)
 - [015: The phase ability](../decision-records/015-phase.md)
+- [024: Playtesting feedback](../decision-records/024-playtesting-feedback.md)
 
 The image is Mode X with modern lighting: 320x240 and 256 colours, as on a VGA card in the mid-1990s, drawn with anti-aliasing, shadows, ambient occlusion, reflections and bloom. Star Fox, Quake and Descent are the references for the geometry, and Mode X for the image (`003`).
 
@@ -25,7 +26,7 @@ The colour pass reads tone-mapped sRGB values, and its output reaches the screen
 
 ## Scale
 
-A tile's face is 16x16 pixels at 320x240, so a screen is 20x15 tiles, the size of an LDtk level. `Constants.TilePixels` holds the 16 (`009 §5.1`).
+A tile's face is 16x16 pixels at 320x240, so a screen is 20x15 tiles. LDtk levels may be any size in whole tiles (`024 §4.1`). `Constants.TilePixels` holds the 16 (`009 §5.1`).
 
 The camera is at the distance where a tile's front face is 16 pixels, whatever the size of the room (`009 §5.2`). At the other sizes the switches give, the view is the same 15 tiles high, so they show the same framing, not 16-pixel tiles.
 

@@ -9,10 +9,11 @@ namespace BodyCheck.Core.Levels;
 
 /// <summary>
 /// Reads the worlds of an LDtk project with LDtk's multi-worlds on, each into a world with one room per level, and
-/// checks everything it reads. Levels are 20x15 tiles, on a grid of that size; grid cells with no level are solid, as
-/// everything outside a world's rooms is. A level has two layers:
-/// <c>SolidGeometry</c>, an IntGrid in which every value but 0 is a solid tile, and <c>Characters</c>, whose entities
-/// start with the middle of their base at the middle of the bottom edge of their box in LDtk.
+/// checks everything it reads. A level may be any whole number of tiles in size, at any whole number of tiles from the
+/// others, as long as no two overlap. Everything outside a world's rooms is empty. A level has three layers:
+/// <c>SolidGeometry</c>, an IntGrid in which every value but 0 is a solid tile, <c>Characters</c>, of entities with
+/// bodies, and <c>ControlEntities</c>, of entities without, such as respawns. Each entity starts with the middle of its
+/// base at the middle of the bottom edge of its box in LDtk, and keeps that box's size and colour.
 /// </summary>
 public static class LdtkReader
 {
@@ -21,8 +22,8 @@ public static class LdtkReader
 
     /// <summary>
     /// Reads each world of the project at <paramref name="projectPath"/>, in order, into a world named after it, with a
-    /// room for each level, named after the level. A world's levels are moved so that the leftmost and lowest are at
-    /// its origin.
+    /// room for each level, named after the level. A world's levels are moved together so that the leftmost edge of any
+    /// of them is at the origin's x, and the lowest edge at its y.
     /// </summary>
     /// <param name="readFile">
     /// Reads a file's text, given its path. A level's file is found from its path relative to the project's directory.
@@ -52,32 +53,30 @@ public static class LdtkReader
             throw Invalid(projectPath, $"World '{world.Identifier}' has no levels.");
         }
 
-        // Each level's cell on the grid of levels, with y down, as in LDtk.
-        var cells = new HashSet<(int X, int Y)>();
         foreach (LdtkLevel level in world.Levels)
         {
-            if (level.PxWid != Constants.LevelWidth * Constants.TilePixels
-                || level.PxHei != Constants.LevelHeight * Constants.TilePixels
-                || level.WorldX % level.PxWid != 0
-                || level.WorldY % level.PxHei != 0
+            if (level.PxWid <= 0
+                || level.PxHei <= 0
+                || level.PxWid % Constants.TilePixels != 0
+                || level.PxHei % Constants.TilePixels != 0
+                || level.WorldX % Constants.TilePixels != 0
+                || level.WorldY % Constants.TilePixels != 0
                 || level.WorldDepth != 0)
             {
-                throw Invalid(projectPath, $"{where} level '{level.Identifier}' isn't {Constants.LevelWidth}x"
-                    + $"{Constants.LevelHeight} tiles, on a grid of that size, at depth 0.");
-            }
-            if (!cells.Add(Cell(level)))
-            {
-                throw Invalid(projectPath, $"{where} level '{level.Identifier}' is where another level is.");
+                throw Invalid(projectPath, $"{where} level '{level.Identifier}' isn't a whole number of "
+                    + $"{Constants.TilePixels}-pixel tiles in size and from the origin, at depth 0.");
             }
         }
-        int left = cells.Min(cell => cell.X);
-        int bottom = cells.Max(cell => cell.Y);
+        // LDtk's y is down, from the top of the world, and the world's is up, from the bottom.
+        int left = world.Levels.Min(level => level.WorldX);
+        int bottom = world.Levels.Max(level => level.WorldY + level.PxHei);
 
         var rooms = new List<Room>();
         foreach (LdtkLevel level in world.Levels)
         {
-            (int x, int y) = Cell(level);
-            var origin = new Vector2I((x - left) * Constants.LevelWidth, (bottom - y) * Constants.LevelHeight);
+            var origin = new Vector2I(
+                (level.WorldX - left) / Constants.TilePixels,
+                (bottom - level.WorldY - level.PxHei) / Constants.TilePixels);
             if (level.ExternalRelPath is null)
             {
                 rooms.Add(ReadLevel(projectPath, level, origin));
@@ -100,18 +99,18 @@ public static class LdtkReader
         }
     }
 
-    private static (int X, int Y) Cell(LdtkLevel level) => (level.WorldX / level.PxWid, level.WorldY / level.PxHei);
-
     /// <summary>Reads a level into a room, named after the level, with its bottom left tile at <paramref name="origin"/>.</summary>
     private static Room ReadLevel(string path, LdtkLevel level, Vector2I origin)
     {
         LdtkLayerInstance[] layers = level.LayerInstances
             ?? throw Invalid(path, $"Level '{level.Identifier}' has no layers.");
+        int width = level.PxWid / Constants.TilePixels;
+        int height = level.PxHei / Constants.TilePixels;
         foreach (LdtkLayerInstance layer in layers)
         {
             if (layer.GridSize != Constants.TilePixels
-                || layer.CWid != Constants.LevelWidth
-                || layer.CHei != Constants.LevelHeight
+                || layer.CWid != width
+                || layer.CHei != height
                 || layer.PxTotalOffsetX != 0
                 || layer.PxTotalOffsetY != 0)
             {
@@ -132,23 +131,24 @@ public static class LdtkReader
 
         LdtkLayerInstance solid = Layer(LdtkLayerName.SolidGeometry, LdtkLayerType.IntGrid);
         LdtkLayerInstance characters = Layer(LdtkLayerName.Characters, LdtkLayerType.Entities);
+        LdtkLayerInstance controlEntities = Layer(LdtkLayerName.ControlEntities, LdtkLayerType.Entities);
 
-        if (solid.IntGridCsv.Length != Constants.LevelWidth * Constants.LevelHeight)
+        if (solid.IntGridCsv.Length != width * height)
         {
             throw Invalid(path, $"In level '{level.Identifier}', {solid.Identifier} has {solid.IntGridCsv.Length} "
-                + $"values for {Constants.LevelWidth * Constants.LevelHeight} cells.");
+                + $"values for {width * height} cells.");
         }
-        var tiles = new TileGrid(Constants.LevelWidth, Constants.LevelHeight);
-        for (int row = 0; row < Constants.LevelHeight; row++)
+        var tiles = new TileGrid(width, height);
+        for (int row = 0; row < height; row++)
         {
-            for (int x = 0; x < Constants.LevelWidth; x++)
+            for (int x = 0; x < width; x++)
             {
-                tiles.SetSolid(x, Constants.LevelHeight - 1 - row, solid.IntGridCsv[row * Constants.LevelWidth + x] != 0);
+                tiles.SetSolid(x, height - 1 - row, solid.IntGridCsv[row * width + x] != 0);
             }
         }
 
         var entityConfigs = new List<EntityConfig>();
-        foreach (LdtkEntityInstance entity in characters.EntityInstances)
+        foreach (LdtkEntityInstance entity in characters.EntityInstances.Concat(controlEntities.EntityInstances))
         {
             if (entity.Px.Length != 2 || entity.Pivot.Length != 2)
             {
@@ -161,14 +161,19 @@ public static class LdtkReader
             float bottom = entity.Px[1] + (1 - entity.Pivot[1]) * entity.Height;
             var start = new Vector2(
                 (left + entity.Width / 2f) / Constants.TilePixels,
-                Constants.LevelHeight - bottom / Constants.TilePixels
+                height - bottom / Constants.TilePixels
+            );
+            var halfSize = new Vector2(
+                entity.Width / 2f / Constants.TilePixels,
+                entity.Height / 2f / Constants.TilePixels
             );
             entityConfigs.Add(entity.Identifier switch
             {
-                LdtkEntityName.PlayerStart => new EntityConfig.Player(start),
-                LdtkEntityName.RobotBasic => new EntityConfig.Robot(start),
-                LdtkEntityName.PlatformHorizontal => new EntityConfig.Platform(start),
-                LdtkEntityName.Block => new EntityConfig.Block(start),
+                LdtkEntityName.PlayerStart => new EntityConfig.Player(start, halfSize, new Color(entity.SmartColor)),
+                LdtkEntityName.RobotBasic => new EntityConfig.Robot(start, halfSize, new Color(entity.SmartColor)),
+                LdtkEntityName.PlatformHorizontal => new EntityConfig.Platform(start, halfSize, new Color(entity.SmartColor)),
+                LdtkEntityName.Block => new EntityConfig.Block(start, halfSize, new Color(entity.SmartColor)),
+                LdtkEntityName.Respawn => new EntityConfig.Respawn(start, halfSize, new Color(entity.SmartColor)),
             });
         }
 

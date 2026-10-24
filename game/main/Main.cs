@@ -36,7 +36,9 @@ namespace BodyCheck;
 /// <para>
 /// User arguments, after "--" on the command line: a world's name; "--configuration=" and a configuration's
 /// name; "--probe=" and a probe's name to run that probe and quit; "--overlay" to start with the
-/// <see cref="DebugOverlay"/> showing; "--shapes" to start with the <see cref="ShapeWireframes"/> showing. F3 switches the overlay on and off, and F4 the shapes.
+/// <see cref="DebugOverlay"/> showing; "--shapes" to start with the <see cref="ShapeWireframes"/> showing; "--markers" to start with
+/// the world's <see cref="WorldNode.MapMarkers"/> showing. F2 switches the markers on and off, for every world loaded after, F3 the
+/// overlay, and F4 the shapes.
 /// </para>
 /// </summary>
 public partial class Main : Node
@@ -61,6 +63,8 @@ public partial class Main : Node
     private readonly DebugOverlay _overlay = new();
     private readonly ErrorOverlay _errorOverlay = new();
     private ShapeWireframes _shapes = null!;
+    // Whether each world's map markers show, kept as worlds are loaded.
+    private bool _showMapMarkers;
     private PhaseAimMarker _phaseAimMarker = null!;
     private IProbe? _probe;
 
@@ -93,6 +97,10 @@ public partial class Main : Node
             else if (arg == "--shapes")
             {
                 _shapes.Visible = true;
+            }
+            else if (arg == "--markers")
+            {
+                _showMapMarkers = true;
             }
             else if (arg.StartsWith("--configuration="))
             {
@@ -161,6 +169,11 @@ public partial class Main : Node
         else if (Input.IsActionJustPressed("reload"))
         {
             Reload();
+        }
+        else if (Input.IsActionJustPressed("map_markers"))
+        {
+            _showMapMarkers = !_showMapMarkers;
+            _world.MapMarkers.Visible = _showMapMarkers;
         }
     }
 
@@ -266,6 +279,7 @@ public partial class Main : Node
         _world?.QueueFree();
         Telemetry.Reset();
         _world = new WorldNode(world, _assets);
+        _world.MapMarkers.Visible = _showMapMarkers;
         if (world.Rooms.Contains(RoomLibrary.Look))
         {
             _world.AddChild(new LookProps(_world.World.Size));
@@ -362,6 +376,7 @@ public partial class Main : Node
         AddAction("previous_world",
             new InputEventKey { PhysicalKeycode = Key.Comma },
             new InputEventJoypadButton { ButtonIndex = JoyButton.LeftShoulder });
+        AddAction("map_markers", new InputEventKey { PhysicalKeycode = Key.F2 });
         AddAction("reload", new InputEventKey { PhysicalKeycode = Key.F5 });
         AddAction("previous_configuration", new InputEventKey { PhysicalKeycode = Key.F6 });
         AddAction("next_configuration", new InputEventKey { PhysicalKeycode = Key.F7 });

@@ -9,31 +9,37 @@ public enum EntityKind
     Robot,
     Platform,
     Block,
+    Respawn,
 }
 
-public abstract record EntityConfig(Vector2 Start)
+public abstract record EntityConfig(Vector2 Start, Vector2 MapHalfSize, Color MapColor)
 {
-    private EntityConfig(Vector2 start, bool _) : this(start) { }  // only nested types can derive
+    // Only nested types can derive because of this:
+    private EntityConfig(Vector2 start, Vector2 mapHalfSize, Color mapColor, bool _) : this(start, mapHalfSize, mapColor) { }
 
     public abstract EntityKind Kind { get; }
-
-    public sealed record Player(Vector2 Start) : EntityConfig(Start)
+    public sealed record Player(Vector2 Start, Vector2 MapHalfSize, Color MapColor) : EntityConfig(Start, MapHalfSize, MapColor)
     {
         public override EntityKind Kind => EntityKind.Player;
     }
 
-    public sealed record Robot(Vector2 Start) : EntityConfig(Start)
+    public sealed record Robot(Vector2 Start, Vector2 MapHalfSize, Color MapColor) : EntityConfig(Start, MapHalfSize, MapColor)
     {
         public override EntityKind Kind => EntityKind.Robot;
     }
 
-    public sealed record Platform(Vector2 Start) : EntityConfig(Start)
+    public sealed record Platform(Vector2 Start, Vector2 MapHalfSize, Color MapColor) : EntityConfig(Start, MapHalfSize, MapColor)
     {
         public override EntityKind Kind => EntityKind.Platform;
     }
 
-    public sealed record Block(Vector2 Start) : EntityConfig(Start)
+    public sealed record Block(Vector2 Start, Vector2 MapHalfSize, Color MapColor) : EntityConfig(Start, MapHalfSize, MapColor)
     {
         public override EntityKind Kind => EntityKind.Block;
+    }
+
+    public sealed record Respawn(Vector2 Start, Vector2 MapHalfSize, Color MapColor) : EntityConfig(Start, MapHalfSize, MapColor)
+    {
+        public override EntityKind Kind => EntityKind.Respawn;
     }
 }

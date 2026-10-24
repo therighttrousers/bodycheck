@@ -11,7 +11,7 @@
 	"iid": "0f346a70-bde0-11f1-b046-ebfce3981aaf",
 	"jsonVersion": "1.5.3",
 	"appBuildId": 473703,
-	"nextUid": 219,
+	"nextUid": 223,
 	"identifierStyle": "Capitalize",
 	"toc": [{
 		"identifier": "PlayerStart",
@@ -58,6 +58,41 @@
 	"customCommands": [],
 	"flags": ["MultiWorlds"],
 	"defs": { "layers": [
+		{
+			"__type": "Entities",
+			"identifier": "ControlEntities",
+			"type": "Entities",
+			"uid": 221,
+			"doc": null,
+			"uiColor": null,
+			"gridSize": 16,
+			"guideGridWid": 0,
+			"guideGridHei": 0,
+			"displayOpacity": 1,
+			"inactiveOpacity": 0.6,
+			"hideInList": false,
+			"hideFieldsWhenInactive": true,
+			"canSelectWhenInactive": true,
+			"renderInWorldView": true,
+			"pxOffsetX": 0,
+			"pxOffsetY": 0,
+			"parallaxFactorX": 0,
+			"parallaxFactorY": 0,
+			"parallaxScaling": true,
+			"requiredTags": [],
+			"excludedTags": [],
+			"autoTilesKilledByOtherLayerUid": null,
+			"uiFilterTags": [],
+			"useAsyncRender": false,
+			"intGridValues": [],
+			"intGridValuesGroups": [],
+			"autoRuleGroups": [],
+			"autoSourceLayerDefUid": null,
+			"tilesetDefUid": null,
+			"tilePivotX": 0,
+			"tilePivotY": 0,
+			"biomeFieldUid": null
+		},
 		{
 			"__type": "Entities",
 			"identifier": "Characters",
@@ -1112,6 +1147,41 @@
 			"pivotX": 0,
 			"pivotY": 0,
 			"fieldDefs": []
+		},
+		{
+			"identifier": "Respawn",
+			"uid": 220,
+			"tags": [],
+			"exportToToc": false,
+			"allowOutOfBounds": false,
+			"doc": null,
+			"width": 16,
+			"height": 32,
+			"resizableX": false,
+			"resizableY": false,
+			"minWidth": null,
+			"maxWidth": null,
+			"minHeight": null,
+			"maxHeight": null,
+			"keepAspectRatio": false,
+			"tileOpacity": 1,
+			"fillOpacity": 1,
+			"lineOpacity": 1,
+			"hollow": false,
+			"color": "#4399D7",
+			"renderMode": "Rectangle",
+			"showName": true,
+			"tilesetId": null,
+			"tileRenderMode": "FitInside",
+			"tileRect": null,
+			"uiTileRect": null,
+			"nineSliceBorders": [],
+			"maxCount": 0,
+			"limitScope": "PerLevel",
+			"limitBehavior": "MoveLastOne",
+			"pivotX": 0,
+			"pivotY": 0,
+			"fieldDefs": []
 		}
 	], "tilesets": [
 		{
@@ -1170,7 +1240,7 @@
 	], "externalEnums": [], "levelFields": [] },
 	"levels": [],
 	"worlds": [
-		{ "iid": "0f349180-bde0-11f1-b046-a5531090d1ba", "identifier": "World", "defaultLevelWidth": 320, "defaultLevelHeight": 240, "worldGridWidth": 320, "worldGridHeight": 240, "worldLayout": "GridVania", "levels": [
+		{ "iid": "0f349180-bde0-11f1-b046-a5531090d1ba", "identifier": "World", "defaultLevelWidth": 320, "defaultLevelHeight": 240, "worldGridWidth": 320, "worldGridHeight": 240, "worldLayout": "Free", "levels": [
 			{
 				"identifier": "Level_0",
 				"iid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6",
@@ -1192,7 +1262,7 @@
 				"externalRelPath": "main/Level_0.ldtkl",
 				"fieldInstances": [],
 				"layerInstances": null,
-				"__neighbours": [ { "levelIid": "940919c0-bde0-11f1-b36f-115902cc0d05", "dir": "e" }, { "levelIid": "9971ed40-bde0-11f1-a778-ebfea3fcd78b", "dir": "ne" }, { "levelIid": "3aec9f20-bde0-11f1-a778-cd4d7eac5ccb", "dir": "s" } ]
+				"__neighbours": [ { "levelIid": "940919c0-bde0-11f1-b36f-115902cc0d05", "dir": "e" }, { "levelIid": "9971ed40-bde0-11f1-a778-ebfea3fcd78b", "dir": "n" }, { "levelIid": "3aec9f20-bde0-11f1-a778-cd4d7eac5ccb", "dir": "s" } ]
 			},
 			{
 				"identifier": "Level_1",
@@ -1221,11 +1291,11 @@
 				"identifier": "Level_2",
 				"iid": "9971ed40-bde0-11f1-a778-ebfea3fcd78b",
 				"uid": 216,
-				"worldX": 320,
-				"worldY": -240,
+				"worldX": 64,
+				"worldY": -192,
 				"worldDepth": 0,
-				"pxWid": 320,
-				"pxHei": 240,
+				"pxWid": 576,
+				"pxHei": 192,
 				"__bgColor": "#696A79",
 				"bgColor": null,
 				"useAutoIdentifier": true,
@@ -1238,7 +1308,7 @@
 				"externalRelPath": "main/Level_2.ldtkl",
 				"fieldInstances": [],
 				"layerInstances": null,
-				"__neighbours": [ { "levelIid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6", "dir": "sw" }, { "levelIid": "940919c0-bde0-11f1-b36f-115902cc0d05", "dir": "s" } ]
+				"__neighbours": [ { "levelIid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6", "dir": "s" }, { "levelIid": "940919c0-bde0-11f1-b36f-115902cc0d05", "dir": "s" } ]
 			},
 			{
 				"identifier": "Level_3",

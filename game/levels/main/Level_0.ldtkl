@@ -29,6 +29,48 @@
 	"fieldInstances": [],
 	"layerInstances": [
 		{
+			"__identifier": "ControlEntities",
+			"__type": "Entities",
+			"__cWid": 20,
+			"__cHei": 15,
+			"__gridSize": 16,
+			"__opacity": 1,
+			"__pxTotalOffsetX": 0,
+			"__pxTotalOffsetY": 0,
+			"__tilesetDefUid": null,
+			"__tilesetRelPath": null,
+			"iid": "139de540-bde0-11f1-b436-63d9c672960a",
+			"levelId": 0,
+			"layerDefUid": 221,
+			"pxOffsetX": 0,
+			"pxOffsetY": 0,
+			"visible": true,
+			"optionalRules": [],
+			"intGridCsv": [],
+			"autoLayerTiles": [],
+			"seed": 7737907,
+			"overrideTilesetUid": null,
+			"gridTiles": [],
+			"entityInstances": [
+				{
+					"__identifier": "Respawn",
+					"__grid": [14,4],
+					"__pivot": [0,0],
+					"__tags": [],
+					"__tile": null,
+					"__smartColor": "#4399D7",
+					"iid": "3efc30c0-bde0-11f1-b436-610946d6c9aa",
+					"width": 16,
+					"height": 32,
+					"defUid": 220,
+					"px": [224,64],
+					"fieldInstances": [],
+					"__worldX": 224,
+					"__worldY": 64
+				}
+			]
+		},
+		{
 			"__identifier": "Characters",
 			"__type": "Entities",
 			"__cWid": 20,
@@ -250,5 +292,5 @@
 			"entityInstances": []
 		}
 	],
-	"__neighbours": [ { "levelIid": "940919c0-bde0-11f1-b36f-115902cc0d05", "dir": "e" }, { "levelIid": "9971ed40-bde0-11f1-a778-ebfea3fcd78b", "dir": "ne" }, { "levelIid": "3aec9f20-bde0-11f1-a778-cd4d7eac5ccb", "dir": "s" } ]
+	"__neighbours": [ { "levelIid": "940919c0-bde0-11f1-b36f-115902cc0d05", "dir": "e" }, { "levelIid": "9971ed40-bde0-11f1-a778-ebfea3fcd78b", "dir": "n" }, { "levelIid": "3aec9f20-bde0-11f1-a778-cd4d7eac5ccb", "dir": "s" } ]
 }

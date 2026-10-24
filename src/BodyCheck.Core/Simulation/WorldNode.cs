@@ -68,33 +68,38 @@ public partial class WorldNode : Node3D
             Visible = false,
         };
 
+        Node3D GetVisual(EntityConfig config) =>
+            assets.GetEntityVisual(config) ?? assets.GetDebugBoxVisual(config.MapHalfSize, config.MapColor);
+
         foreach (EntityConfig config in world.EntityConfigs)
         {
-            Entity entity = config.Kind switch
+            Entity? entity = config.Kind switch
             {
                 EntityKind.Player => Player = CreatePlayer(
                     (EntityConfig.Player)config,
-                    assets.GetEntityVisual(config.Kind, BodyTuning.Player.HalfSize),
+                    GetVisual(config),
                     playerBody ?? BodyTuning.Player,
                     PlayerController = new PlayerController(Input, PlayerBlock)),
 
-                EntityKind.Robot => CreateRobot(
-                    (EntityConfig.Robot)config,
-                    assets.GetEntityVisual(config.Kind, BodyTuning.Robot.HalfSize)),
+                EntityKind.Robot => CreateRobot((EntityConfig.Robot)config, GetVisual(config)),
+                EntityKind.Platform => CreatePlatform((EntityConfig.Platform)config, GetVisual(config)),
+                EntityKind.Block => CreateBlock((EntityConfig.Block)config, GetVisual(config)),
 
-                EntityKind.Platform => CreatePlatform(
-                    (EntityConfig.Platform)config,
-                    assets.GetEntityVisual(config.Kind, BodyTuning.Platform.HalfSize)),
-
-                EntityKind.Block => CreateBlock(
-                    (EntityConfig.Block)config,
-                    assets.GetEntityVisual(config.Kind, BodyTuning.Block.HalfSize)),
+                EntityKind.Respawn => null,
             };
 
-            entity.Position = new Vector3(config.Start.X, config.Start.Y + entity.HalfSize.Y, 0);
-            AddChild(entity);
-            _entities.Add(entity);
+            if (entity is not null)
+            {
+                entity.Position = new Vector3(config.Start.X, config.Start.Y + entity.HalfSize.Y, 0);
+                AddChild(entity);
+                _entities.Add(entity);
+            }
+
+            var marker = assets.GetDebugBoxVisual(config.MapHalfSize, config.MapColor);
+            marker.Position = new Vector3(config.Start.X, config.Start.Y + config.MapHalfSize.Y, 0);
+            MapMarkers.AddChild(marker);
         }
+        AddChild(MapMarkers);
 
         // Last, since no configuration builds it.
         AddChild(PlayerBlock);
@@ -172,6 +177,12 @@ public partial class WorldNode : Node3D
     }
 
     public World World { get; }
+
+    /// <summary>
+    /// A box where each entity starts, of the size and colour of its box in LDtk, for comparing the world with its map
+    /// and for seeing entities that have no body, such as respawns. Hidden until shown.
+    /// </summary>
+    public Node3D MapMarkers { get; } = new() { Name = "MapMarkers", Visible = false };
 
     public WalkerEntity Player { get; } = null!;
 

@@ -48,10 +48,12 @@ public sealed class Room : IOffsetTileGrid
                 Vector2 start = new(x + 0.5f, rows.Length - 1 - row);
                 EntityConfig? config = rows[row][x] switch
                 {
-                    'P' => new EntityConfig.Player(start),
-                    'R' => new EntityConfig.Robot(start),
-                    'H' => new EntityConfig.Platform(start),
-                    'B' => new EntityConfig.Block(start),
+                    // These colors and sizes should match the colors and sizes of entities in LDtk.
+                    'P' => new EntityConfig.Player(start, new Vector2(0.5f, 1), new Color("#2CE8F5")),
+                    'R' => new EntityConfig.Robot(start, new Vector2(0.5f, 1), new Color("#FEAE34")),
+                    'H' => new EntityConfig.Platform(start, new Vector2(1.5f, 0.5f), new Color("#63C74D")),
+                    'B' => new EntityConfig.Block(start, new Vector2(0.5f, 0.5f), new Color("#BE4A2F")),
+                    'S' => new EntityConfig.Respawn(start, new Vector2(0.5f, 1), new Color("#4399D7")),
                     _ => null,
                 };
                 if (config is not null)

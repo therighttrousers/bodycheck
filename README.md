@@ -73,11 +73,12 @@ We primarily use the editor for
   - Gamepad A/X/RT (these are Xbox names; uses buttons in the same positions on other controllers)
 - Map: Tab, or gamepad Back. Pauses the game and zooms out to show the whole world; press again to zoom back in.
 - Pause: Escape, or gamepad Start. There's no menu yet.
-- Previous or next world: ','/'.' or gamepad left/right shoulder button
-- F5: read the worlds and configurations again, and restart the world
-- F6/F7: previous or next configuration
+- Previous or next world: ','/'.' or gamepad left/right shoulder button.
+- F2: toggle display of original entity placement and control entities. Pass `--markers` after `--` to start with them on.
 - F3: debug overlay on or off, with measurements for tuning and level design. Pass `--overlay` after `--` to start with it on.
 - F4: collision shapes as wireframes on or off. Pass `--shapes` after `--` to start with them on.
+- F5: read the worlds and configurations again, and restart the world.
+- F6/F7: previous or next configuration.
 
 Hold the jump button to jump higher.
 
