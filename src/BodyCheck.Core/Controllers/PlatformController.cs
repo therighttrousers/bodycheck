@@ -77,8 +77,7 @@ public sealed class PlatformController : ICharacterController<SimpleControlledEn
         float drive = Math.Clamp(
             entity.Mass * features.PlatformDriveGain * (targetSpeed - velocity.Dot(heading)), -maxDrive, maxDrive);
 
-        // Don't try to return to the line if weightless (e.g. being grabbed).
-        float hold = entity.Weight == 0 ? 0 : CriticallyDampedThrust(
+        float hold = CriticallyDampedThrust(
             entity.Mass,
             features.PlatformHoldFrequency,
             error: (_rangeA - position).Dot(_across),
