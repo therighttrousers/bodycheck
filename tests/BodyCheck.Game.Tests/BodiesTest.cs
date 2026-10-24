@@ -220,8 +220,8 @@ public class BodiesTest
             greatestOffset = MathF.Max(greatestOffset, MathF.Abs(block.Position.X - platform.Position.X));
         });
 
-        // The platform has crossed the room, and the block is still standing on it. The block slides a
-        // little each time a wall stops the platform dead.
+        // The platform has crossed the room, and the block is still standing on it. The block may slide a
+        // little each time the platform turns around.
         AssertThat(farthestFromStart).IsGreater(10f);
         AssertThat(block.Bottom()).IsEqualApprox(platform.Top(), 0.01f);
         AssertThat(greatestOffset).IsLess(platform.HalfSize.X);

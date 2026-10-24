@@ -7,6 +7,7 @@ Relevant decision records:
 - [018: Game time and real time](../decision-records/018-game-and-real-time.md)
 - [023: The player's spawned block](../decision-records/023-spawned-block.md)
 - [024: Playtesting feedback](../decision-records/024-playtesting-feedback.md)
+- [025: Platforms that move along any line](../decision-records/025-platforms-on-any-line.md)
 
 Abilities and world changes, in the order the player meets them.
 
@@ -102,10 +103,10 @@ To be designed.
 
 Where these appear in the progression is undecided.
 
-- A platform holds its height with thrust and patrols horizontally.
+- A platform moves back and forth along a line between two points, in any direction, set in LDtk (`025 §1.1`). It turns around just before each end, and nowhere else: it pushes the player rather than bouncing off (`025 §3.1`).
+- It cancels its own weight with thrust, and drives along its line and holds itself to it with thrust that is limited to half its weight, so it accelerates the same way in every direction, and enough weight overpowers it: it sinks, or can't rise (`025 §2.1`, `§2.2`).
 - It sags under load in proportion to the weight it carries, and dips when landed on.
-- Its thrust is limited, so enough weight makes it sink.
-- While a phase's grab holds it, it has no weight, and doesn't thrust to hold its height (`024 §1.1`).
+- While a phase's grab holds it, it has no weight, and doesn't thrust to hold itself to its line, but still drives along it (`024 §1.1`, `025 §2.6`).
 - Puzzle material: lower a platform for a while by dropping a heavy object on it, or by adding a rider or two.
 
 ## Open questions

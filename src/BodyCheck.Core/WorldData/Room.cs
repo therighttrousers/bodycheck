@@ -31,7 +31,7 @@ public sealed class Room : IOffsetTileGrid
     /// <item>'#' is a solid tile</item>
     /// <item>'P' is where the player starts</item>
     /// <item>'R' is where a robot starts</item>
-    /// <item>'H' is where a horizontal platform starts</item>
+    /// <item>'H' is where a platform starts, 3 tiles wide, which moves between the walls on either side of it</item>
     /// <item>'B' is where a block starts</item>
     /// <item>'S' is a respawn, identified by the room's name and its place in the room</item>
     /// </list>
@@ -52,7 +52,7 @@ public sealed class Room : IOffsetTileGrid
                     // These colors and sizes should match the colors and sizes of entities in LDtk.
                     'P' => new EntityConfig.Player(start, new Vector2(0.5f, 1), new Color("#2CE8F5")),
                     'R' => new EntityConfig.Robot(start, new Vector2(0.5f, 1), new Color("#FEAE34")),
-                    'H' => new EntityConfig.Platform(start, new Vector2(1.5f, 0.5f), new Color("#63C74D")),
+                    'H' => PlatformBetweenWalls(rows[row], x, start),
                     'B' => new EntityConfig.Block(start, new Vector2(0.5f, 0.5f), new Color("#BE4A2F")),
                     'S' => new EntityConfig.Respawn(start, new Vector2(0.5f, 1), new Color("#4399D7"), $"{name} {x},{row}"),
                     _ => null,
@@ -65,6 +65,21 @@ public sealed class Room : IOffsetTileGrid
         }
 
         return new Room(name, origin, TileGrid.FromText(rows), entityConfigs);
+    }
+
+    /// <summary>
+    /// A platform whose box is centered on column <paramref name="x"/> of <paramref name="row"/>, and which moves
+    /// between the nearest walls on either side of it in that row, or the room's edges.
+    /// </summary>
+    private static EntityConfig.Platform PlatformBetweenWalls(string row, int x, Vector2 start)
+    {
+        var halfSize = new Vector2(1.5f, 0.5f);
+        int leftWall = row.LastIndexOf('#', x);
+        int rightWall = row.IndexOf('#', x) is int found and >= 0 ? found : row.Length;
+        float y = start.Y + halfSize.Y;
+        return new EntityConfig.Platform(start, halfSize, new Color("#63C74D"),
+            RangeA: new Vector2(leftWall + 1 + halfSize.X, y),
+            RangeB: new Vector2(rightWall - halfSize.X, y));
     }
 
     public string Name { get; }

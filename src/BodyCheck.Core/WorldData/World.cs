@@ -53,7 +53,7 @@ public sealed class World
             }
         }
 
-        EntityConfigs = [.. Rooms.SelectMany(room => room.EntityConfigs.Select(config => config with { Start = config.Start + room.Origin }))];
+        EntityConfigs = [.. Rooms.SelectMany(room => room.EntityConfigs.Select(config => config.MovedBy(room.Origin)))];
         Respawns = [.. EntityConfigs.OfType<EntityConfig.Respawn>()];
 
         int numPlayerStarts = EntityConfigs.Count(c => c.Kind == EntityKind.Player);

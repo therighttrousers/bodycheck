@@ -106,6 +106,27 @@ internal sealed record LdtkEntityInstance
 
     /// <summary>LDtk's id for the entity, which stays the same when it is moved, or when other levels change.</summary>
     public required string Iid { get; init; }
+
+    /// <summary>The values of the entity's fields.</summary>
+    public required LdtkFieldInstance[] FieldInstances { get; init; }
+}
+
+/// <summary>The value of one of an entity's fields.</summary>
+internal sealed record LdtkFieldInstance
+{
+    [JsonPropertyName("__identifier")]
+    public required string Identifier { get; init; }
+
+    /// <summary>The value, whose shape depends on the field's type. Null when the field has no value.</summary>
+    [JsonPropertyName("__value")]
+    public required JsonElement Value { get; init; }
+}
+
+/// <summary>The value of a Point field: a cell, by its column and row from the layer's top left.</summary>
+internal sealed record LdtkPoint
+{
+    public required int Cx { get; init; }
+    public required int Cy { get; init; }
 }
 
 [JsonConverter(typeof(StrictEnumConverter<LdtkLayerType>))]
@@ -132,7 +153,7 @@ internal enum LdtkEntityName
 {
     PlayerStart,
     RobotBasic,
-    PlatformHorizontal,
+    Platform,
     Block,
     Respawn,
 }
@@ -143,4 +164,5 @@ internal enum LdtkEntityName
     RespectNullableAnnotations = true)]
 [JsonSerializable(typeof(LdtkProject))]
 [JsonSerializable(typeof(LdtkLevel))]
+[JsonSerializable(typeof(LdtkPoint))]
 internal sealed partial class LdtkJsonContext : JsonSerializerContext;

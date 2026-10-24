@@ -258,18 +258,34 @@ public sealed record Features
     #endregion
 
     #region Platforms
-    /// <summary>Speed at which a platform's horizontal drive force falls to zero.</summary>
+    /// <summary>A platform's speed along its line, away from its ends.</summary>
     public float PlatformTopSpeed { get; init; } = 6;
-
-    /// <summary>Force applied to a platform horizontally to move back and forth.</summary>
-    public float PlatformHorizontalDriveForce { get; init; } = 67.5f;
+    /// <summary>
+    /// How hard a platform drives toward its target speed along its line: its acceleration, per tile per second short of
+    /// that speed, until its drive is at its maximum. Higher -> holds its speed better under load.
+    /// </summary>
+    public float PlatformDriveGain { get; init; } = 10;
+    /// <summary>A platform's maximum drive along its line, as a fraction of its weight under unscaled gravity.</summary>
+    public float PlatformMaxDriveFrac { get; init; } = 0.5f;
+    /// <summary>
+    /// How hard a platform plans to brake as it nears the end of its line, as a fraction of its maximum drive. The
+    /// rest is spare, for braking a load. Higher -> stops later and harder.
+    /// </summary>
+    public float PlatformBrakeFrac { get; init; } = 0.5f;
 
     /// <summary>
-    /// How much a platform thrusts vertically to get back to its original altitude. Higher -> less sag.
+    /// The natural frequency, in radians per second, of the critically damped controller that holds a platform on its
+    /// line. Being a frequency, it holds platforms of any mass alike. Higher -> less sag.
     /// </summary>
-    public float PlatformVerticalStiffness { get; init; } = 112.5f;
-    /// <summary>A platform's maximum vertical thrust, as a fraction of its weight. Should be > 1.</summary>
-    public float PlatformMaxVerticalThrustFrac { get; init; } = 1.5f;
+    public float PlatformHoldFrequency { get; init; } = 4.75f;
+    /// <summary>
+    /// A platform's maximum thrust back toward its line, as a fraction of its weight under unscaled gravity. A load
+    /// heavier than this fraction of its weight sinks a platform that moves sideways.
+    /// </summary>
+    public float PlatformMaxHoldFrac { get; init; } = 0.5f;
+
+    /// <summary>How near to the end of its line a platform turns around, in tiles.</summary>
+    public float PlatformTurnDistance { get; init; } = 0.1f;
     #endregion
 }
 
