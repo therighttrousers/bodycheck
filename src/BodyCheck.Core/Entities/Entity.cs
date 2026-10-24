@@ -373,7 +373,8 @@ public partial class Entity : RigidBody3D
     // entity's own. The engine's bodies aren't rough, so it uses the smaller of their two coefficients.
     private void ApplyFriction(float gameDt)
     {
-        if (!OnGround)
+        // Something that can't be carried is left to the engine's friction on an entity.
+        if (!OnGround || (Support is not null && !Tuning.CanBeCarried))
         {
             return;
         }

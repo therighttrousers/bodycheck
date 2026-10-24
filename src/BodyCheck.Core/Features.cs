@@ -286,6 +286,17 @@ public sealed record Features
 
     /// <summary>How near to the end of its line a platform turns around, in tiles.</summary>
     public float PlatformTurnDistance { get; init; } = 0.1f;
+
+    /// <summary>
+    /// A platform whose speed toward the end it is heading for stays below this for <see cref="PlatformStallTime"/> has
+    /// stalled, and turns around. Below the least speed of its braking curve, about 1.2, so that braking isn't a stall.
+    /// </summary>
+    public float PlatformStallSpeed { get; init; } = 0.5f;
+    /// <summary>
+    /// How long, in game time, a platform's speed must stay below <see cref="PlatformStallSpeed"/> to stall. Longer than
+    /// it takes to speed up again after turning around.
+    /// </summary>
+    public float PlatformStallTime { get; init; } = 0.25f;
     #endregion
 }
 

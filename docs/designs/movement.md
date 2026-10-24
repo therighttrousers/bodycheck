@@ -91,6 +91,7 @@ Rationale: decision record `000 §2.2`, `000 §2.5`, `001 §2.1`, `005` and `019
 Rationale: decision record `019`.
 
 - A block on a walker's head stays on it as it would on a platform. A walker's head grips what it carries with a coefficient of its own, which wins over the block's (`019 §1.4`), and the player's is higher than a block's.
+- A body whose tuning says it can't be carried, which is a platform, isn't: it gets only the engine's friction from an entity it rests on, which on a walker is none, so it slides off a walker's head (`025 §5.1`).
 - **The player steadies what it carries**, like a hand held up behind its head: the second joint's motor, at the carried body's center, holds the center's speed to the player's, with a limited force, so that friction at the body's base needn't push it, and doesn't tip it. The same joint's angular motor turns the body towards level, the nearest quarter turn, with a limited torque, so that a block caught tilted settles flat. The player lets go once the body's center is past the side of its head, so a block mostly off the head tips off it (`019 §5.1`, `§5.2`).
 - The steadying and the torque are light: a block stays on through running, starting and stopping, and comes off when the player reverses hard or runs into a low wall or a tunnel 2 tiles high (`019 §5.1`, `§6.4`).
 - Robots don't steady or hold what they carry; their carrying friction alone keeps it on. Being indifferent to what the player drops on them fits the story (`019 §4.10`).

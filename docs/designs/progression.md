@@ -103,7 +103,7 @@ To be designed.
 
 Where these appear in the progression is undecided.
 
-- A platform moves back and forth along a line between two points, in any direction, set in LDtk (`025 §1.1`). It turns around just before each end, and nowhere else: it pushes the player rather than bouncing off (`025 §3.1`).
+- A platform moves back and forth along a line between two points, in any direction, set in LDtk (`025 §1.1`). It turns around just before each end, and when something stops it on the way, such as the player: it pushes the player rather than bouncing off, until it stalls (`025 §3.1`, `§5.2`). Nothing carries it, so it slides off the player's head (`025 §5.1`).
 - It cancels its own weight with thrust, and drives along its line and holds itself to it with thrust that is limited to half its weight, so it accelerates the same way in every direction, and enough weight overpowers it: it sinks, or can't rise (`025 §2.1`, `§2.2`).
 - It sags under load in proportion to the weight it carries, and dips when landed on.
 - While a phase's grab holds it, it has no weight, and doesn't thrust to hold itself to its line, but still drives along it (`024 §1.1`, `025 §2.6`).

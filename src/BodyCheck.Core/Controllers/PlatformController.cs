@@ -19,6 +19,7 @@ public sealed class PlatformController : ICharacterController<SimpleControlledEn
     /// <summary>A direction perpendicular to the line.</summary>
     private readonly Vector2 _across;
     private bool _towardB = true;
+    private readonly StallDetector _stall = new();
 
     /// <param name="rangeA">One end of the line that the platform's center moves along.</param>
     /// <param name="rangeB">
@@ -43,13 +44,21 @@ public sealed class PlatformController : ICharacterController<SimpleControlledEn
         // end, so that it doesn't touch a wall there.
         float fraction = (position - _rangeA).Dot(_along) / _length;
         float turnFraction = features.PlatformTurnDistance / _length;
-        if (_towardB && fraction >= 1 - turnFraction)
+        bool atEnd = _towardB ? fraction >= 1 - turnFraction : fraction <= turnFraction;
+
+        // It also turns around when something stops it on the way, such as the player. Only between the places where
+        // it turns, though: beyond them, the end it is heading for is the way back to its line.
+        bool between = fraction > turnFraction && fraction < 1 - turnFraction;
+        bool stalled = _stall.Update(
+            velocity.Dot(_towardB ? _along : -_along),
+            gameDt,
+            features.PlatformStallSpeed,
+            features.PlatformStallTime);
+
+        if (atEnd || (stalled && between))
         {
-            _towardB = false;
-        }
-        else if (!_towardB && fraction <= turnFraction)
-        {
-            _towardB = true;
+            _towardB = !_towardB;
+            _stall.Reset();
         }
 
         // The caps don't depend on the gravity scale, so a platform pushes as hard while a grab holds it.

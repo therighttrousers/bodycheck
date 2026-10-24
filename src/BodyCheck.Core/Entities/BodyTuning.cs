@@ -55,6 +55,12 @@ public sealed record BodyTuning
     /// </summary>
     public Func<Features, float>? CarryTorque { get; init; }
 
+    /// <summary>
+    /// Whether an entity this body rests on may carry it, with the values above. If not, only the engine's friction
+    /// holds it to an entity, which on a walker is none, so it slides off a walker's head.
+    /// </summary>
+    public bool CanBeCarried { get; init; } = true;
+
     public static BodyTuning Player { get; } = new()
     {
         HalfSize = new(0.4f, 0.9f),
@@ -76,13 +82,17 @@ public sealed record BodyTuning
         CarryFriction = features => features.RobotCarryFriction,
     };
 
-    /// <summary>A hovering platform. Its friction carries the things that rest on it.</summary>
+    /// <summary>
+    /// A hovering platform. Its friction carries the things that rest on it. Nothing carries it, so that the player
+    /// can't wear one that comes down on its head.
+    /// </summary>
     public static BodyTuning Platform { get; } = new()
     {
         HalfSize = new(1.4f, 0.4f),
         Mass = 5,
         EngineFriction = 1,
-        CollisionLayer = PhysicsLayer.Character
+        CollisionLayer = PhysicsLayer.Character,
+        CanBeCarried = false,
     };
 
     /// <summary>The block the player spawns: a block, but light enough to carry and jump with.</summary>

@@ -31,11 +31,17 @@ Neil's objectives for the thrust:
 ## 3. Turning around
 
 - [x] 3.1 When does a platform turn around? Contacts that worked horizontally don't for other directions: a rising platform has its rider above it, so a `Ceiling` contact would turn it at once. Options: (a) at the ends only; (b) also on contact against the direction of travel, from anything but riders, which needs contacts that say what they touch; (c) also when stalled, with too little speed toward its target for a while, which handles walls, the player, a ceiling with the player squashed under it, and overload, alike. Decision (Neil): (a) to start with; (c) later if needed. Platforms no longer bounce off the player: they push it.
+  - Found by playing (Neil, 2026-10-24): a platform coming down onto the player kept thrusting down, since its end was still below it, and the player carried it, running around wearing it like a hat. Two problems: the player can carry a platform (§5.1), and a platform doesn't stall (§5.2).
 - [x] 3.2 How does it know it reached an end? Decision (Neil): from where it is along the line as a fraction, 0 at A and 1 at B. A critically damped drive never quite reaches its target, so it turns 0.1 tiles before each end (the feature `PlatformTurnDistance`). The drive that replaced it (§2.3) does reach it, but turning short of the end keeps it off a wall there.
 
 ## 4. Open
 
 - [ ] 4.1 The drive's tuning, to be seen by playing.
-- [ ] 4.2 Turning around when stalled (§3.1). Neil wants something similar for robots.
+- [x] 4.2 Turning around when stalled (§3.1). Built: see §5.2. Neil wants something similar for robots.
 - [ ] 4.3 A platform's mass from its `Width` field.
 - [ ] 4.4 Seen once with a platform that moved up and down: the player bounced on it each time it landed on the platform (`005 §3.6`).
+
+## 5. After the first playtest
+
+- [x] 5.1 Can a platform be carried? Carrying is friction: what stands on a walker grips it with the walker's carry friction, and the player also steadies and levels it, so a platform on the player's head was a block there. Options: a flag in each entity's configuration, which LDtk could later override per entity; or in its `BodyTuning`, beside the values that carry. Decision (Neil): `BodyTuning.CanBeCarried`, false for platforms. The player's spawned block has no configuration, and the carrying values are already there. An entity that can't be carried gets only the engine's friction from an entity it rests on, which on a walker is none, so a platform slides off the player's head.
+- [x] 5.2 Stalls (§3.1 (c)). Decision (Neil and Claude): a platform has stalled when its speed toward the end it is heading for has stayed below `PlatformStallSpeed`, 0.5 tiles per second, for `PlatformStallTime`, 0.25 seconds of game time; then it turns around. The speed is below the least of the braking curve, about 1.2, so braking to an end isn't a stall, and the time is longer than speeding up again after a turn. Neil: only between the places where it turns; beyond them, the end it is heading for is the way back to its line, so turning would take it further off. As built: the detector is a class of its own in `Controllers`, so that robots can use it.
