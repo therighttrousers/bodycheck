@@ -7,6 +7,7 @@ Relevant decision records:
 - [018: Game time and real time](../decision-records/018-game-and-real-time.md)
 - [023: The player's spawned block](../decision-records/023-spawned-block.md)
 - [024: Playtesting feedback](../decision-records/024-playtesting-feedback.md)
+- [025: Platforms that move along any line](../decision-records/025-platforms-on-any-line.md)
 
 Abilities and world changes, in the order the player meets them.
 
@@ -102,10 +103,10 @@ To be designed.
 
 Where these appear in the progression is undecided.
 
-- A platform holds its height with thrust and patrols horizontally.
+- A platform moves back and forth along a line between two points, in any direction, set in LDtk (`025 §1.1`). It turns around just before each end, and when something stops it on the way, such as the player: it pushes the player rather than bouncing off, until it stalls (`025 §3.1`, `§5.2`). Nothing carries it, so it slides off the player's head (`025 §5.1`).
+- It cancels its own weight with thrust, and drives along its line and holds itself to it with thrust that is limited to half its weight, so it accelerates the same way in every direction, and enough weight overpowers it: it sinks, or can't rise (`025 §2.1`, `§2.2`).
 - It sags under load in proportion to the weight it carries, and dips when landed on.
-- Its thrust is limited, so enough weight makes it sink.
-- While a phase's grab holds it, it has no weight, and doesn't thrust to hold its height (`024 §1.1`).
+- While a phase's grab holds it, it has no weight to cancel, but still drives along its line and holds itself to it, with the same caps (`024 §1.1`, `025 §2.6`).
 - Puzzle material: lower a platform for a while by dropping a heavy object on it, or by adding a rider or two.
 
 ## Open questions
@@ -129,6 +130,10 @@ The spawned block:
 - Tuning to be checked by playing: the cooldown of 1.5 seconds, and the block's mass of 1 (`023 §1.3`, `§2.5`).
 - How are puzzles isolated from it? Ideas: make it wider than a tile, so that it can't go into a one-tile shaft, and require room to spawn it; lasers that destroy it when it crosses them, which a clever player may get around (`023 §3.1`, `§3.2`).
 - How does the block talk, and what does it say? It accepts whatever life throws at it, or whatever throws it at life. It raises a cue when it is spawned, for whatever reacts (`023 §1.5`).
+
+Hovering platforms:
+- The drive's tuning, its top speed, gain and braking, and the stall's, to be checked by playing (`025 §2.3`, `§5.2`).
+- Should a platform's mass come from its width, its `Width` field in LDtk? The caps, being fractions of its weight, would scale with it (`025 §2.2`).
 
 Lasers and water:
 - Can robot lasers be designed to add traversal options naturally, beyond breaking blocks and activating switches?

@@ -55,4 +55,15 @@ public class WorldTests
             [(EntityKind.Player, new Vector2(1.5f, 0)), (EntityKind.Block, new Vector2(4.5f, 1))],
             world.EntityConfigs.Select(config => (config.Kind, config.Start)));
     }
+
+    [Fact]
+    public void Puts_a_platforms_range_at_its_rooms_origin()
+    {
+        // The platform moves between the walls, with its middle from 2.5 to 6.5 in its room.
+        Room platformRoom = Room.FromText("Platform", "#...H...#", new Vector2I(3, 1));
+        var world = new World("Test", [Room.FromText("Player", "P.."), platformRoom]);
+
+        var platform = Assert.Single(world.EntityConfigs.OfType<EntityConfig.Platform>());
+        Assert.Equal((new Vector2(5.5f, 1.5f), new Vector2(9.5f, 1.5f)), (platform.RangeA, platform.RangeB));
+    }
 }

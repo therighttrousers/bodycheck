@@ -4,56 +4,99 @@ using Godot;
 
 namespace BodyCheck.Core.Controllers;
 
+/// <summary>
+/// Moves a platform back and forth along a line between two points, in any direction. It thrusts three ways: against
+/// gravity, cancelling its own weight; along the line, toward the end it is heading for; and across the line, back
+/// onto it. The last two are capped, so a heavy enough load overpowers them.
+/// </summary>
 public sealed class PlatformController : ICharacterController<SimpleControlledEntity>
 {
-    private readonly float _startY;
-    private float _move = 1;
+    private readonly Vector2 _rangeA;
+    private readonly Vector2 _rangeB;
+    private readonly float _length;
+    /// <summary>The direction from A to B.</summary>
+    private readonly Vector2 _along;
+    /// <summary>A direction perpendicular to the line.</summary>
+    private readonly Vector2 _across;
+    private bool _towardB = true;
+    private readonly StallDetector _stall = new();
 
-    /// <param name="startY">The height of the platform's center that it tries to hold.</param>
-    public PlatformController(float startY)
+    /// <param name="rangeA">One end of the line that the platform's center moves along.</param>
+    /// <param name="rangeB">
+    /// The other end, which the platform heads for first. Must not be the same as <paramref name="rangeA"/>.
+    /// </param>
+    public PlatformController(Vector2 rangeA, Vector2 rangeB)
     {
-        _startY = startY;
+        _rangeA = rangeA;
+        _rangeB = rangeB;
+        _length = rangeA.DistanceTo(rangeB);
+        _along = (rangeB - rangeA) / _length;
+        _across = _along.Orthogonal();
     }
 
     public void Apply(SimpleControlledEntity entity, float gameDt, float realDt, IEndOfTick endOfTick)
     {
-        // Patrol. Bounce off of anything solid (including the player).
-        if (_move < 0 && entity.Contacts.HasFlag(Contacts.Left))
+        Features features = Features.Current;
+        var position = new Vector2(entity.Position.X, entity.Position.Y);
+        var velocity = new Vector2(entity.LinearVelocity.X, entity.LinearVelocity.Y);
+
+        // Where the platform is along the line, as a fraction: 0 at A, 1 at B. It turns around a little before each
+        // end, so that it doesn't touch a wall there.
+        float fraction = (position - _rangeA).Dot(_along) / _length;
+        float turnFraction = features.PlatformTurnDistance / _length;
+        bool atEnd = _towardB ? fraction >= 1 - turnFraction : fraction <= turnFraction;
+
+        // It also turns around when something stops it on the way, such as the player. Only between the places where
+        // it turns, though: beyond them, the end it is heading for is the way back to its line.
+        bool between = fraction > turnFraction && fraction < 1 - turnFraction;
+        bool stalled = _stall.Update(
+            velocity.Dot(_towardB ? _along : -_along),
+            gameDt,
+            features.PlatformStallSpeed,
+            features.PlatformStallTime);
+
+        if (atEnd || (stalled && between))
         {
-            _move = 1;
-        }
-        else if (_move > 0 && entity.Contacts.HasFlag(Contacts.Right))
-        {
-            _move = -1;
+            _towardB = !_towardB;
+            _stall.Reset();
         }
 
-        ApplyHorizontalThrust(entity, _move);
-        ApplyVerticalThrust(entity);
+        // The caps don't depend on the gravity scale, so a platform pushes as hard while a grab holds it.
+        float unscaledWeight = entity.Mass * Constants.Gravity;
+
+        // Drive toward the end it is heading for at a target speed: top speed, or less near the end, so that braking
+        // at a constant rate would stop it there. The braking curve aims past the end by the turn distance, so the
+        // target speed is still above zero where the platform turns, and a load can't keep it from getting there.
+        Vector2 heading = _towardB ? _along : -_along;
+        float distanceLeft = ((_towardB ? _rangeB : _rangeA) - position).Dot(heading);
+        float braking = features.PlatformBrakeFrac * features.PlatformMaxDriveFrac * Constants.Gravity;
+        float targetSpeed = MathF.Min(
+            features.PlatformTopSpeed,
+            MathF.Sqrt(2 * braking * MathF.Max(0, distanceLeft + features.PlatformTurnDistance)));
+        float maxDrive = features.PlatformMaxDriveFrac * unscaledWeight;
+        float drive = Math.Clamp(
+            entity.Mass * features.PlatformDriveGain * (targetSpeed - velocity.Dot(heading)), -maxDrive, maxDrive);
+
+        float hold = CriticallyDampedThrust(
+            entity.Mass,
+            features.PlatformHoldFrequency,
+            error: (_rangeA - position).Dot(_across),
+            rate: velocity.Dot(_across),
+            max: features.PlatformMaxHoldFrac * unscaledWeight);
+
+        Vector2 thrust = drive * heading + hold * _across;
+        entity.ApplyCentralForce(new Vector3(thrust.X, thrust.Y, 0) - entity.Mass * entity.GetGravity());
     }
 
-    private void ApplyHorizontalThrust(SimpleControlledEntity entity, float move)
+    /// <summary>
+    /// The thrust, capped at <paramref name="max"/> either way, of a critically damped PD controller that pushes a
+    /// body of <paramref name="mass"/> to cancel <paramref name="error"/>, which changes at <paramref name="rate"/>.
+    /// </summary>
+    /// <param name="frequency">The controller's natural frequency, in radians per second.</param>
+    private static float CriticallyDampedThrust(float mass, float frequency, float error, float rate, float max)
     {
-        Features features = Features.Current;
-        float speed = entity.LinearVelocity.X;
-        // The drive fades out as the entity nears top speed in the input direction.
-        // It never slows an entity that is already faster than that.
-        float headroom = Math.Clamp(1 - speed * MathF.Sign(move) / features.PlatformTopSpeed, 0, 1);
-
-        entity.ApplyCentralForce(new Vector3(move * features.PlatformHorizontalDriveForce * headroom, 0, 0));
-    }
-
-    private void ApplyVerticalThrust(SimpleControlledEntity entity)
-    {
-        // Don't try to return to starting altitude if weightless (e.g. being grabbed).
-        if (entity.Weight == 0) return;
-
-        // PD controller: correction = K_p * (target - current) + K_d * -rate
-        Features features = Features.Current;
-        float weight = entity.Weight;
-        var damping = 2 * MathF.Sqrt(features.PlatformVerticalStiffness * entity.Mass);
-        var correction = features.PlatformVerticalStiffness * (_startY - entity.Position.Y) + damping * -entity.LinearVelocity.Y;
-
-        var thrust = Math.Clamp(weight + correction, 0, weight * features.PlatformMaxVerticalThrustFrac);
-        entity.ApplyCentralForce(new Vector3(0, thrust, 0));
+        // PD controller: thrust = K_p * error + K_d * -rate, with K_p = m ω² and K_d = 2 m ω for critical damping.
+        float thrust = mass * frequency * (frequency * error - 2 * rate);
+        return Math.Clamp(thrust, -max, max);
     }
 }

@@ -171,13 +171,54 @@ public static class LdtkReader
             {
                 LdtkEntityName.PlayerStart => new EntityConfig.Player(start, halfSize, new Color(entity.SmartColor)),
                 LdtkEntityName.RobotBasic => new EntityConfig.Robot(start, halfSize, new Color(entity.SmartColor)),
-                LdtkEntityName.PlatformHorizontal => new EntityConfig.Platform(start, halfSize, new Color(entity.SmartColor)),
+                LdtkEntityName.Platform => ReadPlatform(path, level, entity, start, halfSize, height),
                 LdtkEntityName.Block => new EntityConfig.Block(start, halfSize, new Color(entity.SmartColor)),
                 LdtkEntityName.Respawn => new EntityConfig.Respawn(start, halfSize, new Color(entity.SmartColor), entity.Iid),
             });
         }
 
         return new Room(level.Identifier, origin, tiles, entityConfigs);
+    }
+
+    /// <summary>
+    /// Reads a platform, whose Point fields <c>RangeA</c> and <c>RangeB</c> are two different cells that the middle of
+    /// its box moves between.
+    /// </summary>
+    /// <param name="height">The level's height, in tiles.</param>
+    private static EntityConfig.Platform ReadPlatform(
+        string path, LdtkLevel level, LdtkEntityInstance entity, Vector2 start, Vector2 halfSize, int height)
+    {
+        Vector2 rangeA = ReadPoint(path, level, entity, "RangeA", height);
+        Vector2 rangeB = ReadPoint(path, level, entity, "RangeB", height);
+        if (rangeA == rangeB)
+        {
+            throw Invalid(path, $"In level '{level.Identifier}', a {entity.Identifier}'s RangeA and RangeB are the "
+                + "same cell.");
+        }
+        return new EntityConfig.Platform(start, halfSize, new Color(entity.SmartColor), rangeA, rangeB);
+    }
+
+    /// <summary>Reads an entity's Point field as the middle of its cell.</summary>
+    /// <param name="height">The level's height, in tiles.</param>
+    private static Vector2 ReadPoint(string path, LdtkLevel level, LdtkEntityInstance entity, string field, int height)
+    {
+        JsonElement? value = entity.FieldInstances.FirstOrDefault(instance => instance.Identifier == field)?.Value;
+        if (value is not { ValueKind: JsonValueKind.Object })
+        {
+            throw Invalid(path, $"In level '{level.Identifier}', a {entity.Identifier} has no point {field}.");
+        }
+
+        LdtkPoint point;
+        try
+        {
+            point = value.Value.Deserialize(LdtkJsonContext.Default.LdtkPoint)!;
+        }
+        catch (JsonException e)
+        {
+            throw Invalid(path, $"In level '{level.Identifier}', a {entity.Identifier}'s {field} isn't a point.", e);
+        }
+        // LDtk's y is down, from the top of the level, and the room's is up, from the bottom.
+        return new Vector2(point.Cx + 0.5f, height - point.Cy - 0.5f);
     }
 
     private static T Parse<T>(string path, string json, JsonTypeInfo<T> type)

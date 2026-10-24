@@ -75,6 +75,10 @@ Game controls:
 - Map: Tab, or gamepad Back. Pauses the game and zooms out to show the whole world; press again to zoom back in.
 - Pause: Escape, or gamepad Start. There's no menu yet.
 
+Hold the jump button to jump higher.
+
+Phase goes through the robot, block or platform nearest the player. Holding it with one in reach, or coming within reach of one while holding it, slows the game to a pause, with arrows to aim with; release it while holding a direction to phase that way, or with no direction to cancel.
+
 Debug controls:
 - F2: toggle display of original entity placement and control entities. Pass `--markers` after `--` to start with them on.
 - F3: debug overlay on or off, with measurements for tuning and level design. Pass `--overlay` after `--` to start with it on.
@@ -83,10 +87,6 @@ Debug controls:
 - '[' and ']': previous or next configuration.
 - ';' and "'": restart the world at the previous or next respawn. Each world remembers its own respawn while the game runs.
 - ',' and '.': previous or next world.
-
-Hold the jump button to jump higher.
-
-Phase goes through the robot, block or platform nearest the player. Holding it with one in reach, or coming within reach of one while holding it, slows the game to a pause, with arrows to aim with; release it while holding a direction to phase that way, or with no direction to cancel.
 
 Rendering switches:
 - 1: low resolution on or off

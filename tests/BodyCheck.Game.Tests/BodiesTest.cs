@@ -220,11 +220,31 @@ public class BodiesTest
             greatestOffset = MathF.Max(greatestOffset, MathF.Abs(block.Position.X - platform.Position.X));
         });
 
-        // The platform has crossed the room, and the block is still standing on it. The block slides a
-        // little each time a wall stops the platform dead.
+        // The platform has crossed the room, and the block is still standing on it. The block may slide a
+        // little each time the platform turns around.
         AssertThat(farthestFromStart).IsGreater(10f);
         AssertThat(block.Bottom()).IsEqualApprox(platform.Top(), 0.01f);
         AssertThat(greatestOffset).IsLess(platform.HalfSize.X);
+    }
+
+    [TestCase]
+    public async Task A_platform_that_the_player_stops_turns_around()
+    {
+        // The player stands by the left wall, in the way of the platform's left end.
+        RoomRun run = Start(RoomOf(
+            "#..........#",
+            "#..........#",
+            "#P..H......#",
+            new string('#', 12)));
+        Entity platform = run.Node.EntitiesOf(EntityKind.Platform).Single();
+
+        var xs = new List<float>();
+        await run.Tick(Idle, 8 * 60, () => xs.Add(platform.Position.X));
+
+        // It came back to the player, stopped there, and went away again.
+        int stopped = xs.IndexOf(xs.Min());
+        AssertThat(xs[stopped] - platform.HalfSize.X).IsGreater(run.Player.Position.X);
+        AssertThat(xs.Skip(stopped).Max()).IsGreater(xs[stopped] + 2);
     }
 
     [TestCase]

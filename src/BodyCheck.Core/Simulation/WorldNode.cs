@@ -132,7 +132,10 @@ public partial class WorldNode : Node3D
     private static SimpleControlledEntity CreatePlatform(EntityConfig.Platform config, Node3D visual)
     {
         var platform = new SimpleControlledEntity(BodyTuning.Platform, visual);
-        platform.Controller = new PlatformController(config.Start.Y + platform.HalfSize.Y);
+        // The range is where the middle of the platform's box goes. Its body starts at the bottom of its box, which is
+        // taller, and keeps that place in the box wherever it goes.
+        var offset = new Vector2(0, platform.HalfSize.Y - config.MapHalfSize.Y);
+        platform.Controller = new PlatformController(config.RangeA + offset, config.RangeB + offset);
         return platform;
     }
 

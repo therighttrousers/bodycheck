@@ -111,8 +111,8 @@
 					"__worldY": 192
 				},
 				{
-					"__identifier": "PlatformHorizontal",
-					"__grid": [10,9],
+					"__identifier": "Platform",
+					"__grid": [9,9],
 					"__pivot": [0,0],
 					"__tags": [],
 					"__tile": null,
@@ -121,12 +121,19 @@
 					"width": 48,
 					"height": 16,
 					"defUid": 204,
-					"px": [160,144],
+					"px": [144,144],
 					"fieldInstances": [
 						{ "__identifier": "Width", "__type": "Int", "__value": 3, "__tile": null, "defUid": 208, "realEditorValues": [] },
-						{ "__identifier": "HorizontalDirection", "__type": "LocalEnum.HorizontalDirection", "__value": "Left", "__tile": null, "defUid": 212, "realEditorValues": [] }
+						{ "__identifier": "RangeA", "__type": "Point", "__value": { "cx": 10, "cy": 6 }, "__tile": null, "defUid": 228, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["10,6"]
+						}] },
+						{ "__identifier": "RangeB", "__type": "Point", "__value": { "cx": 10, "cy": 11 }, "__tile": null, "defUid": 229, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["10,11"]
+						}] }
 					],
-					"__worldX": 480,
+					"__worldX": 464,
 					"__worldY": 144
 				}
 			]

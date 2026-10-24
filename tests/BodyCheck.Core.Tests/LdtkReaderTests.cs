@@ -57,7 +57,7 @@ public class LdtkReaderTests
 
     /// <summary>A player start in the second tile of a level's top row.</summary>
     private const string PlayerStart =
-        """{ "__identifier": "PlayerStart", "__pivot": [0, 0], "px": [16, 0], "width": 16, "height": 16, "__smartColor": "#2CE8F5", "iid": "p" }""";
+        """{ "__identifier": "PlayerStart", "__pivot": [0, 0], "px": [16, 0], "width": 16, "height": 16, "__smartColor": "#2CE8F5", "iid": "p", "fieldInstances": [] }""";
 
     [Fact]
     public void Reads_the_game_worlds()
@@ -82,7 +82,7 @@ public class LdtkReaderTests
     {
         // One level up and to the left of the other, so that the world is 2x2 levels, two of them missing.
         const string robot =
-            """{ "__identifier": "RobotBasic", "__pivot": [0.5, 1], "px": [8, 240], "width": 16, "height": 16, "__smartColor": "#FEAE34", "iid": "r" }""";
+            """{ "__identifier": "RobotBasic", "__pivot": [0.5, 1], "px": [8, 240], "width": 16, "height": 16, "__smartColor": "#FEAE34", "iid": "r", "fieldInstances": [] }""";
         World world = ReadOne(Project(
             Level(-320, 0, robot, solid: [0], identifier: "Upper") + ", " + Level(0, 240, PlayerStart, identifier: "Lower")));
 
@@ -122,7 +122,7 @@ public class LdtkReaderTests
     {
         const string respawn = """
             { "__identifier": "Respawn", "__pivot": [0.5, 1], "px": [40, 240], "width": 16, "height": 32,
-              "__smartColor": "#4399D7", "iid": "a1b2" }
+              "__smartColor": "#4399D7", "iid": "a1b2", "fieldInstances": [] }
             """;
         World world = ReadOne(Project(Level(0, 0, PlayerStart, controlEntities: respawn)));
 
@@ -130,8 +130,40 @@ public class LdtkReaderTests
         Assert.Equal(("a1b2", new Vector2(2.5f, 0), new Vector2(0.5f, 1)), (read.Id, read.Start, read.MapHalfSize));
     }
 
+    /// <summary>A platform 3 tiles wide in tiles 1 to 3 of a level's top row, with these fields.</summary>
+    private static string Platform(string fields) => $$"""
+        { "__identifier": "Platform", "__pivot": [0, 0], "px": [16, 0], "width": 48, "height": 16,
+          "__smartColor": "#63C74D", "iid": "h", "fieldInstances": [ {{fields}} ] }
+        """;
+
+    /// <summary>A platform's RangeA, at the middle of its box.</summary>
+    private const string RangeA = """{ "__identifier": "RangeA", "__value": { "cx": 2, "cy": 0 } }""";
+
+    [Fact]
+    public void Reads_a_platforms_range_as_the_middles_of_its_cells()
+    {
+        const string rangeB = """{ "__identifier": "RangeB", "__value": { "cx": 2, "cy": 10 } }""";
+        World world = ReadOne(Project(Level(0, 0, PlayerStart + ", " + Platform(RangeA + ", " + rangeB))));
+
+        var platform = Assert.Single(world.Rooms.Single().EntityConfigs.OfType<EntityConfig.Platform>());
+        Assert.Equal((new Vector2(2.5f, 14.5f), new Vector2(2.5f, 4.5f)), (platform.RangeA, platform.RangeB));
+    }
+
     [Theory]
-    [InlineData("""{ "__identifier": "Dragon", "__pivot": [0, 0], "px": [16, 0], "width": 16, "height": 16 }""")]
+    [InlineData("")]
+    [InlineData(RangeA)]
+    [InlineData(RangeA + """, { "__identifier": "RangeB", "__value": null }""")]
+    [InlineData(RangeA + """, { "__identifier": "RangeB", "__value": { "cx": 2 } }""")]
+    [InlineData(RangeA + """, { "__identifier": "RangeB", "__value": { "cx": 2, "cy": 0 } }""")] // The same as RangeA
+    public void Rejects_a_platform_without_two_different_points(string fields)
+    {
+        var e = Assert.Throws<InvalidDataException>(
+            () => ReadOne(Project(Level(0, 0, PlayerStart + ", " + Platform(fields)))));
+        Assert.StartsWith("test.ldtk: ", e.Message);
+    }
+
+    [Theory]
+    [InlineData("""{ "__identifier": "Dragon","__pivot": [0, 0], "px": [16, 0], "width": 16, "height": 16 }""")]
     [InlineData("""{ "__identifier": "PlayerStart", "__pivot": [0, 0], "px": [16, 0], "width": 16 }""")]
     [InlineData("""{ "__identifier": "PlayerStart", "__pivot": [0, 0], "px": null, "width": 16, "height": 16 }""")]
     [InlineData("""{ "__identifier": 0, "__pivot": [0, 0], "px": [16, 0], "width": 16, "height": 16 }""")]
