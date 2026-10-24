@@ -33,7 +33,7 @@ public class LdtkReaderTests
     /// <param name="pxWid">The level's width in pixels, if it isn't its layers' width.</param>
     private static string Level(
         int worldX, int worldY, string entities = "", int[]? solid = null, int width = 20, int height = 15,
-        int? pxWid = null, int worldDepth = 0, string identifier = "Test")
+        int? pxWid = null, int worldDepth = 0, string identifier = "Test", string controlEntities = "")
     {
         int[] values = new int[width * height];
         foreach (int i in solid ?? [])
@@ -51,13 +51,13 @@ public class LdtkReaderTests
                   "intGridCsv": [], "entityInstances": [ {{entities}} ] },
                 { "__identifier": "ControlEntities", "__type": "Entities", "__cWid": {{width}}, "__cHei": {{height}}, "__gridSize": 16,
                   "__pxTotalOffsetX": 0, "__pxTotalOffsetY": 0,
-                  "intGridCsv": [], "entityInstances": [] } ] }
+                  "intGridCsv": [], "entityInstances": [ {{controlEntities}} ] } ] }
             """;
     }
 
     /// <summary>A player start in the second tile of a level's top row.</summary>
     private const string PlayerStart =
-        """{ "__identifier": "PlayerStart", "__pivot": [0, 0], "px": [16, 0], "width": 16, "height": 16, "__smartColor": "#2CE8F5" }""";
+        """{ "__identifier": "PlayerStart", "__pivot": [0, 0], "px": [16, 0], "width": 16, "height": 16, "__smartColor": "#2CE8F5", "iid": "p" }""";
 
     [Fact]
     public void Reads_the_game_worlds()
@@ -82,7 +82,7 @@ public class LdtkReaderTests
     {
         // One level up and to the left of the other, so that the world is 2x2 levels, two of them missing.
         const string robot =
-            """{ "__identifier": "RobotBasic", "__pivot": [0.5, 1], "px": [8, 240], "width": 16, "height": 16, "__smartColor": "#FEAE34" }""";
+            """{ "__identifier": "RobotBasic", "__pivot": [0.5, 1], "px": [8, 240], "width": 16, "height": 16, "__smartColor": "#FEAE34", "iid": "r" }""";
         World world = ReadOne(Project(
             Level(-320, 0, robot, solid: [0], identifier: "Upper") + ", " + Level(0, 240, PlayerStart, identifier: "Lower")));
 
@@ -115,6 +115,19 @@ public class LdtkReaderTests
         Assert.True(big.IsSolid(0, 0)); // Its bottom left tile
         Assert.Equal((new Vector2I(41, 22), new Vector2I(7, 5)), (small.Origin, small.Size));
         Assert.Equal(new Vector2(1.5f, 4), Assert.Single(small.EntityConfigs).Start);
+    }
+
+    [Fact]
+    public void Reads_a_respawn_in_the_control_layer_identified_by_its_iid()
+    {
+        const string respawn = """
+            { "__identifier": "Respawn", "__pivot": [0.5, 1], "px": [40, 240], "width": 16, "height": 32,
+              "__smartColor": "#4399D7", "iid": "a1b2" }
+            """;
+        World world = ReadOne(Project(Level(0, 0, PlayerStart, controlEntities: respawn)));
+
+        EntityConfig.Respawn read = Assert.Single(world.Respawns);
+        Assert.Equal(("a1b2", new Vector2(2.5f, 0), new Vector2(0.5f, 1)), (read.Id, read.Start, read.MapHalfSize));
     }
 
     [Theory]

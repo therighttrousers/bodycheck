@@ -19,6 +19,9 @@ public interface IAssetLibrary
     /// </summary>
     Node3D GetPlayerBlockVisual(Vector2 halfSize);
 
+    /// <summary>
+    /// Returns a box with the given size and color/alpha for debugging, or as a placeholder for an eventual model.
+    /// </summary>
     MeshInstance3D GetDebugBoxVisual(Vector2 halfSize, Color color, float alpha = 0.5f);
 
     /// <summary>

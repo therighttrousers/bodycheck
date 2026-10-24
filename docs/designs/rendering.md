@@ -63,7 +63,7 @@ Other ways of choosing colours were tried and set aside: quantising in HSV, a la
 ## Tools
 
 - **Switches.** `LookSwitches` puts each part of the pipeline on a number key, and the window's title shows their state. The keys are listed in the README.
-- **Dither spread.** `[` and `]` change the lightness spread, and `;` and `'` the chroma spread (`004 §3.4`). The window's title shows both.
+- **Dither spread.** 7 and 8 change the lightness spread, and 9 and 0 the chroma spread (`004 §3.4`, `024 §5.2`). The window's title shows both.
 - **Palette card.** Key 6 draws the palette's image behind the colour pass, in place of the game, stretched to fill the screen (`004 §4.1`).
 - **The "Look" room.** A room the shape of the screen, to which `LookProps` adds turning shapes that gray boxes don't show: a smooth mirror sphere, a flat-shaded sphere, a wedge, a glowing torus, a pane of glass, a gray ramp and a pure yellow lamp, whose falloff is where bands and false colours show first (`004 §3.1`).
 

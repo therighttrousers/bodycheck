@@ -54,6 +54,7 @@ public sealed class World
         }
 
         EntityConfigs = [.. Rooms.SelectMany(room => room.EntityConfigs.Select(config => config with { Start = config.Start + room.Origin }))];
+        Respawns = [.. EntityConfigs.OfType<EntityConfig.Respawn>()];
 
         int numPlayerStarts = EntityConfigs.Count(c => c.Kind == EntityKind.Player);
         if (numPlayerStarts != 1)
@@ -77,4 +78,7 @@ public sealed class World
     /// room's own.
     /// </summary>
     public IReadOnlyList<EntityConfig> EntityConfigs { get; }
+
+    /// <summary>The respawns among <see cref="EntityConfigs"/>, in their order.</summary>
+    public IReadOnlyList<EntityConfig.Respawn> Respawns { get; }
 }

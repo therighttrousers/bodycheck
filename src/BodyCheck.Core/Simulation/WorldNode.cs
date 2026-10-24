@@ -30,12 +30,18 @@ public partial class WorldNode : Node3D
     private readonly List<Entity> _entities = [];
 
     /// <param name="assets">What to draw for each entity and for tiles.</param>
+    /// <param name="respawnId">
+    /// The respawn the player starts at, which is then the current one. The player starts where the world says if this is
+    /// null, or names none of the world's respawns.
+    /// </param>
     public WorldNode(
         World world,
         IAssetLibrary assets,
-        BodyTuning? playerBody = null)
+        BodyTuning? playerBody = null,
+        string? respawnId = null)
     {
         World = world;
+        CurrentRespawn = world.Respawns.FirstOrDefault(respawn => respawn.Id == respawnId);
         ProcessPhysicsPriority = PhysicsPriority;
 
         var body = new StaticBody3D
@@ -90,7 +96,8 @@ public partial class WorldNode : Node3D
 
             if (entity is not null)
             {
-                entity.Position = new Vector3(config.Start.X, config.Start.Y + entity.HalfSize.Y, 0);
+                Vector2 start = config.Kind == EntityKind.Player && CurrentRespawn is not null ? CurrentRespawn.Start : config.Start;
+                entity.Position = new Vector3(start.X, start.Y + entity.HalfSize.Y, 0);
                 AddChild(entity);
                 _entities.Add(entity);
             }
@@ -201,6 +208,15 @@ public partial class WorldNode : Node3D
     public IEnumerable<Entity> EntitiesOf(EntityKind kind) =>
         _entities.Where((entity, i) => i < World.EntityConfigs.Count && World.EntityConfigs[i].Kind == kind);
 
+    /// <summary>
+    /// The respawn the player came within reach of last, or started at: where the player would start from if the world
+    /// restarted. Null until the player has been near one.
+    /// </summary>
+    public EntityConfig.Respawn? CurrentRespawn { get; private set; }
+
+    /// <summary>Raised on the tick of play when the player comes within reach of a respawn that isn't the current one.</summary>
+    public event Action<EntityConfig.Respawn>? CurrentRespawnChanged;
+
     /// <summary>Supplies the player's input, once per tick. The player stands idle if this is null.</summary>
     public Func<PlayerInput>? PlayerInput { get; set; }
 
@@ -242,6 +258,35 @@ public partial class WorldNode : Node3D
             }
         }
         endOfTick.Run();
+        UpdateCurrentRespawn();
+    }
+
+    /// <summary>
+    /// Makes the respawn nearest the player, box to box, the current one, if it is within reach, as of the engine's last
+    /// step.
+    /// </summary>
+    private void UpdateCurrentRespawn()
+    {
+        var center = new Vector2(Player.Position.X, Player.Position.Y);
+        EntityConfig.Respawn? nearest = null;
+        float nearestGap = 0;
+        foreach (EntityConfig.Respawn respawn in World.Respawns)
+        {
+            // How far apart the boxes are along each axis, or 0 where they overlap along it.
+            Vector2 apart = (center - respawn.Start - new Vector2(0, respawn.MapHalfSize.Y)).Abs()
+                - Player.HalfSize - respawn.MapHalfSize;
+            float gap = new Vector2(MathF.Max(apart.X, 0), MathF.Max(apart.Y, 0)).Length();
+            if (gap <= Features.Current.PlayerRespawnReach && (nearest is null || gap < nearestGap))
+            {
+                nearest = respawn;
+                nearestGap = gap;
+            }
+        }
+        if (nearest is not null && nearest != CurrentRespawn)
+        {
+            CurrentRespawn = nearest;
+            CurrentRespawnChanged?.Invoke(nearest);
+        }
     }
 
     /// <summary>

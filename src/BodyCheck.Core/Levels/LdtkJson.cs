@@ -103,6 +103,9 @@ internal sealed record LdtkEntityInstance
     /// <summary>The color of the entity's box in the editor.</summary>
     [JsonPropertyName("__smartColor")]
     public required string SmartColor { get; init; }
+
+    /// <summary>LDtk's id for the entity, which stays the same when it is moved, or when other levels change.</summary>
+    public required string Iid { get; init; }
 }
 
 [JsonConverter(typeof(StrictEnumConverter<LdtkLayerType>))]

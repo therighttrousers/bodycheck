@@ -38,7 +38,10 @@ public abstract record EntityConfig(Vector2 Start, Vector2 MapHalfSize, Color Ma
         public override EntityKind Kind => EntityKind.Block;
     }
 
-    public sealed record Respawn(Vector2 Start, Vector2 MapHalfSize, Color MapColor) : EntityConfig(Start, MapHalfSize, MapColor)
+    /// <summary>A place the player can start from, such as after a reload.</summary>
+    /// <param name="Id">What identifies the respawn when its world is read again, after its map is edited.</param>
+    public sealed record Respawn(Vector2 Start, Vector2 MapHalfSize, Color MapColor, string Id)
+        : EntityConfig(Start, MapHalfSize, MapColor)
     {
         public override EntityKind Kind => EntityKind.Respawn;
     }

@@ -173,7 +173,7 @@ public static class LdtkReader
                 LdtkEntityName.RobotBasic => new EntityConfig.Robot(start, halfSize, new Color(entity.SmartColor)),
                 LdtkEntityName.PlatformHorizontal => new EntityConfig.Platform(start, halfSize, new Color(entity.SmartColor)),
                 LdtkEntityName.Block => new EntityConfig.Block(start, halfSize, new Color(entity.SmartColor)),
-                LdtkEntityName.Respawn => new EntityConfig.Respawn(start, halfSize, new Color(entity.SmartColor)),
+                LdtkEntityName.Respawn => new EntityConfig.Respawn(start, halfSize, new Color(entity.SmartColor), entity.Iid),
             });
         }
 

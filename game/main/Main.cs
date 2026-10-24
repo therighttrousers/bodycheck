@@ -25,9 +25,11 @@ namespace BodyCheck;
 /// </para>
 /// <para>
 /// The game plays with a configuration of <see cref="Features"/>: the defaults, or one of the files in
-/// <see cref="ConfigurationsDirectory"/>, named after the file. The defaults are used unless one is named. F6 and F7
+/// <see cref="ConfigurationsDirectory"/>, named after the file. The defaults are used unless one is named. '[' and ']'
 /// switch to the previous and next configuration, without restarting the world. F5 reads the LDtk project and the
-/// configurations again, and restarts the world. An error in a file is shown, and play goes on without it (decision record 017).
+/// configurations again, and restarts the world, with the player at the world's current respawn, if it has one. Each
+/// world's current respawn is remembered while the game runs. ';' and "'" restart the world at its previous and next
+/// respawn, in the order of its levels. An error in a file is shown, and play goes on without it (decision record 017).
 /// </para>
 /// <para>
 /// Escape and Tab, or the gamepad's Start and Back, open and close the menu and the map (see
@@ -65,6 +67,8 @@ public partial class Main : Node
     private ShapeWireframes _shapes = null!;
     // Whether each world's map markers show, kept as worlds are loaded.
     private bool _showMapMarkers;
+    // Each world's current respawn, by the world's name and the respawn's id, to start its player at when it restarts.
+    private readonly Dictionary<string, string> _respawnIds = [];
     private PhaseAimMarker _phaseAimMarker = null!;
     private IProbe? _probe;
 
@@ -169,6 +173,14 @@ public partial class Main : Node
         else if (Input.IsActionJustPressed("reload"))
         {
             Reload();
+        }
+        else if (Input.IsActionJustPressed("next_respawn"))
+        {
+            CycleRespawn(1);
+        }
+        else if (Input.IsActionJustPressed("previous_respawn"))
+        {
+            CycleRespawn(-1);
         }
         else if (Input.IsActionJustPressed("map_markers"))
         {
@@ -278,8 +290,13 @@ public partial class Main : Node
     {
         _world?.QueueFree();
         Telemetry.Reset();
-        _world = new WorldNode(world, _assets);
+        _world = new WorldNode(world, _assets, respawnId: _respawnIds.GetValueOrDefault(world.Name));
         _world.MapMarkers.Visible = _showMapMarkers;
+        _world.CurrentRespawnChanged += respawn =>
+        {
+            _respawnIds[world.Name] = respawn.Id;
+            ShowTitle();
+        };
         if (world.Rooms.Contains(RoomLibrary.Look))
         {
             _world.AddChild(new LookProps(_world.World.Size));
@@ -292,6 +309,27 @@ public partial class Main : Node
         return _world;
     }
 
+    /// <summary>
+    /// Restarts the current world at the respawn <paramref name="step"/> after its current one, in the order of its
+    /// respawns, wrapping around: the first or the last if it has no current one. Does nothing in a world without
+    /// respawns.
+    /// </summary>
+    private void CycleRespawn(int step)
+    {
+        IReadOnlyList<EntityConfig.Respawn> respawns = _world.World.Respawns;
+        if (respawns.Count == 0)
+        {
+            return;
+        }
+        int current = IndexOf(respawns.Select(respawn => respawn.Id), _world.CurrentRespawn?.Id ?? "");
+        if (current < 0 && step < 0)
+        {
+            current = 0;
+        }
+        _respawnIds[_world.World.Name] = respawns[Mathf.PosMod(current + step, respawns.Count)].Id;
+        LoadWorld(_worldIndex);
+    }
+
     private static string ReadFile(string path)
     {
         using FileAccess file = FileAccess.Open(path, FileAccess.ModeFlags.Read)
@@ -300,7 +338,15 @@ public partial class Main : Node
     }
 
     private void ShowTitle() => GetWindow().Title =
-        $"Body Check: {_world.World.Name}, with {_configurations[_configurationIndex]} ({_look.Summary})";
+        $"Body Check: {_world.World.Name}{RespawnTitle()}, with {_configurations[_configurationIndex]} ({_look.Summary})";
+
+    /// <summary>Which of the world's respawns is the current one, for the title, if any is.</summary>
+    private string RespawnTitle()
+    {
+        IReadOnlyList<EntityConfig.Respawn> respawns = _world.World.Respawns;
+        int current = IndexOf(respawns.Select(respawn => respawn.Id), _world.CurrentRespawn?.Id ?? "");
+        return current < 0 ? "" : $" at respawn {current + 1} of {respawns.Count}";
+    }
 
     /// <summary>Adds the lights, the colour pass, and the switches that turn parts of the pipeline on and off.</summary>
     private void AddLook()
@@ -370,22 +416,20 @@ public partial class Main : Node
             new InputEventKey { PhysicalKeycode = Key.L },
             new InputEventKey { PhysicalKeycode = Key.Z },
             new InputEventJoypadMotion { Axis = JoyAxis.TriggerRight });
-        AddAction("next_world",
-            new InputEventKey { PhysicalKeycode = Key.Period },
-            new InputEventJoypadButton { ButtonIndex = JoyButton.RightShoulder });
-        AddAction("previous_world",
-            new InputEventKey { PhysicalKeycode = Key.Comma },
-            new InputEventJoypadButton { ButtonIndex = JoyButton.LeftShoulder });
-        AddAction("map_markers", new InputEventKey { PhysicalKeycode = Key.F2 });
-        AddAction("reload", new InputEventKey { PhysicalKeycode = Key.F5 });
-        AddAction("previous_configuration", new InputEventKey { PhysicalKeycode = Key.F6 });
-        AddAction("next_configuration", new InputEventKey { PhysicalKeycode = Key.F7 });
         AddAction("menu",
             new InputEventKey { PhysicalKeycode = Key.Escape },
             new InputEventJoypadButton { ButtonIndex = JoyButton.Start });
         AddAction("map",
             new InputEventKey { PhysicalKeycode = Key.Tab },
             new InputEventJoypadButton { ButtonIndex = JoyButton.Back });
+        AddAction("map_markers", new InputEventKey { PhysicalKeycode = Key.F2 });
+        AddAction("reload", new InputEventKey { PhysicalKeycode = Key.F5 });
+        AddAction("previous_configuration", new InputEventKey { PhysicalKeycode = Key.Bracketleft });
+        AddAction("next_configuration", new InputEventKey { PhysicalKeycode = Key.Bracketright });
+        AddAction("previous_respawn", new InputEventKey { PhysicalKeycode = Key.Semicolon });
+        AddAction("next_respawn", new InputEventKey { PhysicalKeycode = Key.Apostrophe });
+        AddAction("next_world", new InputEventKey { PhysicalKeycode = Key.Period });
+        AddAction("previous_world", new InputEventKey { PhysicalKeycode = Key.Comma });
     }
 
     private static void AddAction(string name, params InputEvent[] events)

@@ -33,6 +33,7 @@ public sealed class Room : IOffsetTileGrid
     /// <item>'R' is where a robot starts</item>
     /// <item>'H' is where a horizontal platform starts</item>
     /// <item>'B' is where a block starts</item>
+    /// <item>'S' is a respawn, identified by the room's name and its place in the room</item>
     /// </list>
     /// An entity starts with the middle of its base at the middle of the bottom edge of its tile.
     /// </summary>
@@ -53,7 +54,7 @@ public sealed class Room : IOffsetTileGrid
                     'R' => new EntityConfig.Robot(start, new Vector2(0.5f, 1), new Color("#FEAE34")),
                     'H' => new EntityConfig.Platform(start, new Vector2(1.5f, 0.5f), new Color("#63C74D")),
                     'B' => new EntityConfig.Block(start, new Vector2(0.5f, 0.5f), new Color("#BE4A2F")),
-                    'S' => new EntityConfig.Respawn(start, new Vector2(0.5f, 1), new Color("#4399D7")),
+                    'S' => new EntityConfig.Respawn(start, new Vector2(0.5f, 1), new Color("#4399D7"), $"{name} {x},{row}"),
                     _ => null,
                 };
                 if (config is not null)
