@@ -29,6 +29,48 @@
 	"fieldInstances": [],
 	"layerInstances": [
 		{
+			"__identifier": "ControlEntities",
+			"__type": "Entities",
+			"__cWid": 20,
+			"__cHei": 15,
+			"__gridSize": 16,
+			"__opacity": 1,
+			"__pxTotalOffsetX": 0,
+			"__pxTotalOffsetY": 0,
+			"__tilesetDefUid": null,
+			"__tilesetRelPath": null,
+			"iid": "139de541-bde0-11f1-b436-e564803729d2",
+			"levelId": 215,
+			"layerDefUid": 221,
+			"pxOffsetX": 0,
+			"pxOffsetY": 0,
+			"visible": true,
+			"optionalRules": [],
+			"intGridCsv": [],
+			"autoLayerTiles": [],
+			"seed": 171470,
+			"overrideTilesetUid": null,
+			"gridTiles": [],
+			"entityInstances": [
+				{
+					"__identifier": "Respawn",
+					"__grid": [7,11],
+					"__pivot": [0,0],
+					"__tags": [],
+					"__tile": null,
+					"__smartColor": "#4399D7",
+					"iid": "3ac36910-bde0-11f1-b436-a1628e6b3793",
+					"width": 16,
+					"height": 32,
+					"defUid": 220,
+					"px": [112,176],
+					"fieldInstances": [],
+					"__worldX": 432,
+					"__worldY": 176
+				}
+			]
+		},
+		{
 			"__identifier": "Characters",
 			"__type": "Entities",
 			"__cWid": 20,

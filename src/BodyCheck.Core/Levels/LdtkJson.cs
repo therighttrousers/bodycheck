@@ -99,6 +99,13 @@ internal sealed record LdtkEntityInstance
 
     /// <summary>The entity's height, in pixels.</summary>
     public required int Height { get; init; }
+
+    /// <summary>The color of the entity's box in the editor.</summary>
+    [JsonPropertyName("__smartColor")]
+    public required string SmartColor { get; init; }
+
+    /// <summary>LDtk's id for the entity, which stays the same when it is moved, or when other levels change.</summary>
+    public required string Iid { get; init; }
 }
 
 [JsonConverter(typeof(StrictEnumConverter<LdtkLayerType>))]
@@ -116,6 +123,7 @@ internal enum LdtkLayerName
 {
     SolidGeometry,
     Characters,
+    ControlEntities,
 }
 
 /// <summary>The entities defined in this project.</summary>
@@ -126,6 +134,7 @@ internal enum LdtkEntityName
     RobotBasic,
     PlatformHorizontal,
     Block,
+    Respawn,
 }
 
 /// <summary>The code that reads the records, which System.Text.Json's source generator writes at compile time.</summary>

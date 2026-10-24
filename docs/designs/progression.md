@@ -6,6 +6,7 @@ Relevant decision records:
 - [016: Features](../decision-records/016-features.md)
 - [018: Game time and real time](../decision-records/018-game-and-real-time.md)
 - [023: The player's spawned block](../decision-records/023-spawned-block.md)
+- [024: Playtesting feedback](../decision-records/024-playtesting-feedback.md)
 
 Abilities and world changes, in the order the player meets them.
 
@@ -40,6 +41,7 @@ Run and jump. See [movement.md](movement.md).
 - The player moves at once to the other side of an object, and the object moves too, the other way.
 - The target is the entity in reach whose box is nearest a point 0.5 tiles from the player's center in the direction held, or nearest the center itself with none held, so that holding toward an entity favors it (`015 §5.22`). In reach is whatever a sphere around the player's center meets, whose radius is half the player's diagonal, 0.985 tiles, plus a reach of 0.165 tiles, 1.15 in all. Everything touching the player is in reach. It reaches 0.75 tiles beyond the player's sides and 0.25 above and below (`015 §5.16`). Every kind of entity can be phased through (`015 §1.2`, `§1.3`).
 - Phase is K or X on the keyboard, X on a gamepad (`015 §1.1`). Holding it with a target in reach, or coming within reach of one while holding it, fixes the target, holds the player and the target together, moving at the velocity of their center of mass, and pauses the game, slowing down to the pause over half a second, showing the target and, with a direction held, arrows for the velocity the player and the target would each leave with, for as long as it is held. Releasing it unpauses and phases in the direction held, or cancels with none (`015 §5.5`, `§5.6`, `§5.7`, `§5.15`).
+- While the grab holds them, gravity doesn't pull on the player or the target, so that juggling is more effective. They keep the velocity they had when the aim began, so a pair grabbed while falling drifts down at that speed. Gravity comes back on the release, whether it phases or cancels. Both changes take effect from the engine's step after the tick they are made on (`024 §1.1`, `§1.2`).
 - The last direction held still counts for 4 ticks of real time after it is let go of, counting the tick it is let go on, so that letting go of it with phase, or just before, still phases (`018 §3.1`).
 - A new aim can't begin until 0.125 seconds of game time after a phase, or 0.25 seconds after a cancel, so that mashing phase can't ride a platform (`015 §5.15`).
 - The phase's direction is one of eight, chosen by player input (`015 §2.1`). The player and the target get equal and opposite momentum along it, at the player's speed of 12.7 tiles per second, which either replaces how they were moving or adds to it (`015 §3.2`).
@@ -58,7 +60,8 @@ Run and jump. See [movement.md](movement.md).
 A prototype, which may take boost's place (`023`). Where it comes in the progression is undecided.
 
 - The player has one block, a see-through ghost of a block, which looks like a companion cube, with the player's mass. Spawn is Z or L on the keyboard, the right trigger on a gamepad, and needs no direction (`023 §1.1`, `§1.3`, `§2.4`).
-- Spawning puts the block under the player. It appears at the player's center and moves straight down through entities until it is under the player or meets a tile; then the player moves up through entities by as much as the block fell short, onto it. On the floor, that lifts the player by the block's height; in the open air, the player doesn't move. There is no check for room first, so under a low ceiling they may end up overlapping (`023 §2.1`, `§2.2`).
+- Spawning puts the block under the player. It goes at the player's height, as near its center as it fits beside the tiles, and as far straight down from there, through entities, as it can go until it is under the player or meets a tile; then the player moves up through entities by as much as the block fell short, onto it. On the floor, that lifts the player by the block's height; in the open air, the player doesn't move. A block that only just fits, as in a shaft one tile wide, counts as fitting (`023 §2.1`, `024 §2.2`, `§2.3`).
+- Where the block doesn't fit beside the tiles, or the player has no room to rise onto it, such as under a ceiling less than 2.8 tiles above the floor, the spawn is cancelled, with phase's cancel sound for now. Spawning can then be tried again after 0.25 seconds of game time (`024 §2.2`).
 - Spawning it again takes it from wherever it was. It is never removed for being far from the player (`023 §1.1`, `§1.2`).
 - It spawns at rest, or moving as the player does, chosen by the feature `PlayerSpawnMotion` (`023 §2.3`).
 - Spawning can't be repeated until 1.5 seconds of game time after the last spawn, which keeps jumping off the block from being flight. Nothing else about the block is limited (`023 §2.5`).
@@ -102,6 +105,7 @@ Where these appear in the progression is undecided.
 - A platform holds its height with thrust and patrols horizontally.
 - It sags under load in proportion to the weight it carries, and dips when landed on.
 - Its thrust is limited, so enough weight makes it sink.
+- While a phase's grab holds it, it has no weight, and doesn't thrust to hold its height (`024 §1.1`).
 - Puzzle material: lower a platform for a while by dropping a heavy object on it, or by adding a rider or two.
 
 ## Open questions
@@ -124,7 +128,6 @@ The spawned block:
 - Does it spawn at rest or moving as the player does? Both are built, chosen by `PlayerSpawnMotion`; to be chosen by playing (`023 §2.3`).
 - Tuning to be checked by playing: the cooldown of 1.5 seconds, and the block's mass of 1 (`023 §1.3`, `§2.5`).
 - How are puzzles isolated from it? Ideas: make it wider than a tile, so that it can't go into a one-tile shaft, and require room to spawn it; lasers that destroy it when it crosses them, which a clever player may get around (`023 §3.1`, `§3.2`).
-- Should spawning check for room first, and fail with a sound, such as phase's cancel, where the player and the block don't fit? Without it, under a low ceiling they may end up overlapping, for the engine to push apart. Put off as likely to take a while to get right (`023 §2.2`).
 - How does the block talk, and what does it say? It accepts whatever life throws at it, or whatever throws it at life. It raises a cue when it is spawned, for whatever reacts (`023 §1.5`).
 
 Lasers and water:

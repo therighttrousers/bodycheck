@@ -62,6 +62,7 @@ We primarily use the editor for
 
 ## Controls
 
+Game controls:
 - Move/look:
   - W/A/S/D (left hand)
   - Arrow keys (right hand)
@@ -73,11 +74,15 @@ We primarily use the editor for
   - Gamepad A/X/RT (these are Xbox names; uses buttons in the same positions on other controllers)
 - Map: Tab, or gamepad Back. Pauses the game and zooms out to show the whole world; press again to zoom back in.
 - Pause: Escape, or gamepad Start. There's no menu yet.
-- Previous or next world: ','/'.' or gamepad left/right shoulder button
-- F5: read the worlds and configurations again, and restart the world
-- F6/F7: previous or next configuration
+
+Debug controls:
+- F2: toggle display of original entity placement and control entities. Pass `--markers` after `--` to start with them on.
 - F3: debug overlay on or off, with measurements for tuning and level design. Pass `--overlay` after `--` to start with it on.
 - F4: collision shapes as wireframes on or off. Pass `--shapes` after `--` to start with them on.
+- F5: read the worlds and configurations again, and restart the world, at the last respawn the player came near.
+- '[' and ']': previous or next configuration.
+- ';' and "'": restart the world at the previous or next respawn. Each world remembers its own respawn while the game runs.
+- ',' and '.': previous or next world.
 
 Hold the jump button to jump higher.
 
@@ -90,8 +95,8 @@ Rendering switches:
 - 4: colour pass on or off
 - 5: dither on or off
 - 6: the palette, in place of the game, on or off
-- [ and ]: the dither's lightness spread, down and up
-- ; and ': the dither's chroma spread, down and up
+- 7 and 8: the dither's lightness spread, down and up
+- 9 and 0: the dither's chroma spread, down and up
 
 The window's title shows the rendering switches' state.
 
@@ -104,4 +109,4 @@ To make a new world for a puzzle, add a world to `main.ldtk` in LDtk. Save in LD
 
 ## Configurations
 
-A configuration is a set of gameplay values to try, such as a stronger jump. Each is a JSONC file (JSON with comments) in `game/configurations/` that names only the values it changes; see `strong-jump.jsonc`. The values and their defaults are the properties of `src/BodyCheck.Core/Features.cs`. The game starts with the defaults, unless a configuration is named after `--` with `--configuration=`, for example `play.cmd --configuration=strong-jump`. F6 and F7 switch between configurations, and the window's title shows which is playing. Edit a file in any text editor, then press F5, or switch to it, to play the change. A mistake in a file is shown at the bottom of the window, and the game goes on without it.
+A configuration is a set of gameplay values to try, such as a stronger jump. Each is a JSONC file (JSON with comments) in `game/configurations/` that names only the values it changes; see `strong-jump.jsonc`. The values and their defaults are the properties of `src/BodyCheck.Core/Features.cs`. The game starts with the defaults, unless a configuration is named after `--` with `--configuration=`, for example `play.cmd --configuration=strong-jump`. '[' and ']' switch between configurations, and the window's title shows which is playing. Edit a file in any text editor, then press F5, or switch to it, to play the change. A mistake in a file is shown at the bottom of the window, and the game goes on without it.

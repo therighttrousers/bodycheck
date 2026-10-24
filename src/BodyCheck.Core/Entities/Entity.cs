@@ -33,6 +33,9 @@ public enum EntityCue
 
     /// <summary>The player spawned this block under itself.</summary>
     Spawned,
+
+    /// <summary>The player pressed spawn where its block doesn't fit, or where there is no room to rise onto it.</summary>
+    SpawnCancelled,
 }
 
 /// <summary>
@@ -64,6 +67,24 @@ public partial class Entity : RigidBody3D
 {
     // How far every entity's collider extends along Z, which gameplay doesn't use.
     private const float Depth = 0.8f;
+
+    /// <summary>
+    /// How far, in tiles, a box may overlap a collider and still count as only touching it: what <see cref="RoomToMove"/>
+    /// ignores where a box starts, and so how far short of a fit its answers may come.
+    /// <para>
+    /// It must be above zero, since the engine's cast misses everything when the box starts touching something, and
+    /// above how far short the cast's answers come, about 0.002 (measured under Jolt). It isn't Jolt's collision margin
+    /// (the project setting <c>collision_margin_fraction</c>), which rounds a box's corners by a fraction of its
+    /// shortest side, 0.005 on a tile, without moving its faces, so it doesn't change where boxes touch. Changing one
+    /// doesn't call for changing the other.
+    /// </para>
+    /// </summary>
+    public const float ContactTolerance = 0.01f;
+
+    // How many contacts the engine reports for an entity. Past it, it drops contacts, which may be all the floor's
+    // (024 §3.1). Every collider an entity touches gives 4, at the corners of the face, so this allows for 16: a
+    // player against several tile boxes on each side, the floor and the ceiling, and entities, with room to spare.
+    private const int MaxContacts = 64;
 
     // How closely a contact normal must line up with an axis to count as a contact on that side.
     private const float SideThreshold = 0.7f;
@@ -99,6 +120,9 @@ public partial class Entity : RigidBody3D
     // The entities that touched this one from above during the engine's last step.
     private readonly List<Entity> _above = [];
 
+    // Whether the entity has warned that the engine reported as many contacts as it may, once, so as not to every tick.
+    private bool _warnedOfMaxContacts;
+
     /// <param name="visual">What to draw for the entity, centered on the middle of its box.</param>
     public Entity(BodyTuning tuning, Node3D? visual = null, bool axisLockAngularZ = true)
         : this(tuning, visual, tuning.EngineFriction, continuousCd: false, axisLockAngularZ)
@@ -125,7 +149,7 @@ public partial class Entity : RigidBody3D
         CollisionLayer = (uint)tuning.CollisionLayer;
         CollisionMask = (uint)PhysicsLayer.DefaultCollisionMask;
         ContactMonitor = true;
-        MaxContactsReported = 8;
+        MaxContactsReported = MaxContacts;
         ContinuousCd = continuousCd;
 
         var size = new Vector3(2 * tuning.HalfSize.X, 2 * tuning.HalfSize.Y, Depth);
@@ -185,6 +209,25 @@ public partial class Entity : RigidBody3D
     public float Weight => Mass * -GetGravity().Y;
 
     /// <summary>
+    /// <para>
+    /// At the end of this tick, sets the gravity scale and adds a compensating force. The compensating force
+    /// allows controllers, which run before the engine, to assume `GetGravity` accurately reflects the gravity the
+    /// engine will add.
+    /// </para>
+    /// <para>
+    /// Prefer to call this instead of calling SetGravityScale or setting GravityScale, for step-order-independence.
+    /// </para>
+    /// </summary>
+    public void SetGravityScaleDeferred(float scale, IEndOfTick endOfTick) =>
+        endOfTick.Defer(() =>
+        {
+            Vector3 before = GetGravity();
+            base.GravityScale = scale;
+            // Controllers this tick reckoned with the old gravity, so the step gets the difference back.
+            ApplyCentralForce(Mass * (before - GetGravity()));
+        });
+
+    /// <summary>
     /// The entity's weight and the loads of the entities that stand on it, and so on up the stack, as of the engine's
     /// last step: how hard it presses on what it stands on, at rest.
     /// </summary>
@@ -239,6 +282,19 @@ public partial class Entity : RigidBody3D
         ResetPhysicsInterpolation();
     }
 
+    /// <summary>
+    /// Moves the entity to <paramref name="destination"/> at once, through everything, for a place already found to be
+    /// clear of tiles, such as with <see cref="RoomToMove"/>. Otherwise like <see cref="MoveThroughEntities"/>: it keeps
+    /// its velocity, the engine pushes it apart from whatever it ends up overlapping, and a controller defers it to the
+    /// end of the tick.
+    /// </summary>
+    public void MoveTo(Vector3 destination)
+    {
+        ReleaseGrip();
+        GlobalPosition = destination;
+        ResetPhysicsInterpolation();
+    }
+
     /// <summary>The colliders, other than this entity, that overlap a shape centered at a place.</summary>
     public IEnumerable<GodotObject> Overlapping(Shape3D shape, Vector3 center)
     {
@@ -250,6 +306,30 @@ public partial class Entity : RigidBody3D
         };
         return GetWorld3D().DirectSpaceState.IntersectShape(query)
             .Select(result => result["collider"].AsGodotObject());
+    }
+
+    /// <summary>
+    /// How far a box as deep as an entity's, centered at a place, can move in a direction before it meets a collider in
+    /// the given layers, up to a distance, as of the engine's last step. It doesn't meet this entity. What it only
+    /// touches where it starts doesn't stop it, but what it starts overlapping by more than that may not either.
+    /// </summary>
+    /// <param name="direction">A unit vector.</param>
+    public float RoomToMove(Vector2 halfSize, Vector3 center, Vector3 direction, float distance, PhysicsLayer layers)
+    {
+        // The engine's cast misses everything when the box starts touching something, which a box beside a wall or on
+        // the floor does. So it casts a box smaller by a little on every side, which starts clear, that much further.
+        var shrunk = new Vector3(2 * (halfSize.X - ContactTolerance), 2 * (halfSize.Y - ContactTolerance), Depth);
+        var query = new PhysicsShapeQueryParameters3D
+        {
+            Shape = new BoxShape3D { Size = shrunk },
+            Transform = new Transform3D(Basis.Identity, center),
+            Motion = (distance + ContactTolerance) * direction,
+            CollisionMask = (uint)layers,
+            Exclude = [GetRid()],
+        };
+        // The fraction of the motion it can make without touching anything, then the fraction where it first would.
+        float safe = GetWorld3D().DirectSpaceState.CastMotion(query)[0];
+        return Math.Clamp(safe * (distance + ContactTolerance) - ContactTolerance, 0, distance);
     }
 
     /// <summary>Call once per physics tick, before the engine's step.</summary>
@@ -434,6 +514,11 @@ public partial class Entity : RigidBody3D
         Vector3 groundContact = Vector3.Zero;
         int groundContacts = 0;
         _above.Clear();
+        if (state.GetContactCount() >= MaxContacts && !_warnedOfMaxContacts)
+        {
+            _warnedOfMaxContacts = true;
+            GD.PushWarning($"{Name} has {MaxContacts} contacts, as many as the engine reports, so it may have lost some.");
+        }
         for (int i = 0; i < state.GetContactCount(); i++)
         {
             // The normal points away from the other collider, towards this body.

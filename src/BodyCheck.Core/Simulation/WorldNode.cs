@@ -30,12 +30,18 @@ public partial class WorldNode : Node3D
     private readonly List<Entity> _entities = [];
 
     /// <param name="assets">What to draw for each entity and for tiles.</param>
+    /// <param name="respawnId">
+    /// The respawn the player starts at, which is then the current one. The player starts where the world says if this is
+    /// null, or names none of the world's respawns.
+    /// </param>
     public WorldNode(
         World world,
         IAssetLibrary assets,
-        BodyTuning? playerBody = null)
+        BodyTuning? playerBody = null,
+        string? respawnId = null)
     {
         World = world;
+        CurrentRespawn = world.Respawns.FirstOrDefault(respawn => respawn.Id == respawnId);
         ProcessPhysicsPriority = PhysicsPriority;
 
         var body = new StaticBody3D
@@ -68,33 +74,39 @@ public partial class WorldNode : Node3D
             Visible = false,
         };
 
+        Node3D GetVisual(EntityConfig config) =>
+            assets.GetEntityVisual(config) ?? assets.GetDebugBoxVisual(config.MapHalfSize, config.MapColor);
+
         foreach (EntityConfig config in world.EntityConfigs)
         {
-            Entity entity = config.Kind switch
+            Entity? entity = config.Kind switch
             {
                 EntityKind.Player => Player = CreatePlayer(
                     (EntityConfig.Player)config,
-                    assets.GetEntityVisual(config.Kind, BodyTuning.Player.HalfSize),
+                    GetVisual(config),
                     playerBody ?? BodyTuning.Player,
                     PlayerController = new PlayerController(Input, PlayerBlock)),
 
-                EntityKind.Robot => CreateRobot(
-                    (EntityConfig.Robot)config,
-                    assets.GetEntityVisual(config.Kind, BodyTuning.Robot.HalfSize)),
+                EntityKind.Robot => CreateRobot((EntityConfig.Robot)config, GetVisual(config)),
+                EntityKind.Platform => CreatePlatform((EntityConfig.Platform)config, GetVisual(config)),
+                EntityKind.Block => CreateBlock((EntityConfig.Block)config, GetVisual(config)),
 
-                EntityKind.Platform => CreatePlatform(
-                    (EntityConfig.Platform)config,
-                    assets.GetEntityVisual(config.Kind, BodyTuning.Platform.HalfSize)),
-
-                EntityKind.Block => CreateBlock(
-                    (EntityConfig.Block)config,
-                    assets.GetEntityVisual(config.Kind, BodyTuning.Block.HalfSize)),
+                EntityKind.Respawn => null,
             };
 
-            entity.Position = new Vector3(config.Start.X, config.Start.Y + entity.HalfSize.Y, 0);
-            AddChild(entity);
-            _entities.Add(entity);
+            if (entity is not null)
+            {
+                Vector2 start = config.Kind == EntityKind.Player && CurrentRespawn is not null ? CurrentRespawn.Start : config.Start;
+                entity.Position = new Vector3(start.X, start.Y + entity.HalfSize.Y, 0);
+                AddChild(entity);
+                _entities.Add(entity);
+            }
+
+            var marker = assets.GetDebugBoxVisual(config.MapHalfSize, config.MapColor);
+            marker.Position = new Vector3(config.Start.X, config.Start.Y + config.MapHalfSize.Y, 0);
+            MapMarkers.AddChild(marker);
         }
+        AddChild(MapMarkers);
 
         // Last, since no configuration builds it.
         AddChild(PlayerBlock);
@@ -173,6 +185,12 @@ public partial class WorldNode : Node3D
 
     public World World { get; }
 
+    /// <summary>
+    /// A box where each entity starts, of the size and colour of its box in LDtk, for comparing the world with its map
+    /// and for seeing entities that have no body, such as respawns. Hidden until shown.
+    /// </summary>
+    public Node3D MapMarkers { get; } = new() { Name = "MapMarkers", Visible = false };
+
     public WalkerEntity Player { get; } = null!;
 
     /// <summary>The block the player spawns, the last of <see cref="Entities"/>.</summary>
@@ -189,6 +207,15 @@ public partial class WorldNode : Node3D
     /// <summary>The entities of one kind that the world's configurations build, in the order they are stepped.</summary>
     public IEnumerable<Entity> EntitiesOf(EntityKind kind) =>
         _entities.Where((entity, i) => i < World.EntityConfigs.Count && World.EntityConfigs[i].Kind == kind);
+
+    /// <summary>
+    /// The respawn the player came within reach of last, or started at: where the player would start from if the world
+    /// restarted. Null until the player has been near one.
+    /// </summary>
+    public EntityConfig.Respawn? CurrentRespawn { get; private set; }
+
+    /// <summary>Raised on the tick of play when the player comes within reach of a respawn that isn't the current one.</summary>
+    public event Action<EntityConfig.Respawn>? CurrentRespawnChanged;
 
     /// <summary>Supplies the player's input, once per tick. The player stands idle if this is null.</summary>
     public Func<PlayerInput>? PlayerInput { get; set; }
@@ -231,6 +258,35 @@ public partial class WorldNode : Node3D
             }
         }
         endOfTick.Run();
+        UpdateCurrentRespawn();
+    }
+
+    /// <summary>
+    /// Makes the respawn nearest the player, box to box, the current one, if it is within reach, as of the engine's last
+    /// step.
+    /// </summary>
+    private void UpdateCurrentRespawn()
+    {
+        var center = new Vector2(Player.Position.X, Player.Position.Y);
+        EntityConfig.Respawn? nearest = null;
+        float nearestGap = 0;
+        foreach (EntityConfig.Respawn respawn in World.Respawns)
+        {
+            // How far apart the boxes are along each axis, or 0 where they overlap along it.
+            Vector2 apart = (center - respawn.Start - new Vector2(0, respawn.MapHalfSize.Y)).Abs()
+                - Player.HalfSize - respawn.MapHalfSize;
+            float gap = new Vector2(MathF.Max(apart.X, 0), MathF.Max(apart.Y, 0)).Length();
+            if (gap <= Features.Current.PlayerRespawnReach && (nearest is null || gap < nearestGap))
+            {
+                nearest = respawn;
+                nearestGap = gap;
+            }
+        }
+        if (nearest is not null && nearest != CurrentRespawn)
+        {
+            CurrentRespawn = nearest;
+            CurrentRespawnChanged?.Invoke(nearest);
+        }
     }
 
     /// <summary>

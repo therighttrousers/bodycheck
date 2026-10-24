@@ -8,10 +8,4 @@ public static class Constants
     /// tiles. A tile is 1 unit in the game world.
     /// </summary>
     public const int TilePixels = 16;
-
-    /// <summary>A level's width, in tiles.</summary>
-    public const int LevelWidth = 20;
-
-    /// <summary>A level's height, in tiles.</summary>
-    public const int LevelHeight = 15;
 }

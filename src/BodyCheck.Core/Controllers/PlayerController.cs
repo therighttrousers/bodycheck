@@ -182,16 +182,16 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             Phase = new PhaseAction(
                 player: entity,
                 target: target,
-                grabOffset: target.Position - entity.Position,
                 gap: Features.Current.PlayerPhaseGap,
                 phaseThrow: Features.Current.PlayerPhaseThrow,
-                speed: Features.Current.PlayerPhaseSpeed);
+                speed: Features.Current.PlayerPhaseSpeed,
+                endOfTick: endOfTick);
 
             _phaseDirectionTimeLeft = 0;
             entity.RaiseCue(EntityCue.PhaseBegan);
         }
 
-        if (Phase is not PhaseAction phase)
+        if (Phase is null)
         {
             return false;
         }
@@ -201,7 +201,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         Vector3 held = DirectionHeld(input);
         if (held != Vector3.Zero)
         {
-            phase.Direction = held;
+            Phase.Direction = held;
             _phaseDirectionTimeLeft = Features.TicksToTime(Features.Current.PlayerPhaseReleaseTicks + 1); // +1 to include this tick
         }
         else
@@ -209,7 +209,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             _phaseDirectionTimeLeft = Math.Max(0, _phaseDirectionTimeLeft - realDt);
             if (_phaseDirectionTimeLeft == 0)
             {
-                phase.Direction = Vector3.Zero;
+                Phase.Direction = Vector3.Zero;
             }
         }
 
@@ -220,15 +220,15 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             // the velocities it replaces.
             if (gameDt > 0)
             {
-                phase.Grab(gameDt);
+                Phase.Grab(gameDt);
             }
             return true;
         }
 
-        bool phased = phase.Direction != Vector3.Zero;
+        bool phased = Phase.Direction != Vector3.Zero;
         if (phased)
         {
-            phase.Phase(endOfTick);
+            Phase.Phase(endOfTick);
             _phaseCooldownLeft = Features.Current.PlayerPhaseThrowCooldownTime;
             entity.RaiseCue(EntityCue.PhaseThrown);
         }
@@ -237,6 +237,8 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             _phaseCooldownLeft = Features.Current.PlayerPhaseCancelCooldownTime;
             entity.RaiseCue(EntityCue.PhaseCancelled);
         }
+
+        Phase.Stop(endOfTick);
         Phase = null;
 
         // A phase ends a jump's thrust, coyote time and buffered press, and so does cancelling one: the aim took them.
@@ -247,12 +249,12 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     }
 
     /// <summary>
-    /// Spawns the player's block under the player, on a press of spawn, after the cooldown. The block appears at the
-    /// player's center, and moves straight down through entities until it is under the player, or meets a tile. Then
-    /// the player moves up through entities by as much as the block fell short, onto it: on the ground, by the block's
-    /// height, and in the open air, not at all. Either may stop short at a tile, which leaves them overlapping, for the
-    /// engine to push apart. There is only one block, so spawning it takes it from wherever it was. The moves wait for
-    /// the end of the tick, like a phase's.
+    /// Spawns the player's block under the player, on a press of spawn, after the cooldown. The block goes at the
+    /// player's height, as near its center as it fits beside the tiles, and as far straight down from there, through
+    /// entities, as it can go until it is under the player, or meets a tile. Then the player moves up through entities by
+    /// as much as the block fell short, onto it: on the ground, by the block's height, and in the open air, not at all.
+    /// Where the block doesn't fit, or the player has no room to rise onto it, the spawn is cancelled. There is only one block, so spawning it
+    /// takes it from wherever it was. The moves wait for the end of the tick, like a phase's.
     /// </summary>
     private void ApplySpawn(WalkerEntity entity, PlayerInput input, IEndOfTick endOfTick)
     {
@@ -260,27 +262,74 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         {
             return;
         }
+
+        if (SpawnPlace(entity) is not (Vector3 place, float rise))
+        {
+            _spawnCooldownLeft = Features.Current.PlayerSpawnCancelCooldownTime;
+            entity.RaiseCue(EntityCue.SpawnCancelled);
+            return;
+        }
         _spawnCooldownLeft = Features.Current.PlayerSpawnCooldownTime;
 
         Vector3 velocity = Features.Current.PlayerSpawnMotion == SpawnMotion.WithPlayer ? entity.LinearVelocity : Vector3.Zero;
         Vector3 center = entity.Position;
-        Vector3 under = center - new Vector3(0, entity.HalfSize.Y + _block.HalfSize.Y, 0);
         endOfTick.Defer(() =>
         {
             // A new block, as far as anyone can tell: back in the world, level, and moving only as the spawn says.
             _block.ProcessMode = Node.ProcessModeEnum.Inherit;
             _block.Visible = true;
-            _block.GlobalTransform = new Transform3D(Basis.Identity, center);
+            _block.GlobalTransform = Transform3D.Identity;
             _block.LinearVelocity = velocity;
             _block.AngularVelocity = Vector3.Zero;
-            _block.MoveThroughEntities(under);
-            float shortfall = _block.Position.Y - under.Y;
-            if (shortfall > 0)
+            _block.MoveTo(place);
+            if (rise > 0)
             {
-                entity.MoveThroughEntities(center + new Vector3(0, shortfall, 0));
+                entity.MoveTo(center + new Vector3(0, rise, 0));
             }
             _block.RaiseCue(EntityCue.Spawned);
         });
+    }
+
+    /// <summary>
+    /// Where the block goes, and how far the player rises onto it, or null if it doesn't fit beside the tiles or the
+    /// player has no room to rise onto it. Found by casting boxes against tiles, as of the engine's last step, each
+    /// from where it is clear of them, so that no move starts inside a tile.
+    /// </summary>
+    private (Vector3 Place, float Rise)? SpawnPlace(WalkerEntity entity)
+    {
+        Vector2 playerHalf = entity.HalfSize;
+        Vector2 blockHalf = _block.HalfSize;
+        Vector3 center = entity.Position;
+
+        // A box of the player's width and the block's height, at the player's center, is inside the player, so clear of
+        // tiles. How far it can move to each side is the room the block has there. The block is wider than the player
+        // by `extra`, so it fits where the room on both sides adds up to that, and starts as near the player's center as
+        // it fits. The casts may come up short by the contact tolerance, so a block that only just fits, as in a shaft
+        // one tile wide, counts as fitting, and starts in the middle of the room.
+        float extra = 2 * (blockHalf.X - playerHalf.X);
+        var side = new Vector2(playerHalf.X, blockHalf.Y);
+        float left = entity.RoomToMove(side, center, Vector3.Left, extra, PhysicsLayer.Static);
+        float right = entity.RoomToMove(side, center, Vector3.Right, extra, PhysicsLayer.Static);
+        if (left + right < extra - Entity.ContactTolerance)
+        {
+            return null;
+        }
+        // Not Math.Clamp, which throws if rounding puts the bounds the wrong way round when the block only just fits.
+        float shift = left + right < extra
+            ? (right - left) / 2
+            : MathF.Min(MathF.Max(0, extra / 2 - left), right - extra / 2);
+        Vector3 start = center + new Vector3(shift, 0, 0);
+
+        // From there, the block falls until it is under the player, or meets a tile. The player rises by as much as it
+        // falls short, which needs that much room above the player.
+        float drop = playerHalf.Y + blockHalf.Y;
+        float fall = entity.RoomToMove(blockHalf, start, Vector3.Down, drop, PhysicsLayer.Static);
+        float rise = drop - fall;
+        if (rise > 0 && entity.RoomToMove(playerHalf, center, Vector3.Up, rise, PhysicsLayer.Static) < rise)
+        {
+            return null;
+        }
+        return (start - new Vector3(0, fall, 0), rise);
     }
 
     /// <summary>One of the eight directions, from the input, as a unit vector in the plane of play, or zero if none.</summary>
@@ -311,6 +360,9 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     /// <param name="jumps">Whether the entity jumps on this tick.</param>
     private void ApplyRun(WalkerEntity entity, float move, float gameDt, bool jumps)
     {
+        // Don't try to run if weightless. There's no use-case right now, just being defensive against divide by zero.
+        if (entity.Weight == 0) return;
+
         Features features = Features.Current;
 
         // Speed is relative to whatever the entity stands on, so running on a robot works like running on tiles.

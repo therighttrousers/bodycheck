@@ -25,12 +25,13 @@ public class AssetLibrary : IAssetLibrary
     private (Mesh Mesh, Transform3D Transform)? _tile;
     private readonly Dictionary<float, Mesh> _darkenedTiles = [];
 
-    public Node3D GetEntityVisual(EntityKind kind, Vector2 halfSize) => kind switch
+    public Node3D? GetEntityVisual(EntityConfig config) => config.Kind switch
     {
         EntityKind.Player => InstantiateModel("res://assets/bob_the_robot/scene.tscn"),
         EntityKind.Robot => InstantiateModel("res://assets/bob_the_robot/robot.tscn"),
-        EntityKind.Platform => BoxVisual(halfSize, PlatformColor),
+        EntityKind.Platform => GetDebugBoxVisual(new(1.4f, 0.4f), PlatformColor, 1.0f),
         EntityKind.Block => InstantiateModel(BlockPath),
+        EntityKind.Respawn => null,
     };
 
     public Node3D GetPlayerBlockVisual(Vector2 halfSize)
@@ -56,28 +57,21 @@ public class AssetLibrary : IAssetLibrary
         return (darkened, transform);
     }
 
-    private static MeshInstance3D BoxVisual(Vector2 halfSize, Color color, bool glows = false)
+    public MeshInstance3D GetDebugBoxVisual(Vector2 halfSize, Color color, float alpha = 0.5f)
     {
-        var mesh = new MeshInstance3D
+        return new MeshInstance3D
         {
             Mesh = new BoxMesh
             {
                 Size = new Vector3(2 * halfSize.X, 2 * halfSize.Y, 2 * halfSize.X),
                 Material = new StandardMaterial3D
                 {
-                    AlbedoColor = color,
-                    EmissionEnabled = glows,
-                    Emission = color,
-                    EmissionEnergyMultiplier = 1.5f,
+                    AlbedoColor = new Color(color.R, color.G, color.B, alpha),
+                    Transparency = alpha < 1 ? BaseMaterial3D.TransparencyEnum.Alpha : BaseMaterial3D.TransparencyEnum.Disabled,
                 },
             },
             Position = new Vector3(0, halfSize.Y, 0),
         };
-        if (glows)
-        {
-            mesh.AddChild(new OmniLight3D { LightColor = color, LightEnergy = 2, OmniRange = 6 });
-        }
-        return mesh;
     }
 
     private static Node3D InstantiateModel(string path)

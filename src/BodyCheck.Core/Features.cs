@@ -186,6 +186,12 @@ public sealed record Features
     public float PlayerPhaseReach { get; init; } = 0.165f;
 
     /// <summary>
+    /// How near the player's box must come to a respawn's, in tiles, for the respawn to become the one the player
+    /// starts from when the world restarts.
+    /// </summary>
+    public float PlayerRespawnReach { get; init; } = 2;
+
+    /// <summary>
     /// How far from the player's center, in the direction held, to measure from when choosing among the entities in
     /// reach: the target is the one whose box is nearest that point. Holding toward an entity favors it.
     /// </summary>
@@ -224,6 +230,9 @@ public sealed record Features
     /// spawning it under the player again and again can't be flight.
     /// </summary>
     public float PlayerSpawnCooldownTime { get; init; } = 1.5f;
+
+    /// <summary>The minimum delay after a spawn is cancelled for want of room, in game time.</summary>
+    public float PlayerSpawnCancelCooldownTime { get; init; } = 0.25f;
 
     /// <summary>How the player's block moves when it is spawned. To be chosen by playing.</summary>
     public SpawnMotion PlayerSpawnMotion { get; init; } = SpawnMotion.AtRest;

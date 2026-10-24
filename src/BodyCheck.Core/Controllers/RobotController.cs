@@ -42,6 +42,9 @@ public sealed class RobotController : ICharacterController<WalkerEntity>
 
     private void ApplyRun(WalkerEntity entity, float move, float gameDt)
     {
+        // Don't try to run if weightless (e.g. being grabbed).
+        if (entity.Weight == 0) return;
+
         Features features = Features.Current;
 
         // Speed is relative to whatever the entity stands on.
