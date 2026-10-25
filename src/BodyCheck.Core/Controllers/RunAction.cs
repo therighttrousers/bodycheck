@@ -48,7 +48,11 @@ internal static class RunAction
             // (027 §2)
             if (move != 0 || jumps)
             {
-                entity.ApplyTraction(MathF.Sign(move) * topSpeed, drive, slipAtEndOfTick: jumps || !reverse);
+                if (jumps || !reverse)
+                {
+                    entity.SlipAtEndOfTick();
+                }
+                entity.ApplyTraction(MathF.Sign(move) * topSpeed, drive);
             }
         }
         else if (drive > 0)

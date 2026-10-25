@@ -45,17 +45,17 @@ public enum EntityCue
 /// <para>
 /// An entity is a body and its looks. This class is a body with nothing to move itself by, such as a
 /// block: it is only pushed, carried and stood on. A subclass is a kind of body that has a controller, and
-/// may give it ways to use the entity's grip. The room calls <see cref="Step"/> on every entity once per
-/// physics tick.
+/// may give it ways to move the entity, such as a walker's traction. The room calls <see cref="Step"/> on
+/// every entity once per physics tick.
 /// </para>
 /// <para>
 /// Bounce and damping are off in the engine. Drag is the entity's own force.
 /// </para>
 /// <para>
-/// Friction is the engine's. At the end of each tick the entity sets its coefficient for this tick's step, from what it
-/// stands on: what a carrier holds takes the carrier's coefficient, and a walker has none off the ground, or while
-/// its controller lets it slip (027). A walker's traction is the motor of a joint between it and what it stands on,
-/// along X. What carries an entity may also steady it with a second joint's motor.
+/// Friction is the engine's. At the end of each tick the entity sets its coefficient for this tick's step, from
+/// what it stands on: what a carrier holds takes the carrier's coefficient, a walker has none off the ground, and
+/// an entity has none while its controller lets it slip (027). A walker's traction is the motor of a joint between
+/// it and what it stands on, along X. What carries an entity may also steady it with a joint's motor.
 /// </para>
 /// <para>
 /// An entity is also the base node for advance expressions in the entity's visual; i.e. in the AnimationTree
@@ -93,29 +93,17 @@ public partial class Entity : RigidBody3D
     // How many times a move through entities may slide along a tile before it stops short.
     private const int MaxSlides = 4;
 
-    // How far the grip's joint may be above or below where it should act before it is anchored again there.
-    private const float GripDrift = 0.05f;
-
     // How fast what steadies an entity turns it towards level, in radians per second for each radian it is off.
     private const float LevelingRate = 10;
 
-    // The joint whose motor grips what the entity stands on: friction, and a walker's traction. It constrains
-    // nothing: every limit is off, so its only effect is the X motor. The entity is the joint's second body, and
-    // the first is what it is anchored to, or nothing for tiles. It has no bodies until it is first anchored.
-    private readonly Generic6DofJoint3D _grip;
-    private bool _gripAnchored;
-    private Entity? _gripAnchor;
-    // Where the joint is, in the entity's frame: where the engine's joint acts on it.
-    private Vector3 _gripPoint;
-
     // Where the entity stood on what it stood on during the engine's last step: the middle of the contacts with it.
-    private Vector3 _groundContact;
+    private Vector3? _groundContact;
 
-    // Whether the controller lets the entity slip this tick. See Slip.
+    // Whether the controller lets the entity slip this tick. See SlipAtEndOfTick.
     private bool _slipAtEndOfTick;
 
-    // The joint whose motor steadies the entity at its center, for what carries it like a hand (019 §5.1). Like the
-    // grip's, it constrains nothing, and has no bodies until it is first anchored.
+    // The joint whose motor steadies the entity at its center, for what carries it like a hand (019 §5.1). It is one of
+    // Joints' free joints.
     private readonly Generic6DofJoint3D _steadying;
     private bool _steadyingAnchored;
     private Entity? _steadyingAnchor;
@@ -154,9 +142,7 @@ public partial class Entity : RigidBody3D
         var size = new Vector3(2 * tuning.HalfSize.X, 2 * tuning.HalfSize.Y, Depth);
         AddChild(new CollisionShape3D { Shape = new BoxShape3D { Size = size } });
 
-        _grip = FreeJoint();
-        AddChild(_grip);
-        _steadying = FreeJoint();
+        _steadying = Joints.FreeJoint();
         AddChild(_steadying);
 
         if (visual is not null)
@@ -192,6 +178,12 @@ public partial class Entity : RigidBody3D
 
     /// <summary>The entity this one stood on during the engine's last step, or null if it stood on tiles or on nothing.</summary>
     public Entity? Support { get; private set; }
+
+    /// <summary>
+    /// Where the entity touched what it stood on during the engine's last step: the middle of its contacts with the
+    /// support, or else the tiles. Null if it touched nothing below it.
+    /// </summary>
+    protected Vector3? GroundContact => _groundContact;
 
     public bool OnGround => Contacts.HasFlag(Contacts.Floor);
 
@@ -244,8 +236,8 @@ public partial class Entity : RigidBody3D
     /// </summary>
     public void MoveThroughEntities(Vector3 destination)
     {
-        // What it stands on is from before the move, so it has no grip in this tick's step.
-        ReleaseGrip();
+        // Any motor settings are from before the move, so disable them in this tick's step.
+        DisableMotors();
 
         // Only for this move, which is over within the call: the engine's step sees the mask as it was.
         uint mask = CollisionMask;
@@ -269,7 +261,7 @@ public partial class Entity : RigidBody3D
     /// </summary>
     public void MoveTo(Vector3 destination)
     {
-        ReleaseGrip();
+        DisableMotors();
         GlobalPosition = destination;
         ResetPhysicsInterpolation();
     }
@@ -320,7 +312,7 @@ public partial class Entity : RigidBody3D
     {
         // A motor's push lasts one tick, like a force: it is off unless steadying or the controller uses it again. So
         // does a controller's slip.
-        ReleaseGrip();
+        DisableMotors();
         _slipAtEndOfTick = false;
 
         Steady();
@@ -353,10 +345,11 @@ public partial class Entity : RigidBody3D
     }
 
     /// <summary>
-    /// Lets the entity slip on what it stands on in this tick's step: at the end of the tick its friction goes off, so
-    /// that only what the controller does with the grip moves it against its support. It lasts one tick.
+    /// Lets the entity slip on what it stands on in this tick's step: at the end of the tick its friction goes off. For
+    /// a tick in which friction shouldn't resist the entity sliding against its support, such as when the entity moves
+    /// itself along it, or leaves it with its speed. It lasts one tick.
     /// </summary>
-    protected void SlipAtEndOfTick() => _slipAtEndOfTick = true;
+    public void SlipAtEndOfTick() => _slipAtEndOfTick = true;
 
     // Sets the engine's friction at the end of the tick, for this tick's step, from what the entity stood on during the
     // last step (027 §1). The engine uses the smaller of two bodies' coefficients, except that a rough one wins, and of
@@ -422,7 +415,7 @@ public partial class Entity : RigidBody3D
             {
                 _steadyingAnchored = true;
                 _steadyingAnchor = Support;
-                Anchor(_steadying, Position);
+                Joints.Anchor(_steadying, nodeA: Support, nodeB: this, Position);
             }
             _steadying.SetParamX(Generic6DofJoint3D.Param.LinearMotorTargetVelocity, 0);
             _steadying.SetParamX(Generic6DofJoint3D.Param.LinearMotorForceLimit, steadying);
@@ -442,72 +435,10 @@ public partial class Entity : RigidBody3D
         }
     }
 
-    private void ReleaseGrip()
+    protected virtual void DisableMotors()
     {
-        _grip.SetFlagX(Generic6DofJoint3D.Flag.EnableLinearMotor, false);
-        _grip.SetFlagZ(Generic6DofJoint3D.Flag.EnableMotor, false);
         _steadying.SetFlagX(Generic6DofJoint3D.Flag.EnableLinearMotor, false);
         _steadying.SetFlagZ(Generic6DofJoint3D.Flag.EnableMotor, false);
-    }
-
-    // A joint that constrains nothing: every limit is off, so its only effects are the motors that are switched on.
-    private static Generic6DofJoint3D FreeJoint()
-    {
-        var joint = new Generic6DofJoint3D { ExcludeNodesFromCollision = false };
-        foreach (var flag in (ReadOnlySpan<Generic6DofJoint3D.Flag>)
-            [Generic6DofJoint3D.Flag.EnableLinearLimit, Generic6DofJoint3D.Flag.EnableAngularLimit])
-        {
-            joint.SetFlagX(flag, false);
-            joint.SetFlagY(flag, false);
-            joint.SetFlagZ(flag, false);
-        }
-        return joint;
-    }
-
-    /// <summary>
-    /// Drives the entity's grip on what it stands on, at once, for this tick's step: pushes against the ground to bring
-    /// the entity's horizontal speed, relative to the ground, towards <paramref name="targetSpeed"/>, with at most
-    /// <paramref name="maxForce"/>, and pushes the ground the other way equally. It replaces what the grip did this
-    /// tick, and has no effect in the air. With no force, the grip is off.
-    /// </summary>
-    protected void DriveGrip(float targetSpeed, float maxForce)
-    {
-        if (!OnGround || maxForce <= 0)
-        {
-            _grip.SetFlagX(Generic6DofJoint3D.Flag.EnableLinearMotor, false);
-            return;
-        }
-
-        // The grip acts where the entity touches what it stands on (019 §2.2).
-        Vector3 point = _groundContact;
-        // The motor pushes only along X, so only the joint's height changes what it does.
-        if (!_gripAnchored || Support != _gripAnchor || MathF.Abs(ToGlobal(_gripPoint).Y - point.Y) > GripDrift)
-        {
-            AnchorGrip(point);
-        }
-        _grip.SetParamX(Generic6DofJoint3D.Param.LinearMotorTargetVelocity, targetSpeed);
-        _grip.SetParamX(Generic6DofJoint3D.Param.LinearMotorForceLimit, maxForce);
-        _grip.SetFlagX(Generic6DofJoint3D.Flag.EnableLinearMotor, true);
-    }
-
-    // Godot builds the engine's joint when a node path changes to a new value, and fixes the joint's place in each body
-    // then, from where the joint node is (019 §2.2). So the joint is put where it acts, level, first. Node B is cleared
-    // before node A is set, so that setting it again builds the joint even when node A is unchanged.
-    private void AnchorGrip(Vector3 point)
-    {
-        _gripAnchored = true;
-        _gripAnchor = Support;
-        _gripPoint = ToLocal(point);
-        Anchor(_grip, point);
-    }
-
-    // Anchors one of the entity's joints to what it stands on, at a point.
-    private void Anchor(Generic6DofJoint3D joint, Vector3 point)
-    {
-        joint.GlobalTransform = new Transform3D(Basis.Identity, point);
-        joint.NodeB = new NodePath();
-        joint.NodeA = Support is null ? new NodePath() : joint.GetPathTo(Support);
-        joint.NodeB = new NodePath("..");
     }
 
     /// <summary>Runs the controller of this kind of body, if it has one.</summary>
@@ -576,7 +507,7 @@ public partial class Entity : RigidBody3D
         Contacts = contacts;
         Support = support;
         Landed = !wasOnGround && OnGround;
-        _groundContact = groundContacts > 0 ? groundContact / groundContacts : Position;
+        _groundContact = groundContacts > 0 ? groundContact / groundContacts : null;
         // Tiles don't move.
         GroundVelocity = support is not null && groundContacts > 0 ? groundVelocity / groundContacts : Vector3.Zero;
     }
