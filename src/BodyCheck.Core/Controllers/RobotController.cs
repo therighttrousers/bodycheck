@@ -1,7 +1,5 @@
 using BodyCheck.Core.Entities;
 
-using Godot;
-
 namespace BodyCheck.Core.Controllers;
 
 public sealed class RobotController : ICharacterController<WalkerEntity>
@@ -42,38 +40,17 @@ public sealed class RobotController : ICharacterController<WalkerEntity>
 
     private void ApplyRun(WalkerEntity entity, float move, float gameDt)
     {
-        // Don't try to run if weightless (e.g. being grabbed).
-        if (entity.Weight == 0) return;
-
-        Features features = Features.Current;
-
-        // Speed is relative to whatever the entity stands on.
-        float speed = entity.GroundSpeed;
-        bool reverse = speed != 0 && move * speed <= 0;
-
-        float drive = 0;
-        if (move != 0)
+        if (!entity.OnGround)
         {
-            // The drive fades out as the entity nears top speed in the input direction.
-            // It never slows an entity that is already faster than that.
-            float headroom = Math.Clamp(1 - speed * MathF.Sign(move) / features.RobotTopSpeed, 0, 1);
-            float force = reverse ? features.RobotReverseDriveForce : features.RobotForwardDriveForce;
-            drive = MathF.Abs(move) * force * headroom;
+            return;
         }
-
-        // The drive is traction: the engine applies it, and pushes back on the support. It adds to the entity's
-        // friction, which holds an idle entity still on its support. Driving the way the entity is already going
-        // gets no friction, so the drive takes it off again. Reversing, it keeps only as much as stops the entity and
-        // what it carries within the tick, so that friction doesn't push on past zero towards the drive's target
-        // (019 §4.8). Neither does anything in the air.
-        if (move != 0)
-        {
-            // A loaded walker drives harder, so that carrying slows it less (019 §6.4).
-            drive *= entity.ComputeLoad() / entity.Weight;
-            float stackMass = entity.ComputeLoad() * entity.Mass / entity.Weight;
-            float stopping = stackMass * MathF.Abs(speed) / gameDt;
-            float extra = reverse ? drive + MathF.Min(entity.Friction, stopping) - entity.Friction : drive - entity.Friction;
-            entity.ApplyTraction(MathF.Sign(move) * features.RobotTopSpeed, extra);
-        }
+        RunAction.Run(
+            entity: entity,
+            gameDt: gameDt,
+            move: move,
+            jumps: false,
+            topSpeed: Features.Current.RobotTopSpeed,
+            driveForce: Features.Current.RobotDriveForce,
+            brakeForce: Features.Current.RobotBrakeForce);
     }
 }

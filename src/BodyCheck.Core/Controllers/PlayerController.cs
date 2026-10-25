@@ -360,53 +360,15 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     /// <param name="jumps">Whether the entity jumps on this tick.</param>
     private void ApplyRun(WalkerEntity entity, float move, float gameDt, bool jumps)
     {
-        // Don't try to run if weightless. There's no use-case right now, just being defensive against divide by zero.
-        if (entity.Weight == 0) return;
-
         Features features = Features.Current;
-
-        // Speed is relative to whatever the entity stands on, so running on a robot works like running on tiles.
-        float speed = entity.GroundSpeed;
-        bool reverse = speed != 0 && move * speed <= 0;
-
-        float drive = 0;
-        if (move != 0)
-        {
-            // The drive fades out as the entity nears top speed in the input direction.
-            // It never slows an entity that is already faster than that.
-            float headroom = Math.Clamp(1 - speed * MathF.Sign(move) / features.PlayerTopSpeed, 0, 1);
-            float driveForce =
-                _groundTimeLeft > 0
-                    ? (reverse ? features.PlayerGroundReverseDriveForce : features.PlayerGroundForwardDriveForce)
-                    : (reverse ? features.PlayerAirReverseDriveForce : features.PlayerAirForwardDriveForce);
-            drive = MathF.Abs(move) * driveForce * headroom;
-        }
-
-        if (entity.OnGround)
-        {
-            // On the ground the drive is traction: the engine applies it, and pushes back on the support. It
-            // adds to the entity's friction, which holds an idle entity still on its support. Driving the way
-            // the entity is already going gets no friction, so the drive takes it off again. Reversing, it
-            // keeps only as much as stops the entity and what it carries within the tick, so that friction
-            // doesn't push on past zero towards the drive's target (019 §4.8). Jumping, it takes all of the friction
-            // off, whichever way it drives, so that a jump leaves with the entity's speed: a landing's catch would
-            // otherwise stop a jump buffered on an idle landing dead (019 §6.5).
-            if (move != 0 || jumps)
-            {
-                // A loaded walker drives harder, so that carrying slows it less (019 §6.4).
-                drive *= entity.ComputeLoad() / entity.Weight;
-                float stackMass = entity.ComputeLoad() * entity.Mass / entity.Weight;
-                float stopping = stackMass * MathF.Abs(speed) / gameDt;
-                float extra = reverse && !jumps
-                    ? drive + MathF.Min(entity.Friction, stopping) - entity.Friction
-                    : drive - entity.Friction;
-                entity.ApplyTraction(MathF.Sign(move) * features.PlayerTopSpeed, extra);
-            }
-        }
-        else
-        {
-            entity.ApplyCentralForce(new Vector3(MathF.Sign(move) * drive, 0, 0));
-        }
+        RunAction.Run(
+            entity: entity,
+            gameDt: gameDt,
+            move: move,
+            jumps: jumps,
+            topSpeed: features.PlayerTopSpeed,
+            driveForce: _groundTimeLeft > 0 ? features.PlayerGroundDriveForce : features.PlayerAirDriveForce,
+            brakeForce: _groundTimeLeft > 0 ? features.PlayerGroundBrakeForce : features.PlayerAirBrakeForce);
     }
 
     /// <param name="jumps">Whether the entity jumps on this tick.</param>

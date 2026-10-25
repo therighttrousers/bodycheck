@@ -95,7 +95,7 @@ public class PlayerControllerTest
     public async Task Running_settles_at_the_speed_where_drive_balances_drag()
     {
         await Start();
-        float drive = Features.Current.PlayerGroundForwardDriveForce;
+        float drive = Features.Current.PlayerGroundDriveForce;
         float balance = drive / (drive / Features.Current.PlayerTopSpeed + Player.Tuning.Drag);
 
         await Tick(Right, 120);
