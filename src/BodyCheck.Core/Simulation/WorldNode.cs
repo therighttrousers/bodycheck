@@ -302,7 +302,7 @@ public partial class WorldNode : Node3D
     {
         private readonly List<Action> _actions = [];
 
-        public void Defer(Action action) => _actions.Add(action);
+        public void Enqueue(Action action) => _actions.Add(action);
 
         /// <summary>
         /// Runs the deferred actions, in the order they were deferred, and forgets them. For whatever steps the

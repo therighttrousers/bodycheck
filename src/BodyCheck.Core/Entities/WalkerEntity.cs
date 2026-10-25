@@ -3,11 +3,12 @@ using Godot;
 namespace BodyCheck.Core.Entities;
 
 /// <summary>
-/// A body that moves itself by its grip on what it stands on: the player, a robot. Its controller adds
-/// traction to the entity's friction.
+/// A body that moves itself by its grip on what it stands on: the player, a robot. Its controller drives it
+/// with traction.
 /// <para>
-/// A walker has no engine friction. With it, a walker would grip walls too, and lose its speed on landing.
-/// Its friction with what it stands on is the entity's own, with a coefficient from its tuning.
+/// A walker's engine friction is only with what it stands on, with its tuning's ground coefficient: off the
+/// ground it has none, so that it slides along walls. While it drives, its friction is off and traction alone
+/// moves it (027).
 /// </para>
 /// </summary>
 public partial class WalkerEntity : Entity
@@ -28,7 +29,7 @@ public partial class WalkerEntity : Entity
     /// <param name="visual">What to draw for the entity, centered on the middle of its box.</param>
     public WalkerEntity(BodyTuning tuning, Node3D? visual = null)
         // Continuous detection keeps a walker's contacts exact, which its movement depends on.
-        : base(tuning, visual, engineFriction: 0, continuousCd: true, axisLockAngularZ: true)
+        : base(tuning, visual, continuousCd: true, axisLockAngularZ: true)
     {
     }
 
@@ -36,16 +37,26 @@ public partial class WalkerEntity : Entity
     public ICharacterController<WalkerEntity>? Controller { get; set; }
 
     /// <summary>
-    /// Adds traction to the walker's friction, for the next step: pushes against the ground to bring the walker's
-    /// horizontal speed, relative to the ground, towards <paramref name="targetSpeed"/>, with at most
-    /// <see cref="Entity.Friction"/> plus <paramref name="extraForce"/>, and pushes the ground the other way equally.
-    /// The extra force may be negative, to take off friction that the controller doesn't want: at most nothing is
-    /// left. It has no effect in the air.
+    /// Applies traction, at once, for this tick's step: pushes against the ground to bring the walker's horizontal
+    /// speed, relative to the ground, towards <paramref name="targetSpeed"/>, with at most <paramref name="force"/>, and
+    /// pushes the ground the other way equally. It has no effect in the air.
     /// <para>
-    /// The engine applies it, as the target speed and force limit of the motor that friction uses (019 §1.6).
+    /// The engine applies it, as the target speed and force limit of a motor (019 §1.6).
     /// </para>
     /// </summary>
-    public void ApplyTraction(float targetSpeed, float extraForce) => DriveGrip(targetSpeed, Friction + extraForce);
+    /// <param name="slipAtEndOfTick">
+    /// Whether the walker's friction goes off at the end of the tick, for this tick's step, so that the traction alone
+    /// moves it against its support. Otherwise friction acts too, against any slip, as when it holds an idle walker
+    /// still.
+    /// </param>
+    public void ApplyTraction(float targetSpeed, float force, bool slipAtEndOfTick)
+    {
+        if (slipAtEndOfTick)
+        {
+            SlipAtEndOfTick();
+        }
+        DriveGrip(targetSpeed, force);
+    }
 
     public override bool RequestsPause => Controller?.RequestsPause ?? false;
 

@@ -9,5 +9,5 @@ namespace BodyCheck.Core.Entities;
 public interface IEndOfTick
 {
     /// <summary>Runs <paramref name="action"/> once every controller has run this tick.</summary>
-    void Defer(Action action);
+    void Enqueue(Action action);
 }

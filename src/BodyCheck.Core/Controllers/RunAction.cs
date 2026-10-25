@@ -40,22 +40,15 @@ internal static class RunAction
 
         if (entity.OnGround)
         {
-            // On the ground the drive is traction: the engine applies it, and pushes back on the support. It
-            // adds to the entity's friction, which holds an idle entity still on its support. Driving the way
-            // the entity is already going gets no friction, so the drive takes it off again. Reversing, it
-            // keeps only as much as stops the entity and what it carries within the tick, so that friction
-            // doesn't push on past zero towards the drive's target (019 §4.8). Jumping, it takes all of the friction
-            // off, whichever way it drives, so that a jump leaves with the entity's speed: a landing's catch would
-            // otherwise stop a jump buffered on an idle landing dead (019 §6.5).
+            // On the ground the drive is traction: the engine applies it, and pushes back on the support. The
+            // entity's friction holds it still on its support while idle. Driving the way the entity is already
+            // going, it slips, so that friction doesn't hold it back. Reversing, friction stays on and helps to stop
+            // it, and stops at no slip, so it doesn't push on past zero towards the drive's target (019 §4.8).
+            // Jumping, it slips, whichever way it drives, so that a jump leaves with the entity's speed (019 §6.5).
+            // (027 §2)
             if (move != 0 || jumps)
             {
-                float load = entity.ComputeLoad();
-                float stackMass = load * entity.Mass / entity.Weight;
-                float stopping = stackMass * MathF.Abs(speed) / gameDt;
-                float extra = reverse && !jumps
-                    ? drive + MathF.Min(entity.Friction, stopping) - entity.Friction
-                    : drive - entity.Friction;
-                entity.ApplyTraction(MathF.Sign(move) * topSpeed, extra);
+                entity.ApplyTraction(MathF.Sign(move) * topSpeed, drive, slipAtEndOfTick: jumps || !reverse);
             }
         }
         else if (drive > 0)

@@ -18,11 +18,10 @@ public sealed record BodyTuning
     public required PhysicsLayer CollisionLayer { get; init; }
 
     /// <summary>
-    /// The engine's coefficient of friction for this body, which lets it rest on things and be carried.
-    /// A <see cref="WalkerEntity"/> has none, whatever this says: it grips through traction.
+    /// The engine's coefficient of friction for this body, against everything it touches, unless
+    /// <see cref="GroundFriction"/> or a carrier's <see cref="CarryFriction"/> stands in for it.
     /// <para>
-    /// Where two bodies touch, the engine uses the smaller of their coefficients, so a walker slides
-    /// freely against everything.
+    /// Where two bodies touch, the engine uses the smaller of their coefficients, unless one is rough.
     /// </para>
     /// </summary>
     public float EngineFriction { get; init; }
@@ -31,14 +30,16 @@ public sealed record BodyTuning
     // in effect when it is used (016 §3.1).
 
     /// <summary>
-    /// The coefficient of friction with which this body grips what it stands on, where the engine's friction falls
-    /// short of it, as on a walker (019 §1.5). Null for <see cref="EngineFriction"/>.
+    /// The engine's coefficient of friction for this body with what it stands on, in place of
+    /// <see cref="EngineFriction"/>: off the ground it has none, so that it slides along walls, as a walker does (027).
+    /// Null for <see cref="EngineFriction"/> everywhere.
     /// </summary>
     public Func<Features, float>? GroundFriction { get; init; }
 
     /// <summary>
-    /// The coefficient of friction with which this body grips what stands on it, which wins over that body's own: a
-    /// walker grabs what it carries (019 §1.4). Null leaves what stands on it to its own.
+    /// The coefficient of friction with which this body grips what stands on it, which wins over that body's own and
+    /// this one's: a walker grabs what it carries (019 §1.4). What stands on it takes it, rough, as its own (027).
+    /// Null leaves what stands on it to its own.
     /// </summary>
     public Func<Features, float>? CarryFriction { get; init; }
 
@@ -56,8 +57,8 @@ public sealed record BodyTuning
     public Func<Features, float>? CarryTorque { get; init; }
 
     /// <summary>
-    /// Whether an entity this body rests on may carry it, with the values above. If not, only the engine's friction
-    /// holds it to an entity, which on a walker is none, so it slides off a walker's head.
+    /// Whether an entity this body rests on may carry it, with the values above. If not, only its own engine friction
+    /// holds it to an entity, which on a walker is none while the walker drives, so it slides off a walker's head.
     /// </summary>
     public bool CanBeCarried { get; init; } = true;
 
@@ -66,6 +67,7 @@ public sealed record BodyTuning
         HalfSize = new(0.4f, 0.9f),
         Mass = 1,
         CollisionLayer = PhysicsLayer.Character,
+        CanBeCarried = false,
         GroundFriction = features => features.PlayerGroundFriction,
         CarryFriction = features => features.PlayerCarryFriction,
         CarrySteadying = features => features.PlayerCarrySteadying,

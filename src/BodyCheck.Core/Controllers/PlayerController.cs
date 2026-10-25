@@ -273,7 +273,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
 
         Vector3 velocity = Features.Current.PlayerSpawnMotion == SpawnMotion.WithPlayer ? entity.LinearVelocity : Vector3.Zero;
         Vector3 center = entity.Position;
-        endOfTick.Defer(() =>
+        endOfTick.Enqueue(() =>
         {
             // A new block, as far as anyone can tell: back in the world, level, and moving only as the spawn says.
             _block.ProcessMode = Node.ProcessModeEnum.Inherit;

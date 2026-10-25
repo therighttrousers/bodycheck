@@ -40,8 +40,8 @@ public sealed class PhaseAction
 
         _playerGravityScale = Player.GravityScale;
         _targetGravityScale = Target.GravityScale;
-        Player.SetGravityScaleDeferred(0, endOfTick);
-        Target.SetGravityScaleDeferred(0, endOfTick);
+        Player.SetGravityScaleAfterTick(0, endOfTick);
+        Target.SetGravityScaleAfterTick(0, endOfTick);
     }
 
     /// <summary>The walker phasing: the player.</summary>
@@ -114,7 +114,7 @@ public sealed class PhaseAction
         float separation = Separation();
         Vector3 playerDestination = center + Target.Mass / totalMass * separation * Direction;
         Vector3 targetDestination = center - Player.Mass / totalMass * separation * Direction;
-        endOfTick.Defer(() =>
+        endOfTick.Enqueue(() =>
         {
             Player.MoveThroughEntities(playerDestination);
             Target.MoveThroughEntities(targetDestination);
@@ -148,7 +148,7 @@ public sealed class PhaseAction
     /// </summary>
     public void Stop(IEndOfTick endOfTick)
     {
-        Player.SetGravityScaleDeferred(_playerGravityScale, endOfTick);
-        Target.SetGravityScaleDeferred(_targetGravityScale, endOfTick);
+        Player.SetGravityScaleAfterTick(_playerGravityScale, endOfTick);
+        Target.SetGravityScaleAfterTick(_targetGravityScale, endOfTick);
     }
 }

@@ -52,9 +52,10 @@ public enum EntityCue
 /// Bounce and damping are off in the engine. Drag is the entity's own force.
 /// </para>
 /// <para>
-/// Every entity grips what it stands on with the motor of a joint between the two, along X. On its own, the
-/// motor is friction, where the engine's friction falls short: on a walker, whose engine friction is 0. A
-/// walker's controller adds traction to it.
+/// Friction is the engine's. At the end of each tick the entity sets its coefficient for this tick's step, from what it
+/// stands on: what a carrier holds takes the carrier's coefficient, and a walker has none off the ground, or while
+/// its controller lets it slip (027). A walker's traction is the motor of a joint between it and what it stands on,
+/// along X. What carries an entity may also steady it with a second joint's motor.
 /// </para>
 /// <para>
 /// An entity is also the base node for advance expressions in the entity's visual; i.e. in the AnimationTree
@@ -107,9 +108,11 @@ public partial class Entity : RigidBody3D
     // Where the joint is, in the entity's frame: where the engine's joint acts on it.
     private Vector3 _gripPoint;
 
-    // What the entity stood on during the engine's last step: the collider, and the middle of the contacts with it.
-    private Rid _groundCollider;
+    // Where the entity stood on what it stood on during the engine's last step: the middle of the contacts with it.
     private Vector3 _groundContact;
+
+    // Whether the controller lets the entity slip this tick. See Slip.
+    private bool _slipAtEndOfTick;
 
     // The joint whose motor steadies the entity at its center, for what carries it like a hand (019 §5.1). Like the
     // grip's, it constrains nothing, and has no bodies until it is first anchored.
@@ -117,21 +120,17 @@ public partial class Entity : RigidBody3D
     private bool _steadyingAnchored;
     private Entity? _steadyingAnchor;
 
-    // The entities that touched this one from above during the engine's last step.
-    private readonly List<Entity> _above = [];
-
     // Whether the entity has warned that the engine reported as many contacts as it may, once, so as not to every tick.
     private bool _warnedOfMaxContacts;
 
     /// <param name="visual">What to draw for the entity, centered on the middle of its box.</param>
     public Entity(BodyTuning tuning, Node3D? visual = null, bool axisLockAngularZ = true)
-        : this(tuning, visual, tuning.EngineFriction, continuousCd: false, axisLockAngularZ)
+        : this(tuning, visual, continuousCd: false, axisLockAngularZ)
     {
     }
 
-    /// <param name="engineFriction">The engine's coefficient of friction for this kind of body.</param>
     /// <param name="continuousCd">Whether the engine uses continuous collision detection for it.</param>
-    protected Entity(BodyTuning tuning, Node3D? visual, float engineFriction, bool continuousCd, bool axisLockAngularZ)
+    protected Entity(BodyTuning tuning, Node3D? visual, bool continuousCd, bool axisLockAngularZ)
     {
         Tuning = tuning;
         Mass = tuning.Mass;
@@ -141,8 +140,8 @@ public partial class Entity : RigidBody3D
         AxisLockAngularY = true;
         AxisLockAngularZ = axisLockAngularZ;
 
-        // Never rough: where two bodies touch, the smaller friction has to win, so that a walker's zero does.
-        PhysicsMaterialOverride = new PhysicsMaterial { Friction = engineFriction, Bounce = 0, Rough = false };
+        // Its own, since SetFrictionAtEndOfTick changes it every tick. Until the first, the tuning's.
+        PhysicsMaterialOverride = new PhysicsMaterial { Friction = tuning.EngineFriction, Bounce = 0, Rough = false };
         LinearDampMode = DampMode.Replace;
         LinearDamp = 0;
         CanSleep = false;
@@ -210,16 +209,19 @@ public partial class Entity : RigidBody3D
 
     /// <summary>
     /// <para>
-    /// At the end of this tick, sets the gravity scale and adds a compensating force. The compensating force
-    /// allows controllers, which run before the engine, to assume `GetGravity` accurately reflects the gravity the
-    /// engine will add.
+    /// Sets this entity's GravityScale after all entity steps, and after the physics engine step - conceptually.
     /// </para>
     /// <para>
     /// Prefer to call this instead of calling SetGravityScale or setting GravityScale, for step-order-independence.
     /// </para>
+    /// <para>
+    /// This actually sets GravityScale after all entity steps, but *before* the physics engine step. To appear to
+    /// set GravityScale after the physics engine step, it adds a compensating force, which is opposite the gravity
+    /// change.
+    /// </para>
     /// </summary>
-    public void SetGravityScaleDeferred(float scale, IEndOfTick endOfTick) =>
-        endOfTick.Defer(() =>
+    public void SetGravityScaleAfterTick(float scale, IEndOfTick endOfTick) =>
+        endOfTick.Enqueue(() =>
         {
             Vector3 before = GetGravity();
             base.GravityScale = scale;
@@ -227,31 +229,8 @@ public partial class Entity : RigidBody3D
             ApplyCentralForce(Mass * (before - GetGravity()));
         });
 
-    /// <summary>
-    /// The entity's weight and the loads of the entities that stand on it, and so on up the stack, as of the engine's
-    /// last step: how hard it presses on what it stands on, at rest.
-    /// </summary>
-    public float ComputeLoad()
-    {
-        float load = Weight;
-        foreach (Entity other in _above)
-        {
-            if (other.Support == this)
-            {
-                load += other.ComputeLoad();
-            }
-        }
-        return load;
-    }
-
-    /// <summary>
-    /// The most force that the entity's friction with what it stands on uses this tick, along X. Zero in the air, and
-    /// where the engine's own friction is enough. Traction adds to it.
-    /// </summary>
-    public float Friction { get; private set; }
-
     // The tuning's values for gripping and carrying, from the features in effect now. See BodyTuning.
-    private float GroundFriction => Tuning.GroundFriction?.Invoke(Features.Current) ?? Tuning.EngineFriction;
+    private float? GroundFriction => Tuning.GroundFriction?.Invoke(Features.Current);
     private float? CarryFriction => Tuning.CarryFriction?.Invoke(Features.Current);
     private float? CarrySteadying => Tuning.CarrySteadying?.Invoke(Features.Current);
     private float? CarryTorque => Tuning.CarryTorque?.Invoke(Features.Current);
@@ -265,7 +244,7 @@ public partial class Entity : RigidBody3D
     /// </summary>
     public void MoveThroughEntities(Vector3 destination)
     {
-        // What it stands on is from before the move, so it has no grip until the engine's next step.
+        // What it stands on is from before the move, so it has no grip in this tick's step.
         ReleaseGrip();
 
         // Only for this move, which is over within the call: the engine's step sees the mask as it was.
@@ -339,10 +318,12 @@ public partial class Entity : RigidBody3D
     /// <param name="controlled">Whether the controller runs. Without it, the entity only coasts, under drag, gravity and friction.</param>
     public void Step(float gameDt, float realDt, IEndOfTick endOfTick, bool controlled = true)
     {
-        // A motor's push lasts one tick, like a force: it is off unless friction or the controller uses it again.
+        // A motor's push lasts one tick, like a force: it is off unless steadying or the controller uses it again. So
+        // does a controller's slip.
         ReleaseGrip();
+        _slipAtEndOfTick = false;
 
-        ApplyFriction(gameDt);
+        Steady();
 
         if (controlled)
         {
@@ -350,6 +331,9 @@ public partial class Entity : RigidBody3D
         }
 
         ApplyCentralForce(-Tuning.Drag * LinearVelocity);
+
+        // Change the material's friction settings after all controllers run for order-independence (in case a controller inspects materials).
+        SetFrictionAtEndOfTick(endOfTick);
     }
 
     /// <summary>
@@ -368,38 +352,66 @@ public partial class Entity : RigidBody3D
     {
     }
 
-    // Grips what the entity stands on, for the next step, as far as the engine's friction falls short (019 §1.5): the
-    // coefficient times the load. The coefficient is what the entity stands on carries with, if it has one, or else the
-    // entity's own. The engine's bodies aren't rough, so it uses the smaller of their two coefficients.
-    private void ApplyFriction(float gameDt)
+    /// <summary>
+    /// Lets the entity slip on what it stands on in this tick's step: at the end of the tick its friction goes off, so
+    /// that only what the controller does with the grip moves it against its support. It lasts one tick.
+    /// </summary>
+    protected void SlipAtEndOfTick() => _slipAtEndOfTick = true;
+
+    // Sets the engine's friction at the end of the tick, for this tick's step, from what the entity stood on during the
+    // last step (027 §1). The engine uses the smaller of two bodies' coefficients, except that a rough one wins, and of
+    // two rough ones the larger (Godot passes a rough coefficient to Jolt as negative, and Jolt takes the absolute value
+    // of the smaller). So what a carrier holds is rough, with the carrier's coefficient, which wins over the carrier's
+    // own: a walker's is zero while it slips. The engine multiplies it by the normal force, so the grip grows with what is stacked above, and
+    // comes with a landing's impact. Something with a ground coefficient is rough too, so that it wins over the tiles'
+    // and a block's, but it grips only what it stands on: off the ground it has no friction, so that it slides along
+    // walls.
+    private void SetFrictionAtEndOfTick(IEndOfTick endOfTick)
     {
-        // Something that can't be carried is left to the engine's friction on an entity.
-        if (!OnGround || (Support is not null && !Tuning.CanBeCarried))
+        endOfTick.Enqueue(() =>
+        {
+            float friction = Tuning.EngineFriction;
+            bool rough = false;
+            if (_slipAtEndOfTick || (GroundFriction is not null && !OnGround))
+            {
+                friction = 0;
+            }
+            else if (OnGround && Tuning.CanBeCarried && Support?.CarryFriction is float carryFriction)
+            {
+                friction = carryFriction;
+                rough = true;
+            }
+            else if (GroundFriction is float groundFriction)
+            {
+                friction = groundFriction;
+                rough = true;
+            }
+
+            // Godot reloads the body's material on every change, even to the same value.
+            PhysicsMaterial material = PhysicsMaterialOverride;
+            if (material.Friction != friction)
+            {
+                material.Friction = friction;
+            }
+            if (material.Rough != rough)
+            {
+                material.Rough = rough;
+            }
+        });
+    }
+
+    // What carries the entity may steady it, like a hand held up behind its head: the second joint's motor, at the
+    // entity's center, holds the center's speed to the carrier's, so that friction at the base needn't, and doesn't tip
+    // it (019 §5.1). The engine solves it with everything else, in the same step. At the center, it would also keep the
+    // entity from tipping off an edge, so the hand lets go once the center is past the carrier's side.
+    private void Steady()
+    {
+        // Something that can't be carried isn't steadied either.
+        if (!OnGround || !Tuning.CanBeCarried)
         {
             return;
         }
 
-        float engineFriction = Mathf.Min(
-            PhysicsMaterialOverride.Friction,
-            PhysicsServer3D.BodyGetParam(_groundCollider, PhysicsServer3D.BodyParameter.Friction).AsSingle());
-        float shortfall = (Support?.CarryFriction ?? GroundFriction) - engineFriction;
-        if (shortfall <= 0)
-        {
-            return;
-        }
-
-        Friction = shortfall * ComputeLoad();
-        if (Landed)
-        {
-            // Whatever lands stops slipping at once (019 §2.1): on top, as much force as stops the slip within the tick.
-            Friction += Mass * MathF.Abs(LinearVelocity.X - GroundVelocity.X) / gameDt;
-        }
-        DriveGrip(0, Friction);
-
-        // What carries the entity may steady it, like a hand held up behind its head: the second joint's motor, at the
-        // entity's center, holds the center's speed to the carrier's, so that friction at the base needn't, and doesn't
-        // tip it (019 §5.1). The engine solves it with everything else, in the same step. At the center, it would also
-        // keep the entity from tipping off an edge, so the hand lets go once the center is past the carrier's side.
         bool steadied = false;
         if (Support?.CarrySteadying is float steadying && MathF.Abs(Position.X - Support.Position.X) <= Support.HalfSize.X)
         {
@@ -434,7 +446,6 @@ public partial class Entity : RigidBody3D
         _grip.SetFlagZ(Generic6DofJoint3D.Flag.EnableMotor, false);
         _steadying.SetFlagX(Generic6DofJoint3D.Flag.EnableLinearMotor, false);
         _steadying.SetFlagZ(Generic6DofJoint3D.Flag.EnableMotor, false);
-        Friction = 0;
     }
 
     // A joint that constrains nothing: every limit is off, so its only effects are the motors that are switched on.
@@ -452,8 +463,8 @@ public partial class Entity : RigidBody3D
     }
 
     /// <summary>
-    /// Drives the entity's grip on what it stands on, for the next step: pushes against the ground to bring the
-    /// entity's horizontal speed, relative to the ground, towards <paramref name="targetSpeed"/>, with at most
+    /// Drives the entity's grip on what it stands on, at once, for this tick's step: pushes against the ground to bring
+    /// the entity's horizontal speed, relative to the ground, towards <paramref name="targetSpeed"/>, with at most
     /// <paramref name="maxForce"/>, and pushes the ground the other way equally. It replaces what the grip did this
     /// tick, and has no effect in the air. With no force, the grip is off.
     /// </summary>
@@ -465,10 +476,8 @@ public partial class Entity : RigidBody3D
             return;
         }
 
-        // The grip acts where the entity touches what it stands on (019 §2.2), except in a landing's catch on a body
-        // that rotates (019 §4.3). A real impact's friction comes with its normal force, which spreads across the face
-        // and keeps the friction from tipping the body; the catch has no impact with it, so it acts at the center.
-        Vector3 point = Landed && !AxisLockAngularZ ? Position : _groundContact;
+        // The grip acts where the entity touches what it stands on (019 §2.2).
+        Vector3 point = _groundContact;
         // The motor pushes only along X, so only the joint's height changes what it does.
         if (!_gripAnchored || Support != _gripAnchor || MathF.Abs(ToGlobal(_gripPoint).Y - point.Y) > GripDrift)
         {
@@ -514,7 +523,6 @@ public partial class Entity : RigidBody3D
         Vector3 groundVelocity = Vector3.Zero;
         Vector3 groundContact = Vector3.Zero;
         int groundContacts = 0;
-        _above.Clear();
         if (state.GetContactCount() >= MaxContacts && !_warnedOfMaxContacts)
         {
             _warnedOfMaxContacts = true;
@@ -532,10 +540,6 @@ public partial class Entity : RigidBody3D
             else if (normal.Y < -SideThreshold)
             {
                 contacts |= Contacts.Ceiling;
-                if (state.GetContactColliderObject(i) is Entity above && !_above.Contains(above))
-                {
-                    _above.Add(above);
-                }
             }
             else if (normal.X > SideThreshold)
             {
@@ -570,7 +574,6 @@ public partial class Entity : RigidBody3D
         Contacts = contacts;
         Support = support;
         Landed = !wasOnGround && OnGround;
-        _groundCollider = groundCollider;
         _groundContact = groundContacts > 0 ? groundContact / groundContacts : Position;
         // Tiles don't move.
         GroundVelocity = support is not null && groundContacts > 0 ? groundVelocity / groundContacts : Vector3.Zero;
