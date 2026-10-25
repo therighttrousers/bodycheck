@@ -401,8 +401,9 @@ public partial class Entity : RigidBody3D
     // entity from tipping off an edge, so the hand lets go once the center is past the carrier's side.
     private void Steady()
     {
-        // Something that can't be carried isn't steadied either.
-        if (!OnGround || !Tuning.CanBeCarried)
+        // Something that can't be carried isn't steadied either. Nor is anything while its carrier is in the air, so
+        // that jumping or falling can drop what it carries (027 §5).
+        if (!OnGround || !Tuning.CanBeCarried || Support is { OnGround: false })
         {
             return;
         }

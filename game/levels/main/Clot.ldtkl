@@ -8,7 +8,7 @@
 		"appVersion": "1.5.3",
 		"url": "https://ldtk.io"
 	},
-	"identifier": "Level_2",
+	"identifier": "Clot",
 	"iid": "9971ed40-bde0-11f1-a778-ebfea3fcd78b",
 	"uid": 216,
 	"worldX": 64,
@@ -18,7 +18,7 @@
 	"pxHei": 192,
 	"__bgColor": "#696A79",
 	"bgColor": null,
-	"useAutoIdentifier": true,
+	"useAutoIdentifier": false,
 	"bgRelPath": null,
 	"bgPos": null,
 	"bgPivotX": 0.5,

@@ -145,14 +145,15 @@ public sealed record Features
     /// The most torque with which the player holds the rotation of what it carries to its own. Robots don't hold what
     /// they carry. A block of 1 tile tips off a body that decelerates at more than gravity unless something holds it.
     /// </summary>
-    public float PlayerCarryTorque { get; init; } = 25;
+    public float PlayerCarryTorque { get; init; } = 100;
 
     /// <summary>
     /// The most force with which the player steadies what it carries: it holds the carried body's speed at its center
     /// to its own, like a hand held up behind its head, so that the body neither slides nor tips. Robots
-    /// don't steady what they carry. Steadying a block of mass 2 through a reversal takes about 315.
+    /// don't steady what they carry. This should be smaller than <see cref="PlayerGroundDriveForce"/> so a 2-tile-high
+    /// tunnel can knock the block off the player's head (and not stop it from going through).
     /// </summary>
-    public float PlayerCarrySteadying { get; init; } = 35;
+    public float PlayerCarrySteadying { get; init; } = 0;
 
     /// <summary>Upward speed given by the jump impulse.</summary>
     public float PlayerJumpSpeed { get; init; } = 12.7f;
