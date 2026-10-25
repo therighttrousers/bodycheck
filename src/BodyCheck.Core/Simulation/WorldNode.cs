@@ -29,6 +29,9 @@ public partial class WorldNode : Node3D
 
     private readonly List<Entity> _entities = [];
 
+    // The world's colliders: one static body for every tile.
+    private readonly StaticBody3D _tiles;
+
     private readonly Defer _defer = new();
 
     /// <param name="assets">What to draw for each entity and for tiles.</param>
@@ -46,7 +49,7 @@ public partial class WorldNode : Node3D
         CurrentRespawn = world.Respawns.FirstOrDefault(respawn => respawn.Id == respawnId);
         ProcessPhysicsPriority = PhysicsPriority;
 
-        var body = new StaticBody3D
+        _tiles = new StaticBody3D
         {
             PhysicsMaterialOverride = new PhysicsMaterial { Friction = Features.Current.TileDefaultFriction, Bounce = 0 },
             CollisionLayer = (uint)PhysicsLayer.Static,
@@ -55,9 +58,9 @@ public partial class WorldNode : Node3D
         {
             var size = new Vector3(box.Size.X, box.Size.Y, 1);
             var position = new Vector3(box.Position.X + box.Size.X / 2f, box.Position.Y + box.Size.Y / 2f, 0);
-            body.AddChild(new CollisionShape3D { Shape = new BoxShape3D { Size = size }, Position = position });
+            _tiles.AddChild(new CollisionShape3D { Shape = new BoxShape3D { Size = size }, Position = position });
         }
-        AddChild(body);
+        AddChild(_tiles);
 
         foreach (var room in world.Rooms)
         {
@@ -242,6 +245,7 @@ public partial class WorldNode : Node3D
     {
         // Run the last tick's post-physics-step deferred actions.
         _defer.DrainAfterPhysicsStepActions();
+        UpdateFromFeatures();
 
         if (!ControllersEnabled)
         {
@@ -271,6 +275,7 @@ public partial class WorldNode : Node3D
     {
         // Run the last tick's post-physics-step deferred actions.
         _defer.DrainAfterPhysicsStepActions();
+        UpdateFromFeatures();
 
         // Start with a clean slate, in case some post-entity-steps deferred actions sneaked in somehow.
         _defer.Clear();
@@ -294,6 +299,23 @@ public partial class WorldNode : Node3D
         _defer.DrainAfterEntityStepsActions();
 
         UpdateCurrentRespawn();
+    }
+
+    // Puts the features that the engine holds in it, from the features in effect now, before any entity steps, so that
+    // a change takes effect at the next tick and every controller sees it (029 §2).
+    private void UpdateFromFeatures()
+    {
+        // Godot reloads the body's material on every change, even to the same value.
+        PhysicsMaterial tiles = _tiles.PhysicsMaterialOverride;
+        if (tiles.Friction != Features.Current.TileDefaultFriction)
+        {
+            tiles.Friction = Features.Current.TileDefaultFriction;
+        }
+
+        foreach (Entity entity in _entities)
+        {
+            entity.UpdateMass();
+        }
     }
 
     /// <summary>

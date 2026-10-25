@@ -24,9 +24,9 @@ public sealed class RoomRun
     private PlayerInput _input = Idle;
 
     /// <param name="respawnId">The respawn the player starts at, as <see cref="WorldNode"/> takes it.</param>
-    public RoomRun(Room room, BodyTuning? playerBody = null, bool controllersEnabled = true, string? respawnId = null)
+    public RoomRun(Room room, bool controllersEnabled = true, string? respawnId = null)
     {
-        Node = new WorldNode(new World(room), new AssetLibrary(), playerBody: playerBody, respawnId: respawnId)
+        Node = new WorldNode(new World(room), new AssetLibrary(), respawnId: respawnId)
         {
             PlayerInput = () => _input,
             ControllersEnabled = controllersEnabled,
