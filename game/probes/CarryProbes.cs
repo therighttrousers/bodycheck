@@ -308,7 +308,7 @@ public sealed class WobbleProbe : IProbe
         GD.Print($"  tick {t,3}: player vx {_player.LinearVelocity.X,7:F3}; block dx {_block.Position.X - _player.Position.X,6:F3} "
             + $"vx {_block.LinearVelocity.X,7:F3} vy {_block.LinearVelocity.Y,7:F3} rot {_block.Rotation.Z,6:F3} "
             + $"spin {_block.AngularVelocity.Z,7:F3} on {support,-6} contacts {floorContacts} "
-            + $"landed {(_block.Landed ? 1 : 0)} friction {_block.Friction,7:F1}");
+            + $"landed {(_block.Landed ? 1 : 0)} friction {_block.PhysicsMaterialOverride.Friction,4:F1}");
     }
 }
 
@@ -413,7 +413,7 @@ public sealed class CarryChecksProbe : IProbe
             case 4:
                 if (t == SpareTicks)
                 {
-                    GD.Print($"  block on the spare walker: on {(_stacked.Support == _spare ? "it" : "something else")}, friction {_stacked.Friction:F1}; freeing the walker");
+                    GD.Print($"  block on the spare walker: on {(_stacked.Support == _spare ? "it" : "something else")}, friction {_stacked.PhysicsMaterialOverride.Friction:F1}; freeing the walker");
                     _spare!.QueueFree();
                     Next();
                 }
@@ -421,7 +421,7 @@ public sealed class CarryChecksProbe : IProbe
             case 5:
                 if (t < 4 || t % 10 == 0)
                 {
-                    GD.Print($"    tick {t,2}: block y {_stacked.Position.Y:F3} vy {_stacked.LinearVelocity.Y:F3} on {(_stacked.OnGround ? _stacked.Support is null ? "tiles" : "entity" : "air")}, friction {_stacked.Friction:F1}");
+                    GD.Print($"    tick {t,2}: block y {_stacked.Position.Y:F3} vy {_stacked.LinearVelocity.Y:F3} on {(_stacked.OnGround ? _stacked.Support is null ? "tiles" : "entity" : "air")}, friction {_stacked.PhysicsMaterialOverride.Friction:F1}");
                 }
                 if (t == FreedTicks)
                 {

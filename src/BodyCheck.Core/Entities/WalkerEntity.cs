@@ -3,11 +3,12 @@ using Godot;
 namespace BodyCheck.Core.Entities;
 
 /// <summary>
-/// A body that moves itself by its grip on what it stands on: the player, a robot. Its controller adds
-/// traction to the entity's friction.
+/// A body that moves itself by its grip on what it stands on: the player, a robot. Its controller drives it
+/// with traction.
 /// <para>
-/// A walker has no engine friction. With it, a walker would grip walls too, and lose its speed on landing.
-/// Its friction with what it stands on is the entity's own, with a coefficient from its tuning.
+/// A walker's engine friction is only with what it stands on, with its tuning's ground coefficient: off the
+/// ground it has none, so that it slides along walls. While it drives, its friction is off and traction alone
+/// moves it (027).
 /// </para>
 /// </summary>
 public partial class WalkerEntity : Entity
@@ -25,36 +26,73 @@ public partial class WalkerEntity : Entity
     public float Facing { get; set; }
     #endregion
 
+    // How far the grip's joint may be above or below where it should act before it is anchored again there.
+    private const float GripDrift = 0.05f;
+
+    // The joint whose motor grips what the walker stands on: the walker's traction. It is one of Joints' free joints,
+    // so its only effect is the X motor. The walker is the joint's second body, and the first is what it is anchored
+    // to, or nothing for tiles.
+    private readonly Generic6DofJoint3D _grip;
+    private bool _gripAnchored;
+    private Entity? _gripAnchor;
+    // Where the joint is, in the walker's frame: where the engine's joint acts on it.
+    private Vector3 _gripPoint;
+
     /// <param name="visual">What to draw for the entity, centered on the middle of its box.</param>
     public WalkerEntity(BodyTuning tuning, Node3D? visual = null)
-        // Continuous detection keeps a walker's contacts exact, which its movement depends on.
-        : base(tuning, visual, engineFriction: 0, continuousCd: true, axisLockAngularZ: true)
+        : base(tuning, visual, axisLockAngularZ: true)
     {
+        _grip = Joints.FreeJoint();
+        AddChild(_grip);
     }
 
     /// <summary>What decides the walker's actions each tick. Without one it is only pushed around.</summary>
     public ICharacterController<WalkerEntity>? Controller { get; set; }
 
     /// <summary>
-    /// Adds traction to the walker's friction, for the next step: pushes against the ground to bring the walker's
-    /// horizontal speed, relative to the ground, towards <paramref name="targetSpeed"/>, with at most
-    /// <see cref="Entity.Friction"/> plus <paramref name="extraForce"/>, and pushes the ground the other way equally.
-    /// The extra force may be negative, to take off friction that the controller doesn't want: at most nothing is
-    /// left. It has no effect in the air.
+    /// Applies traction, at once, for this tick's step: pushes against the ground to bring the walker's horizontal
+    /// speed, relative to the ground, towards <paramref name="targetSpeed"/>, with at most
+    /// <paramref name="maxForce"/>, and pushes the ground the other way equally. It has no effect in the air.
     /// <para>
-    /// The engine applies it, as the target speed and force limit of the motor that friction uses (019 §1.6).
+    /// The engine applies it, as the target speed and force limit of a motor (019 §1.6).
     /// </para>
     /// </summary>
-    public void ApplyTraction(float targetSpeed, float extraForce) => DriveGrip(targetSpeed, Friction + extraForce);
+    public void ApplyTraction(float targetSpeed, float maxForce)
+    {
+        if (!OnGround || GroundContact is not Vector3 groundContact || maxForce <= 0)
+        {
+            _grip.SetFlagX(Generic6DofJoint3D.Flag.EnableLinearMotor, false);
+            return;
+        }
+
+        // The grip acts where the walker touches what it stands on (019 §2.2). The motor pushes only along X, so only
+        // the joint's height changes what it does.
+        if (!_gripAnchored || Support != _gripAnchor || MathF.Abs(ToGlobal(_gripPoint).Y - groundContact.Y) > GripDrift)
+        {
+            _gripAnchored = true;
+            _gripAnchor = Support;
+            _gripPoint = ToLocal(groundContact);
+            Joints.Anchor(_grip, nodeA: Support, nodeB: this, groundContact);
+        }
+        _grip.SetParamX(Generic6DofJoint3D.Param.LinearMotorTargetVelocity, targetSpeed);
+        _grip.SetParamX(Generic6DofJoint3D.Param.LinearMotorForceLimit, maxForce);
+        _grip.SetFlagX(Generic6DofJoint3D.Flag.EnableLinearMotor, true);
+    }
+
+    protected override void DisableMotors()
+    {
+        base.DisableMotors();
+        _grip.SetFlagX(Generic6DofJoint3D.Flag.EnableLinearMotor, false);
+    }
 
     public override bool RequestsPause => Controller?.RequestsPause ?? false;
 
-    protected override void ControlPaused(float realDt, IEndOfTick endOfTick) =>
-        Controller?.ApplyPaused(this, realDt, endOfTick);
+    protected override void ControlPaused(float realDt, IDefer defer) =>
+        Controller?.ApplyPaused(this, realDt, defer);
 
-    protected override void Control(float gameDt, float realDt, IEndOfTick endOfTick)
+    protected override void Control(float gameDt, float realDt, IDefer defer)
     {
-        Controller?.Apply(this, gameDt, realDt, endOfTick);
+        Controller?.Apply(this, gameDt, realDt, defer);
         UpdateAnimation(gameDt);
     }
 

@@ -120,14 +120,14 @@ public sealed record Features
     /// <summary>Speed at which the player's run drive force falls to zero.</summary>
     public float PlayerTopSpeed { get; init; } = 12;
 
-    /// <summary>Force applied when on the ground and moving in the direction of input.</summary>
-    public float PlayerGroundForwardDriveForce { get; init; } = 67.5f;
-    /// <summary>Force applied when on the ground and moving against the direction of input.</summary>
-    public float PlayerGroundReverseDriveForce { get; init; } = 135;
-    /// <summary>Force applied when in the air and moving in the direction of input.</summary>
-    public float PlayerAirForwardDriveForce { get; init; } = 22.5f;
-    /// <summary>Force applied when in the air and moving against the direction of input.</summary>
-    public float PlayerAirReverseDriveForce { get; init; } = 45;
+    /// <summary>Force applied when on the ground and input direction is the same as the direction of motion.</summary>
+    public float PlayerGroundDriveForce { get; init; } = 67.5f;
+    /// <summary>Force applied when on the ground and input direction is against the direction of motion.</summary>
+    public float PlayerGroundBrakeForce { get; init; } = 135;
+    /// <summary>Force applied when in the air and input direction is the same as the direction of motion.</summary>
+    public float PlayerAirDriveForce { get; init; } = 22.5f;
+    /// <summary>Force applied when in the air and input direction is against the direction of motion.</summary>
+    public float PlayerAirBrakeForce { get; init; } = 45;
 
     /// <summary>
     /// The player's coefficient of friction with the ground, whether tiles or another body. Applied when not driving in
@@ -145,14 +145,15 @@ public sealed record Features
     /// The most torque with which the player holds the rotation of what it carries to its own. Robots don't hold what
     /// they carry. A block of 1 tile tips off a body that decelerates at more than gravity unless something holds it.
     /// </summary>
-    public float PlayerCarryTorque { get; init; } = 25;
+    public float PlayerCarryTorque { get; init; } = 100;
 
     /// <summary>
     /// The most force with which the player steadies what it carries: it holds the carried body's speed at its center
     /// to its own, like a hand held up behind its head, so that the body neither slides nor tips. Robots
-    /// don't steady what they carry. Steadying a block of mass 2 through a reversal takes about 315.
+    /// don't steady what they carry. This should be smaller than <see cref="PlayerGroundDriveForce"/> so a 2-tile-high
+    /// tunnel can knock the block off the player's head (and not stop it from going through).
     /// </summary>
-    public float PlayerCarrySteadying { get; init; } = 35;
+    public float PlayerCarrySteadying { get; init; } = 0;
 
     /// <summary>Upward speed given by the jump impulse.</summary>
     public float PlayerJumpSpeed { get; init; } = 12.7f;
@@ -242,10 +243,10 @@ public sealed record Features
     /// <summary>Speed at which a robot's run drive force falls to zero.</summary>
     public float RobotTopSpeed { get; init; } = 3;
 
-    /// <summary>Force applied to a robot when on the ground and moving in the direction it patrols.</summary>
-    public float RobotForwardDriveForce { get; init; } = 11.25f;
-    /// <summary>Force applied to a robot when on the ground and moving against the direction it patrols.</summary>
-    public float RobotReverseDriveForce { get; init; } = 22.5f;
+    /// <summary>Force applied to a robot when on the ground and facing the direction of motion.</summary>
+    public float RobotDriveForce { get; init; } = 11.25f;
+    /// <summary>Force applied to a robot when on the ground and facing opposite the direction of motion.</summary>
+    public float RobotBrakeForce { get; init; } = 22.5f;
 
     /// <summary>
     /// A robot's coefficient of friction with the ground, whether tiles or another body. Applied when not driving in

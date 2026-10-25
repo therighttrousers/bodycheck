@@ -68,15 +68,15 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     /// Aims the phase while the game is paused for it. Releasing phase ends the aim, and the bodies move on the next
     /// tick of play.
     /// </summary>
-    public void ApplyPaused(WalkerEntity entity, float realDt, IEndOfTick endOfTick)
+    public void ApplyPaused(WalkerEntity entity, float realDt, IDefer defer)
     {
         PlayerInput input = _input();
-        ApplyPhase(entity, input, 0, realDt, endOfTick);
+        ApplyPhase(entity, input, 0, realDt, defer);
         _jumpWasHeld = input.JumpHeld;
         _spawnWasHeld = input.SpawnHeld;
     }
 
-    public void Apply(WalkerEntity entity, float gameDt, float realDt, IEndOfTick endOfTick)
+    public void Apply(WalkerEntity entity, float gameDt, float realDt, IDefer defer)
     {
         PlayerInput input = _input();
         float weight = entity.Weight;
@@ -93,9 +93,9 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             _jumpBufferLeft = Features.TicksToTime(Features.Current.PlayerJumpBufferTicks);
         }
 
-        if (!ApplyPhase(entity, input, gameDt, realDt, endOfTick))
+        if (!ApplyPhase(entity, input, gameDt, realDt, defer))
         {
-            ApplySpawn(entity, input, endOfTick);
+            ApplySpawn(entity, input, defer);
 
             // A press buffered in the air jumps on landing even if jump has been let go of since, as a tap.
             bool jumps = _jumpBufferLeft > 0 && _groundTimeLeft > 0 && _thrustTimeLeft == 0;
@@ -169,13 +169,13 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
 
     /// <summary>
     /// Begins, holds, aims and releases a phase. Returns whether the phase takes the place of running and jumping on
-    /// this tick: while it is aimed, and on the tick it is made, when the bodies move at the end of the tick and the
+    /// this tick: while it is aimed, and on the tick it is made, when the bodies move after the entity steps and the
     /// contacts are from before it.
     /// </summary>
     /// <param name="gameDt">The tick's length in game time: 0 while the game is paused.</param>
     /// <param name="realDt">The tick's length in real time.</param>
-    /// <param name="endOfTick">Where the phase defers moving the bodies.</param>
-    private bool ApplyPhase(WalkerEntity entity, PlayerInput input, float gameDt, float realDt, IEndOfTick endOfTick)
+    /// <param name="defer">An object that allows running actions later in the tick.</param>
+    private bool ApplyPhase(WalkerEntity entity, PlayerInput input, float gameDt, float realDt, IDefer defer)
     {
         if (Phase is null && input.PhaseHeld && _phaseCooldownLeft <= 0 && TargetedEntity(entity, input) is Entity target)
         {
@@ -185,7 +185,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
                 gap: Features.Current.PlayerPhaseGap,
                 phaseThrow: Features.Current.PlayerPhaseThrow,
                 speed: Features.Current.PlayerPhaseSpeed,
-                endOfTick: endOfTick);
+                defer: defer);
 
             _phaseDirectionTimeLeft = 0;
             entity.RaiseCue(EntityCue.PhaseBegan);
@@ -228,7 +228,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         bool phased = Phase.Direction != Vector3.Zero;
         if (phased)
         {
-            Phase.Phase(endOfTick);
+            Phase.Phase(defer);
             _phaseCooldownLeft = Features.Current.PlayerPhaseThrowCooldownTime;
             entity.RaiseCue(EntityCue.PhaseThrown);
         }
@@ -238,7 +238,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             entity.RaiseCue(EntityCue.PhaseCancelled);
         }
 
-        Phase.Stop(endOfTick);
+        Phase.Stop(defer);
         Phase = null;
 
         // A phase ends a jump's thrust, coyote time and buffered press, and so does cancelling one: the aim took them.
@@ -254,9 +254,9 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     /// entities, as it can go until it is under the player, or meets a tile. Then the player moves up through entities by
     /// as much as the block fell short, onto it: on the ground, by the block's height, and in the open air, not at all.
     /// Where the block doesn't fit, or the player has no room to rise onto it, the spawn is cancelled. There is only one block, so spawning it
-    /// takes it from wherever it was. The moves wait for the end of the tick, like a phase's.
+    /// takes it from wherever it was. The moves wait until after the entity steps, like a phase's.
     /// </summary>
-    private void ApplySpawn(WalkerEntity entity, PlayerInput input, IEndOfTick endOfTick)
+    private void ApplySpawn(WalkerEntity entity, PlayerInput input, IDefer defer)
     {
         if (!input.SpawnHeld || _spawnWasHeld || _spawnCooldownLeft > 0)
         {
@@ -273,7 +273,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
 
         Vector3 velocity = Features.Current.PlayerSpawnMotion == SpawnMotion.WithPlayer ? entity.LinearVelocity : Vector3.Zero;
         Vector3 center = entity.Position;
-        endOfTick.Defer(() =>
+        defer.RunAfterEntitySteps(() =>
         {
             // A new block, as far as anyone can tell: back in the world, level, and moving only as the spawn says.
             _block.ProcessMode = Node.ProcessModeEnum.Inherit;
@@ -360,53 +360,15 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     /// <param name="jumps">Whether the entity jumps on this tick.</param>
     private void ApplyRun(WalkerEntity entity, float move, float gameDt, bool jumps)
     {
-        // Don't try to run if weightless. There's no use-case right now, just being defensive against divide by zero.
-        if (entity.Weight == 0) return;
-
         Features features = Features.Current;
-
-        // Speed is relative to whatever the entity stands on, so running on a robot works like running on tiles.
-        float speed = entity.GroundSpeed;
-        bool reverse = speed != 0 && move * speed <= 0;
-
-        float drive = 0;
-        if (move != 0)
-        {
-            // The drive fades out as the entity nears top speed in the input direction.
-            // It never slows an entity that is already faster than that.
-            float headroom = Math.Clamp(1 - speed * MathF.Sign(move) / features.PlayerTopSpeed, 0, 1);
-            float driveForce =
-                _groundTimeLeft > 0
-                    ? (reverse ? features.PlayerGroundReverseDriveForce : features.PlayerGroundForwardDriveForce)
-                    : (reverse ? features.PlayerAirReverseDriveForce : features.PlayerAirForwardDriveForce);
-            drive = MathF.Abs(move) * driveForce * headroom;
-        }
-
-        if (entity.OnGround)
-        {
-            // On the ground the drive is traction: the engine applies it, and pushes back on the support. It
-            // adds to the entity's friction, which holds an idle entity still on its support. Driving the way
-            // the entity is already going gets no friction, so the drive takes it off again. Reversing, it
-            // keeps only as much as stops the entity and what it carries within the tick, so that friction
-            // doesn't push on past zero towards the drive's target (019 §4.8). Jumping, it takes all of the friction
-            // off, whichever way it drives, so that a jump leaves with the entity's speed: a landing's catch would
-            // otherwise stop a jump buffered on an idle landing dead (019 §6.5).
-            if (move != 0 || jumps)
-            {
-                // A loaded walker drives harder, so that carrying slows it less (019 §6.4).
-                drive *= entity.ComputeLoad() / entity.Weight;
-                float stackMass = entity.ComputeLoad() * entity.Mass / entity.Weight;
-                float stopping = stackMass * MathF.Abs(speed) / gameDt;
-                float extra = reverse && !jumps
-                    ? drive + MathF.Min(entity.Friction, stopping) - entity.Friction
-                    : drive - entity.Friction;
-                entity.ApplyTraction(MathF.Sign(move) * features.PlayerTopSpeed, extra);
-            }
-        }
-        else
-        {
-            entity.ApplyCentralForce(new Vector3(MathF.Sign(move) * drive, 0, 0));
-        }
+        RunAction.Run(
+            entity: entity,
+            gameDt: gameDt,
+            move: move,
+            jumps: jumps,
+            topSpeed: features.PlayerTopSpeed,
+            driveForce: _groundTimeLeft > 0 ? features.PlayerGroundDriveForce : features.PlayerAirDriveForce,
+            brakeForce: _groundTimeLeft > 0 ? features.PlayerGroundBrakeForce : features.PlayerAirBrakeForce);
     }
 
     /// <param name="jumps">Whether the entity jumps on this tick.</param>

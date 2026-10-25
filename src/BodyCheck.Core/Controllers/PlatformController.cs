@@ -34,7 +34,7 @@ public sealed class PlatformController : ICharacterController<SimpleControlledEn
         _across = _along.Orthogonal();
     }
 
-    public void Apply(SimpleControlledEntity entity, float gameDt, float realDt, IEndOfTick endOfTick)
+    public void Apply(SimpleControlledEntity entity, float gameDt, float realDt, IDefer defer)
     {
         Features features = Features.Current;
         var position = new Vector2(entity.Position.X, entity.Position.Y);

@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 using BodyCheck.Core;
@@ -95,7 +96,7 @@ public class PlayerControllerTest
     public async Task Running_settles_at_the_speed_where_drive_balances_drag()
     {
         await Start();
-        float drive = Features.Current.PlayerGroundForwardDriveForce;
+        float drive = Features.Current.PlayerGroundDriveForce;
         float balance = drive / (drive / Features.Current.PlayerTopSpeed + Player.Tuning.Drag);
 
         await Tick(Right, 120);
@@ -364,6 +365,33 @@ public class PlayerControllerTest
 
         // Rising after a jump, at rest without one.
         AssertThat(Velocity.Y > 0).IsEqual(!oneTickEarly);
+    }
+
+    [TestCase]
+    public async Task Falling_fast_while_driving_into_a_wall_reaches_the_floor()
+    {
+        // The player starts 34 tiles up, beside a wall, and holds towards it all the way down. The engine's continuous
+        // detection, which starts above about 18 tiles per second, used to stop it in the air (028).
+        string[] rows =
+        [
+            new string('#', 20),
+            .. Enumerable.Range(0, 38).Select(row => row == 3
+                ? "#..........P#......#"
+                : "#...........#......#"),
+            new string('#', 20),
+        ];
+        await Start(room: Room.FromText("Wall", string.Join('\n', rows)), settleTicks: 0);
+
+        float fastest = 0;
+        for (int i = 0; i < 150; i++)
+        {
+            await Tick(Right);
+            fastest = MathF.Max(fastest, -Velocity.Y);
+        }
+
+        AssertThat(fastest).IsGreater(20f);
+        AssertThat(Player.Contacts.HasFlag(Contacts.Right)).IsTrue();
+        AssertThat(Player.OnGround).IsTrue();
     }
 
     [TestCase]

@@ -8,7 +8,7 @@
 		"appVersion": "1.5.3",
 		"url": "https://ldtk.io"
 	},
-	"identifier": "Level_1",
+	"identifier": "Gerald",
 	"iid": "940919c0-bde0-11f1-b36f-115902cc0d05",
 	"uid": 215,
 	"worldX": 320,
@@ -18,7 +18,7 @@
 	"pxHei": 240,
 	"__bgColor": "#696A79",
 	"bgColor": null,
-	"useAutoIdentifier": true,
+	"useAutoIdentifier": false,
 	"bgRelPath": null,
 	"bgPos": null,
 	"bgPivotX": 0.5,
@@ -286,5 +286,5 @@
 			"entityInstances": []
 		}
 	],
-	"__neighbours": [ { "levelIid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6", "dir": "w" }, { "levelIid": "9971ed40-bde0-11f1-a778-ebfea3fcd78b", "dir": "n" }, { "levelIid": "3aec9f20-bde0-11f1-a778-cd4d7eac5ccb", "dir": "sw" } ]
+	"__neighbours": [ { "levelIid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6", "dir": "w" }, { "levelIid": "9971ed40-bde0-11f1-a778-ebfea3fcd78b", "dir": "n" }, { "levelIid": "3aec9f20-bde0-11f1-a778-cd4d7eac5ccb", "dir": "sw" }, { "levelIid": "a19fed30-bde0-11f1-9446-a12c3e5c9621", "dir": "s" } ]
 }

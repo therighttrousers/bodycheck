@@ -109,6 +109,6 @@ The game's tests load the same wrapper scenes as the game: the test project's bu
 ## Open questions
 
 - Whether a model's size belongs in its import settings (Bob is imported at 0.85) or in its wrapper scene.
-- A walker's walk is wrong at very low speeds, such as the player's when a tunnel knocks a block off its head (`019 §6.4`).
+- A walker's walk is wrong at very low speeds, such as the player's when a tunnel knocked a block off its head (`019 §6.4`).
 - Animation that follows what a walker is trying to do, not only how fast it moves. A walker pushed by something it faces walks backwards at the speed it's pushed, and an idle walker that faces the camera and is pushed walks towards the camera. Issue #25.
 - Turning a walker's body with a motor, so that stacked walkers turn each other (`006 §3.1`). It needs yaw unlocked and a cylinder in place of the box.

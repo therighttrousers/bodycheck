@@ -28,8 +28,8 @@ public sealed class PhaseAction
     /// <param name="gap">How far apart the two boxes end up, along the phase's direction.</param>
     /// <param name="phaseThrow">What momentum the phase gives the player and the target.</param>
     /// <param name="speed">The speed of the momentum the phase gives the player, along its direction.</param>
-    /// <param name="endOfTick">An object that allows running code at the end of the tick.</param>
-    public PhaseAction(WalkerEntity player, Entity target, float gap, PhaseThrow phaseThrow, float speed, IEndOfTick endOfTick)
+    /// <param name="defer">An object that allows running actions later in the tick.</param>
+    public PhaseAction(WalkerEntity player, Entity target, float gap, PhaseThrow phaseThrow, float speed, IDefer defer)
     {
         Player = player;
         Target = target;
@@ -40,8 +40,8 @@ public sealed class PhaseAction
 
         _playerGravityScale = Player.GravityScale;
         _targetGravityScale = Target.GravityScale;
-        Player.SetGravityScaleDeferred(0, endOfTick);
-        Target.SetGravityScaleDeferred(0, endOfTick);
+        Player.SetGravityScaleAfterPhysicsStep(0, defer);
+        Target.SetGravityScaleAfterPhysicsStep(0, defer);
     }
 
     /// <summary>The walker phasing: the player.</summary>
@@ -104,9 +104,9 @@ public sealed class PhaseAction
     /// moves through entities, but not through tiles, sliding along them, and the engine pushes apart whatever ends up
     /// overlapping. The player is thrown in that direction, and the target the other way, as the throw says.
     /// </summary>
-    /// <param name="endOfTick">Where the moves wait, so that every controller this tick sees the bodies where they
+    /// <param name="defer">Where the moves wait, so that every controller this tick sees the bodies where they
     /// were.</param>
-    public void Phase(IEndOfTick endOfTick)
+    public void Phase(IDefer defer)
     {
         // Each moves in proportion to the other's mass.
         float totalMass = Player.Mass + Target.Mass;
@@ -114,7 +114,7 @@ public sealed class PhaseAction
         float separation = Separation();
         Vector3 playerDestination = center + Target.Mass / totalMass * separation * Direction;
         Vector3 targetDestination = center - Player.Mass / totalMass * separation * Direction;
-        endOfTick.Defer(() =>
+        defer.RunAfterEntitySteps(() =>
         {
             Player.MoveThroughEntities(playerDestination);
             Target.MoveThroughEntities(targetDestination);
@@ -143,12 +143,12 @@ public sealed class PhaseAction
     }
 
     /// <summary>
-    /// Restores gravity for the player and target - deferred until the end of the tick. This should always be
-    /// called on the last tick of a phase.
+    /// Restores gravity for the player and target, after the engine's step, so that what controllers reckoned with
+    /// this tick holds through it. This should always be called on the last tick of a phase.
     /// </summary>
-    public void Stop(IEndOfTick endOfTick)
+    public void Stop(IDefer defer)
     {
-        Player.SetGravityScaleDeferred(_playerGravityScale, endOfTick);
-        Target.SetGravityScaleDeferred(_targetGravityScale, endOfTick);
+        Player.SetGravityScaleAfterPhysicsStep(_playerGravityScale, defer);
+        Target.SetGravityScaleAfterPhysicsStep(_targetGravityScale, defer);
     }
 }
