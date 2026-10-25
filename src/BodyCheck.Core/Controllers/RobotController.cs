@@ -7,7 +7,7 @@ public sealed class RobotController : ICharacterController<WalkerEntity>
     private float _facing = 1;
     private float _move = 0;
 
-    public void Apply(WalkerEntity entity, float gameDt, float realDt, IEndOfTick endOfTick)
+    public void Apply(WalkerEntity entity, float gameDt, float realDt, IDefer defer)
     {
         // Patrol if on tiles. Bounce off of anything solid (including the player).
         if (entity.OnGround && entity.Support is null)

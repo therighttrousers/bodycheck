@@ -343,6 +343,32 @@ public class PhaseTest
     }
 
     [TestCase]
+    public async Task ReleasedWhilePausedRestoresGravity()
+    {
+        var (player, robot) = await Start(
+            "####################",
+            "#..................#",
+            "#..................#",
+            "#..PR..............#",
+            "####################");
+
+        // A phase turns off both bodies' gravity while it is aimed, from the tick after it begins.
+        await _run!.Tick(AimRight);
+        Tree.Paused = true;
+        await _run.PausedTick(AimRight);
+        AssertFloat(player.GravityScale).IsEqual(0);
+        AssertFloat(robot.GravityScale).IsEqual(0);
+
+        // Released while paused, as the game does it, it turns gravity back on once play resumes, where no engine step
+        // came between the release and the next tick.
+        await _run.PausedTick(RoomRun.Right);
+        Tree.Paused = false;
+        await _run.Tick(RoomRun.Idle);
+        AssertFloat(player.GravityScale).IsEqual(1);
+        AssertFloat(robot.GravityScale).IsEqual(1);
+    }
+
+    [TestCase]
     public async Task ALongPauseDoesntChangeThePhase()
     {
         // In the air beside a hovering platform, where the grab has drift to take back.

@@ -29,6 +29,8 @@ public partial class WorldNode : Node3D
 
     private readonly List<Entity> _entities = [];
 
+    private readonly Defer _defer = new();
+
     /// <param name="assets">What to draw for each entity and for tiles.</param>
     /// <param name="respawnId">
     /// The respawn the player starts at, which is then the current one. The player starts where the world says if this is
@@ -238,29 +240,59 @@ public partial class WorldNode : Node3D
     /// </summary>
     public void StepPaused()
     {
+        // Run the last tick's post-physics-step deferred actions.
+        _defer.DrainAfterPhysicsStepActions();
+
         if (!ControllersEnabled)
         {
             return;
         }
-        var endOfTick = new EndOfTick();
-        foreach (Entity entity in _entities)
+
+        // Start with a clean slate, in case some post-entity-steps deferred actions sneaked in somehow.
+        _defer.Clear();
+        try
         {
-            entity.StepPaused(RealDt, endOfTick);
+            foreach (Entity entity in _entities)
+            {
+                entity.StepPaused(RealDt, _defer);
+            }
         }
-        endOfTick.Run();
+        catch
+        {
+            // We can't count on the scene being in the expected state for the deferred actions, so don't do them.
+            _defer.Clear();
+            throw;
+        }
+        // Run this tick's post-entity-steps deferred actions.
+        _defer.DrainAfterEntityStepsActions();
     }
 
     public override void _PhysicsProcess(double delta)
     {
-        var endOfTick = new EndOfTick();
-        foreach (Entity entity in _entities)
+        // Run the last tick's post-physics-step deferred actions.
+        _defer.DrainAfterPhysicsStepActions();
+
+        // Start with a clean slate, in case some post-entity-steps deferred actions sneaked in somehow.
+        _defer.Clear();
+        try
         {
-            if (entity.CanProcess())
+            foreach (Entity entity in _entities)
             {
-                entity.Step((float)delta, RealDt, endOfTick, ControllersEnabled);
+                if (entity.CanProcess())
+                {
+                    entity.Step((float)delta, RealDt, _defer, ControllersEnabled);
+                }
             }
         }
-        endOfTick.Run();
+        catch
+        {
+            // We can't count on the scene being in the expected state for the deferred actions, so don't do them.
+            _defer.Clear();
+            throw;
+        }
+        // Run this tick's post-entity-steps deferred actions.
+        _defer.DrainAfterEntityStepsActions();
+
         UpdateCurrentRespawn();
     }
 
@@ -298,23 +330,49 @@ public partial class WorldNode : Node3D
     /// </summary>
     private static float RealDt => 1f / Engine.PhysicsTicksPerSecond;
 
-    private sealed class EndOfTick : IEndOfTick
+    private sealed class ActionQueue
     {
         private readonly List<Action> _actions = [];
 
-        public void Enqueue(Action action) => _actions.Add(action);
+        public void Clear() => _actions.Clear();
+        public void Add(Action action) => _actions.Add(action);
 
         /// <summary>
-        /// Runs the deferred actions, in the order they were deferred, and forgets them. For whatever steps the
-        /// controllers, once they all have. An action can't defer another.
+        /// Runs the deferred actions, in the order they were deferred, and forgets them. An action can't defer another.
         /// </summary>
-        public void Run()
+        public void Drain()
         {
-            foreach (Action action in _actions)
+            try
             {
-                action();
+                foreach (Action action in _actions)
+                {
+                    action();
+                }
             }
-            _actions.Clear();
+            finally
+            {
+                _actions.Clear();
+            }
         }
+    }
+
+    private sealed class Defer : IDefer
+    {
+        private readonly ActionQueue _afterEntityStepsActions = new();
+        private readonly ActionQueue _afterPhysicsStepActions = new();
+
+        public void Clear()
+        {
+            _afterEntityStepsActions.Clear();
+            _afterPhysicsStepActions.Clear();
+        }
+
+        public void RunAfterEntitySteps(Action action) => _afterEntityStepsActions.Add(action);
+
+        public void RunAfterPhysicsStep(Action action) => _afterPhysicsStepActions.Add(action);
+
+        public void DrainAfterEntityStepsActions() => _afterEntityStepsActions.Drain();
+
+        public void DrainAfterPhysicsStepActions() => _afterPhysicsStepActions.Drain();
     }
 }

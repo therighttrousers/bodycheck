@@ -15,8 +15,8 @@ public interface ICharacterController<in TEntity>
     /// <summary>Called once per physics tick, before the engine's step.</summary>
     /// <param name="gameDt">The tick's length in game time, which the engine's time scale shortens.</param>
     /// <param name="realDt">The tick's length in real time, which the time scale doesn't change.</param>
-    /// <param name="endOfTick">Runs actions once every controller has run this tick.</param>
-    public void Apply(TEntity entity, float gameDt, float realDt, IEndOfTick endOfTick);
+    /// <param name="defer">An object that allows running actions later in the tick.</param>
+    public void Apply(TEntity entity, float gameDt, float realDt, IDefer defer);
 
     /// <summary>
     /// Whether the controller asks for the game to be paused, so that it can decide something with all else
@@ -30,8 +30,8 @@ public interface ICharacterController<in TEntity>
     /// the engine doesn't step, so forces and impulses wait until play resumes. No game time passes.
     /// </summary>
     /// <param name="realDt">The tick's length in real time.</param>
-    /// <param name="endOfTick">Runs actions once every controller has run this tick.</param>
-    public void ApplyPaused(TEntity entity, float realDt, IEndOfTick endOfTick)
+    /// <param name="defer">An object that allows running actions later in the tick.</param>
+    public void ApplyPaused(TEntity entity, float realDt, IDefer defer)
     {
     }
 }

@@ -52,10 +52,10 @@ public enum EntityCue
 /// Bounce and damping are off in the engine. Drag is the entity's own force.
 /// </para>
 /// <para>
-/// Friction is the engine's. At the end of each tick the entity sets its coefficient for this tick's step, from
-/// what it stands on: what a carrier holds takes the carrier's coefficient, a walker has none off the ground, and
-/// an entity has none while its controller lets it slip (027). A walker's traction is the motor of a joint between
-/// it and what it stands on, along X. What carries an entity may also steady it with a joint's motor.
+/// Friction is the engine's. Each tick, after the entity steps, the entity sets its coefficient for this tick's step,
+/// from what it stands on: what a carrier holds takes the carrier's coefficient, a walker has none off the ground,
+/// and an entity has none while its controller lets it slip (027). A walker's traction is the motor of a joint
+/// between it and what it stands on, along X. What carries an entity may also steady it with a joint's motor.
 /// </para>
 /// <para>
 /// An entity is also the base node for advance expressions in the entity's visual; i.e. in the AnimationTree
@@ -99,8 +99,8 @@ public partial class Entity : RigidBody3D
     // Where the entity stood on what it stood on during the engine's last step: the middle of the contacts with it.
     private Vector3? _groundContact;
 
-    // Whether the controller lets the entity slip this tick. See SlipAtEndOfTick.
-    private bool _slipAtEndOfTick;
+    // Whether the controller lets the entity slip this tick. See SlipAfterEntitySteps.
+    private bool _slipAfterEntitySteps;
 
     // The joint whose motor steadies the entity at its center, for what carries it like a hand (019 §5.1). It is one of
     // Joints' free joints.
@@ -122,7 +122,7 @@ public partial class Entity : RigidBody3D
         AxisLockAngularY = true;
         AxisLockAngularZ = axisLockAngularZ;
 
-        // Its own, since SetFrictionAtEndOfTick changes it every tick. Until the first, the tuning's.
+        // Its own, since SetFrictionAfterEntitySteps changes it every tick. Until the first, the tuning's.
         PhysicsMaterialOverride = new PhysicsMaterial { Friction = tuning.EngineFriction, Bounce = 0, Rough = false };
         LinearDampMode = DampMode.Replace;
         LinearDamp = 0;
@@ -196,25 +196,15 @@ public partial class Entity : RigidBody3D
 
     /// <summary>
     /// <para>
-    /// Sets this entity's GravityScale after all entity steps, and after the physics engine step - conceptually.
+    /// Sets this entity's GravityScale after the engine's step, at the start of the next tick, so that what controllers
+    /// reckoned with this tick, such as its <see cref="Weight"/>, holds through this tick's step.
     /// </para>
     /// <para>
     /// Prefer to call this instead of calling SetGravityScale or setting GravityScale, for step-order-independence.
     /// </para>
-    /// <para>
-    /// This actually sets GravityScale after all entity steps, but *before* the physics engine step. To appear to
-    /// set GravityScale after the physics engine step, it adds a compensating force, which is opposite the gravity
-    /// change.
-    /// </para>
     /// </summary>
-    public void SetGravityScaleAfterTick(float scale, IEndOfTick endOfTick) =>
-        endOfTick.Enqueue(() =>
-        {
-            Vector3 before = GetGravity();
-            base.GravityScale = scale;
-            // Controllers this tick reckoned with the old gravity, so the step gets the difference back.
-            ApplyCentralForce(Mass * (before - GetGravity()));
-        });
+    public void SetGravityScaleAfterPhysicsStep(float scale, IDefer defer) =>
+        defer.RunAfterPhysicsStep(() => base.GravityScale = scale);
 
     // The tuning's values for gripping and carrying, from the features in effect now. See BodyTuning.
     private float? GroundFriction => Tuning.GroundFriction?.Invoke(Features.Current);
@@ -225,9 +215,9 @@ public partial class Entity : RigidBody3D
     /// <summary>
     /// Moves the entity toward <paramref name="destination"/> at once, through other entities but not through tiles:
     /// where it meets one, it slides along it, so it may stop short. It keeps its velocity, and the engine pushes it
-    /// apart from whatever it ends up overlapping. A controller defers it to the end of the tick
-    /// (<see cref="IEndOfTick"/>), so that the controllers stepped after it still see the world as of the engine's last
-    /// step.
+    /// apart from whatever it ends up overlapping. A controller defers it until after the entity steps
+    /// (<see cref="IDefer.RunAfterEntitySteps"/>), so that the controllers stepped after it still see the world as of
+    /// the engine's last step.
     /// </summary>
     public void MoveThroughEntities(Vector3 destination)
     {
@@ -251,8 +241,8 @@ public partial class Entity : RigidBody3D
     /// <summary>
     /// Moves the entity to <paramref name="destination"/> at once, through everything, for a place already found to be
     /// clear of tiles, such as with <see cref="RoomToMove"/>. Otherwise like <see cref="MoveThroughEntities"/>: it keeps
-    /// its velocity, the engine pushes it apart from whatever it ends up overlapping, and a controller defers it to the
-    /// end of the tick.
+    /// its velocity, the engine pushes it apart from whatever it ends up overlapping, and a controller defers it until
+    /// after the entity steps.
     /// </summary>
     public void MoveTo(Vector3 destination)
     {
@@ -301,26 +291,26 @@ public partial class Entity : RigidBody3D
     /// <summary>Call once per physics tick, before the engine's step.</summary>
     /// <param name="gameDt">The tick's length in game time, which the engine's time scale shortens.</param>
     /// <param name="realDt">The tick's length in real time, which the time scale doesn't change.</param>
-    /// <param name="endOfTick">Runs actions once every entity has been stepped this tick.</param>
+    /// <param name="defer">An object that allows running actions later in the tick.</param>
     /// <param name="controlled">Whether the controller runs. Without it, the entity only coasts, under drag, gravity and friction.</param>
-    public void Step(float gameDt, float realDt, IEndOfTick endOfTick, bool controlled = true)
+    public void Step(float gameDt, float realDt, IDefer defer, bool controlled = true)
     {
         // A motor's push lasts one tick, like a force: it is off unless steadying or the controller uses it again. So
         // does a controller's slip.
         DisableMotors();
-        _slipAtEndOfTick = false;
+        _slipAfterEntitySteps = false;
 
         Steady();
 
         if (controlled)
         {
-            Control(gameDt, realDt, endOfTick);
+            Control(gameDt, realDt, defer);
         }
 
         ApplyCentralForce(-Tuning.Drag * LinearVelocity);
 
         // Change the material's friction settings after all controllers run for order-independence (in case a controller inspects materials).
-        SetFrictionAtEndOfTick(endOfTick);
+        SetFrictionAfterEntitySteps(defer);
     }
 
     /// <summary>
@@ -328,25 +318,25 @@ public partial class Entity : RigidBody3D
     /// <see cref="RequestsPause"/>), instead of <see cref="Step"/>. It runs the controller's paused step only.
     /// </summary>
     /// <param name="realDt">The tick's length in real time. No game time passes.</param>
-    /// <param name="endOfTick">Runs actions once every entity has been stepped this tick.</param>
-    public void StepPaused(float realDt, IEndOfTick endOfTick) => ControlPaused(realDt, endOfTick);
+    /// <param name="defer">An object that allows running actions later in the tick.</param>
+    public void StepPaused(float realDt, IDefer defer) => ControlPaused(realDt, defer);
 
     /// <summary>Whether this entity's controller asks for the game to be paused.</summary>
     public virtual bool RequestsPause => false;
 
     /// <summary>Runs the paused step of the controller of this kind of body, if it has one.</summary>
-    protected virtual void ControlPaused(float realDt, IEndOfTick endOfTick)
+    protected virtual void ControlPaused(float realDt, IDefer defer)
     {
     }
 
     /// <summary>
-    /// Lets the entity slip on what it stands on in this tick's step: at the end of the tick its friction goes off. For
-    /// a tick in which friction shouldn't resist the entity sliding against its support, such as when the entity moves
-    /// itself along it, or leaves it with its speed. It lasts one tick.
+    /// Lets the entity slip on what it stands on in this tick's step: after the entity steps, its friction goes off.
+    /// For a tick in which friction shouldn't resist the entity sliding against its support, such as when the entity
+    /// moves itself along it, or leaves it with its speed. It lasts one tick.
     /// </summary>
-    public void SlipAtEndOfTick() => _slipAtEndOfTick = true;
+    public void SlipAfterEntitySteps() => _slipAfterEntitySteps = true;
 
-    // Sets the engine's friction at the end of the tick, for this tick's step, from what the entity stood on during the
+    // Sets the engine's friction after the entity steps, for this tick's step, from what the entity stood on during the
     // last step (027 §1). The engine uses the smaller of two bodies' coefficients, except that a rough one wins, and of
     // two rough ones the larger (Godot passes a rough coefficient to Jolt as negative, and Jolt takes the absolute value
     // of the smaller). So what a carrier holds is rough, with the carrier's coefficient, which wins over the carrier's
@@ -355,13 +345,13 @@ public partial class Entity : RigidBody3D
     // what is carried touches something at its side, it has its own, not rough, and doesn't grip a wall with its
     // carrier's (027 §4). Something with a ground coefficient is rough too, so that it wins over the tiles' and a
     // block's, but it grips only what it stands on: off the ground it has no friction, so that it slides along walls.
-    private void SetFrictionAtEndOfTick(IEndOfTick endOfTick)
+    private void SetFrictionAfterEntitySteps(IDefer defer)
     {
-        endOfTick.Enqueue(() =>
+        defer.RunAfterEntitySteps(() =>
         {
             float friction = Tuning.EngineFriction;
             bool rough = false;
-            if (_slipAtEndOfTick || (GroundFriction is not null && !OnGround))
+            if (_slipAfterEntitySteps || (GroundFriction is not null && !OnGround))
             {
                 friction = 0;
             }
@@ -438,7 +428,7 @@ public partial class Entity : RigidBody3D
     }
 
     /// <summary>Runs the controller of this kind of body, if it has one.</summary>
-    protected virtual void Control(float gameDt, float realDt, IEndOfTick endOfTick)
+    protected virtual void Control(float gameDt, float realDt, IDefer defer)
     {
     }
 
