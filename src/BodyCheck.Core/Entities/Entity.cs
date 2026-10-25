@@ -113,12 +113,6 @@ public partial class Entity : RigidBody3D
 
     /// <param name="visual">What to draw for the entity, centered on the middle of its box.</param>
     public Entity(BodyTuning tuning, Node3D? visual = null, bool axisLockAngularZ = true)
-        : this(tuning, visual, continuousCd: false, axisLockAngularZ)
-    {
-    }
-
-    /// <param name="continuousCd">Whether the engine uses continuous collision detection for it.</param>
-    protected Entity(BodyTuning tuning, Node3D? visual, bool continuousCd, bool axisLockAngularZ)
     {
         Tuning = tuning;
         Mass = tuning.Mass;
@@ -137,7 +131,8 @@ public partial class Entity : RigidBody3D
         CollisionMask = (uint)PhysicsLayer.DefaultCollisionMask;
         ContactMonitor = true;
         MaxContactsReported = MaxContacts;
-        ContinuousCd = continuousCd;
+        // No continuous collision detection: it stops a fast body pressed against what it touches (028).
+        ContinuousCd = false;
 
         var size = new Vector3(2 * tuning.HalfSize.X, 2 * tuning.HalfSize.Y, Depth);
         AddChild(new CollisionShape3D { Shape = new BoxShape3D { Size = size } });

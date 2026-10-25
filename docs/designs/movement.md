@@ -12,6 +12,7 @@ Relevant decision records:
 - [024: Playtesting feedback](../decision-records/024-playtesting-feedback.md)
 - [025: Platforms that move along any line](../decision-records/025-platforms-on-any-line.md)
 - [026: A carrier's drive doesn't grow with its load](../decision-records/026-carrying-drive.md)
+- [028: Continuous detection against walls](../decision-records/028-continuous-detection-against-walls.md)
 
 ## Player movement
 
@@ -52,13 +53,13 @@ Rationale: decision record `001`.
 
 - Bodies are simulated by Godot's 3D physics engine, Jolt. Each is an `Entity`: a `RigidBody3D` with a box shape, with movement along Z and rotation locked, except that a block can rotate about Z.
 - The player is not a `CharacterBody3D`: that kind of body has no mass and can't be pushed (`001 §1.1`).
-- A walker is a `WalkerEntity`, which sets its own engine friction to 0 and uses continuous collision detection (`005 §3.8`). It grips what it stands on with its entity's friction and its controller's traction, below. With engine friction, walkers grip walls and lose their speed on landing (`001 §2.1`).
-- Other bodies use engine friction and ordinary collision detection: blocks, which have no controller and are only pushed, carried and stood on, and hovering platforms, so that what rests on them is carried. On a walker, where the engine's friction is 0, an entity's own friction makes it up (below).
+- A walker is a `WalkerEntity`, which sets its own engine friction to 0. No body uses continuous collision detection, which stopped fast walkers against what they touched (`028`). It grips what it stands on with its entity's friction and its controller's traction, below. With engine friction, walkers grip walls and lose their speed on landing (`001 §2.1`).
+- Other bodies use engine friction: blocks, which have no controller and are only pushed, carried and stood on, and hovering platforms, so that what rests on them is carried. On a walker, where the engine's friction is 0, an entity's own friction makes it up (below).
 - No body is ever `Rough`, so that a walker's zero friction wins on every contact it has (`001 §1.4`). Tiles have friction 1, which therefore affects only bodies that have friction of their own.
 - Bounce is 0 on everything. Drag is our own force, not the engine's damping, which gives lower jumps under the same tuning (`005 §2.1`).
 - All solid tiles are shapes of one static body, merged along rows into larger boxes, so that a floor seam can't catch a sliding body (`001 §1.2`).
 - Bodies are on physics layers: tiles on the static layer, blocks on the prop layer, and the player, robots and platforms on the character layer. Every entity collides with all three, so the layers change nothing about what collides yet; they let queries choose what they see. See [architecture.md](architecture.md).
-- Four project settings make contacts exact and corners sharp (`001 §1.3`): collision margin fraction 0.005, penetration slop 0, continuous collision detection's maximum penetration 0, and 60 physics ticks per second.
+- Four project settings make contacts exact and corners sharp (`001 §1.3`): collision margin fraction 0.005, penetration slop 0, continuous collision detection's maximum penetration 0, which has no effect while nothing uses continuous detection (`028`), and 60 physics ticks per second.
 - Once per tick, before the engine's step, the room steps every entity: its motors are switched off, its friction is applied, its controller runs, then its drag is applied (`005 §3.3`, `019 §4.1`).
 - A controller pushes its entity with the engine's own forces and impulses, and a walker's also with traction, below.
 - A motor earns its place when its target speed binds, as in braking or holding against pushes, or when its push must land on another body. Otherwise a plain force does the same with less. So a platform moves itself with forces: one that cancels its weight; a drive along its line toward a target speed, which falls near the end so that it brakes to a stop there; and a critically damped PD controller of our own that holds it to the line and sags under a rider. The drive and the hold are capped, so that enough load overpowers them (`005 §3.6`, `025 §2.1`, `§2.3`).
@@ -108,7 +109,7 @@ TODO
 - For a level that wants a comb-shaped floor (1-tile gaps back to back) as a puzzle: how long must the comb be for the chance of crossing it to fall below 1%? What would make crossing reliable, such as bevelled bottom corners on the player's shape? (`007 §1.3`)
 - Landing on a ledge after a short fall is unreliable. With an overhang of 0.16 tiles or less and a fall of under about 3 tiles, the player sinks past the corner in most cases and is eased out sideways. Longer falls always land. Not yet tried: more physics ticks per second; a cap on falling speed; our own downward sweep before the step (`001 §1.3`).
 - The player can land on a seam partway down a vertical wall. Boxes can't avoid this. Candidate fix: one concave mesh made of the exposed tile faces (`001 §1.2`).
-- When two moving bodies meet, they overlap for a tick or two: by up to 0.15 tiles when the player runs into a robot at top speed. The engine tests collisions between moving bodies once per tick, and its continuous detection doesn't start until a body moves about 18 tiles per second. Is that acceptable, given the principle that player and NPCs can't occupy the same space? Bodies at rest against each other don't overlap.
+- When two moving bodies meet, they overlap for a tick or two: by up to 0.15 tiles when the player runs into a robot at top speed. The engine tests collisions between moving bodies once per tick, with no continuous detection (`028`). Is that acceptable, given the principle that player and NPCs can't occupy the same space? Bodies at rest against each other don't overlap.
 - A block on a platform stays on over 30 seconds of patrolling, but nothing guarantees that for other speeds and sizes. Measured when a wall stopped the platform dead at each end, where the block slid; platforms now slow to turn around before the end of their line (`025 §3.2`).
 - Body stability and simulation time under the current settings are to be watched over longer testing.
 - A robot that walks into an idle player turns round without moving it, because the player's braking grip is far stronger than the robot's drive. By hand, a robot can push the player in other situations, which no test covers yet.

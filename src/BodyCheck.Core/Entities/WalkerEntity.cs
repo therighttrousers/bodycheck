@@ -40,8 +40,7 @@ public partial class WalkerEntity : Entity
 
     /// <param name="visual">What to draw for the entity, centered on the middle of its box.</param>
     public WalkerEntity(BodyTuning tuning, Node3D? visual = null)
-        // Continuous detection keeps a walker's contacts exact, which its movement depends on.
-        : base(tuning, visual, continuousCd: true, axisLockAngularZ: true)
+        : base(tuning, visual, axisLockAngularZ: true)
     {
         _grip = Joints.FreeJoint();
         AddChild(_grip);
