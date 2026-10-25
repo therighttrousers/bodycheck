@@ -33,3 +33,12 @@ The obstacle was why a walker's engine friction was 0: with it, a walker grips w
   - A rough body is rough against everything it touches: a carried block against a wall grips it with the carrier's coefficient, and so does a block stacked on a carried block, which used to slide at 1.
   - A block landing on a walker's head has its own coefficient for the impact, since its support is from the step before; the carrier's grips from the next tick.
   - The design docs still describe the grip motor's friction.
+
+## 4. What is carried, against walls
+
+- [x] 4.1 Neil, after playing: the stop in `wobble` is fine, and so is the rider's speed after a jump. A carried block gripping walls with its carrier's coefficient is worth fixing; a block stacked on a carried block can wait.
+- [~] 4.2 Options (Claude): (a) while what is carried touches something at its side, as of the last step, it has its own coefficient, not rough; (b) carried bodies keep their own friction, and a grip motor holds them on, limited by the carrier's coefficient times the normal force the engine reported at the support, with no load to add up, but a tick late and solved apart from the contacts; (c) per-contact friction, which Jolt has but Godot doesn't expose. Neil: try (a).
+- [~] 4.3 Measured, 2026-10-25, with a block of mass 2 on the player's head, with (a) and without:
+  - Holding toward a wall, touching it, and jumping: the player rises 0.31 tiles, against 0.004 without; 0.38 with no wall. Unloaded, against the wall, 4.57.
+  - Running at a tunnel 2 tiles high, which the player fits and the block doesn't: the block's side meets the tunnel's lip, the block is knocked off behind, and the player runs on in. Without, the player stops at the lip and stays there.
+  - `wobble`, `carry-checks` and the tests are as before (133 of 133).

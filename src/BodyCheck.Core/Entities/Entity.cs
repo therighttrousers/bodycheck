@@ -362,10 +362,11 @@ public partial class Entity : RigidBody3D
     // last step (027 §1). The engine uses the smaller of two bodies' coefficients, except that a rough one wins, and of
     // two rough ones the larger (Godot passes a rough coefficient to Jolt as negative, and Jolt takes the absolute value
     // of the smaller). So what a carrier holds is rough, with the carrier's coefficient, which wins over the carrier's
-    // own: a walker's is zero while it slips. The engine multiplies it by the normal force, so the grip grows with what is stacked above, and
-    // comes with a landing's impact. Something with a ground coefficient is rough too, so that it wins over the tiles'
-    // and a block's, but it grips only what it stands on: off the ground it has no friction, so that it slides along
-    // walls.
+    // own: a walker's is zero while it slips. The engine multiplies it by the normal force, so the grip grows with what
+    // is stacked above, and comes with a landing's impact. But a body's coefficient is for all its contacts, so while
+    // what is carried touches something at its side, it has its own, not rough, and doesn't grip a wall with its
+    // carrier's (027 §4). Something with a ground coefficient is rough too, so that it wins over the tiles' and a
+    // block's, but it grips only what it stands on: off the ground it has no friction, so that it slides along walls.
     private void SetFrictionAtEndOfTick(IEndOfTick endOfTick)
     {
         endOfTick.Enqueue(() =>
@@ -376,7 +377,8 @@ public partial class Entity : RigidBody3D
             {
                 friction = 0;
             }
-            else if (OnGround && Tuning.CanBeCarried && Support?.CarryFriction is float carryFriction)
+            else if (OnGround && Tuning.CanBeCarried && Support?.CarryFriction is float carryFriction
+                && (Contacts & (Contacts.Left | Contacts.Right)) == Contacts.None)
             {
                 friction = carryFriction;
                 rough = true;
