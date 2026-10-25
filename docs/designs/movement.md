@@ -11,6 +11,7 @@ Relevant decision records:
 - [022: Actions at the end of a tick](../decision-records/022-end-of-tick-actions.md)
 - [024: Playtesting feedback](../decision-records/024-playtesting-feedback.md)
 - [025: Platforms that move along any line](../decision-records/025-platforms-on-any-line.md)
+- [026: A carrier's drive doesn't grow with its load](../decision-records/026-carrying-drive.md)
 
 ## Player movement
 
@@ -24,7 +25,7 @@ The player is 0.8 tiles wide and 1.8 tall.
 - Drive fades as the player nears top speed in the direction of input, and is zero at top speed and beyond, so it never slows a player that something else has made faster. Running settles just under top speed, where drive balances drag, and gets most of the way there quickly.
 - Drive against the direction of travel is stronger than drive along it, mostly for precision landings and quick turns.
 - On the ground, drive is traction (see [below](#ground-contact-friction-and-traction)). A player that is idle, or driving against its direction of travel, also brakes with ground friction, which is stronger than forward drive. Braking stops the player and never reverses it: reversing, friction stops the player within the tick at most, and the drive alone pushes it on past zero (`019 §4.8`).
-- Drive on the ground grows with what the player carries, in proportion to its load, so carrying slows it less than its mass would (`019 §6.4`).
+- Drive is the player's legs, and doesn't grow with what it carries, so carrying slows it as the stack's mass says; only its grip grows with the load (`026 §1.2`).
 - Drive in the air is much weaker than on the ground, and there is no friction.
 
 ### Jumping
@@ -93,7 +94,7 @@ Rationale: decision record `019`.
 - A block on a walker's head stays on it as it would on a platform. A walker's head grips what it carries with a coefficient of its own, which wins over the block's (`019 §1.4`), and the player's is higher than a block's.
 - A body whose tuning says it can't be carried, which is a platform, isn't: it gets only the engine's friction from an entity it rests on, which on a walker is none, so it slides off a walker's head (`025 §5.1`).
 - **The player steadies what it carries**, like a hand held up behind its head: the second joint's motor, at the carried body's center, holds the center's speed to the player's, with a limited force, so that friction at the body's base needn't push it, and doesn't tip it. The same joint's angular motor turns the body towards level, the nearest quarter turn, with a limited torque, so that a block caught tilted settles flat. The player lets go once the body's center is past the side of its head, so a block mostly off the head tips off it (`019 §5.1`, `§5.2`).
-- The steadying and the torque are light: a block stays on through running, starting and stopping, and comes off when the player reverses hard or runs into a low wall or a tunnel 2 tiles high (`019 §5.1`, `§6.4`).
+- The steadying and the torque are light: a block stays on through running, starting and stopping, and comes off when the player reverses hard or runs into a low wall. Pressing against a tunnel 2 tiles high doesn't knock it off, but running into it again and again does (`019 §5.1`, `026 §2.2`).
 - Robots don't steady or hold what they carry; their carrying friction alone keeps it on. Being indifferent to what the player drops on them fits the story (`019 §4.10`).
 - Moving through entities, as a phase does, leaves what the player carries where it was, to fall (`019 §3.2`).
 
@@ -117,6 +118,8 @@ TODO
 - Traction is one use of a joint motor: along X, against what the entity stands on, while it is on the ground. Grip on other axes, against other anchors and with other gates is wanted, for more ways to cheat physics than walking and running. What the joint offers and where it stops is in `005 §3.7`. Every entity's joints are its own (`019 §1.2`).
 - How the player drops what it carries (`019 §5.3`). Now: by reversing hard or running into something low, which the light steadying lets throw it off. Options on the table: tuning those limits; an input that lets go; jumping lets go; phase. To be talked over with the playtester once they have played the game as it is and made puzzles.
 - A block can be left tipped on the player's head, held, after a reversal at speed: friction at its base holds its corner to the head, steadying holds its center, and turning about its center would move the corner, so the leveling torque can't turn it. Perhaps friction at the base should drop while the player steadies the block, since the hand is carrying it then (`019 §5.1`).
+- Not yet checked by playing since carrying stopped boosting the drive (`026 §2.1`, `§2.2`): that a loaded player no longer shoves a platform; and how carrying feels at the slower speed, which if too slow means retuning the drive.
+- Should the player be able to knock what it carries off its head by running into something, such as a low wall or a tunnel 2 tiles high? Now it can, by running into a tunnel again and again, though not by pressing against it (`026 §2.2`). This is one of the ways of dropping below, and may be tuned with the steadying and the torque.
 - `RobotCarryFriction`, how hard a robot's head grips what it carries, is to be tuned for what puzzles need, perhaps lower (`019 §4.10`).
 - What a motor costs, for a body that has one on every tick, is unmeasured. Building a joint again costs about 17 microseconds (`019 §3.3`, `§3.4`).
 - Friction ignores the coefficient of what an entity stands on, apart from a carrier's own: surfaces such as ice will need a rule for combining two, the smaller or the product, say, with a walker's top above 1 (`019 §1.4`).

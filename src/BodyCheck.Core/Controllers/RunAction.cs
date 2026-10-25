@@ -12,7 +12,6 @@ internal static class RunAction
     /// - Otherwise, it tries to reach topSpeed relative to its support (or relative to the world if no support).
     /// - Drive force, if used (intent in the direction of motion), falls off smoothly near top speed.
     /// - Brake force, if used (intent against the direction of motion), is fully applied.
-    /// - Carrying a load increases the force applied.
     /// </summary>
     /// <param name="entity">The entity to walk, run or roll.</param>
     /// <param name="gameDt">Game-time tick duration.</param>
@@ -53,8 +52,6 @@ internal static class RunAction
                 float load = entity.ComputeLoad();
                 float stackMass = load * entity.Mass / entity.Weight;
                 float stopping = stackMass * MathF.Abs(speed) / gameDt;
-                // A loaded walker drives harder, so that carrying slows it less (019 §6.4).
-                drive *= load / entity.Weight;
                 float extra = reverse && !jumps
                     ? drive + MathF.Min(entity.Friction, stopping) - entity.Friction
                     : drive - entity.Friction;
