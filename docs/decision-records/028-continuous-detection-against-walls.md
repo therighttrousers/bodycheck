@@ -1,5 +1,7 @@
 # 028: Continuous detection against walls
 
+Closed on 2026-10-25. Outcomes and unresolved items are in the design docs: [movement.md](../designs/movement.md).
+
 ## Context
 
 Found while measuring `027 §6` (2026-10-25): a player falling while it holds towards a wall it touches stops in the air once it falls at about 20 tiles per second, and stays there, its velocity growing every tick while it doesn't move. Falling idle beside the same wall, it lands. Neil had also seen the player freeze against a wall in a jump, and after phasing down through a block while driving.

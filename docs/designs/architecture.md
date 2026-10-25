@@ -23,12 +23,13 @@ Relevant decision records:
 - [023: The player's spawned block](../decision-records/023-spawned-block.md)
 - [024: Playtesting feedback](../decision-records/024-playtesting-feedback.md)
 - [025: Platforms that move along any line](../decision-records/025-platforms-on-any-line.md)
+- [027: Engine friction for walkers and carrying](../decision-records/027-engine-friction.md)
 
 ## Tools
 
 - **Engine:** Godot 4.7.2, .NET build, Forward+ renderer, desktop only. The engine is installed into the repository by `dev-setup.ps1` and is not on the PATH.
 - **Language:** C# on .NET 10.
-- **Physics:** Godot's 3D physics engine, Jolt, with gameplay locked to the XY plane. The engine detects collisions, resolves contacts and moves bodies. Our rules push bodies with the engine's forces and impulses. An entity's grip on what it stands on is motors inside the engine, which our rules set each tick: friction where the engine's falls short, a walker's traction, and the player's steadying of what it carries (`005`, `019`). Drag is ours. Positions are in single precision, as in Godot's standard builds; both play and drawing hold up to 1e5 tiles from the origin, far beyond any world's size (`013 §6.1`). See [movement.md](movement.md#physics-engine).
+- **Physics:** Godot's 3D physics engine, Jolt, with gameplay locked to the XY plane. The engine detects collisions, resolves contacts and moves bodies. Our rules push bodies with the engine's forces and impulses. Friction is the engine's, with each entity's coefficient set by our rules each tick. A walker's traction and the player's steadying of what it carries are motors inside the engine, which our rules also set each tick (`005`, `019`, `027`). Drag is ours. Positions are in single precision, as in Godot's standard builds; both play and drawing hold up to 1e5 tiles from the origin, far beyond any world's size (`013 §6.1`). See [movement.md](movement.md#physics-engine).
 - **Levels:** authored in 2D in LDtk, in `game/levels/`, and turned into 3D at load. The LDtk JSON is read at runtime, and is to be moved to an asset pipeline only if the loading code proves too slow, too complex or too fragile (`000 §1.2`).
 - **Camera:** Phantom Camera 0.11.0.3, an addon, in `game/addons/phantom_camera/` without its examples. Out-of-the-box tools are preferred. Its nodes are GDScript classes; C# reaches them through the wrappers it ships, which can't create them, so the game creates them from their scripts. `.editorconfig` treats `game/addons/` as generated code, so formatting and the analyzers leave it as its authors wrote it, and turns off the compiler warnings it has.
 - **Modelling:** Blender.

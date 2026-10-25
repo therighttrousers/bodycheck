@@ -380,7 +380,7 @@ public partial class Entity : RigidBody3D
         });
     }
 
-    // What carries the entity may steady it, like a hand held up behind its head: the second joint's motor, at the
+    // What carries the entity may steady it, like a hand held up behind its head: the steadying joint's motor, at the
     // entity's center, holds the center's speed to the carrier's, so that friction at the base needn't, and doesn't tip
     // it (019 §5.1). The engine solves it with everything else, in the same step. At the center, it would also keep the
     // entity from tipping off an edge, so the hand lets go once the center is past the carrier's side.
