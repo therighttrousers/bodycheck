@@ -27,7 +27,12 @@ internal static class RunAction
 
         // Speed is relative to whatever the entity stands on, so running on a platform or blocks works like running on tiles.
         float speed = entity.GroundSpeed;
-        bool reverse = speed != 0 && move * speed <= 0;
+        // Driving into something it touches is driving, not reversing, whichever way the entity is moving against its
+        // support: a support moving under an entity held by a wall would otherwise make it brake, and grip the wall
+        // (027 §6).
+        bool pushes = (move > 0 && entity.Contacts.HasFlag(Contacts.Right))
+            || (move < 0 && entity.Contacts.HasFlag(Contacts.Left));
+        bool reverse = !pushes && speed != 0 && move * speed <= 0;
 
         float drive = 0;
         if (move != 0)
