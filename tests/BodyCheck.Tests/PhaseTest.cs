@@ -14,7 +14,7 @@ using Godot;
 
 using static GdUnit4.Assertions;
 
-namespace BodyCheck.Game.Tests;
+namespace BodyCheck.Tests;
 
 /// <summary>
 /// The player phasing through a robot. Phase is aimed while it is held, and made when it is released. Nothing pauses

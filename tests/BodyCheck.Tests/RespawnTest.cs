@@ -7,7 +7,7 @@ using GdUnit4;
 
 using static GdUnit4.Assertions;
 
-namespace BodyCheck.Game.Tests;
+namespace BodyCheck.Tests;
 
 /// <summary>Respawns: where the player starts when the world restarts, set by coming near one.</summary>
 [TestSuite]
