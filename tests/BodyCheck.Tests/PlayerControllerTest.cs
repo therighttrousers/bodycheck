@@ -202,7 +202,9 @@ public class PlayerControllerTest
         float speedAfterImpulse = Velocity.Y;
         await Tick(Jump, ThrustTicks);
 
-        AssertThat(Velocity.Y).IsEqualApprox(speedAfterImpulse, 0.001f);
+        // Thrust cancels gravity for the thrust time, which may end partway through the last tick.
+        float lostAfterThrust = Gravity * (ThrustTicks * Dt - Features.Current.PlayerJumpThrustTime);
+        AssertThat(Velocity.Y).IsEqualApprox(speedAfterImpulse - lostAfterThrust, 0.001f);
     }
 
     [TestCase]
@@ -233,8 +235,9 @@ public class PlayerControllerTest
         await Start(FullThrust, NoDrag);
         float tap = await ApexOfJump(ticksHeld: 1);
 
-        // Thrust starts the tick after the impulse, by when gravity has acted once. A tap gets none.
-        float risenUnderThrust = ThrustTicks * (Features.Current.PlayerJumpSpeed - Gravity * Dt) * Dt;
+        // Thrust starts the tick after the impulse, by when gravity has acted once, and holds that speed for the thrust
+        // time. A tap gets none.
+        float risenUnderThrust = Features.Current.PlayerJumpThrustTime * (Features.Current.PlayerJumpSpeed - Gravity * Dt);
 
         await Start(FullThrust, NoDrag);
         float held = await ApexOfJump(ticksHeld: 600);
@@ -327,7 +330,7 @@ public class PlayerControllerTest
         float half = await ApexOfJump(ticksHeld: 600);
 
         // Thrust adds the same speed at any tick length, but shorter steps integrate the rise more closely, so it goes
-        // a little higher: measured 4.65 tiles, against 4.57.
+        // a little higher: measured 4.58 tiles, against 4.50.
         AssertThat(half).IsEqualApprox(full, 0.1f);
     }
 

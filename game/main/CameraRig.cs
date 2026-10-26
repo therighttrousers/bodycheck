@@ -43,8 +43,9 @@ public partial class CameraRig : Node3D
     /// <summary>How long the camera takes to move to the map and back, in real seconds.</summary>
     private const float MapMoveTime = 0.25f;
     /// <summary>
-    /// Damping for moving the camera to follow the target near the player, expressed in real seconds for each axis:
-    /// about how long the camera takes to catch up. None along Z, which the camera doesn't move along.
+    /// Damping for moving the camera to follow the target near the player, expressed in game seconds for each axis:
+    /// about how long the camera takes to catch up. On game time, the camera lags a moving player by the same distance
+    /// at any gameplay speed. None along Z, which the camera doesn't move along.
     /// </summary>
     private readonly Vector3 _followDampingValue = new(0.15f, 0.15f, 0);
 
@@ -76,7 +77,6 @@ public partial class CameraRig : Node3D
 
         Node3D phantom = NewPhantomCameraNode<Node3D>("phantom_camera/phantom_camera_3d.gd");
         phantom.Set("follow_mode", (int)FollowMode3D.Simple);
-        // Its damping value is set each frame, from the gameplay speed.
         phantom.Set("follow_damping", true);
         AddChild(phantom);
         _phantomCamera = phantom.AsPhantomCamera3D();
@@ -84,6 +84,7 @@ public partial class CameraRig : Node3D
         float distance = HalfHeight / Mathf.Tan(Mathf.DegToRad(Fov / 2));
         _phantomCamera.FollowOffset = new Vector3(0, 0, distance + 0.5f);
         _phantomCamera.FollowTarget = _target;
+        _phantomCamera.FollowDampingValue = _followDampingValue;
         _phantomCamera.Priority = CameraPriority;
 
         Node3D mapPhantom = NewPhantomCameraNode<Node3D>("phantom_camera/phantom_camera_3d.gd");
@@ -164,8 +165,6 @@ public partial class CameraRig : Node3D
                     .SetEase(Tween.EaseType.In);
             }
             lookOffset = Mathf.Lerp(Lift, LookOffset * input.Value.YAxis, _lookAmount);
-            // When looking, adjust damping for gameplay speed.
-            _phantomCamera.FollowDampingValue = _followDampingValue * Features.Current.GameplaySpeed;
         }
         else
         {
@@ -174,7 +173,6 @@ public partial class CameraRig : Node3D
             _lookTween = null;
             _lookAmount = 0;
             lookOffset = Lift;
-            _phantomCamera.FollowDampingValue = _followDampingValue;
         }
 
         // The player's interpolated position, since the target moves every frame and the player every physics tick.
