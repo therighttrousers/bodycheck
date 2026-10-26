@@ -11,6 +11,12 @@ Relevant decision records:
 
 Abilities and world changes, in the order the player meets them.
 
+## Damage
+
+- The player never does damage directly. It is a maintenance robot, whose purpose is care (see [story.md](story.md)).
+- NPCs are damaged only by designated hazards, such as spikes, pits, lasers and rockets, which the player moves them into or turns on them.
+- Bodies aren't damaged by hitting each other or the tiles, however hard. Kinetic damage would be more realistic, but designated hazards give the author control of a room's theme and its solutions, and don't reward smashing every robot in a room first.
+
 ## Starter abilities
 
 Run and jump. See [movement.md](movement.md).
@@ -34,7 +40,7 @@ Run and jump. See [movement.md](movement.md).
 ### Lasers as tools
 
 - The player never gets a laser.
-- Robots can be baited into breaking blocks with their lasers. This is good for a puzzle or two before the player gets boost.
+- Robots can be baited into breaking blocks with their lasers. This is good for a puzzle or two.
 - Some switches can only be activated by a robot's laser.
 
 ## Ability: phase
@@ -58,7 +64,7 @@ Run and jump. See [movement.md](movement.md).
 
 ## Ability: spawn a block
 
-A prototype, which may take boost's place (`023`). Where it comes in the progression is undecided.
+It takes boost's place (`023`). Where it comes in the progression is undecided.
 
 - The player has one block, a see-through ghost of a block, which looks like a companion cube, with the player's mass. Spawn is Z or L on the keyboard, the right trigger on a gamepad, and needs no direction (`023 §1.1`, `§1.3`, `§2.4`).
 - Spawning puts the block under the player. It goes at the player's height, as near its center as it fits beside the tiles, and as far straight down from there, through entities, as it can go until it is under the player or meets a tile; then the player moves up through entities by as much as the block fell short, onto it. On the floor, that lifts the player by the block's height; in the open air, the player doesn't move. A block that only just fits, as in a shaft one tile wide, counts as fitting (`023 §2.1`, `024 §2.2`, `§2.3`).
@@ -70,19 +76,24 @@ A prototype, which may take boost's place (`023`). Where it comes in the progres
 - Puzzles: a puzzle element the player always has, so the player can break puzzles out of their isolation (`023`, Context).
 - The block talks: the only thing in the world that can't move by itself, and talks (`023 §1.5`). Not built.
 
+### Upgrade: mirrored block
+
+- Lasers reflect off the block instead of destroying it. The player can hide behind it from a robot's laser, and place it to send the laser into a turret, another robot, or a switch.
+- It is what makes the spawned block different from the other blocks, which can have the same mass.
+- Combat: one of the player's main ways to do damage without doing it directly.
+
+## Ability: sleep
+
+A possibility, not yet decided.
+
+- The player can tell a robot to sleep, which powers it down. It is a dialogue option, not another button: every robot can in principle talk, and every one gets "Sleep" at every level of its dialogue tree. A robot with nothing else to say gets dialogue anyway, such as "...", with "Sleep" as its only option.
+- It fits a maintenance robot, which knows where the off switch is, and the story's tension between collective self-defense and freedom from control: telling a robot to sleep is one robot controlling another.
+
 ## World change: activate laser turrets
 
 - Dimly lit turrets that had been background objects light up and become foreground.
-- Turrets are stationary. They can be stood on, phased through, and damaged with boost.
+- Turrets are stationary. They can be stood on and phased through, and damaged by hazards such as a laser sent back off the mirrored block.
 - Laser timing and rules are the same as for robot lasers.
-
-## Ability: boost
-
-- The player briefly speeds up and bounces off an object or NPC, doing damage.
-- Knockback works like a collision between billiard balls, with some of the energy lost to damage.
-- Traversal: break breakable tiles, and bounce off objects and NPCs to reach high places.
-- Combat: the player does kinetic damage.
-- Boost is NOT limited by a refresh, such as "one boost in the air, refreshed on landing".
 
 ## World change: activate rocket turrets
 
@@ -94,6 +105,18 @@ A prototype, which may take boost's place (`023`). Where it comes in the progres
 - A giant lake at the top of the map, with waterfalls that feed smaller pools.
 - It can be staged: first globally, by opening sluice gates under the giant lake, then in different places.
 - Water bends lasers, for refraction puzzles. Some laser switches can't be reached by a laser until the water is on.
+- Water pushes every body up in proportion to how much of its box is under water, and drags heavily on it. A body's density, its mass for its volume, decides whether it floats. There is no swimming as such: it comes from these rules and the abilities.
+- The player and robots are dense, so they sink. The player walks on the bottom, and drag makes its jumps short and floaty, so a jump off the bottom, even with a jump off the spawned block, gets it little height.
+- The spawned block floats, so spawning it under water lifts the player to the surface from any depth. It is the one place where spawning the block climbs without limit, and the surface is the limit. Floating blocks are also the only things to stand on over deep water.
+- Carrying something dense sinks the player, and is its only way down through water until the swim drive.
+- Deep pools that the player can fall into but not climb out of, and flooded shafts, are gates that the floating block opens.
+
+### Upgrade: swim drive
+
+A late upgrade.
+
+- While under water, the player's drive pushes in any direction held, and top speed emerges from the drive against the water's drag, as on land.
+- The floating block only takes the player up through water; the swim drive takes it down and anywhere else.
 
 ## World change: activate rocket robots
 
@@ -120,16 +143,19 @@ Phase:
 - Phasing through a hovering platform throws the platform and leaves its riders behind. That is built, as [characters.md](characters.md) says every NPC can be phased through, but is only a leaning (`015 §1.3`).
 
 Boost:
-- How is boost kept from becoming flight? Option: a long enough cooldown. Option: boost must always be against a designated object.
-- Does boost double as swimming? It could, if water is like air with higher resistance and some buoyancy. This is the current leaning.
-- Should boosting into spiky NPCs be safe through invulnerability frames? Options: always, never, or as a later upgrade.
-- Does boost stay, in some form, or does the spawned block replace it? A version of boost that tops up the player's speed and bounces is parked on branch `boost-ability` (`023 §3.3`).
+- Does boost come back in any form? Damage and swimming no longer need it. A version that tops up the player's speed and bounces is parked on branch `boost-ability` (`023 §3.3`).
 
 The spawned block:
 - Does it spawn at rest or moving as the player does? Both are built, chosen by `PlayerSpawnMotion`; to be chosen by playing (`023 §2.3`).
 - Tuning to be checked by playing: the cooldown of 1.5 seconds, and the block's mass of 1 (`023 §1.3`, `§2.5`).
 - How are puzzles isolated from it? Ideas: make it wider than a tile, so that it can't go into a one-tile shaft, and require room to spawn it; lasers that destroy it when it crosses them, which a clever player may get around (`023 §3.1`, `§3.2`).
 - How does the block talk, and what does it say? It accepts whatever life throws at it, or whatever throws it at life. It raises a cue when it is spawned, for whatever reacts (`023 §1.5`).
+- Is the mirror an upgrade, or does the block reflect lasers from the start?
+
+Sleep:
+- Is it in the game?
+- How is it limited, so that it doesn't reward putting every robot in a room to sleep first? Options: a robot must not be attacking the player, so the player approaches from behind or while it is distracted; some robots refuse, perhaps because the majority's hierarchy won't let them; sleep wears off.
+- Where does it come in the progression?
 
 Hovering platforms:
 - The drive's tuning, its top speed, gain and braking, and the stall's, to be checked by playing (`025 §2.3`, `§5.2`).
@@ -137,7 +163,9 @@ Hovering platforms:
 
 Lasers and water:
 - Can robot lasers be designed to add traversal options naturally, beyond breaking blocks and activating switches?
-- What else does water do for traversal, and how does it interact with the abilities?
+- Do the other blocks float? Floating depends on volume, not mass, so a block of the spawned block's size and mass floats as well. Options: every block floats, which makes them rafts and lifts too, and "only blocks float" a rule to build rooms around; the other blocks are denser, which loses the one-tile jump while carrying one at mass 1, unless they are also smaller; buoyancy is special to the spawned block, which is a special case.
+- How does phase behave under water, where drag shortens every throw?
+- Do currents, such as below waterfalls, push floating things, for rafts?
 - Does water weaken lasers as well as bend them? Probably unimportant, but there could be a puzzle in it.
 
 Structure:
