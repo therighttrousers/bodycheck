@@ -58,12 +58,13 @@ The player is a maintenance robot who has been asked by a mysterious Voice to re
 ### No contact damage by default
 
 - Objects and NPCs that do contact damage always show it, e.g. with red spikes.
-- Some do contact damage from one direction only, e.g. an NPC that must be hit with a boost from behind, or after a duck and slide.
+- Some do contact damage from one direction only, e.g. an NPC with spikes on its front only.
+- The player never does damage directly, and nothing is damaged by hitting something else, however hard. NPCs are damaged only by designated hazards, such as spikes, pits and lasers. See [progression.md](progression.md#damage).
 
 ### Characters can't occupy the same space
 
 - Passing through any NPC requires using a special ability.
-- Bodies collide without bouncing and share momentum, so each can push the other. Boost adds the bounce.
+- Bodies collide without bouncing and share momentum, so each can push the other.
 - The player can stand on NPCs and be carried by them.
 - NPCs can stand on and be carried by the player.
 
@@ -73,7 +74,7 @@ The player is a maintenance robot who has been asked by a mysterious Voice to re
 - Momentum is properly tracked. A feel cheat is always a force or an impulse, never a direct edit to velocity.
   - Contact with immovable objects is an exception; e.g. ground tiles absorb momentum without moving.
 - A force between two bodies pushes both. Jumping off a robot pushes it down; running on one pushes it back.
-- Mass matters: phase throws lighter NPCs farther, and boost knockback depends on the masses of both.
+- Mass matters: phase throws lighter NPCs farther, and in water, dense bodies sink and light ones float.
 - Bodies are boxes. Characters are axis-aligned: their rotation and mass distribution are not modelled. Blocks can rotate in the plane of play, so they tip off ledges and spin when run on.
 
 See [movement.md](movement.md).
@@ -82,7 +83,7 @@ See [movement.md](movement.md).
 
 - World changes often use the player's abilities, and often make the world more dangerous.
 - Progression often opens new ways to traverse, as in almost all metroidvanias, and often makes traversal harder, unlike almost all of them.
-- Risk: low variety. It is too easy for a world change to be just "a new thing appears to phase through or boost off".
+- Risk: low variety. It is too easy for a world change to be just "a new thing appears to phase through or stand on".
 - Risk: poor telegraphing of future routes. Something has to say "you can eventually get way up there".
 
 See [progression.md](progression.md).
@@ -100,7 +101,6 @@ See [architecture.md](architecture.md).
 
 Failure and saving:
 - How are saves between the stages of a multi-stage challenge done? Options: explicit save points spread out in space, so the player walks to the next stage; or restoring to the current stage after death.
-- Is there damage from falling, and does it apply to NPCs?
 
 World:
 - On one seamless map, when do world and NPC scripts run?

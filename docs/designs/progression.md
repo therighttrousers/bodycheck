@@ -139,7 +139,7 @@ Phase:
 - Tuning to be checked by playing (issue #61): the reach of 0.165 tiles beyond half the player's diagonal, the cooldowns of 0.125 seconds after a phase and 0.25 after a cancel, the gap of 0.5 tiles, the offset of 0.5 tiles for choosing a target, the speed of 12.7, and the 4 ticks a released direction still counts (`015 §3.1`, `§5.1`, `§5.15`, `§5.22`, `§5.23`, `018 §3.1`).
 - Letting go of a diagonal, or a stick passing neighbouring directions on its way back to the middle, can phase in a direction next to the one meant (`018 §3.2`).
 - Should a phase launch the player faster off heavy or immovable targets? That would make turrets give bigger launches in general, and make phasing upward off a robot stronger than phasing sideways.
-- Should dead NPCs remain as objects that can be phased through and boosted off?
+- Should dead NPCs remain as objects that can be phased through and stood on?
 - Phasing through a hovering platform throws the platform and leaves its riders behind. That is built, as [characters.md](characters.md) says every NPC can be phased through, but is only a leaning (`015 §1.3`).
 
 Boost:
