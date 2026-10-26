@@ -46,7 +46,7 @@ public partial class CameraRig : Node3D
     /// Damping for moving the camera to follow the target near the player, expressed in real seconds for each axis:
     /// about how long the camera takes to catch up. None along Z, which the camera doesn't move along.
     /// </summary>
-    private readonly Vector3 _followDampingValue = new(0.2f, 0.2f, 0);
+    private readonly Vector3 _followDampingValue = new(0.15f, 0.15f, 0);
 
     /// <summary>The priority of the player's camera, which is above the map camera's when the map is closed.</summary>
     private const int CameraPriority = 50;
@@ -164,6 +164,8 @@ public partial class CameraRig : Node3D
                     .SetEase(Tween.EaseType.In);
             }
             lookOffset = Mathf.Lerp(Lift, LookOffset * input.Value.YAxis, _lookAmount);
+            // When looking, adjust damping for gameplay speed.
+            _phantomCamera.FollowDampingValue = _followDampingValue * Features.Current.GameplaySpeed;
         }
         else
         {
@@ -172,6 +174,7 @@ public partial class CameraRig : Node3D
             _lookTween = null;
             _lookAmount = 0;
             lookOffset = Lift;
+            _phantomCamera.FollowDampingValue = _followDampingValue;
         }
 
         // The player's interpolated position, since the target moves every frame and the player every physics tick.
@@ -182,8 +185,6 @@ public partial class CameraRig : Node3D
             Clamp(player.X, halfWidth, _world.World.Size.X),
             Clamp(player.Y + lookOffset, HalfHeight, _world.World.Size.Y),
             0);
-        // Adjust damping (which is in seconds - a duration) for gameplay speed.
-        _phantomCamera.FollowDampingValue = _followDampingValue * Features.Current.GameplaySpeed;
     }
 
     /// <summary>
