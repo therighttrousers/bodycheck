@@ -12,10 +12,10 @@ using GdUnit4;
 
 using Godot;
 
-using static BodyCheck.Game.Tests.RoomRun;
+using static BodyCheck.Tests.RoomRun;
 using static GdUnit4.Assertions;
 
-namespace BodyCheck.Game.Tests;
+namespace BodyCheck.Tests;
 
 /// <summary>
 /// Bodies meeting each other and the tiles: collisions, pushing, blocks, and gaps in the floor.

@@ -8,7 +8,7 @@ using BodyCheck.Core.WorldData;
 
 using Godot;
 
-namespace BodyCheck.Game.Tests;
+namespace BodyCheck.Tests;
 
 /// <summary>
 /// One room, as a world of one room, loaded into the running engine for a test, with the player's input under the test's control.

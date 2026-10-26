@@ -15,13 +15,13 @@ game/levels/**/backups/
 gdunit4_testadapter_v5/
 
 # Copied from game/project.godot when the test project is built
-tests/BodyCheck.Game.Tests/project.godot
+tests/BodyCheck.Tests/project.godot
 
 # A link to game/assets, made when the test project is built
-/tests/BodyCheck.Game.Tests/assets
+/tests/BodyCheck.Tests/assets
 
 # Godot writes an ID file for every script. Nothing refers to test classes by ID.
-tests/BodyCheck.Game.Tests/**/*.uid
+tests/BodyCheck.Tests/**/*.uid
 
 tmp/
 

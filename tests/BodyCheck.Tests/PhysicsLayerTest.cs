@@ -10,7 +10,7 @@ using Godot;
 
 using static GdUnit4.Assertions;
 
-namespace BodyCheck.Game.Tests;
+namespace BodyCheck.Tests;
 
 /// <summary>
 /// <see cref="PhysicsLayer"/> names the same layers as the project's settings, which this project copies from the

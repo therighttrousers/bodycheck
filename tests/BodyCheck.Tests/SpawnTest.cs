@@ -11,7 +11,7 @@ using Godot;
 
 using static GdUnit4.Assertions;
 
-namespace BodyCheck.Game.Tests;
+namespace BodyCheck.Tests;
 
 /// <summary>The player spawning its block under itself.</summary>
 [TestSuite]

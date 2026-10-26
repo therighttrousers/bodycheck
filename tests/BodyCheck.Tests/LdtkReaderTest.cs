@@ -1,11 +1,23 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+
 using BodyCheck.Core.Levels;
 using BodyCheck.Core.WorldData;
 
+using GdUnit4;
+
 using Godot;
 
-namespace BodyCheck.Core.Tests;
+using static BodyCheck.Tests.Exceptions;
+using static GdUnit4.Assertions;
 
-public class LdtkReaderTests
+namespace BodyCheck.Tests;
+
+[TestSuite]
+[RequireGodotRuntime]
+public class LdtkReaderTest
 {
     /// <summary>
     /// A project file with multi-worlds on, as the only file there is to read, with a world named Test of these levels.
@@ -24,7 +36,7 @@ public class LdtkReaderTests
         }.GetValueOrDefault!;
 
     private static World ReadOne(Func<string, string> readFile) =>
-        Assert.Single(LdtkReader.ReadWorlds("test.ldtk", readFile));
+        LdtkReader.ReadWorlds("test.ldtk", readFile).Single();
 
     /// <summary>
     /// A level of <paramref name="width"/> by <paramref name="height"/> tiles, with its layers in the project file. Its
@@ -59,25 +71,25 @@ public class LdtkReaderTests
     private const string PlayerStart =
         """{ "__identifier": "PlayerStart", "__pivot": [0, 0], "px": [16, 0], "width": 16, "height": 16, "__smartColor": "#2CE8F5", "iid": "p", "fieldInstances": [] }""";
 
-    [Fact]
+    [TestCase]
     public void Reads_the_game_worlds()
     {
         string path = Path.Combine(AppContext.BaseDirectory, "levels", "main.ldtk");
 
-        Assert.NotEmpty(LdtkReader.ReadWorlds(path, File.ReadAllText));
+        AssertArray(LdtkReader.ReadWorlds(path, File.ReadAllText)).IsNotEmpty();
     }
 
-    [Fact]
+    [TestCase]
     public void Reads_each_world_named_after_it()
     {
         IReadOnlyList<World> worlds = LdtkReader.ReadWorlds("test.ldtk", Project(
             [("First", Level(0, 0, PlayerStart)), ("Second", Level(320, 0, PlayerStart))]));
 
-        Assert.Equal(["First", "Second"], worlds.Select(world => world.Name));
-        Assert.Equal(Vector2I.Zero, worlds[1].Rooms.Single().Origin);
+        AssertArray(worlds.Select(world => world.Name)).ContainsExactly("First", "Second");
+        AssertThat(worlds[1].Rooms.Single().Origin).IsEqual(Vector2I.Zero);
     }
 
-    [Fact]
+    [TestCase]
     public void Reads_each_level_into_a_room_at_its_place_on_the_grid()
     {
         // One level up and to the left of the other, so that the world is 2x2 levels, two of them missing.
@@ -86,22 +98,22 @@ public class LdtkReaderTests
         World world = ReadOne(Project(
             Level(-320, 0, robot, solid: [0], identifier: "Upper") + ", " + Level(0, 240, PlayerStart, identifier: "Lower")));
 
-        Assert.Equal(["Upper", "Lower"], world.Rooms.Select(room => room.Name));
+        AssertArray(world.Rooms.Select(room => room.Name)).ContainsExactly("Upper", "Lower");
         Room upper = world.Rooms[0];
         Room lower = world.Rooms[1];
 
-        Assert.Equal(new Vector2I(0, 15), upper.Origin);
-        Assert.True(upper.IsSolid(0, 14)); // Its top left tile
-        Assert.False(upper.IsSolid(1, 14));
-        EntityConfig robotConfig = Assert.Single(upper.EntityConfigs);
-        Assert.Equal((EntityKind.Robot, new Vector2(0.5f, 0)), (robotConfig.Kind, robotConfig.Start));
+        AssertThat(upper.Origin).IsEqual(new Vector2I(0, 15));
+        AssertThat(upper.IsSolid(0, 14)).IsTrue(); // Its top left tile
+        AssertThat(upper.IsSolid(1, 14)).IsFalse();
+        EntityConfig robotConfig = upper.EntityConfigs.Single();
+        AssertThat((robotConfig.Kind, robotConfig.Start)).IsEqual((EntityKind.Robot, new Vector2(0.5f, 0)));
 
-        Assert.Equal(new Vector2I(20, 0), lower.Origin);
-        EntityConfig playerConfig = Assert.Single(lower.EntityConfigs);
-        Assert.Equal((EntityKind.Player, new Vector2(1.5f, 14)), (playerConfig.Kind, playerConfig.Start));
+        AssertThat(lower.Origin).IsEqual(new Vector2I(20, 0));
+        EntityConfig playerConfig = lower.EntityConfigs.Single();
+        AssertThat((playerConfig.Kind, playerConfig.Start)).IsEqual((EntityKind.Player, new Vector2(1.5f, 14)));
     }
 
-    [Fact]
+    [TestCase]
     public void Reads_levels_of_any_size_anywhere_on_whole_tiles()
     {
         // A big level, and a small one beside it, a tile to the right and three tiles down from its top.
@@ -111,13 +123,13 @@ public class LdtkReaderTests
 
         Room big = world.Rooms[0];
         Room small = world.Rooms[1];
-        Assert.Equal((Vector2I.Zero, new Vector2I(40, 30)), (big.Origin, big.Size));
-        Assert.True(big.IsSolid(0, 0)); // Its bottom left tile
-        Assert.Equal((new Vector2I(41, 22), new Vector2I(7, 5)), (small.Origin, small.Size));
-        Assert.Equal(new Vector2(1.5f, 4), Assert.Single(small.EntityConfigs).Start);
+        AssertThat((big.Origin, big.Size)).IsEqual((Vector2I.Zero, new Vector2I(40, 30)));
+        AssertThat(big.IsSolid(0, 0)).IsTrue(); // Its bottom left tile
+        AssertThat((small.Origin, small.Size)).IsEqual((new Vector2I(41, 22), new Vector2I(7, 5)));
+        AssertThat(small.EntityConfigs.Single().Start).IsEqual(new Vector2(1.5f, 4));
     }
 
-    [Fact]
+    [TestCase]
     public void Reads_a_respawn_in_the_control_layer_identified_by_its_iid()
     {
         const string respawn = """
@@ -126,8 +138,8 @@ public class LdtkReaderTests
             """;
         World world = ReadOne(Project(Level(0, 0, PlayerStart, controlEntities: respawn)));
 
-        EntityConfig.Respawn read = Assert.Single(world.Respawns);
-        Assert.Equal(("a1b2", new Vector2(2.5f, 0), new Vector2(0.5f, 1)), (read.Id, read.Start, read.MapHalfSize));
+        EntityConfig.Respawn read = world.Respawns.Single();
+        AssertThat((read.Id, read.Start, read.MapHalfSize)).IsEqual(("a1b2", new Vector2(2.5f, 0), new Vector2(0.5f, 1)));
     }
 
     /// <summary>A platform 3 tiles wide in tiles 1 to 3 of a level's top row, with these fields.</summary>
@@ -139,70 +151,62 @@ public class LdtkReaderTests
     /// <summary>A platform's RangeA, at the middle of its box.</summary>
     private const string RangeA = """{ "__identifier": "RangeA", "__value": { "cx": 2, "cy": 0 } }""";
 
-    [Fact]
+    [TestCase]
     public void Reads_a_platforms_range_as_the_middles_of_its_cells()
     {
         const string rangeB = """{ "__identifier": "RangeB", "__value": { "cx": 2, "cy": 10 } }""";
         World world = ReadOne(Project(Level(0, 0, PlayerStart + ", " + Platform(RangeA + ", " + rangeB))));
 
-        var platform = Assert.Single(world.Rooms.Single().EntityConfigs.OfType<EntityConfig.Platform>());
-        Assert.Equal((new Vector2(2.5f, 14.5f), new Vector2(2.5f, 4.5f)), (platform.RangeA, platform.RangeB));
+        var platform = world.Rooms.Single().EntityConfigs.OfType<EntityConfig.Platform>().Single();
+        AssertThat((platform.RangeA, platform.RangeB)).IsEqual((new Vector2(2.5f, 14.5f), new Vector2(2.5f, 4.5f)));
     }
 
-    [Theory]
-    [InlineData("")]
-    [InlineData(RangeA)]
-    [InlineData(RangeA + """, { "__identifier": "RangeB", "__value": null }""")]
-    [InlineData(RangeA + """, { "__identifier": "RangeB", "__value": { "cx": 2 } }""")]
-    [InlineData(RangeA + """, { "__identifier": "RangeB", "__value": { "cx": 2, "cy": 0 } }""")] // The same as RangeA
+    [TestCase("")]
+    [TestCase(RangeA)]
+    [TestCase(RangeA + """, { "__identifier": "RangeB", "__value": null }""")]
+    [TestCase(RangeA + """, { "__identifier": "RangeB", "__value": { "cx": 2 } }""")]
+    [TestCase(RangeA + """, { "__identifier": "RangeB", "__value": { "cx": 2, "cy": 0 } }""")] // The same as RangeA
     public void Rejects_a_platform_without_two_different_points(string fields)
     {
-        var e = Assert.Throws<InvalidDataException>(
-            () => ReadOne(Project(Level(0, 0, PlayerStart + ", " + Platform(fields)))));
-        Assert.StartsWith("test.ldtk: ", e.Message);
+        var e = Thrown<InvalidDataException>(() => ReadOne(Project(Level(0, 0, PlayerStart + ", " + Platform(fields)))));
+        AssertThat(e.Message).StartsWith("test.ldtk: ");
     }
 
-    [Theory]
-    [InlineData("""{ "__identifier": "Dragon","__pivot": [0, 0], "px": [16, 0], "width": 16, "height": 16 }""")]
-    [InlineData("""{ "__identifier": "PlayerStart", "__pivot": [0, 0], "px": [16, 0], "width": 16 }""")]
-    [InlineData("""{ "__identifier": "PlayerStart", "__pivot": [0, 0], "px": null, "width": 16, "height": 16 }""")]
-    [InlineData("""{ "__identifier": 0, "__pivot": [0, 0], "px": [16, 0], "width": 16, "height": 16 }""")]
-    [InlineData("")] // No player
+    [TestCase("""{ "__identifier": "Dragon","__pivot": [0, 0], "px": [16, 0], "width": 16, "height": 16 }""")]
+    [TestCase("""{ "__identifier": "PlayerStart", "__pivot": [0, 0], "px": [16, 0], "width": 16 }""")]
+    [TestCase("""{ "__identifier": "PlayerStart", "__pivot": [0, 0], "px": null, "width": 16, "height": 16 }""")]
+    [TestCase("""{ "__identifier": 0, "__pivot": [0, 0], "px": [16, 0], "width": 16, "height": 16 }""")]
+    [TestCase("")] // No player
     public void Rejects_entity(string entity)
     {
-        var e = Assert.Throws<InvalidDataException>(() => ReadOne(Project(Level(0, 0, entity))));
-        Assert.StartsWith("test.ldtk: ", e.Message);
+        var e = Thrown<InvalidDataException>(() => ReadOne(Project(Level(0, 0, entity))));
+        AssertThat(e.Message).StartsWith("test.ldtk: ");
     }
 
-    public static TheoryData<string> BadLayouts => new()
-    {
+    public static IEnumerable<string> BadLayouts =>
+    [
         Level(0, 0, PlayerStart, pxWid: 336), // Wider than its layers
         Level(0, 0, PlayerStart, pxWid: 328), // Not a whole number of tiles
         Level(8, 0, PlayerStart), // Not a whole number of tiles from the origin
         Level(0, 0, PlayerStart, worldDepth: 1),
         Level(0, 0, PlayerStart) + ", " + Level(0, 0),
         Level(0, 0, PlayerStart) + ", " + Level(304, 224), // Overlapping by a tile
-        Level(0, 0, PlayerStart) + ", " + Level(320, 0, PlayerStart),
-    };
+        Level(0, 0, PlayerStart) + ", " + Level(320, 0, PlayerStart),    ];
 
-    [Theory]
-    [MemberData(nameof(BadLayouts))]
+    [TestCase]
+    [DataPoint(nameof(BadLayouts))]
     public void Rejects_layout(string levels)
     {
-        var e = Assert.Throws<InvalidDataException>(() => ReadOne(Project(levels)));
-        Assert.StartsWith("test.ldtk: ", e.Message);
+        var e = Thrown<InvalidDataException>(() => ReadOne(Project(levels)));
+        AssertThat(e.Message).StartsWith("test.ldtk: ");
     }
 
-    [Fact]
-    public void Rejects_a_project_without_multi_worlds()
-    {
-        Assert.Throws<InvalidDataException>(
+    [TestCase]
+    public void Rejects_a_project_without_multi_worlds() =>
+        Thrown<InvalidDataException>(
             () => LdtkReader.ReadWorlds("test.ldtk", ProjectFile(worlds: "", levels: Level(0, 0, PlayerStart))));
-    }
 
-    [Fact]
-    public void Rejects_a_world_without_levels()
-    {
-        Assert.Throws<InvalidDataException>(() => ReadOne(Project("")));
-    }
+    [TestCase]
+    public void Rejects_a_world_without_levels() =>
+        Thrown<InvalidDataException>(() => ReadOne(Project("")));
 }

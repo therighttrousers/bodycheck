@@ -14,7 +14,7 @@ using Godot;
 
 using static GdUnit4.Assertions;
 
-namespace BodyCheck.Game.Tests;
+namespace BodyCheck.Tests;
 
 /// <summary>
 /// The player running and jumping in an empty room.
