@@ -36,10 +36,17 @@ public partial class CameraRig : Node3D
     private const float Lift = 3;
     /// <summary>How far from the player's centre the view's centre is, in tiles, when the player looks up or down and the world allows it.</summary>
     private const float LookOffset = 0.75f * HalfHeight;
-    /// <summary>How long the user must hold up or down before panning starts, in seconds.</summary>
+    /// <summary>How long the user must hold up or down before panning starts, in real seconds.</summary>
     private const float LookDelay = 0.5f;
-    /// <summary>How long it takes to pan fully up or down after panning starts, in seconds.</summary>
+    /// <summary>How long it takes to pan fully up or down after panning starts, in real seconds.</summary>
     private const float LookTime = 1;
+    /// <summary>How long the camera takes to move to the map and back, in real seconds.</summary>
+    private const float MapMoveTime = 0.25f;
+    /// <summary>
+    /// Damping for moving the camera to follow the target near the player, expressed in real seconds for each axis:
+    /// about how long the camera takes to catch up. None along Z, which the camera doesn't move along.
+    /// </summary>
+    private readonly Vector3 _followDampingValue = new(0.2f, 0.2f, 0);
 
     /// <summary>The priority of the player's camera, which is above the map camera's when the map is closed.</summary>
     private const int CameraPriority = 50;
@@ -69,8 +76,8 @@ public partial class CameraRig : Node3D
 
         Node3D phantom = NewPhantomCameraNode<Node3D>("phantom_camera/phantom_camera_3d.gd");
         phantom.Set("follow_mode", (int)FollowMode3D.Simple);
+        // Its damping value is set each frame, from the gameplay speed.
         phantom.Set("follow_damping", true);
-        phantom.Set("follow_damping_value", new Vector3(0.2f, 0.2f, 0));
         AddChild(phantom);
         _phantomCamera = phantom.AsPhantomCamera3D();
         // From the plane of play back to where a tile's front face, half a tile in front of it, is the right size.
@@ -78,14 +85,12 @@ public partial class CameraRig : Node3D
         _phantomCamera.FollowOffset = new Vector3(0, 0, distance + 0.5f);
         _phantomCamera.FollowTarget = _target;
         _phantomCamera.Priority = CameraPriority;
-        _phantomCamera.TweenDuration = 0.25f;
 
         Node3D mapPhantom = NewPhantomCameraNode<Node3D>("phantom_camera/phantom_camera_3d.gd");
         mapPhantom.Set("follow_mode", (int)FollowMode3D.None);
         AddChild(mapPhantom);
         _mapPhantomCamera = mapPhantom.AsPhantomCamera3D();
         _mapPhantomCamera.Priority = 0;
-        _mapPhantomCamera.TweenDuration = 0.25f;
     }
 
     /// <summary>Follows the player of <paramref name="world"/>, from where the camera should be at once, undamped.</summary>
@@ -100,6 +105,12 @@ public partial class CameraRig : Node3D
     /// <summary>Switches to the map camera in <see cref="GameMode.Map"/>, and back to the player's otherwise.</summary>
     public void OnGameModeChanged(GameMode gameMode)
     {
+        // The host tweens to a camera over that camera's duration, in game time. Out of the slowdown for a phase, which
+        // a change of mode ends, game time runs at the gameplay speed, so this keeps the move quick however slow the
+        // game is (decision record 030 §3.1).
+        float duration = MapMoveTime * Features.Current.GameplaySpeed;
+        _phantomCamera.TweenDuration = duration;
+        _mapPhantomCamera.TweenDuration = duration;
         _mapPhantomCamera.Priority = gameMode == GameMode.Map ? MapCameraPriority : 0;
     }
 
@@ -145,7 +156,8 @@ public partial class CameraRig : Node3D
             // Delay for a bit, then slowly pan.
             if (_lookTween is null)
             {
-                _lookTween = CreateTween();
+                // In real time, since looking is the player's hands, not the world (decision record 030 §3.1).
+                _lookTween = CreateTween().SetIgnoreTimeScale();
                 _lookTween.TweenMethod(Callable.From<float>(amount => _lookAmount = amount), 0f, 1f, LookTime)
                     .SetDelay(LookDelay)
                     .SetTrans(Tween.TransitionType.Quad)
@@ -170,6 +182,8 @@ public partial class CameraRig : Node3D
             Clamp(player.X, halfWidth, _world.World.Size.X),
             Clamp(player.Y + lookOffset, HalfHeight, _world.World.Size.Y),
             0);
+        // Adjust damping (which is in seconds - a duration) for gameplay speed.
+        _phantomCamera.FollowDampingValue = _followDampingValue * Features.Current.GameplaySpeed;
     }
 
     /// <summary>

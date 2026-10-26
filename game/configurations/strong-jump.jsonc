@@ -2,5 +2,5 @@
 // defaults. The features and their defaults are in src/BodyCheck.Core/Features.cs.
 {
     "PlayerJumpSpeed": 15,
-    "PlayerJumpThrustTicks": 18,
+    "PlayerJumpThrustTime": 0.29,
 }

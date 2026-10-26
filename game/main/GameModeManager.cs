@@ -1,5 +1,6 @@
 using System;
 
+using BodyCheck.Core;
 using BodyCheck.Core.Simulation;
 
 using Godot;
@@ -19,11 +20,16 @@ public enum GameMode { Playing, Menu, Map, SlowingForPhase, Phasing }
 /// "map" the map; either opens its own from the other. There is no menu to show yet, so the menu is only a pause.
 /// <para>
 /// When the <see cref="World"/> asks for a pause, for the player aiming a phase, the game first slows down to it: the
-/// mode is <see cref="GameMode.SlowingForPhase"/>, and the engine's time scale falls in a straight line from 1 to
-/// <see cref="SlowestTimeScale"/> over <see cref="SlowdownTime"/> real seconds, while the world runs and the player aims. Then the mode is
-/// <see cref="GameMode.Phasing"/>, the time scale is 1 again, and this steps the world's controllers each physics
-/// tick in the world's place. When the world stops asking, play resumes at full speed at once, even partway through the
-/// slowdown. The menu and the map can still be opened; closing them goes back to playing, and so to the phase again.
+/// mode is <see cref="GameMode.SlowingForPhase"/>, and the <see cref="SlowdownFactor"/> falls in a straight line from 1
+/// to <see cref="SlowestSlowdownFactor"/> over <see cref="SlowdownTime"/> real seconds, while the world runs and the player
+/// aims. Then the mode is <see cref="GameMode.Phasing"/>, the factor is 1 again, and this steps the world's controllers
+/// each physics tick in the world's place. When the world stops asking, play resumes at full speed at once, even partway
+/// through the slowdown. The menu and the map can still be opened; closing them goes back to playing, and so to the
+/// phase again.
+/// </para>
+/// <para>
+/// The engine's time scale is the factor times <see cref="Features.GameplaySpeed"/>, set each physics tick, so that a
+/// slower game slows down to the pause as the game at speed 1 does, only slower (decision record 030 §1.2, §1.3).
 /// </para>
 /// </summary>
 public partial class GameModeManager : Node
@@ -31,12 +37,20 @@ public partial class GameModeManager : Node
     /// <summary>How long, in real seconds, the game takes to slow down to the pause for a phase.</summary>
     private const float SlowdownTime = 0.5f;
 
-    /// <summary>The time scale the slowdown for a phase falls to, short of 0 to avoid very small steps.</summary>
-    public const double SlowestTimeScale = 0.05;
+    /// <summary>
+    /// The <see cref="SlowdownFactor"/> the slowdown for a phase falls to, short of 0 to avoid very small steps.
+    /// </summary>
+    public const double SlowestSlowdownFactor = 0.05;
 
     private Tween? _slowdown;
 
     public GameMode GameMode { get; private set; } = GameMode.Playing;
+
+    /// <summary>
+    /// How far the slowdown for a phase has slowed the game: from 1, not at all, to <see cref="SlowestSlowdownFactor"/>.
+    /// 1 in every mode but <see cref="GameMode.SlowingForPhase"/>.
+    /// </summary>
+    public double SlowdownFactor { get; private set; } = 1;
 
     /// <summary>The world being played, whose controllers may ask for a pause.</summary>
     public WorldNode? World { get; set; }
@@ -87,24 +101,24 @@ public partial class GameModeManager : Node
 
     public override void _PhysicsProcess(double delta)
     {
-        if (World is null)
+        if (World is not null)
         {
-            return;
+            if (GameMode == GameMode.Phasing)
+            {
+                World.StepPaused();
+            }
+
+            if (GameMode is GameMode.SlowingForPhase or GameMode.Phasing && !World.PauseRequested)
+            {
+                SetGameMode(GameMode.Playing);
+            }
+            else if (GameMode == GameMode.Playing && World.PauseRequested)
+            {
+                SetGameMode(GameMode.SlowingForPhase);
+            }
         }
 
-        if (GameMode == GameMode.Phasing)
-        {
-            World.StepPaused();
-        }
-
-        if (GameMode is GameMode.SlowingForPhase or GameMode.Phasing && !World.PauseRequested)
-        {
-            SetGameMode(GameMode.Playing);
-        }
-        else if (GameMode == GameMode.Playing && World.PauseRequested)
-        {
-            SetGameMode(GameMode.SlowingForPhase);
-        }
+        Engine.TimeScale = SlowdownFactor * Features.Current.GameplaySpeed;
     }
 
     private void SetGameMode(GameMode gameMode)
@@ -112,7 +126,7 @@ public partial class GameModeManager : Node
         // Leaving the slowdown, by any way, goes back to full speed.
         _slowdown?.Kill();
         _slowdown = null;
-        Engine.TimeScale = 1;
+        SlowdownFactor = 1;
 
         GameMode = gameMode;
         GetTree().Paused = GameMode is not (GameMode.Playing or GameMode.SlowingForPhase);
@@ -120,7 +134,7 @@ public partial class GameModeManager : Node
         {
             // In real time, since the tween would otherwise slow itself down.
             _slowdown = CreateTween().SetIgnoreTimeScale();
-            _slowdown.TweenMethod(Callable.From<double>(scale => Engine.TimeScale = scale), 1.0, SlowestTimeScale, SlowdownTime);
+            _slowdown.TweenMethod(Callable.From<double>(factor => SlowdownFactor = factor), 1.0, SlowestSlowdownFactor, SlowdownTime);
             _slowdown.TweenCallback(Callable.From(() => SetGameMode(GameMode.Phasing)));
         }
         GameModeChanged?.Invoke(GameMode);

@@ -16,7 +16,7 @@ public enum Metric
     /// <summary>Speed along X relative to what the player stands on.</summary>
     GroundSpeed,
     OnGround,
-    /// <summary>Coyote time left, in game seconds.</summary>
+    /// <summary>Coyote time left, in real seconds.</summary>
     CoyoteTime,
     /// <summary>Jump thrust time left, in game seconds.</summary>
     ThrustTime,

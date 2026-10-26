@@ -4,8 +4,9 @@ namespace BodyCheck;
 
 /// <summary>
 /// Muffles every sound while the game slows down for a phase and while it is paused, with the first low-pass filter on
-/// the master bus. Each frame, it sets the filter's cutoff from the <see cref="GameMode"/> and the engine's time scale:
-/// open while playing; falling in octaves with the time scale while slowing for a phase, most of the way early on; closed in every mode
+/// the master bus. Each frame, it sets the filter's cutoff from the <see cref="GameMode"/> and the
+/// <see cref="GameModeManager.SlowdownFactor"/>: open while playing; falling in octaves with the slowdown factor while
+/// slowing for a phase, most of the way early on; closed in every mode
 /// that pauses. It keeps no state of its own, so it can't drift from the slowdown (decision record 021 §2.2).
 /// <para>
 /// The filter is tuned in the bus layout: its cutoff there is the closed one, and its slope how sharply it cuts above
@@ -64,7 +65,7 @@ public partial class Muffler : Node
         {
             GameMode.Playing => 0,
             GameMode.SlowingForPhase => Mathf.Pow((float)Mathf.Clamp(
-                (1 - Engine.TimeScale) / (1 - GameModeManager.SlowestTimeScale), 0, 1), SlowdownCurve),
+                (1 - _gameModeManager.SlowdownFactor) / (1 - GameModeManager.SlowestSlowdownFactor), 0, 1), SlowdownCurve),
             _ => 1,
         };
         AudioServer.SetBusEffectEnabled(MasterBus, _filterIndex, muffling > 0);

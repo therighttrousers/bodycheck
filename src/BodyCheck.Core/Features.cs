@@ -99,18 +99,28 @@ public sealed record Features
     }
 
     #region Tuning
-    /// <summary>The tick rate that features given in ticks count at.</summary>
+    // Durations on game time are given in game seconds, since a tick's length in game time changes with the speed.
+    // Durations on real time are given in ticks (030 §2.6).
+
+    /// <summary>The tick rate that features given in ticks count at: the real time of a physics tick.</summary>
     public const int TuningTicksPerSecond = 60;
 
     /// <summary>
-    /// A length of time given in ticks at <see cref="TuningTicksPerSecond"/>, less half a tick: a timer set to it and
-    /// counted down by ticks' lengths at full speed stays above zero for exactly that many ticks, with half a tick to
-    /// spare either way however the lengths round.
+    /// A length of real time given in ticks at <see cref="TuningTicksPerSecond"/>, less half a tick: a timer set to it
+    /// and counted down by ticks' real lengths stays above zero for exactly that many ticks, with half a tick to spare
+    /// either way however the lengths round.
     /// </summary>
     public static float TicksToTime(int ticks) => (ticks - 0.5f) / TuningTicksPerSecond;
     #endregion
 
     #region World
+    /// <summary>
+    /// How fast the game plays: the engine's time scale while playing, outside the slowdown to a phase's pause. The
+    /// other features are tuned at speed 1, and every one on game time scales with it, while those on real time, such
+    /// as the leniencies for the player's fingers, don't (decision record 030). From 0.5 to 1.
+    /// </summary>
+    public float GameplaySpeed { get; init; } = 1;
+
     /// <summary>
     /// The default friction for static tiles. Walkers have no engine friction, and the smaller of two coefficients
     /// wins, so this only affects bodies that have some.
@@ -164,17 +174,19 @@ public sealed record Features
     public float PlayerJumpSpeed { get; init; } = 12.7f;
 
     /// <summary>
-    /// How long the jump thrust lasts while the button is held, in ticks at <see cref="TuningTicksPerSecond"/> of game
-    /// time. Includes the tick with the initial jump impulse.
+    /// How long the jump thrust lasts while the button is held, in game seconds, from the tick after the one with the
+    /// initial jump impulse. Thrust is applied on every tick that starts within it, so at speed 1 the default of 13.5
+    /// ticks' length gives 14 ticks of thrust, with half a tick to spare either way.
     /// </summary>
-    public int PlayerJumpThrustTicks { get; init; } = 14;
+    public float PlayerJumpThrustTime { get; init; } = 0.225f;
 
     /// <summary>Jump thrust as a fraction of the player's weight. At 1 it cancels gravity.</summary>
     public float PlayerJumpThrustFrac { get; init; } = 0.9f;
 
     /// <summary>
     /// How long the player gets to jump, or turn around with ground thrust, *after* running off an edge, in ticks at
-    /// <see cref="TuningTicksPerSecond"/> of game time.
+    /// <see cref="TuningTicksPerSecond"/> of real time, so that the time to react is the same at any
+    /// <see cref="GameplaySpeed"/> (030 §2.4).
     /// </summary>
     public int PlayerCoyoteTicks { get; init; } = 4;
 

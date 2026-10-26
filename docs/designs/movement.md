@@ -14,6 +14,7 @@ Relevant decision records:
 - [026: A carrier's drive doesn't grow with its load](../decision-records/026-carrying-drive.md)
 - [027: Engine friction for walkers and carrying](../decision-records/027-engine-friction.md)
 - [028: Continuous detection against walls](../decision-records/028-continuous-detection-against-walls.md)
+- [030: Gameplay speed](../decision-records/030-gameplay-speed.md)
 
 ## Player movement
 
@@ -44,7 +45,7 @@ Rationale: decision record `000 §1.8`.
 ### Edges and gaps
 
 - For a few ticks after moving off an edge without jumping, the player can still jump, and drives as on the ground: coyote time. A coyote jump is as high as one from the ground.
-- Coyote time and jump thrust run on game time, so the slowdown before a phase stretches them. Jump buffering measures the player's fingers, so it runs on real time. All are tuned in ticks at 60 per second, and at full speed always last exactly that many ticks (`018 §1.1`, `§2.1`).
+- Jump thrust runs on game time, so the slowdown before a phase and a lower gameplay speed stretch it, and a jump rises as high at any speed. It is tuned in game seconds. Coyote time and jump buffering measure the player's reactions, so they run on real time: they are tuned in ticks at 60 per second, and always last exactly that many ticks (`018 §1.1`, `§2.1`, `030 §2.4`, `§2.6`).
 - 1-tile gaps don't belong on running paths: at any speed, a running player may cross one or catch on its far edge and fall in, depending on where the ticks land (`007 §1.1`, `007 §1.2`).
 - Jumping up through a 1-tile gap doesn't need perfect alignment.
 
