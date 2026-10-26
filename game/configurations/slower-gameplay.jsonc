@@ -1,6 +1,10 @@
-// Configuration for slightly slower gameplay. If we go with slower gameplay, some other features will have to be
-// tweaked to correct for how the physics engine discretizes trajectories differently at different speeds; e.g.
-// PlayerJumpThrustTime will have to be lowered to get the highest jump apex nearer to 4.5.
+// Configuration for slightly slower gameplay.
 {
     "GameplaySpeed": 0.85,
+    // Tune player jump speed for 2.5 lowest apex (no thrust).
+    "PlayerJumpSpeed": 12.67,
+    // Note: leaving PlayerJumpThrustTime at default value because jump thrust is an affordance.
+    // Tune jump thrust for 4.5 highest apex (full thrust) and ~1.0 highest apex while carrying a 1 kg block.
+    "PlayerJumpThrustFrac": 0.883,
+    // TODO: Tune other features for slower gameplay
 }

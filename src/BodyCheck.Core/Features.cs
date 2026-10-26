@@ -176,12 +176,12 @@ public sealed record Features
     /// <summary>
     /// How long the jump thrust lasts while the button is held, in game seconds, from the tick after the one with the
     /// initial jump impulse. A tick that it covers only part of gets that part of the thrust, so the thrust adds the
-    /// same speed at any <see cref="GameplaySpeed"/>. The default is 14 ticks' length at speed 1.
+    /// same speed at any <see cref="GameplaySpeed"/>.
     /// </summary>
-    public float PlayerJumpThrustTime { get; init; } = 0.2333333f;
+    public float PlayerJumpThrustTime { get; init; } = 0.23f;
 
     /// <summary>Jump thrust as a fraction of the player's weight. At 1 it cancels gravity.</summary>
-    public float PlayerJumpThrustFrac { get; init; } = 0.9f;
+    public float PlayerJumpThrustFrac { get; init; } = 0.885f;
 
     /// <summary>
     /// How long the player gets to jump, or turn around with ground thrust, *after* running off an edge, in ticks at
