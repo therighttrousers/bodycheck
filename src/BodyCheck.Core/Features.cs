@@ -47,7 +47,9 @@ public sealed record Features
 
     /// <summary>
     /// Raised after <see cref="Current"/> changes. Try not to need it: read features where they are used, instead of
-    /// deriving from them or caching them, so that there is nothing to bring up to date.
+    /// deriving from them or caching them, so that there is nothing to bring up to date. What must copy them into the
+    /// engine may listen, as the world does (029 §2.5), but a node should listen only while it is in the tree, so that
+    /// the event doesn't keep it alive.
     /// </summary>
     public static event Action? Changed;
 
@@ -117,6 +119,9 @@ public sealed record Features
     #endregion
 
     #region Player
+    /// <summary>The player's mass.</summary>
+    public float PlayerMass { get; init; } = 1;
+
     /// <summary>Speed at which the player's run drive force falls to zero.</summary>
     public float PlayerTopSpeed { get; init; } = 12;
 
@@ -240,6 +245,9 @@ public sealed record Features
     #endregion
 
     #region Robots
+    /// <summary>A robot's mass.</summary>
+    public float RobotMass { get; init; } = 1;
+
     /// <summary>Speed at which a robot's run drive force falls to zero.</summary>
     public float RobotTopSpeed { get; init; } = 3;
 
@@ -259,6 +267,16 @@ public sealed record Features
     #endregion
 
     #region Platforms
+    /// <summary>
+    /// A platform's mass. Its drive and its hold on its line are fractions of its weight, so they scale with it.
+    /// </summary>
+    public float PlatformMass { get; init; } = 5;
+    /// <summary>
+    /// A platform's coefficient of friction, with which it carries what rests on it. The smaller of two bodies'
+    /// coefficients wins, unless one is rough, as a walker's is.
+    /// </summary>
+    public float PlatformEngineFriction { get; init; } = 1;
+
     /// <summary>A platform's speed along its line, away from its ends.</summary>
     public float PlatformTopSpeed { get; init; } = 6;
     /// <summary>
@@ -298,6 +316,21 @@ public sealed record Features
     /// it takes to speed up again after turning around.
     /// </summary>
     public float PlatformStallTime { get; init; } = 0.25f;
+    #endregion
+
+    #region Blocks
+    /// <summary>The mass of the block the player spawns, light enough to carry and jump with.</summary>
+    public float PlayerBlockMass { get; init; } = 1;
+    /// <summary>The coefficient of friction of the block the player spawns. See <see cref="BlockEngineFriction"/>.</summary>
+    public float PlayerBlockEngineFriction { get; init; } = 1;
+
+    /// <summary>A block's mass.</summary>
+    public float BlockMass { get; init; } = 2;
+    /// <summary>
+    /// A block's coefficient of friction, against everything it touches but what carries it. The smaller of two bodies'
+    /// coefficients wins, unless one is rough, as a walker's and a carrier's are.
+    /// </summary>
+    public float BlockEngineFriction { get; init; } = 1;
     #endregion
 }
 

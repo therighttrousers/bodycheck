@@ -52,9 +52,9 @@ public class BodiesTest
         }
     }
 
-    private RoomRun Start(Room room, BodyTuning? playerBody = null, bool controllersEnabled = true)
+    private RoomRun Start(Room room, bool controllersEnabled = true)
     {
-        _run = new RoomRun(room, playerBody, controllersEnabled);
+        _run = new RoomRun(room, controllersEnabled);
         return _run;
     }
 
@@ -72,14 +72,13 @@ public class BodiesTest
     {
         // With the controllers off and no ground friction, the player and the robot are just two boxes on a
         // frictionless floor.
-        Features.Set(new() { PlayerGroundFriction = 0, RobotGroundFriction = 0 });
+        Features.Set(new() { PlayerGroundFriction = 0, RobotGroundFriction = 0, PlayerMass = movingMass });
         RoomRun run = Start(
             RoomOf(
                 "#..............................#",
                 "#..............................#",
                 "#....P.....R...................#",
                 "################################"),
-            BodyTuning.Player with { Mass = movingMass },
             controllersEnabled: false);
         Entity moving = run.Player;
         Entity resting = run.Node.EntitiesOf(EntityKind.Robot).Single();
@@ -112,6 +111,25 @@ public class BodiesTest
         AssertThat(greatestSeparationSpeed).IsLess(0.01f);
         AssertThat(resting.LinearVelocity.X).IsGreater(0f);
         AssertThat(moving.Right()).IsLessEqual(resting.Left() + Slack);
+    }
+
+    [TestCase]
+    public async Task A_change_to_a_mass_feature_takes_effect_at_the_next_tick()
+    {
+        RoomRun run = Start(RoomOf(
+            "#..........#",
+            "#..P..R..B.#",
+            "############"));
+        Entity robot = run.Node.EntitiesOf(EntityKind.Robot).Single();
+        Entity block = run.Node.EntitiesOf(EntityKind.Block).Single();
+
+        Features.Set(Features.Current with { PlayerMass = 3, RobotMass = 4, BlockMass = 5 });
+        // The tree's physics frame comes before the world's tick, so the world steps in the second.
+        await run.Tick(Idle, 2);
+
+        AssertThat(run.Player.Mass).IsEqual(3f);
+        AssertThat(robot.Mass).IsEqual(4f);
+        AssertThat(block.Mass).IsEqual(5f);
     }
 
     [TestCase]

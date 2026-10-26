@@ -181,7 +181,7 @@ public class PlayerControllerTest
     [TestCase]
     public async Task Jumping_gives_an_upward_impulse()
     {
-        await Start(body: BodyTuning.Player with { Mass = 3 });
+        await Start(new() { PlayerMass = 3 });
 
         await Tick(Jump);
 

@@ -5,11 +5,20 @@ namespace BodyCheck.Core.Entities;
 /// <summary>
 /// What an entity's body is like, whatever controls it: its size, its mass, and how it meets the air and
 /// other bodies.
+/// <para>
+/// Its values that are features, which playtesting tunes, are functions that read them from the features in effect when
+/// they are used (016 §3.1).
+/// </para>
 /// </summary>
 public sealed record BodyTuning
 {
     public required Vector2 HalfSize { get; init; }
-    public required float Mass { get; init; }
+
+    /// <summary>
+    /// The body's mass. The engine holds it, and the world puts it there at the start of each tick, before any entity
+    /// steps, so that a change to the features takes effect at the next tick (029 §2.1). Read the entity's own.
+    /// </summary>
+    public required Func<Features, float> Mass { get; init; }
 
     /// <summary>Linear drag coefficient: drag force is -Drag × velocity.</summary>
     public float Drag { get; init; } = 0.375f;
@@ -24,10 +33,7 @@ public sealed record BodyTuning
     /// Where two bodies touch, the engine uses the smaller of their coefficients, unless one is rough.
     /// </para>
     /// </summary>
-    public float EngineFriction { get; init; }
-
-    // The values below are features, which playtesting tunes, so each is a function that reads them from the features
-    // in effect when it is used (016 §3.1).
+    public Func<Features, float> EngineFriction { get; init; } = _ => 0;
 
     /// <summary>
     /// The engine's coefficient of friction for this body with what it stands on, in place of
@@ -65,7 +71,7 @@ public sealed record BodyTuning
     public static BodyTuning Player { get; } = new()
     {
         HalfSize = new(0.4f, 0.9f),
-        Mass = 1,
+        Mass = features => features.PlayerMass,
         CollisionLayer = PhysicsLayer.Character,
         CanBeCarried = false,
         GroundFriction = features => features.PlayerGroundFriction,
@@ -78,7 +84,7 @@ public sealed record BodyTuning
     public static BodyTuning Robot { get; } = new()
     {
         HalfSize = new(0.4f, 0.9f),
-        Mass = 1,
+        Mass = features => features.RobotMass,
         CollisionLayer = PhysicsLayer.Character,
         GroundFriction = features => features.RobotGroundFriction,
         CarryFriction = features => features.RobotCarryFriction,
@@ -91,8 +97,8 @@ public sealed record BodyTuning
     public static BodyTuning Platform { get; } = new()
     {
         HalfSize = new(1.4f, 0.4f),
-        Mass = 5,
-        EngineFriction = 1,
+        Mass = features => features.PlatformMass,
+        EngineFriction = features => features.PlatformEngineFriction,
         CollisionLayer = PhysicsLayer.Character,
         CanBeCarried = false,
     };
@@ -101,8 +107,8 @@ public sealed record BodyTuning
     public static BodyTuning PlayerBlock { get; } = new()
     {
         HalfSize = new(0.5f, 0.5f),
-        Mass = 1,
-        EngineFriction = 1,
+        Mass = features => features.PlayerBlockMass,
+        EngineFriction = features => features.PlayerBlockEngineFriction,
         CollisionLayer = PhysicsLayer.Prop
     };
 
@@ -110,8 +116,8 @@ public sealed record BodyTuning
     public static BodyTuning Block { get; } = new()
     {
         HalfSize = new(0.5f, 0.5f),
-        Mass = 2,
-        EngineFriction = 1,
+        Mass = features => features.BlockMass,
+        EngineFriction = features => features.BlockEngineFriction,
         CollisionLayer = PhysicsLayer.Prop
     };
 }

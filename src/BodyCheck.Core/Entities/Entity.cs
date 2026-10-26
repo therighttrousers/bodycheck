@@ -115,7 +115,7 @@ public partial class Entity : RigidBody3D
     public Entity(BodyTuning tuning, Node3D? visual = null, bool axisLockAngularZ = true)
     {
         Tuning = tuning;
-        Mass = tuning.Mass;
+        Mass = tuning.Mass(Features.Current);
 
         AxisLockLinearZ = true;
         AxisLockAngularX = true;
@@ -123,7 +123,7 @@ public partial class Entity : RigidBody3D
         AxisLockAngularZ = axisLockAngularZ;
 
         // Its own, since SetFrictionAfterEntitySteps changes it every tick. Until the first, the tuning's.
-        PhysicsMaterialOverride = new PhysicsMaterial { Friction = tuning.EngineFriction, Bounce = 0, Rough = false };
+        PhysicsMaterialOverride = new PhysicsMaterial { Friction = tuning.EngineFriction(Features.Current), Bounce = 0, Rough = false };
         LinearDampMode = DampMode.Replace;
         LinearDamp = 0;
         CanSleep = false;
@@ -205,6 +205,22 @@ public partial class Entity : RigidBody3D
     /// </summary>
     public void SetGravityScaleAfterPhysicsStep(float scale, IDefer defer) =>
         defer.RunAfterPhysicsStep(() => base.GravityScale = scale);
+
+    /// <summary>
+    /// Puts the tuning's values that the engine holds in it, from the features in effect now. Whatever steps entities
+    /// calls this for every one at the start of the tick after the features change, before any steps, so that all see
+    /// the same values (029 §2.1).
+    /// </summary>
+    public void UpdateFromFeatures()
+    {
+        // Not the engine friction: SetFrictionAfterEntitySteps reads it from the features and puts it in the engine
+        // every tick, since what the entity touches changes it.
+        float mass = Tuning.Mass(Features.Current);
+        if (Mass != mass)
+        {
+            Mass = mass;
+        }
+    }
 
     // The tuning's values for gripping and carrying, from the features in effect now. See BodyTuning.
     private float? GroundFriction => Tuning.GroundFriction?.Invoke(Features.Current);
@@ -349,7 +365,7 @@ public partial class Entity : RigidBody3D
     {
         defer.RunAfterEntitySteps(() =>
         {
-            float friction = Tuning.EngineFriction;
+            float friction = Tuning.EngineFriction(Features.Current);
             bool rough = false;
             if (_slipAfterEntitySteps || (GroundFriction is not null && !OnGround))
             {
