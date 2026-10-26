@@ -207,11 +207,14 @@ public partial class Entity : RigidBody3D
         defer.RunAfterPhysicsStep(() => base.GravityScale = scale);
 
     /// <summary>
-    /// Puts the tuning's mass in the engine, from the features in effect now. Whatever steps entities calls this for
-    /// every one at the start of each tick, before any steps, so that all see the same masses (029 §2.1).
+    /// Puts the tuning's values that the engine holds in it, from the features in effect now. Whatever steps entities
+    /// calls this for every one at the start of the tick after the features change, before any steps, so that all see
+    /// the same values (029 §2.1).
     /// </summary>
-    public void UpdateMass()
+    public void UpdateFromFeatures()
     {
+        // Not the engine friction: SetFrictionAfterEntitySteps reads it from the features and puts it in the engine
+        // every tick, since what the entity touches changes it.
         float mass = Tuning.Mass(Features.Current);
         if (Mass != mass)
         {

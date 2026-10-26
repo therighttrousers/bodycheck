@@ -47,7 +47,9 @@ public sealed record Features
 
     /// <summary>
     /// Raised after <see cref="Current"/> changes. Try not to need it: read features where they are used, instead of
-    /// deriving from them or caching them, so that there is nothing to bring up to date.
+    /// deriving from them or caching them, so that there is nothing to bring up to date. What must copy them into the
+    /// engine may listen, as the world does (029 §2.5), but a node should listen only while it is in the tree, so that
+    /// the event doesn't keep it alive.
     /// </summary>
     public static event Action? Changed;
 

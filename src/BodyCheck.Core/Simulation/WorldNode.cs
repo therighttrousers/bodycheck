@@ -32,6 +32,9 @@ public partial class WorldNode : Node3D
     // The world's colliders: one static body for every tile.
     private readonly StaticBody3D _tiles;
 
+    // Whether the features have changed since they were last put in the engine. See UpdateFromFeatures.
+    private bool _featuresChanged = true;
+
     private readonly Defer _defer = new();
 
     /// <param name="assets">What to draw for each entity and for tiles.</param>
@@ -301,10 +304,29 @@ public partial class WorldNode : Node3D
         UpdateCurrentRespawn();
     }
 
-    // Puts the features that the engine holds in it, from the features in effect now, before any entity steps, so that
-    // a change takes effect at the next tick and every controller sees it (029 §2).
+    // Listens for changes to the features only while in the tree, so that the event doesn't keep the world alive: Godot
+    // takes a node out of the tree before freeing it.
+    public override void _EnterTree()
+    {
+        // They may have changed while the world was out of the tree.
+        _featuresChanged = true;
+        Features.Changed += OnFeaturesChanged;
+    }
+
+    public override void _ExitTree() => Features.Changed -= OnFeaturesChanged;
+
+    private void OnFeaturesChanged() => _featuresChanged = true;
+
+    // Puts the features that the engine holds in it, if they have changed, before any entity steps, so that a change
+    // takes effect at the next tick and every controller sees it (029 §2).
     private void UpdateFromFeatures()
     {
+        if (!_featuresChanged)
+        {
+            return;
+        }
+        _featuresChanged = false;
+
         // Godot reloads the body's material on every change, even to the same value.
         PhysicsMaterial tiles = _tiles.PhysicsMaterialOverride;
         if (tiles.Friction != Features.Current.TileDefaultFriction)
@@ -314,7 +336,7 @@ public partial class WorldNode : Node3D
 
         foreach (Entity entity in _entities)
         {
-            entity.UpdateMass();
+            entity.UpdateFromFeatures();
         }
     }
 
