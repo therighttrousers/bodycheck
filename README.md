@@ -37,7 +37,7 @@ Steps:
    - Install the extensions recommended for this repository.
    - Press Ctrl+backtick to open a new terminal in VS Code.
 8. Run `dotnet build && dotnet test` to build everything and run the tests.
-9. Run `play.cmd` to launch the game.
+9. Run `godot-editor.cmd` and press the `▶` button to launch the game.
 10. If you want to edit the map:
     - Launch LDtk.
     - Open `<parent-directory>\bodycheck\game\levels\main.ldtk`.
