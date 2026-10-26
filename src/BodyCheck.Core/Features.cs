@@ -100,7 +100,7 @@ public sealed record Features
 
     #region Tuning
     // Durations on game time are given in game seconds, since a tick's length in game time changes with the speed.
-    // Durations on real time are given in ticks (030 §2.6).
+    // Durations on real time are given in ticks.
 
     /// <summary>The tick rate that features given in ticks count at: the real time of a physics tick.</summary>
     public const int TuningTicksPerSecond = 60;
@@ -117,7 +117,7 @@ public sealed record Features
     /// <summary>
     /// How fast the game plays: the engine's time scale while playing, outside the slowdown to a phase's pause. The
     /// other features are tuned at speed 1, and every one on game time scales with it, while those on real time, such
-    /// as the leniencies for the player's fingers, don't (decision record 030). From 0.5 to 1.
+    /// as the leniencies for the player's fingers, don't (see docs/designs/architecture.md). From 0.5 to 1.
     /// </summary>
     public float GameplaySpeed { get; init; } = 1;
 
@@ -175,10 +175,10 @@ public sealed record Features
 
     /// <summary>
     /// How long the jump thrust lasts while the button is held, in game seconds, from the tick after the one with the
-    /// initial jump impulse. Thrust is applied on every tick that starts within it, so at speed 1 the default of 13.5
-    /// ticks' length gives 14 ticks of thrust, with half a tick to spare either way.
+    /// initial jump impulse. A tick that it covers only part of gets that part of the thrust, so the thrust adds the
+    /// same speed at any <see cref="GameplaySpeed"/>. The default is 14 ticks' length at speed 1.
     /// </summary>
-    public float PlayerJumpThrustTime { get; init; } = 0.225f;
+    public float PlayerJumpThrustTime { get; init; } = 0.2333333f;
 
     /// <summary>Jump thrust as a fraction of the player's weight. At 1 it cancels gravity.</summary>
     public float PlayerJumpThrustFrac { get; init; } = 0.9f;
@@ -186,7 +186,7 @@ public sealed record Features
     /// <summary>
     /// How long the player gets to jump, or turn around with ground thrust, *after* running off an edge, in ticks at
     /// <see cref="TuningTicksPerSecond"/> of real time, so that the time to react is the same at any
-    /// <see cref="GameplaySpeed"/> (030 §2.4).
+    /// <see cref="GameplaySpeed"/>.
     /// </summary>
     public int PlayerCoyoteTicks { get; init; } = 4;
 

@@ -45,7 +45,7 @@ Rationale: decision record `000 §1.8`.
 ### Edges and gaps
 
 - For a few ticks after moving off an edge without jumping, the player can still jump, and drives as on the ground: coyote time. A coyote jump is as high as one from the ground.
-- Jump thrust runs on game time, so the slowdown before a phase and a lower gameplay speed stretch it, and a jump rises as high at any speed. It is tuned in game seconds. Coyote time and jump buffering measure the player's reactions, so they run on real time: they are tuned in ticks at 60 per second, and always last exactly that many ticks (`018 §1.1`, `§2.1`, `030 §2.4`, `§2.6`).
+- Jump thrust runs on game time, so the slowdown before a phase and a lower gameplay speed stretch it, and a jump rises as high at any speed. It is tuned in game seconds. A tick that the thrust's time covers only part of gets that part of the thrust, so the thrust adds the same speed whatever the ticks' length: the highest jump rises 4.57 tiles at speed 1, and 4.65 at speed 0.5, where shorter steps integrate the rise more closely (`030 §4.5`). Coyote time and jump buffering measure the player's reactions, so they run on real time: they are tuned in ticks at 60 per second, and always last exactly that many ticks (`018 §1.1`, `§2.1`, `030 §2.4`, `§2.6`).
 - 1-tile gaps don't belong on running paths: at any speed, a running player may cross one or catch on its far edge and fall in, depending on where the ticks land (`007 §1.1`, `007 §1.2`).
 - Jumping up through a 1-tile gap doesn't need perfect alignment.
 

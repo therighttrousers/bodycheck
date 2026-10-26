@@ -29,7 +29,7 @@ public enum GameMode { Playing, Menu, Map, SlowingForPhase, Phasing }
 /// </para>
 /// <para>
 /// The engine's time scale is the factor times <see cref="Features.GameplaySpeed"/>, set each physics tick, so that a
-/// slower game slows down to the pause as the game at speed 1 does, only slower (decision record 030 §1.2, §1.3).
+/// slower game slows down to the pause as the game at speed 1 does, only slower.
 /// </para>
 /// </summary>
 public partial class GameModeManager : Node

@@ -1,0 +1,6 @@
+// Configuration for slightly slower gameplay. If we go with slower gameplay, some other features will have to be
+// tweaked to correct for how the physics engine discretizes trajectories differently at different speeds; e.g.
+// PlayerJumpThrustTime will have to be lowered to get the highest jump apex nearer to 4.5.
+{
+    "GameplaySpeed": 0.85,
+}

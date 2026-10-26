@@ -107,7 +107,7 @@ public partial class CameraRig : Node3D
     {
         // The host tweens to a camera over that camera's duration, in game time. Out of the slowdown for a phase, which
         // a change of mode ends, game time runs at the gameplay speed, so this keeps the move quick however slow the
-        // game is (decision record 030 §3.1).
+        // game is.
         float duration = MapMoveTime * Features.Current.GameplaySpeed;
         _phantomCamera.TweenDuration = duration;
         _mapPhantomCamera.TweenDuration = duration;
@@ -156,7 +156,7 @@ public partial class CameraRig : Node3D
             // Delay for a bit, then slowly pan.
             if (_lookTween is null)
             {
-                // In real time, since looking is the player's hands, not the world (decision record 030 §3.1).
+                // In real time, since looking is the player's hands, not the world.
                 _lookTween = CreateTween().SetIgnoreTimeScale();
                 _lookTween.TweenMethod(Callable.From<float>(amount => _lookAmount = amount), 0f, 1f, LookTime)
                     .SetDelay(LookDelay)

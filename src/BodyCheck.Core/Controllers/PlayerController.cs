@@ -404,7 +404,10 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
 
         if (_thrustTimeLeft > 0)
         {
-            var force = new Vector3(0, Features.Current.PlayerJumpThrustFrac * weight, 0);
+            // The last tick of thrust gets only the part of it that the thrust time covers, so that the thrust adds the
+            // same speed whatever the ticks' length in game time.
+            float share = Math.Min(1, _thrustTimeLeft / gameDt);
+            var force = new Vector3(0, share * Features.Current.PlayerJumpThrustFrac * weight, 0);
             entity.ApplyCentralForce(force);
             entity.Support?.ApplyCentralForce(-force);
         }

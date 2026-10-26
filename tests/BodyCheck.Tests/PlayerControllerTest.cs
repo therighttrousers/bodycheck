@@ -326,7 +326,8 @@ public class PlayerControllerTest
         await Start();
         float half = await ApexOfJump(ticksHeld: 600);
 
-        // Shorter steps integrate a little differently, and thrust may end a tick either way.
+        // Thrust adds the same speed at any tick length, but shorter steps integrate the rise more closely, so it goes
+        // a little higher: measured 4.65 tiles, against 4.57.
         AssertThat(half).IsEqualApprox(full, 0.1f);
     }
 
