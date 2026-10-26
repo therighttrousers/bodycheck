@@ -1,9 +1,12 @@
-Godot_v*.zip
-Godot/
+# The Godot runtime+editor binaries
+/Godot/
 
 # .NET build output
 bin/
 obj/
+
+# Export builds
+/build/
 
 # Godot import cache
 .godot/
@@ -14,7 +17,9 @@ game/levels/**/backups/
 # gdUnit4Net test runner scene, written by the test adapter on each run
 gdunit4_testadapter_v5/
 
+# Temporary files
 tmp/
+Godot_v*.zip
 
 # Blender backups
 *.blend1

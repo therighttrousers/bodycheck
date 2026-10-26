@@ -4,7 +4,7 @@ Design docs and decision records are in [`docs/`](docs/AGENTS.md). Read that bef
 
 ## Setup and running
 
-- Run `.\dev-setup.ps1` before the first build. It installs Godot into `Godot/`, and `BodyCheck.Core` doesn't compile without the GodotSharp assembly it brings.
+- Run `.\scripts\dev-setup.ps1` before the first build. It installs Godot into `Godot/`, and `BodyCheck.Core` doesn't compile without the GodotSharp assembly it brings.
 - Godot is `.\Godot\Godot.exe`, not on the PATH.
 - Running the game from the command line doesn't build the C# code. Run `dotnet build` first.
 - `dotnet test` runs all the tests, including the ones that run headless inside Godot.
@@ -43,6 +43,6 @@ Describe intent, not inventory: don't list the subsystem's types, which the dire
 
 CI runs on every PR branch, on Windows:
 
-- **Build and test:** runs `dev-setup.ps1`, then `dotnet build` and `dotnet test`, in Debug.
+- **Build and test:** runs `scripts\dev-setup.ps1`, then `dotnet build` and `dotnet test`, in Debug.
 - **No changes:** fails if the build or the tests change any file in the repository. Commit what Godot generates, such as the `.uid` file for a new script, and keep the order in which the Godot editor writes `project.godot`.
 - **Formatting:** `dotnet format --verify-no-changes` over every file, not only those the pre-commit hook saw.

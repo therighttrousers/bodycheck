@@ -27,7 +27,7 @@ jobs:
           dotnet-version: '10.0.401'
 
       - name: Run dev setup
-        run: .\dev-setup.ps1
+        run: .\scripts\dev-setup.ps1
 
       # Debug, because gdUnit4Net rebuilds the game's project in Debug before it starts Godot, without
       # building what that project references.
@@ -36,6 +36,9 @@ jobs:
 
       - name: Test
         run: dotnet test --no-build --verbosity normal --configuration Debug
+
+      - name: Build release
+        run: .\scripts\build-release.ps1
 
       - name: Ensure no repo changes
         run: |

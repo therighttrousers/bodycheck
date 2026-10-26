@@ -8,7 +8,9 @@ using BodyCheck.Core.Levels;
 using BodyCheck.Core.Simulation;
 using BodyCheck.Core.WorldData;
 using BodyCheck.Look;
+#if TOOLS
 using BodyCheck.Probes;
+#endif
 
 using Godot;
 
@@ -37,7 +39,7 @@ namespace BodyCheck;
 /// </para>
 /// <para>
 /// User arguments, after "--" on the command line: a world's name; "--configuration=" and a configuration's
-/// name; "--probe=" and a probe's name to run that probe and quit; "--overlay" to start with the
+/// name; "--probe=" and a probe's name to run that probe and quit, in the editor's build only; "--overlay" to start with the
 /// <see cref="DebugOverlay"/> showing; "--shapes" to start with the <see cref="ShapeWireframes"/> showing; "--markers" to start with
 /// the world's <see cref="WorldNode.MapMarkers"/> showing. F2 switches the markers on and off, for every world loaded after, F3 the
 /// overlay, and F4 the shapes.
@@ -70,7 +72,9 @@ public partial class Main : Node
     // Each world's current respawn, by the world's name and the respawn's id, to start its player at when it restarts.
     private readonly Dictionary<string, string> _respawnIds = [];
     private PhaseAimMarker _phaseAimMarker = null!;
+#if TOOLS
     private IProbe? _probe;
+#endif
 
     public override void _Ready()
     {
@@ -125,11 +129,17 @@ public partial class Main : Node
 
         if (probeName is not null)
         {
+#if TOOLS
             _probe = Probe.Start(probeName, world => LoadWorld(world));
             // A probe's input comes from this node's physics tick, which stops while the game is paused, so nothing
             // pauses for its player. Unpaused, the player aims a phase while the world runs.
             _gameModeManager.World = null;
             return;
+#else
+            GD.PrintErr("Error: --probe isn't supported in this build.");
+            GetTree().Quit(-1);
+            return;
+#endif
         }
 
         LoadWorld(Math.Max(IndexOf(_worlds.Select(world => world.Name), worldName), 0));
@@ -143,6 +153,7 @@ public partial class Main : Node
 
     public override void _PhysicsProcess(double delta)
     {
+#if TOOLS
         // This runs before the world's own tick, because a parent is processed before its children.
         if (_probe is not null)
         {
@@ -153,6 +164,7 @@ public partial class Main : Node
             }
             return;
         }
+#endif
 
         if (Input.IsActionJustPressed("next_world"))
         {

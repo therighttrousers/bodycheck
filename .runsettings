@@ -5,7 +5,7 @@
     <TestSessionTimeout>180000</TestSessionTimeout>
     <TreatNoTestsAsError>true</TreatNoTestsAsError>
     <EnvironmentVariables>
-      <!-- The engine that dev-setup.ps1 installs, relative to the test project's directory. -->
+      <!-- The engine that scripts\dev-setup.ps1 installs, relative to the `game` directory. -->
       <GODOT_BIN>..\Godot\Godot.exe</GODOT_BIN>
     </EnvironmentVariables>
   </RunConfiguration>
