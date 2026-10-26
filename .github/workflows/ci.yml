@@ -35,7 +35,7 @@ jobs:
         run: dotnet build --no-restore --configuration Debug
 
       - name: Test
-        run: dotnet test --no-build --verbosity normal --configuration Debug
+        run: dotnet test --no-build --configuration Debug
 
       - name: Build release
         run: .\scripts\build-release.ps1
