@@ -17,4 +17,29 @@
     <ProjectReference Include="..\src\BodyCheck.Core\BodyCheck.Core.csproj" />
   </ItemGroup>
 
+  <!--
+    The tests are in tests/, compiled into the game's assembly, because gdUnit4Net runs them inside Godot, which
+    loads only the project's assembly. They are left out of release exports.
+  -->
+  <PropertyGroup Condition="'$(Configuration)' != 'ExportRelease'">
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <RunSettingsFilePath>$(MSBuildThisFileDirectory)..\.runsettings</RunSettingsFilePath>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(Configuration)' != 'ExportRelease'">
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
+    <PackageReference Include="gdUnit4.api" Version="5.1.0-rc5" />
+    <PackageReference Include="gdUnit4.test.adapter" Version="3.1.1" />
+    <PackageReference Include="gdUnit4.analyzers" Version="1.0.0">
+      <PrivateAssets>none</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(Configuration)' == 'ExportRelease'">
+    <Compile Remove="tests\**" />
+    <!-- The test adapter's runner, written on each test run. -->
+    <Compile Remove="gdunit4_testadapter_v5\**" />
+  </ItemGroup>
+
 </Project>

@@ -6,7 +6,7 @@
     <TreatNoTestsAsError>true</TreatNoTestsAsError>
     <EnvironmentVariables>
       <!-- The engine that dev-setup.ps1 installs, relative to the test project's directory. -->
-      <GODOT_BIN>..\..\Godot\Godot.exe</GODOT_BIN>
+      <GODOT_BIN>..\Godot\Godot.exe</GODOT_BIN>
     </EnvironmentVariables>
   </RunConfiguration>
   <GdUnit4>

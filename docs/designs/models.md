@@ -5,6 +5,7 @@ Relevant decision records:
 - [019: Carrying blocks on walkers](../decision-records/019-carrying-blocks.md)
 - [021: Sound](../decision-records/021-sound.md)
 - [024: Playtesting feedback](../decision-records/024-playtesting-feedback.md)
+- [031: Tests in the game's project](../decision-records/031-tests-in-the-game-project.md)
 
 What the game asks of a 3D model, and how code and art meet in it. The models in the game now are placeholders.
 
@@ -104,7 +105,7 @@ An imported glTF's animations can't be edited, so an animation that gets a track
 
 ## Tests
 
-The game's tests load the same wrapper scenes as the game: the test project's build links `game/assets` into it and runs Godot's import (`006 §5.1`).
+The game's tests load the same wrapper scenes as the game, since they are in the game's project (`031`).
 
 ## Open questions
 
