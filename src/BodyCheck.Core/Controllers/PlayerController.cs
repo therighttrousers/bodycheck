@@ -29,6 +29,8 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
 
     // Timers count down in game time, except where they say otherwise.
     private bool _jumpWasHeld;
+    // In real time: how much longer the player counts as on the ground, so that jumping just after running off an edge
+    // jumps.
     private float _groundTimeLeft;
     private Vector3 _lastGroundVelocity = Vector3.Zero;
     private float _thrustTimeLeft;
@@ -100,7 +102,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             // A press buffered in the air jumps on landing even if jump has been let go of since, as a tap.
             bool jumps = _jumpBufferLeft > 0 && _groundTimeLeft > 0 && _thrustTimeLeft == 0;
             ApplyRun(entity, move, gameDt, jumps);
-            ApplyJump(entity, input.JumpHeld, weight, jumps);
+            ApplyJump(entity, input.JumpHeld, weight, gameDt, jumps);
         }
 
         // Set animation variables
@@ -112,7 +114,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
 
         Report(entity, gameDt);
 
-        _groundTimeLeft = Math.Max(0, _groundTimeLeft - gameDt);
+        _groundTimeLeft = Math.Max(0, _groundTimeLeft - realDt);
         _thrustTimeLeft = Math.Max(0, _thrustTimeLeft - gameDt);
         _jumpBufferLeft = Math.Max(0, _jumpBufferLeft - realDt);
         _jumpWasHeld = input.JumpHeld;
@@ -369,7 +371,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     }
 
     /// <param name="jumps">Whether the entity jumps on this tick.</param>
-    private void ApplyJump(WalkerEntity entity, bool jumpHeld, float weight, bool jumps)
+    private void ApplyJump(WalkerEntity entity, bool jumpHeld, float weight, float gameDt, bool jumps)
     {
         if (jumps)
         {
@@ -381,7 +383,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             entity.Support?.ApplyCentralImpulse(-impulse);
             _groundTimeLeft = 0;
             _jumpBufferLeft = 0;
-            _thrustTimeLeft = Features.TicksToTime(Features.Current.PlayerJumpThrustTicks + 1); // +1 to include this tick
+            _thrustTimeLeft = Features.Current.PlayerJumpThrustTime + gameDt; // + gameDt to include this tick
 
             entity.RaiseCue(EntityCue.Jumped);
 
@@ -402,7 +404,10 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
 
         if (_thrustTimeLeft > 0)
         {
-            var force = new Vector3(0, Features.Current.PlayerJumpThrustFrac * weight, 0);
+            // The last tick of thrust gets only the part of it that the thrust time covers, so that the thrust adds the
+            // same speed whatever the ticks' length in game time.
+            float share = Math.Min(1, _thrustTimeLeft / gameDt);
+            var force = new Vector3(0, share * Features.Current.PlayerJumpThrustFrac * weight, 0);
             entity.ApplyCentralForce(force);
             entity.Support?.ApplyCentralForce(-force);
         }

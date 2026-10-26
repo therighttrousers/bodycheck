@@ -8,6 +8,7 @@ Relevant decision records:
 - [023: The player's spawned block](../decision-records/023-spawned-block.md)
 - [024: Playtesting feedback](../decision-records/024-playtesting-feedback.md)
 - [025: Platforms that move along any line](../decision-records/025-platforms-on-any-line.md)
+- [030: Gameplay speed](../decision-records/030-gameplay-speed.md)
 
 Abilities and world changes, in the order the player meets them.
 
@@ -137,6 +138,7 @@ Where these appear in the progression is undecided.
 Phase:
 - What momentum do the player and the target get? `Fixed`: equal and opposite momentum replaces theirs, so every phase leaves them moving the same, which makes juggling easy, but momentum isn't conserved. `Conserved`: it is added to theirs, so momentum is conserved and phases in a row may build speed, but juggling a robot high means meeting it just before the top of its rise. Both are built, chosen by the feature `PlayerPhaseThrow`, and `Fixed` is the default; to be chosen by playing (`015 §3.2`, issue #61).
 - Tuning to be checked by playing (issue #61): the reach of 0.165 tiles beyond half the player's diagonal, the cooldowns of 0.125 seconds after a phase and 0.25 after a cancel, the gap of 0.5 tiles, the offset of 0.5 tiles for choosing a target, the speed of 12.7, and the 4 ticks a released direction still counts (`015 §3.1`, `§5.1`, `§5.15`, `§5.22`, `§5.23`, `018 §3.1`).
+- Does the cooldown after a phase stay on game time, so that it lengthens as the game slows, or move to real time, as the player's rhythm? Leaning game time; to be checked by playing (`030 §2.3`). The cooldown after a cancel stays on game time, since it keeps the player from hovering by phasing again and again.
 - Letting go of a diagonal, or a stick passing neighbouring directions on its way back to the middle, can phase in a direction next to the one meant (`018 §3.2`).
 - Should a phase launch the player faster off heavy or immovable targets? That would make turrets give bigger launches in general, and make phasing upward off a robot stronger than phasing sideways.
 - Should dead NPCs remain as objects that can be phased through and stood on?

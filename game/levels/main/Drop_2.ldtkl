@@ -101,7 +101,7 @@
 					"__tags": [],
 					"__tile": null,
 					"__smartColor": "#BE4A2F",
-					"iid": "4b86a170-bde0-11f1-9446-81648f0ddc45",
+					"iid": "58360e10-bde0-11f1-91df-5f91362e1a8b",
 					"width": 16,
 					"height": 16,
 					"defUid": 214,
@@ -109,38 +109,6 @@
 					"fieldInstances": [],
 					"__worldX": 272,
 					"__worldY": 544
-				},
-				{
-					"__identifier": "Block",
-					"__grid": [48,3],
-					"__pivot": [0,0],
-					"__tags": [],
-					"__tile": null,
-					"__smartColor": "#BE4A2F",
-					"iid": "6751cdd0-bde0-11f1-9446-2361360ac04c",
-					"width": 16,
-					"height": 16,
-					"defUid": 214,
-					"px": [768,48],
-					"fieldInstances": [],
-					"__worldX": 272,
-					"__worldY": 528
-				},
-				{
-					"__identifier": "Block",
-					"__grid": [48,2],
-					"__pivot": [0,0],
-					"__tags": [],
-					"__tile": null,
-					"__smartColor": "#BE4A2F",
-					"iid": "67ef6d60-bde0-11f1-9446-f5af717e0130",
-					"width": 16,
-					"height": 16,
-					"defUid": 214,
-					"px": [768,32],
-					"fieldInstances": [],
-					"__worldX": 272,
-					"__worldY": 512
 				}
 			]
 		},

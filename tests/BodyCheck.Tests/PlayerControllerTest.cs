@@ -37,6 +37,9 @@ public class PlayerControllerTest
 
     private static readonly float Gravity = (float)ProjectSettings.GetSetting("physics/3d/default_gravity");
 
+    /// <summary>How many ticks of thrust a held jump gets at speed 1: every tick that starts within the thrust time.</summary>
+    private static int ThrustTicks => (int)MathF.Ceiling(Features.Current.PlayerJumpThrustTime / Dt);
+
     private Entity Player => _world!.Player;
     private Vector3 Velocity => Player.LinearVelocity;
 
@@ -72,6 +75,7 @@ public class PlayerControllerTest
         }
         _world = null;
         Features.Reset();
+        Engine.TimeScale = 1;
     }
 
     private async Task Tick(PlayerInput input, int ticks = 1)
@@ -196,18 +200,20 @@ public class PlayerControllerTest
 
         await Tick(Jump);
         float speedAfterImpulse = Velocity.Y;
-        await Tick(Jump, Features.Current.PlayerJumpThrustTicks);
+        await Tick(Jump, ThrustTicks);
 
-        AssertThat(Velocity.Y).IsEqualApprox(speedAfterImpulse, 0.001f);
+        // Thrust cancels gravity for the thrust time, which may end partway through the last tick.
+        float lostAfterThrust = Gravity * (ThrustTicks * Dt - Features.Current.PlayerJumpThrustTime);
+        AssertThat(Velocity.Y).IsEqualApprox(speedAfterImpulse - lostAfterThrust, 0.001f);
     }
 
     [TestCase]
     public async Task Thrust_below_weight_slows_the_rise_less_than_gravity_alone()
     {
         await Start();
-        float lostToGravityAlone = Gravity * Features.Current.PlayerJumpThrustTicks * Dt;
+        float lostToGravityAlone = Gravity * ThrustTicks * Dt;
 
-        await Tick(Jump, Features.Current.PlayerJumpThrustTicks);
+        await Tick(Jump, ThrustTicks);
 
         AssertThat(Velocity.Y).IsBetween(Features.Current.PlayerJumpSpeed - lostToGravityAlone, Features.Current.PlayerJumpSpeed);
     }
@@ -229,8 +235,9 @@ public class PlayerControllerTest
         await Start(FullThrust, NoDrag);
         float tap = await ApexOfJump(ticksHeld: 1);
 
-        // Thrust starts the tick after the impulse, by when gravity has acted once. A tap gets none.
-        float risenUnderThrust = Features.Current.PlayerJumpThrustTicks * (Features.Current.PlayerJumpSpeed - Gravity * Dt) * Dt;
+        // Thrust starts the tick after the impulse, by when gravity has acted once, and holds that speed for the thrust
+        // time. A tap gets none.
+        float risenUnderThrust = Features.Current.PlayerJumpThrustTime * (Features.Current.PlayerJumpSpeed - Gravity * Dt);
 
         await Start(FullThrust, NoDrag);
         float held = await ApexOfJump(ticksHeld: 600);
@@ -270,7 +277,7 @@ public class PlayerControllerTest
         // The take-off tick, then the thrust ticks.
         float steepest = float.MinValue;
         float shallowest = float.MaxValue;
-        for (int tick = 0; tick <= Features.Current.PlayerJumpThrustTicks; tick++)
+        for (int tick = 0; tick <= ThrustTicks; tick++)
         {
             await Tick(new PlayerInput(1, 0, true));
             float angle = Mathf.RadToDeg(MathF.Atan2(Velocity.Y, Velocity.X));
@@ -311,14 +318,33 @@ public class PlayerControllerTest
         AssertThat(Velocity.Y).IsLess(before);
     }
 
+    [TestCase]
+    public async Task The_tallest_jump_at_half_speed_rises_as_high_as_at_full_speed()
+    {
+        await Start();
+        float full = await ApexOfJump(ticksHeld: 600);
+
+        // As the game does at a gameplay speed of 0.5. Thrust is in game time, so it lasts twice as many ticks.
+        Engine.TimeScale = 0.5;
+        await Start();
+        float half = await ApexOfJump(ticksHeld: 600);
+
+        // Thrust adds the same speed at any tick length, but shorter steps integrate the rise more closely, so it goes
+        // a little higher: measured 4.58 tiles, against 4.50.
+        AssertThat(half).IsEqualApprox(full, 0.1f);
+    }
+
     /// <summary>
     /// Running off a ledge, the player can jump until the last coyote tick, counted from the first in the air, but not
-    /// on the tick after.
+    /// on the tick after. Coyote time is real time, so it lasts as many ticks at any time scale.
     /// </summary>
-    [TestCase(false)]
-    [TestCase(true)]
-    public async Task Coyote_time_lasts_exactly_its_ticks(bool oneTickLate)
+    [TestCase(false, 1)]
+    [TestCase(true, 1)]
+    [TestCase(false, 0.5)]
+    [TestCase(true, 0.5)]
+    public async Task Coyote_time_lasts_exactly_its_ticks(bool oneTickLate, double timeScale)
     {
+        Engine.TimeScale = timeScale;
         await Start(room: RoomRun.RoomOf(
             "##########",
             "#........#",
@@ -398,7 +424,7 @@ public class PlayerControllerTest
     public async Task Thrust_ends_when_the_body_hits_a_ceiling()
     {
         // A ceiling 1.4 tiles above the player's head, and thrust that would otherwise hold it there for 10 seconds.
-        await Start(FullThrust with { PlayerJumpThrustTicks = 600 }, NoDrag, height: 5);
+        await Start(FullThrust with { PlayerJumpThrustTime = 10 }, NoDrag, height: 5);
 
         await Tick(Jump, 60);
 

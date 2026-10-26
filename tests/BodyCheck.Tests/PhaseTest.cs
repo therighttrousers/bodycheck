@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -43,6 +44,7 @@ public class PhaseTest
         Tree.Paused = false;
         _run?.Free();
         _run = null;
+        Features.Reset();
     }
 
     /// <summary>Loads a room with the player and a robot standing on the floor, and waits for them to settle.</summary>
@@ -427,5 +429,36 @@ public class PhaseTest
         // Moved above the platform before the engine's step, not thrown into it from below.
         AssertFloat(player.Bottom()).IsGreater(platform.Top());
         AssertFloat(player.LinearVelocity.Y).IsEqualApprox(Features.Current.PlayerPhaseSpeed, 1);
+    }
+
+    [TestCase]
+    public async Task TheTimeScaleIsTheGameplaySpeedAndTheSlowdownFallsFromIt()
+    {
+        Features.Set(new() { GameplaySpeed = 0.5f });
+        await Start(
+            "##########",
+            "#........#",
+            "#...PR...#",
+            "##########");
+        // Added after the world, as the game adds it.
+        _manager = new GameModeManager { World = _run!.Node };
+        Tree.Root.AddChild(_manager);
+        await _run.Tick(RoomRun.Idle, 2);
+        AssertThat(Engine.TimeScale).IsEqual(0.5);
+
+        double slowest = double.MaxValue;
+        double fastest = double.MinValue;
+        for (int i = 0; i < 120 && _manager.GameMode != GameMode.Phasing; i++)
+        {
+            await _run.Tick(AimRight);
+            slowest = Math.Min(slowest, Engine.TimeScale);
+            fastest = Math.Max(fastest, Engine.TimeScale);
+        }
+        AssertThat(_manager.GameMode).IsEqual(GameMode.Phasing);
+        // It falls from the gameplay speed to the slowest factor times it, never above it.
+        AssertThat(fastest).IsEqual(0.5);
+        AssertThat(slowest).IsBetween(0.5 * GameModeManager.SlowestSlowdownFactor, 0.25);
+        await _run.Tick(AimRight);
+        AssertThat(Engine.TimeScale).IsEqual(0.5);
     }
 }

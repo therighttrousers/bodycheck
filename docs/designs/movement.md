@@ -14,6 +14,7 @@ Relevant decision records:
 - [026: A carrier's drive doesn't grow with its load](../decision-records/026-carrying-drive.md)
 - [027: Engine friction for walkers and carrying](../decision-records/027-engine-friction.md)
 - [028: Continuous detection against walls](../decision-records/028-continuous-detection-against-walls.md)
+- [030: Gameplay speed](../decision-records/030-gameplay-speed.md)
 
 ## Player movement
 
@@ -35,7 +36,7 @@ The player is 0.8 tiles wide and 1.8 tall.
 Rationale: decision record `000 §1.8`.
 
 - A jump is an upward impulse when jump is pressed, then an upward thrust, a little weaker than gravity, for as long as jump is held, up to a limit. A tap gives the lowest jump, and holding gives the highest. Thrust ends early if the player stops rising, e.g. at a ceiling.
-- The lowest jump clears a ledge 2 tiles up but not 3, and the highest clears 4 tiles but not 5. Each aims at the middle, with room to spare at the ledge and no temptation to try the next: the feet rise about 2.5 tiles and about 4.5 (measured 2.50 and 4.57).
+- The lowest jump clears a ledge 2 tiles up but not 3, and the highest clears 4 tiles but not 5. Each aims at the middle, with room to spare at the ledge and no temptation to try the next: the feet rise about 2.5 tiles and about 4.5 (measured 2.50 and 4.50).
 - Jump speed is about top speed, so a jump at full running speed starts at about 45 degrees. Held, it stays within 3 degrees of 45 for as long as thrust lasts.
 - Jump acts on a press only: holding it through a landing doesn't jump again. There is no jump in the air.
 - A press in the air a few ticks before landing jumps on landing: jump buffering. If jump has been let go of by then, it is a tap.
@@ -44,7 +45,7 @@ Rationale: decision record `000 §1.8`.
 ### Edges and gaps
 
 - For a few ticks after moving off an edge without jumping, the player can still jump, and drives as on the ground: coyote time. A coyote jump is as high as one from the ground.
-- Coyote time and jump thrust run on game time, so the slowdown before a phase stretches them. Jump buffering measures the player's fingers, so it runs on real time. All are tuned in ticks at 60 per second, and at full speed always last exactly that many ticks (`018 §1.1`, `§2.1`).
+- Jump thrust runs on game time, so the slowdown before a phase and a lower gameplay speed stretch it, and a jump rises as high at any speed. It is tuned in game seconds. A tick that the thrust's time covers only part of gets that part of the thrust, so the thrust adds the same speed whatever the ticks' length: the highest jump rises 4.50 tiles at speed 1, and 4.58 at speed 0.5, where shorter steps integrate the rise more closely (`030 §4.5`). Coyote time and jump buffering measure the player's reactions, so they run on real time: they are tuned in ticks at 60 per second, and always last exactly that many ticks (`018 §1.1`, `§2.1`, `030 §2.4`, `§2.6`).
 - 1-tile gaps don't belong on running paths: at any speed, a running player may cross one or catch on its far edge and fall in, depending on where the ticks land (`007 §1.1`, `007 §1.2`).
 - Jumping up through a 1-tile gap doesn't need perfect alignment.
 
