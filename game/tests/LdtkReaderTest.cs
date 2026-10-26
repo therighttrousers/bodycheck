@@ -74,7 +74,7 @@ public class LdtkReaderTest
     [TestCase]
     public void Reads_the_game_worlds()
     {
-        string path = Path.Combine(AppContext.BaseDirectory, "levels", "main.ldtk");
+        string path = ProjectSettings.GlobalizePath("res://levels/main.ldtk");
 
         AssertArray(LdtkReader.ReadWorlds(path, File.ReadAllText)).IsNotEmpty();
     }

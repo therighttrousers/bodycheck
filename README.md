@@ -30,7 +30,7 @@ Steps:
 3. Change to some `<parent-directory>`.
 4. Run `git clone https://github.com/therighttrousers/bodycheck.git`.
 5. Run `cd bodycheck`.
-6. Run `.\dev-setup.ps1` to install Godot locally, install C# dependencies, and set up pre-commit hooks.
+6. Run `.\scripts\dev-setup.ps1`. (This will download large files into `tmp`. You can delete them.)
 7. If you want to edit the code:
    - Run `code` to open a new VS Code window. (You can close the terminal after this.)
    - In VS Code, open the `<parent-directory>\bodycheck` directory.
@@ -48,6 +48,7 @@ Steps:
 - Run the unit tests: build, then run `dotnet test`
 - Build and run the game: run `play.cmd` or double-click it in File Explorer
 - Run the game from Godot's editor: double-click or run `godot-editor.cmd`, then press the `▶` button to build and run
+- Build for release (into the `build` directory): `.\scripts\build-release.ps1`
 
 ## Godot editor
 

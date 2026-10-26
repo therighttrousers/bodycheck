@@ -26,10 +26,11 @@ Relevant decision records:
 - [027: Engine friction for walkers and carrying](../decision-records/027-engine-friction.md)
 - [029: Tunable bodies](../decision-records/029-tunable-bodies.md)
 - [030: Gameplay speed](../decision-records/030-gameplay-speed.md)
+- [031: Tests in the game's project](../decision-records/031-tests-in-the-game-project.md)
 
 ## Tools
 
-- **Engine:** Godot 4.7.2, .NET build, Forward+ renderer, desktop only. The engine is installed into the repository by `dev-setup.ps1` and is not on the PATH.
+- **Engine:** Godot 4.7.2, .NET build, Forward+ renderer, desktop only. The engine is installed into the repository by `scripts/dev-setup.ps1` and is not on the PATH.
 - **Language:** C# on .NET 10.
 - **Physics:** Godot's 3D physics engine, Jolt, with gameplay locked to the XY plane. The engine detects collisions, resolves contacts and moves bodies. Our rules push bodies with the engine's forces and impulses. Friction is the engine's, with each entity's coefficient set by our rules each tick. A walker's traction and the player's steadying of what it carries are motors inside the engine, which our rules also set each tick (`005`, `019`, `027`). Drag is ours. Positions are in single precision, as in Godot's standard builds; both play and drawing hold up to 1e5 tiles from the origin, far beyond any world's size (`013 §6.1`). See [movement.md](movement.md#physics-engine).
 - **Levels:** authored in 2D in LDtk, in `game/levels/`, and turned into 3D at load. The LDtk JSON is read at runtime, and is to be moved to an asset pipeline only if the loading code proves too slow, too complex or too fragile (`000 §1.2`).
@@ -39,14 +40,16 @@ Relevant decision records:
 ## Layout
 
 - `game/`: the Godot project (scenes, node scripts, levels, assets)
+- `game/tests/`: the tests, through gdUnit4Net, inside Godot where they need it
 - `src/BodyCheck.Core/`: game rules as a C# library
-- `tests/BodyCheck.Tests/`: the tests, through gdUnit4Net, inside Godot where they need it
 - `docs/`: design docs and decision records
-- `Godot/`: the engine, installed by `dev-setup.ps1` (not in Git)
+- `scripts/`: setup and release builds
+- `build/`: release builds (not in Git)
+- `Godot/`: the engine, installed by `scripts/dev-setup.ps1` (not in Git)
 
 ## `src/BodyCheck.Core`
 
-The game's rules, as a class library: entities, character controllers, tuning, the world, its rooms and their tiles. It defines node classes, so its rules need a running engine (`005 §3`, which supersedes that part of `002`). It references the GodotSharp assembly of the installed engine, so `dev-setup.ps1` has to be run before it builds (`002`), and Godot's source generators, without which the engine never calls a node class's overrides.
+The game's rules, as a class library: entities, character controllers, tuning, the world, its rooms and their tiles. It defines node classes, so its rules need a running engine (`005 §3`, which supersedes that part of `002`). It references the GodotSharp assembly of the installed engine, so `scripts/dev-setup.ps1` has to be run before it builds (`002`), and Godot's source generators, without which the engine never calls a node class's overrides.
 
 Core is split into subsystems, each a subdirectory and a namespace, with an `intent.md` that says what belongs there and what doesn't (`012`). Subsystems don't depend on each other in a cycle, and the root depends on none of them. The rules for keeping it so are in the root `AGENTS.md`.
 
@@ -96,7 +99,7 @@ The Godot project, which holds the scenes and the other nodes.
 - `DebugOverlay`, on F3, shows the frame rate and times and every telemetry value, at the window's resolution (`008 §2.3`).
 - `ShapeWireframes`, on F4, draws every box collision shape in the game as a wireframe, at the window's resolution, for comparing bodies with their models. It reads the shapes and the camera from the engine each frame.
 - `look/` holds the low-resolution view, the colour pass and the tools for judging the rendering. See [rendering.md](rendering.md).
-- `probes/` holds scripted measurements, run headless with `--probe=` and a name.
+- `probes/` holds scripted measurements, run headless with `--probe=` and a name. They are only in the editor's build, `Debug`, where Godot defines `TOOLS`, so `Main`'s code for them is under `#if TOOLS` (`031 §2.3`).
 
 ## Conventions
 
@@ -116,9 +119,15 @@ The Godot project, which holds the scenes and the other nodes.
 
 ## Tests
 
-All the tests are in `tests/BodyCheck.Tests`, in gdUnit4Net, and plain `dotnet test` runs them. A suite marked `[RequireGodotRuntime]` runs inside Godot; the others run without it. gdUnit4Net's analyzer requires the mark on any suite that uses Godot's types, even its vectors, which work without the engine. The game's levels are copied into the project's output, so a test checks that the world reads. gdUnit4's `AssertThrown` checks the innermost exception rather than the one thrown, so a test of a reader, which wraps a parser's exception in its own to name the file, gets the exception with `Exceptions.Thrown` and checks it with ordinary assertions.
+All the tests are in `game/tests/`, in gdUnit4Net, and plain `dotnet test` runs them. They are part of the game's project, compiled into its assembly, since gdUnit4Net runs them inside Godot, which loads only the project's assembly. The test packages and the tests are only in the editor's build, `Debug`; exports leave them out (`031 §2.3`). A suite marked `[RequireGodotRuntime]` runs inside Godot; the others run without it. gdUnit4Net's analyzer requires the mark on any suite that uses Godot's types, even its vectors, which work without the engine. A test reads the game's levels by `res://` path, to check that the world reads. gdUnit4's `AssertThrown` checks the innermost exception rather than the one thrown, so a test of a reader, which wraps a parser's exception in its own to name the file, gets the exception with `Exceptions.Thrown` and checks it with ordinary assertions.
 
-For the suites that run inside it, Godot runs headless at a fixed frame rate, so physics ticks faster than real time. The project is a Godot project of its own, whose settings are copied from the game's on every build, without autoloads and editor plugins, since it doesn't have the game's addons. It can't load the game's scenes by `res://` path. It can load the game's assets: its build links `game/assets` into it and runs Godot's import when an asset changes (`006 §5.1`). Every suite that frees a world frees it with `RoomRun.FreeAndFinalize`, which then runs the garbage collector and waits for its finalizers: Godot can crash at exit if a C# finalizer runs while its .NET shutdown releases the same objects, a race in Godot (godotengine/godot#89188, #92076, #123521).
+For the suites that run inside it, Godot runs headless at a fixed frame rate, so physics ticks faster than real time. It runs under the game's settings, and can load anything in the game by `res://` path. The main scene is loaded but not run, and the autoloads are in the tree (`031 §1.1`). Every suite that frees a world frees it with `RoomRun.FreeAndFinalize`, which then runs the garbage collector and waits for its finalizers: Godot can crash at exit if a C# finalizer runs while its .NET shutdown releases the same objects, a race in Godot (godotengine/godot#89188, #92076, #123521).
+
+## Exports
+
+`scripts/build-release.ps1` exports the game with the "Windows Desktop" preset into `build/windows_release_x86_64/`, and CI runs it on every PR, so an export that fails, or changes a file in the repository, fails CI. The script is the only supported way to export: the preset has no export path, since the editor doesn't create the directories one needs. `scripts/dev-setup.ps1` installs the export templates for Windows into Godot's user data (`031 §2.1`).
+
+The C# build is `ExportRelease`, which, like `ExportDebug`, leaves out the tests, the test packages and the probes (`031 §2.3`). The pack holds every resource, and the levels and configurations, which Godot doesn't import (`009 §4.1`). It leaves out the tests, the test adapter's runner, the probes' sources and LDtk's backups. The build outputs are embedded in the executable, with their debug symbols, so that stack traces from a release build name files and lines (`031 §2.2`). The playtester still plays from the repository (`017 §1.1`).
 
 ## Open questions
 
@@ -127,9 +136,7 @@ For the suites that run inside it, Godot runs headless at a fixed frame rate, so
 - Who owns what crosses a room's edge, such as a block pushed through an opening or a robot riding a platform across one, waits for the design of respawn, caching and pausing. A node per room would let Godot's `ProcessMode` pause a room, but entities would then belong to a room's node, which needs that rule, and colliders built per room would stop tiles merging at rooms' edges (`013 §1.1`).
 - The rest of the world as the map (Neil): the map pauses the tree and zooms out, but doesn't yet hide what moves or is expensive to draw, or show only the rooms the player has explored. Rooms already draw their own tiles (`020 §2.1`), so this would be revealing the explored ones, perhaps with a cheaper look each, and it means caching could unload a room's entities and colliders but not its look (`013`, Context). The zoom's tween is linear in distance, which does most of the visible zooming early; an exponential transition may feel more even at the sizes of a whole game, 16x16 to 32x32 rooms.
 - Phantom Camera's lookahead and newer framed-follow features are described for its 2D camera only, and are unverified in 3D. Its limits are 2D only; `CameraRig` clamps instead (`010 §2.1`).
-- Exports will need `*.ldtk`, `*.ldtkl` and the configurations' `*.jsonc` in their filter of non-resource files, since Godot doesn't import them (`009 §4.1`). There are no exports yet; the playtester plays from the repository (`017 §1.1`).
 - How a playtester's maps and configurations reach the repository: Git through a GUI, such as GitHub Desktop, on a branch of their own, with PRs as usual? (`017 §1.2`)
-- Linking `game/levels` into the test project, as `game/assets` is, for in-engine tests on real levels, is put off (`009 §4.2`).
 - Can the Godot editor attach a script to a scene only when the script is in the Godot project itself? Believed so. Core's node classes are created in code, which doesn't need it (`005 §3.2`).
 - gdUnit4Net is used outside its stated support (.NET 8 and 9, Godot 4.4 to 4.5), and `gdUnit4.api` is a prerelease. To be revisited when it releases.
 - The game can hit the same race at exit as the tests. A crash then comes after the last frame, so it loses nothing that was supposed to persist, as long as nothing that must happen is left to a finalizer: .NET doesn't promise to run them when a process exits. When the menu gets a way to quit, quitting and closing the window should share one path that saves and flushes files explicitly, then runs the garbage collector and waits for its finalizers, then quits.
