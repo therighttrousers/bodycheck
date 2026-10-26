@@ -107,11 +107,8 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         entity.IsGrounded = _groundTimeLeft > 0;
         entity.IsMoving = move != 0;
         entity.IsJumping = _thrustTimeLeft > 0;
-        // Only change facing direction when on the ground or just after jumping (and allow setting to 0)
-        if (_groundTimeLeft > 0 || _thrustTimeLeft > 0)
-        {
-            entity.Facing = Math.Sign(move);
-        }
+        // Face forward when in the air; otherwise use movement direction.
+        entity.Facing = entity.IsGrounded ? Math.Sign(move) : 0;
 
         Report(entity, gameDt);
 
