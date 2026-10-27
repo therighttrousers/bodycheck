@@ -125,7 +125,7 @@ public sealed record Features
     /// The default friction for static tiles. Walkers have no engine friction, and the smaller of two coefficients
     /// wins, so this only affects bodies that have some.
     /// </summary>
-    public float TileDefaultFriction { get; init; } = 1;
+    public float TileDefaultFriction { get; init; } = 0.5f;
     #endregion
 
     #region Player
@@ -145,10 +145,17 @@ public sealed record Features
     public float PlayerAirBrakeForce { get; init; } = 45;
 
     /// <summary>
+    /// <para>
     /// The player's coefficient of friction, rough, while it stands on something and doesn't slip: with the ground,
     /// whether tiles or another body, and with what it carries. Applied when not driving in the direction of travel.
+    /// </para>
+    /// <para>
+    /// <b>This should be less than 3.</b> If it's too high, the sudden change from 0 friction while driving
+    /// to this friction while braking can cause the player to stop dead in its tracks and stay still for ~1 second.
+    /// It's probably due to a limitation or a flaw in Jolt 3D.
+    /// </para>
     /// </summary>
-    public float PlayerGroundFriction { get; init; } = 4;
+    public float PlayerGroundFriction { get; init; } = 2.5f;
 
     /// <summary>
     /// The most torque with which the player holds the rotation of what it carries to its own. Robots don't hold what
@@ -304,7 +311,7 @@ public sealed record Features
     /// A platform's coefficient of friction, with which it carries what rests on it. The smaller of two bodies'
     /// coefficients wins, unless one is rough, as a walker's is.
     /// </summary>
-    public float PlatformEngineFriction { get; init; } = 1;
+    public float PlatformEngineFriction { get; init; } = 0.5f;
 
     /// <summary>A platform's speed along its line, away from its ends.</summary>
     public float PlatformTopSpeed { get; init; } = 6;
@@ -351,7 +358,7 @@ public sealed record Features
     /// <summary>The mass of the block the player spawns, light enough to carry and jump with.</summary>
     public float PlayerBlockMass { get; init; } = 1;
     /// <summary>The coefficient of friction of the block the player spawns. See <see cref="BlockEngineFriction"/>.</summary>
-    public float PlayerBlockEngineFriction { get; init; } = 1;
+    public float PlayerBlockEngineFriction { get; init; } = 0.5f;
 
     /// <summary>A block's mass.</summary>
     public float BlockMass { get; init; } = 2;
@@ -359,7 +366,7 @@ public sealed record Features
     /// A block's coefficient of friction, against everything it touches but what carries it. The smaller of two bodies'
     /// coefficients wins, unless one is rough, as a walker's and a carrier's are.
     /// </summary>
-    public float BlockEngineFriction { get; init; } = 1;
+    public float BlockEngineFriction { get; init; } = 0.5f;
     #endregion
 }
 
