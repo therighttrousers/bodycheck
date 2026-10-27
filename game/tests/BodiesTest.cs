@@ -186,6 +186,8 @@ public class BodiesTest
     [TestCase]
     public async Task A_robot_that_walks_into_an_idle_player_turns_round()
     {
+        // A robot that can't target the player, so that it doesn't stop to shoot it.
+        Features.Set(new() { RobotLaserRange = 0 });
         RoomRun run = Start(RoomOf(
             "#..............................#",
             "#..............................#",

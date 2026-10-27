@@ -296,6 +296,21 @@ public partial class Entity : RigidBody3D
     }
 
     /// <summary>
+    /// The first collider in the given layers, other than this entity, on the line from <paramref name="from"/> to
+    /// <paramref name="to"/>, and where the line meets it, as of the engine's last step. Null if there is none.
+    /// </summary>
+    public (Vector3 Position, GodotObject Collider)? CastRay(Vector3 from, Vector3 to, PhysicsLayer layers)
+    {
+        var query = PhysicsRayQueryParameters3D.Create(from, to, (uint)layers, [GetRid()]);
+        var result = GetWorld3D().DirectSpaceState.IntersectRay(query);
+        if (result.Count == 0)
+        {
+            return null;
+        }
+        return ((Vector3)result["position"], result["collider"].AsGodotObject());
+    }
+
+    /// <summary>
     /// How far a box as deep as an entity's, centered at a place, can move in a direction before it meets a collider in
     /// the given layers, up to a distance, as of the engine's last step. It doesn't meet this entity. What it only
     /// touches where it starts doesn't stop it, but what it starts overlapping by more than that may not either.
