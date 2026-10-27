@@ -300,6 +300,31 @@ public sealed record Features
     /// How quickly a robot sheds stall heat, in heat per game-time second.
     /// </summary>
     public float RobotStallCooldownRate { get; init; } = 1;
+
+    /// <summary>How far, in tiles, a robot's laser reaches, and so how far away a robot can target the player.</summary>
+    public float RobotLaserRange { get; init; } = 15;
+    /// <summary>
+    /// How far above or below level, in degrees, a robot can target the player. The design's 90-degree arcs above and
+    /// below that it can't target leave 45 degrees.
+    /// </summary>
+    public float RobotLaserMaxElevation { get; init; } = 45;
+    /// <summary>How long, in game time, a robot's thin beam follows the player before it locks.</summary>
+    public float RobotLaserAimTime { get; init; } = 1;
+    /// <summary>How long, in game time, a robot's beam stays locked before it fires.</summary>
+    public float RobotLaserLockTime { get; init; } = 0.75f;
+    /// <summary>How long, in game time, a robot's laser fires.</summary>
+    public float RobotLaserFireTime { get; init; } = 0.5f;
+    /// <summary>How long, in game time, a robot waits after its laser stops before it can aim again.</summary>
+    public float RobotLaserCooldownTime { get; init; } = 3;
+    /// <summary>
+    /// How long, in game time, a robot that is aiming may lose sight of the player before it gives up and cools down.
+    /// </summary>
+    public float RobotLaserLoseTime { get; init; } = 0.1f;
+    /// <summary>
+    /// How long, in game time, a robot whose laser is on may be off the ground before it gives up and cools down, such as
+    /// when it is phased through, thrown or falls. A robot doesn't start aiming in the air.
+    /// </summary>
+    public float RobotLaserAirTime { get; init; } = 0.1f;
     #endregion
 
     #region Platforms

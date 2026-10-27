@@ -9,7 +9,7 @@ roughness = 0.5
 
 [node name="Robot" unique_id=1679574890 instance=ExtResource("1_8r1pt")]
 
-[node name="Object_23" parent="Model/Sketchfab_model/466f4e732ab24572a4bcf0fb382e93d7_fbx/Object_2/RootNode/bob_rig/Object_5/Skeleton3D" parent_id_path=PackedInt32Array(1250731866, 146952772) index="0" unique_id=858457670]
+[node name="Object_23" parent="Model/Sketchfab_model/466f4e732ab24572a4bcf0fb382e93d7_fbx/Object_2/RootNode/bob_rig/Object_5/Skeleton3D" parent_id_path=PackedInt32Array(1250731866, 1711431171) index="0" unique_id=1731681235]
 surface_material_override/0 = SubResource("StandardMaterial3D_2h3ep")
 
 [editable path="Model"]

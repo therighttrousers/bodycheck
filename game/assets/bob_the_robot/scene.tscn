@@ -6,6 +6,7 @@
 [ext_resource type="AudioStream" uid="uid://ch8ghbvfp6t6n" path="res://assets/player_sounds/172206__leszek_szary__teleport.wav" id="3_512o4"]
 [ext_resource type="AudioStream" uid="uid://cq3spuybsurnp" path="res://assets/player_sounds/146726__leszek_szary__jumping.wav" id="3_a0sfp"]
 [ext_resource type="AudioStream" uid="uid://b8qt1lbwiencp" path="res://assets/player_sounds/844890__dan2008__critical-error.wav" id="5_hvsop"]
+[ext_resource type="Script" uid="uid://bvv55e8n0wf1q" path="res://main/LaserBeam.cs" id="7_ydmpv"]
 
 [sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_2h3ep"]
 animation = &"bob_rig|idle"
@@ -162,10 +163,30 @@ states/Start/position = Vector2(79.96805, 155.69078)
 transitions = ["Start", "Idle", SubResource("AnimationNodeStateMachineTransition_512o4"), "Jump", "InAir", SubResource("AnimationNodeStateMachineTransition_hvsop"), "InAir", "Idle", SubResource("AnimationNodeStateMachineTransition_a0sfp"), "Idle", "Jump", SubResource("AnimationNodeStateMachineTransition_2h3ep"), "Idle", "Move", SubResource("AnimationNodeStateMachineTransition_ik5y6"), "Move", "Idle", SubResource("AnimationNodeStateMachineTransition_a1pq2"), "Move", "InAir", SubResource("AnimationNodeStateMachineTransition_00emu"), "InAir", "Move", SubResource("AnimationNodeStateMachineTransition_kxahi"), "Move", "Jump", SubResource("AnimationNodeStateMachineTransition_gvx1h"), "Idle", "InAir", SubResource("AnimationNodeStateMachineTransition_e7l1j"), "Jump", "Move", SubResource("AnimationNodeStateMachineTransition_elv8a"), "Jump", "Idle", SubResource("AnimationNodeStateMachineTransition_ydmpv")]
 graph_offset = Vector2(-80, -43.90295)
 
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_lsr0b"]
+albedo_color = Color(1, 0.1, 0.05, 1)
+emission_enabled = true
+emission = Color(1, 0.1, 0.05, 1)
+emission_energy_multiplier = 3.0
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_x1ji0"]
+material = SubResource("StandardMaterial3D_lsr0b")
+height = 1.0
+radial_segments = 8
+rings = 0
+
 [node name="Player" type="Node3D" unique_id=1679574890]
 
 [node name="Model" parent="." unique_id=1250731866 instance=ExtResource("1_icuvs")]
 transform = Transform3D(1.23, 0, 0, 0, 1.23, 0, 0, 0, 1.23, 0, 0, 0)
+
+[node name="HeadBone" type="BoneAttachment3D" parent="Model/Sketchfab_model/466f4e732ab24572a4bcf0fb382e93d7_fbx/Object_2/RootNode/bob_rig/Object_5/Skeleton3D" parent_id_path=PackedInt32Array(1250731866, 1711431171) index="1" unique_id=1620544221]
+transform = Transform3D(-1, 1.0150991e-11, 3.8968616e-07, 3.8919933e-07, -0.049937714, 0.9987525, 1.9470153e-08, 0.9987521, 0.049937688, -2.8537442e-15, 0.0031358358, 1.2219874)
+bone_name = "head_010"
+bone_idx = 11
+
+[node name="LaserOrigin" type="Node3D" parent="Model/Sketchfab_model/466f4e732ab24572a4bcf0fb382e93d7_fbx/Object_2/RootNode/bob_rig/Object_5/Skeleton3D/HeadBone" unique_id=1578787354]
+transform = Transform3D(0.9999998, 0, 0, 0, 0.99999976, 0, 0, 0, 0.99999964, 0, 0.07, -0.1)
 
 [node name="AnimationTree" type="AnimationTree" parent="." unique_id=1030308632]
 root_node = NodePath("../Model")
@@ -202,5 +223,12 @@ bus = &"Sfx"
 stream = ExtResource("5_hvsop")
 volume_db = -10.0
 bus = &"Sfx"
+
+[node name="LaserBeam" type="Node3D" parent="." unique_id=1733284419]
+script = ExtResource("7_ydmpv")
+
+[node name="Beam" type="MeshInstance3D" parent="LaserBeam" unique_id=285034969]
+cast_shadow = 0
+mesh = SubResource("CylinderMesh_x1ji0")
 
 [editable path="Model"]

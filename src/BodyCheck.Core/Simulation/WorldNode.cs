@@ -132,9 +132,10 @@ public partial class WorldNode : Node3D
         return player;
     }
 
-    private static WalkerEntity CreateRobot(EntityConfig.Robot config, Node3D visual)
+    private RobotEntity CreateRobot(EntityConfig.Robot config, Node3D visual)
     {
-        return new WalkerEntity(BodyTuning.Robot, visual) { Controller = new RobotController() };
+        // The player may be built after the robot, so the controller asks for it when it aims.
+        return new RobotEntity(BodyTuning.Robot, visual) { Controller = new RobotController(() => Player) };
     }
 
     private static SimpleControlledEntity CreatePlatform(EntityConfig.Platform config, Node3D visual)
