@@ -276,6 +276,16 @@ public sealed record Features
 
     /// <summary>A robot's coefficient of friction with what it carries. It wins over the carried body's own.</summary>
     public float RobotCarryFriction { get; init; } = 6;
+
+    /// <summary>
+    /// A robot whose speed toward the end it is heading for stays below this for <see cref="RobotStallTime"/> has
+    /// stalled, and turns around.
+    /// </summary>
+    public float RobotStallSpeed { get; init; } = 0.1f;
+    /// <summary>
+    /// How long, in game time, a robot's speed must stay below <see cref="RobotStallSpeed"/> to stall.
+    /// </summary>
+    public float RobotStallTime { get; init; } = 0.25f;
     #endregion
 
     #region Platforms
