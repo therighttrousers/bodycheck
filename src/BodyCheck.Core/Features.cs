@@ -321,9 +321,10 @@ public sealed record Features
     /// </summary>
     public float RobotLaserLoseTime { get; init; } = 0.1f;
     /// <summary>
-    /// How far the robot can move from its original firing position before it gives up and stops firing.
+    /// How long, in game time, a robot whose laser is on may be off the ground before it gives up and cools down, such as
+    /// when it is phased through, thrown or falls. A robot doesn't start aiming in the air.
     /// </summary>
-    public float RobotLaserLoseDistance { get; init; } = 2;
+    public float RobotLaserAirTime { get; init; } = 0.1f;
     #endregion
 
     #region Platforms

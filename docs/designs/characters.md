@@ -39,7 +39,7 @@ Firing timeline, as tuned by playing so far, with each duration a feature (`Robo
 - 2250 ms: The laser disappears. Firing cooldown starts.
 - 5250 ms: Cooldown done. NPC may fire again, resume regular patrol loop, etc.
 
-If the NPC loses sight of the target for 100 ms while the laser follows it, it enters firing cooldown. Once the laser stops following, it fires wherever the target has gone. If the NPC is moved 2 tiles from where it began aiming, such as by being pushed, it enters firing cooldown at any point in the timeline.
+If the NPC loses sight of the target for 100 ms while the laser follows it, it enters firing cooldown. Once the laser stops following, it fires wherever the target has gone. An NPC that can move doesn't start aiming in the air, and if it is off the ground for 100 ms at any point in the timeline, such as by being phased through, thrown or falling, it enters firing cooldown. Being carried or pushed along the ground doesn't stop it, and moves its beam.
 
 The timeline should allow the player to avoid taking damage by jumping, with a generous timing window.
 
@@ -50,3 +50,7 @@ Built so far, for robots only, with no damage: every robot fires at the player. 
 These NPCs fire rockets at the player.
 
 Timeline and targeting rules TBD.
+
+## Open questions
+
+- Should moving an NPC on the ground also stop its laser? Losing its footing does, but phasing through a robot on the ground leaves it there, so a locked beam still fires, which was weird the first couple of times in play. Option: measure where the NPC's eyes are relative to what it stands on, in that body's frame, and stop the laser if they move too far from where it began aiming, or if it comes to stand on something else. Riding a platform or being carried wouldn't stop it, and a phase would, since it moves the NPC at once. To be decided after playtesting.

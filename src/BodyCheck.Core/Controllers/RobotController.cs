@@ -28,8 +28,8 @@ public sealed class RobotController(Func<Entity?> target) : ICharacterController
     private float _laserTime;
     // How long the robot has lost sight of its target while aiming.
     private float _lostTime;
-    // The beam start position when the robot first started aiming the laser.
-    private Vector3 _firstAimOrigin;
+    // How long the robot has been off the ground while its laser is on.
+    private float _airTime;
     // Which way the beam points: at the target while aiming, and fixed once it locks.
     private Vector3 _aim;
 
@@ -121,11 +121,11 @@ public sealed class RobotController(Func<Entity?> target) : ICharacterController
         _laserTime = _laserPhase == LaserPhase.Off ? MathF.Max(_laserTime - gameDt, 0) : _laserTime + gameDt;
         switch (_laserPhase)
         {
-            case LaserPhase.Off when _laserTime <= 0 && _seen is not null:
+            case LaserPhase.Off when _laserTime <= 0 && _seen is not null && entity.OnGround:
                 _laserPhase = LaserPhase.Aiming;
                 _laserTime = 0;
                 _lostTime = 0;
-                _firstAimOrigin = origin;
+                _airTime = 0;
                 break;
 
             case LaserPhase.Aiming:
@@ -153,11 +153,16 @@ public sealed class RobotController(Func<Entity?> target) : ICharacterController
                 break;
         }
 
-        // In any firing phase, if the robot moves too far from where it started firing, turn off the laser.
-        if (_laserPhase != LaserPhase.Off && origin.DistanceTo(_firstAimOrigin) >= features.RobotLaserLoseDistance)
+        // In any phase, a robot that loses its footing for long, such as by being phased through or thrown, gives up. A
+        // robot can be carried or pushed along while it shoots, which moves its beam.
+        if (_laserPhase != LaserPhase.Off)
         {
-            _laserPhase = LaserPhase.Off;
-            _laserTime = features.RobotLaserCooldownTime;
+            _airTime = entity.OnGround ? 0 : _airTime + gameDt;
+            if (_airTime >= features.RobotLaserAirTime)
+            {
+                _laserPhase = LaserPhase.Off;
+                _laserTime = features.RobotLaserCooldownTime;
+            }
         }
 
         // While aiming, the beam follows the target even where it has lost sight of it for a moment.
