@@ -19,7 +19,7 @@ public enum LaserPhase
 }
 
 /// <summary>A robot's laser as of the last tick: its phase, and where its beam starts and ends, in world coordinates.</summary>
-public readonly record struct Laser(LaserPhase Phase, Vector3 Origin, Vector3 End);
+public readonly record struct Laser(LaserPhase Phase, float Progress, Vector3 Origin, Vector3 End);
 
 /// <summary>
 /// A robot's body: a walker with a laser. Its controller sets the laser each tick, for what draws the robot to show.

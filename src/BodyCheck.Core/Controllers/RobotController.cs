@@ -173,7 +173,7 @@ public sealed class RobotController(Func<Entity?> target) : ICharacterController
 
         if (_laserPhase == LaserPhase.Off)
         {
-            entity.Laser = new Laser(LaserPhase.Off, origin, origin);
+            entity.Laser = new Laser(LaserPhase.Off, 0, origin, origin);
             return;
         }
         Vector3 end = origin + features.RobotLaserRange * _aim;
@@ -181,7 +181,18 @@ public sealed class RobotController(Func<Entity?> target) : ICharacterController
         {
             end = hit;
         }
-        entity.Laser = new Laser(_laserPhase, origin, end);
+        entity.Laser = new Laser(_laserPhase, _laserTime / PhaseDuration(_laserPhase), origin, end);
+    }
+
+    private static float PhaseDuration(LaserPhase phase)
+    {
+        return phase switch
+        {
+            LaserPhase.Off => float.PositiveInfinity,
+            LaserPhase.Aiming => Features.Current.RobotLaserAimTime,
+            LaserPhase.Locked => Features.Current.RobotLaserLockTime,
+            LaserPhase.Firing => Features.Current.RobotLaserFireTime,
+        };
     }
 
     // Whether the robot can target the entity from its eyes: in front of it, not too far above or below level, in range,

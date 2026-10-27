@@ -180,10 +180,13 @@ rings = 0
 [node name="Model" parent="." unique_id=1250731866 instance=ExtResource("1_icuvs")]
 transform = Transform3D(1.23, 0, 0, 0, 1.23, 0, 0, 0, 1.23, 0, 0, 0)
 
-[node name="LaserOrigin" type="BoneAttachment3D" parent="Model/Sketchfab_model/466f4e732ab24572a4bcf0fb382e93d7_fbx/Object_2/RootNode/bob_rig/Object_5/Skeleton3D" parent_id_path=PackedInt32Array(1250731866, 1711431171) index="1" unique_id=1620544221]
+[node name="HeadBone" type="BoneAttachment3D" parent="Model/Sketchfab_model/466f4e732ab24572a4bcf0fb382e93d7_fbx/Object_2/RootNode/bob_rig/Object_5/Skeleton3D" parent_id_path=PackedInt32Array(1250731866, 1711431171) index="1" unique_id=1620544221]
 transform = Transform3D(-1, 1.0150991e-11, 3.8968616e-07, 3.8919933e-07, -0.049937714, 0.9987525, 1.9470153e-08, 0.9987521, 0.049937688, -2.8537442e-15, 0.0031358358, 1.2219874)
 bone_name = "head_010"
 bone_idx = 11
+
+[node name="LaserOrigin" type="Node3D" parent="Model/Sketchfab_model/466f4e732ab24572a4bcf0fb382e93d7_fbx/Object_2/RootNode/bob_rig/Object_5/Skeleton3D/HeadBone" unique_id=1578787354]
+transform = Transform3D(0.9999998, 0, 0, 0, 0.99999976, 0, 0, 0, 0.99999964, 0, 0.07, -0.1)
 
 [node name="AnimationTree" type="AnimationTree" parent="." unique_id=1030308632]
 root_node = NodePath("../Model")
@@ -222,7 +225,6 @@ volume_db = -10.0
 bus = &"Sfx"
 
 [node name="LaserBeam" type="Node3D" parent="." unique_id=1733284419]
-visible = false
 script = ExtResource("7_ydmpv")
 
 [node name="Beam" type="MeshInstance3D" parent="LaserBeam" unique_id=285034969]
