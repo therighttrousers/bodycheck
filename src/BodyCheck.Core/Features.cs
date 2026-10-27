@@ -281,6 +281,18 @@ public sealed record Features
     /// How long, in game time, a robot's speed must stay below <see cref="RobotStallSpeed"/> to stall.
     /// </summary>
     public float RobotStallTime { get; init; } = 0.25f;
+    /// <summary>
+    /// The amount of heat added when a robot stalls.
+    /// </summary>
+    public float RobotStallHeat { get; init; } = 1;
+    /// <summary>
+    /// The maximum amount of stall heat a robot can accumulate before overheating and pausing until its heat is back to 0.
+    /// </summary>
+    public float RobotStallMaxHeat { get; init; } = 5;
+    /// <summary>
+    /// How quickly a robot sheds stall heat, in heat per game-time second.
+    /// </summary>
+    public float RobotStallCooldownRate { get; init; } = 1;
     #endregion
 
     #region Platforms

@@ -110,6 +110,9 @@ Rationale: decision records `019`, `027` and `032`.
 
 ## NPC movement
 
+- A robot patrols only while it stands on tiles. On anything else, such as a block, a platform or another robot, it stands still.
+- It walks one way until it stalls: its speed in the direction it is walking stays below `RobotStallSpeed` for `RobotStallTime`, as when something is in its way. Then it turns round. So it pauses briefly before every turn. It doesn't walk towards a side it touches, so a robot touching something on both sides stands still, facing the camera. Its first direction is right, unless it touches something there.
+- **Overheating.** Each stall adds heat, `RobotStallHeat`, and the robot sheds heat at a steady rate, `RobotStallCooldownRate` per second. So it overheats only if it stalls more often than that rate allows, on average, with `RobotStallMaxHeat` as how many quick stalls it tolerates. When its heat reaches `RobotStallMaxHeat`, it overheats and stands still, facing the camera, until its heat is back to 0. This keeps a robot that can't get anywhere, such as one too loaded to move, from turning round over and over.
 - A robot patrols with traction, as a walker, but never slips: its friction is its own low coefficient all the time, so it drives against its friction with the floor. Its drive and top speed are raised to make up for that, so an unloaded robot patrols as it did when it slipped. Its friction with the floor grows with what it carries, so a loaded robot walks slower: about 1.9 tiles per second carrying the player, against 2.7 unloaded (`032 §1.2`, `§1.4`).
 - A robot's low coefficient makes it easy to push, for the player and for other bodies (`032 §1.5`).
 

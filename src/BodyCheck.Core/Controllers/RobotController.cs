@@ -9,21 +9,37 @@ public sealed class RobotController : ICharacterController<WalkerEntity>
     private const float ArbitraryFirstMove = 1;
     private float _move;
     private readonly StallDetector _stall = new();
+    private readonly OverheatDetector _stallHeat = new();
 
     public void Apply(WalkerEntity entity, float gameDt, float realDt, IDefer defer)
     {
-        // Patrol if on tiles. Turn around when stalled.
+        var features = Features.Current;
+
+        _stallHeat.CoolDown(features.RobotStallCooldownRate * gameDt);
+
+        // Patrol if on tiles. Turn around when stalled. Pause when stalled too often.
         if (entity.OnGround && entity.Support is null)
         {
+            bool contactLeft = entity.Contacts.HasFlag(Contacts.Left);
+            bool contactRight = entity.Contacts.HasFlag(Contacts.Right);
+
             bool stalled = _stall.Update(
                 entity.LinearVelocity.X * _move,
                 gameDt,
-                Features.Current.RobotStallSpeed,
-                Features.Current.RobotStallTime);
+                features.RobotStallSpeed,
+                features.RobotStallTime);
 
-            bool contactLeft = entity.Contacts.HasFlag(Contacts.Left);
-            bool contactRight = entity.Contacts.HasFlag(Contacts.Right);
-            if (_move == 0)
+            if (stalled)
+            {
+                _stallHeat.HeatUp(features.RobotStallHeat, features.RobotStallMaxHeat);
+            }
+
+            if (_stallHeat.Overheated)
+            {
+                _move = 0;
+                _stall.Reset();
+            }
+            else if (_move == 0)
             {
                 _move = contactLeft ? (contactRight ? 0 : 1) : contactRight ? -1 : ArbitraryFirstMove;
                 _stall.Reset();
