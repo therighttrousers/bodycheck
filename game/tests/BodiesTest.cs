@@ -72,7 +72,7 @@ public class BodiesTest
     {
         // With the controllers off and no ground friction, the player and the robot are just two boxes on a
         // frictionless floor.
-        Features.Set(new() { PlayerGroundFriction = 0, RobotGroundFriction = 0, PlayerMass = movingMass });
+        Features.Set(new() { PlayerGroundFriction = 0, RobotEngineFriction = 0, PlayerMass = movingMass });
         RoomRun run = Start(
             RoomOf(
                 "#..............................#",
@@ -211,6 +211,33 @@ public class BodiesTest
 
         // The player's braking grip is far stronger than the robot's drive.
         AssertThat(run.Player.Position.X).IsEqualApprox(playerStart, 0.05f);
+    }
+
+    [TestCase]
+    public async Task The_player_runs_off_an_idle_robot_about_as_quickly_as_off_tiles()
+    {
+        // The robot stands on a block, where it doesn't patrol.
+        RoomRun run = Start(RoomOf(
+            "#..............................#",
+            "#..............................#",
+            "#.....P........................#",
+            "#..............................#",
+            "#.....R........................#",
+            "#.....B........................#",
+            "################################"));
+        Entity robot = run.Node.EntitiesOf(EntityKind.Robot).Single();
+        await run.Tick(Idle, 60);
+        AssertThat(run.Player.Support).IsSame(robot);
+
+        // On tiles, from rest, the player's drive takes it the 0.8 tiles across the robot's head in about 10 ticks.
+        int ticks = 0;
+        while (run.Player.Left() < robot.Right() && ticks < 60)
+        {
+            await run.Tick(Right);
+            ticks++;
+        }
+
+        AssertThat(ticks).IsLessEqual(15);
     }
 
     [TestCase]

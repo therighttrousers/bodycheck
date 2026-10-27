@@ -12,12 +12,12 @@ internal sealed class StallDetector
     public void Reset() => _slowTime = 0;
 
     /// <summary>
-    /// Takes the entity's speed toward its goal, after <paramref name="dt"/> more game time, and says whether it has
+    /// Takes the entity's speed toward its goal, after <paramref name="gameDt"/> more game time, and says whether it has
     /// been below <paramref name="minSpeed"/> for at least <paramref name="maxTime"/>.
     /// </summary>
-    public bool Update(float speed, float dt, float minSpeed, float maxTime)
+    public bool Update(float speed, float gameDt, float minSpeed, float maxTime)
     {
-        _slowTime = speed < minSpeed ? _slowTime + dt : 0;
+        _slowTime = speed < minSpeed ? _slowTime + gameDt : 0;
         return _slowTime >= maxTime;
     }
 }

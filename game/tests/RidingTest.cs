@@ -63,7 +63,9 @@ public class RidingTest
 
         await Tick(Idle, 30 * 60);
 
-        AssertThat(Robot.Position.X - start).IsGreater(67f);
+        // A robot drives against its friction with the floor, which the player's weight adds to, so it walks slower
+        // loaded: about 1.9 tiles per second.
+        AssertThat(Robot.Position.X - start).IsGreater(50f);
         AssertThat(Player.Support).IsSame(Robot);
         AssertThat(Player.Position.X - Robot.Position.X).IsEqualApprox(offset, 0.01f);
     }

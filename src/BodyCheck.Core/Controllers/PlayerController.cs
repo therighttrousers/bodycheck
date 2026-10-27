@@ -19,7 +19,7 @@ public readonly record struct PlayerInput(
 /// <summary>
 /// Turns player input into forces, impulses and traction on the entity it controls.
 /// </summary>
-public sealed class PlayerController : ICharacterController<WalkerEntity>
+public sealed class PlayerController : ICharacterController<PlayerEntity>
 {
     // How far, from 0 to 1, the stick must be pushed for one of the eight directions to count as held.
     private const float DirectionDeadZone = 0.5f;
@@ -70,7 +70,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     /// Aims the phase while the game is paused for it. Releasing phase ends the aim, and the bodies move on the next
     /// tick of play.
     /// </summary>
-    public void ApplyPaused(WalkerEntity entity, float realDt, IDefer defer)
+    public void ApplyPaused(PlayerEntity entity, float realDt, IDefer defer)
     {
         PlayerInput input = _input();
         ApplyPhase(entity, input, 0, realDt, defer);
@@ -78,7 +78,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
         _spawnWasHeld = input.SpawnHeld;
     }
 
-    public void Apply(WalkerEntity entity, float gameDt, float realDt, IDefer defer)
+    public void Apply(PlayerEntity entity, float gameDt, float realDt, IDefer defer)
     {
         PlayerInput input = _input();
         float weight = entity.Weight;
@@ -124,7 +124,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     }
 
     /// <summary>Reports the player's measurements to <see cref="Telemetry"/>, as of the engine's last step.</summary>
-    private void Report(WalkerEntity entity, float gameDt)
+    private void Report(PlayerEntity entity, float gameDt)
     {
         var feet = new Vector2(entity.Position.X, entity.Position.Y - entity.HalfSize.Y);
         var velocity = new Vector2(entity.LinearVelocity.X, entity.LinearVelocity.Y);
@@ -174,7 +174,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     /// <param name="gameDt">The tick's length in game time: 0 while the game is paused.</param>
     /// <param name="realDt">The tick's length in real time.</param>
     /// <param name="defer">An object that allows running actions later in the tick.</param>
-    private bool ApplyPhase(WalkerEntity entity, PlayerInput input, float gameDt, float realDt, IDefer defer)
+    private bool ApplyPhase(PlayerEntity entity, PlayerInput input, float gameDt, float realDt, IDefer defer)
     {
         if (Phase is null && input.PhaseHeld && _phaseCooldownLeft <= 0 && TargetedEntity(entity, input) is Entity target)
         {
@@ -255,7 +255,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     /// Where the block doesn't fit, or the player has no room to rise onto it, the spawn is cancelled. There is only one block, so spawning it
     /// takes it from wherever it was. The moves wait until after the entity steps, like a phase's.
     /// </summary>
-    private void ApplySpawn(WalkerEntity entity, PlayerInput input, IDefer defer)
+    private void ApplySpawn(PlayerEntity entity, PlayerInput input, IDefer defer)
     {
         if (!input.SpawnHeld || _spawnWasHeld || _spawnCooldownLeft > 0)
         {
@@ -294,7 +294,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     /// player has no room to rise onto it. Found by casting boxes against tiles, as of the engine's last step, each
     /// from where it is clear of them, so that no move starts inside a tile.
     /// </summary>
-    private (Vector3 Place, float Rise)? SpawnPlace(WalkerEntity entity)
+    private (Vector3 Place, float Rise)? SpawnPlace(PlayerEntity entity)
     {
         Vector2 playerHalf = entity.HalfSize;
         Vector2 blockHalf = _block.HalfSize;
@@ -342,7 +342,7 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     /// The entity in reach, if any, whose box is nearest a point offset from the player's center in the direction
     /// held. Reach is a sphere around the player's center, which meets every entity touching the player's box.
     /// </summary>
-    private Entity? TargetedEntity(WalkerEntity entity, PlayerInput input)
+    private Entity? TargetedEntity(PlayerEntity entity, PlayerInput input)
     {
         float radius = entity.HalfSize.Length() + Features.Current.PlayerPhaseReach;
         Vector2 from = (entity.Position + Features.Current.PlayerPhaseInputOffset * DirectionHeld(input)).ToVector2();
@@ -357,10 +357,10 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
     }
 
     /// <param name="jumps">Whether the entity jumps on this tick.</param>
-    private void ApplyRun(WalkerEntity entity, float move, float gameDt, bool jumps)
+    private void ApplyRun(PlayerEntity entity, float move, float gameDt, bool jumps)
     {
         Features features = Features.Current;
-        RunAction.Run(
+        bool slips = RunAction.Run(
             entity: entity,
             gameDt: gameDt,
             move: move,
@@ -368,10 +368,14 @@ public sealed class PlayerController : ICharacterController<WalkerEntity>
             topSpeed: features.PlayerTopSpeed,
             driveForce: _groundTimeLeft > 0 ? features.PlayerGroundDriveForce : features.PlayerAirDriveForce,
             brakeForce: _groundTimeLeft > 0 ? features.PlayerGroundBrakeForce : features.PlayerAirBrakeForce);
+        if (slips)
+        {
+            entity.SlipAfterEntitySteps();
+        }
     }
 
     /// <param name="jumps">Whether the entity jumps on this tick.</param>
-    private void ApplyJump(WalkerEntity entity, bool jumpHeld, float weight, float gameDt, bool jumps)
+    private void ApplyJump(PlayerEntity entity, bool jumpHeld, float weight, float gameDt, bool jumps)
     {
         if (jumps)
         {

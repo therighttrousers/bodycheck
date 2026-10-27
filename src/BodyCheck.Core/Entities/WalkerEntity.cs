@@ -4,12 +4,7 @@ namespace BodyCheck.Core.Entities;
 
 /// <summary>
 /// A body that moves itself by its grip on what it stands on: the player, a robot. Its controller drives it
-/// with traction.
-/// <para>
-/// A walker's engine friction is only with what it stands on, with its tuning's ground coefficient: off the
-/// ground it has none, so that it slides along walls. While it drives, its friction is off and traction alone
-/// moves it (027).
-/// </para>
+/// with traction. Its friction is its own, as any body's is, except the player's; see <see cref="PlayerEntity"/>.
 /// </summary>
 public partial class WalkerEntity : Entity
 {
@@ -92,9 +87,13 @@ public partial class WalkerEntity : Entity
 
     protected override void Control(float gameDt, float realDt, IDefer defer)
     {
-        Controller?.Apply(this, gameDt, realDt, defer);
+        ApplyController(gameDt, realDt, defer);
         UpdateAnimation(gameDt);
     }
+
+    /// <summary>Runs the walker's controller, if it has one.</summary>
+    protected virtual void ApplyController(float gameDt, float realDt, IDefer defer) =>
+        Controller?.Apply(this, gameDt, realDt, defer);
 
     private void UpdateAnimation(float gameDt)
     {

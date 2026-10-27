@@ -144,7 +144,7 @@
 				},
 				{
 					"__identifier": "Platform",
-					"__grid": [5,8],
+					"__grid": [4,6],
 					"__pivot": [0,0],
 					"__tags": [],
 					"__tile": null,
@@ -153,7 +153,7 @@
 					"width": 48,
 					"height": 16,
 					"defUid": 204,
-					"px": [80,128],
+					"px": [64,96],
 					"fieldInstances": [
 						{ "__identifier": "Width", "__type": "Int", "__value": 3, "__tile": null, "defUid": 208, "realEditorValues": [] },
 						{ "__identifier": "RangeA", "__type": "Point", "__value": { "cx": 3, "cy": 6 }, "__tile": null, "defUid": 228, "realEditorValues": [{
@@ -165,8 +165,8 @@
 							"params": ["11,6"]
 						}] }
 					],
-					"__worldX": 80,
-					"__worldY": 128
+					"__worldX": 64,
+					"__worldY": 96
 				},
 				{
 					"__identifier": "Block",

@@ -1,41 +1,72 @@
 using BodyCheck.Core.Entities;
 
+using Godot;
+
 namespace BodyCheck.Core.Controllers;
 
 public sealed class RobotController : ICharacterController<WalkerEntity>
 {
-    private float _facing = 1;
-    private float _move = 0;
+    private const float ArbitraryFirstMove = 1;
+    private float _move;
+    private readonly StallDetector _stall = new();
+    private readonly OverheatDetector _stallHeat = new();
 
     public void Apply(WalkerEntity entity, float gameDt, float realDt, IDefer defer)
     {
-        // Patrol if on tiles. Bounce off of anything solid (including the player).
+        var features = Features.Current;
+
+        _stallHeat.CoolDown(features.RobotStallCooldownRate * gameDt);
+
+        // Patrol if on tiles. Turn around when stalled. Pause when stalled too often.
         if (entity.OnGround && entity.Support is null)
         {
-            if (_move == 0)
+            bool contactLeft = entity.Contacts.HasFlag(Contacts.Left);
+            bool contactRight = entity.Contacts.HasFlag(Contacts.Right);
+
+            bool stalled = _stall.Update(
+                entity.LinearVelocity.X * _move,
+                gameDt,
+                features.RobotStallSpeed,
+                features.RobotStallTime);
+
+            if (stalled)
             {
-                _move = _facing;
+                _stallHeat.HeatUp(features.RobotStallHeat, features.RobotStallMaxHeat);
             }
-            else if (_move < 0 && entity.Contacts.HasFlag(Contacts.Left))
+
+            if (_stallHeat.Overheated)
             {
-                _facing = _move = 1;
+                _move = 0;
+                _stall.Reset();
             }
-            else if (_move > 0 && entity.Contacts.HasFlag(Contacts.Right))
+            else if (_move == 0)
             {
-                _facing = _move = -1;
+                _move = contactLeft ? (contactRight ? 0 : 1) : contactRight ? -1 : ArbitraryFirstMove;
+                _stall.Reset();
+            }
+            else if (_move < 0 && stalled)
+            {
+                _move = contactRight ? 0 : 1;
+                _stall.Reset();
+            }
+            else if (_move > 0 && stalled)
+            {
+                _move = contactLeft ? 0 : -1;
+                _stall.Reset();
             }
         }
         else
         {
             _move = 0;
+            _stall.Reset();
         }
 
         ApplyRun(entity, _move, gameDt);
 
-        // Set animation variables
+        // Set animation variables.
         entity.IsGrounded = entity.OnGround;
         entity.IsMoving = _move != 0;
-        entity.Facing = _facing;
+        entity.Facing = _move;
     }
 
     private void ApplyRun(WalkerEntity entity, float move, float gameDt)
@@ -44,6 +75,7 @@ public sealed class RobotController : ICharacterController<WalkerEntity>
         {
             return;
         }
+        // Robots don't slip: their friction is their own, all the time.
         RunAction.Run(
             entity: entity,
             gameDt: gameDt,

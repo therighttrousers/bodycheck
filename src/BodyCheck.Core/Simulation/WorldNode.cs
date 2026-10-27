@@ -124,9 +124,9 @@ public partial class WorldNode : Node3D
         Debug.Assert(Player is not null);
     }
 
-    private static WalkerEntity CreatePlayer(EntityConfig.Player config, Node3D visual, BodyTuning body, PlayerController controller)
+    private static PlayerEntity CreatePlayer(EntityConfig.Player config, Node3D visual, BodyTuning body, PlayerController controller)
     {
-        var player = new WalkerEntity(body, visual);
+        var player = new PlayerEntity(body, visual);
         player.AddChild(new OmniLight3D { OmniRange = 15, ShadowEnabled = true, Position = new Vector3(0, 0, 2) });
         player.Controller = controller;
         return player;
@@ -202,7 +202,7 @@ public partial class WorldNode : Node3D
     /// </summary>
     public Node3D MapMarkers { get; } = new() { Name = "MapMarkers", Visible = false };
 
-    public WalkerEntity Player { get; } = null!;
+    public PlayerEntity Player { get; } = null!;
 
     /// <summary>The block the player spawns, the last of <see cref="Entities"/>.</summary>
     public Entity PlayerBlock { get; }

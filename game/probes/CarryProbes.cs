@@ -81,7 +81,7 @@ public sealed class CarryProbe : IProbe
         }
     }
 
-    private static string Describe(Entity? support) => support is null ? "tiles" : support is WalkerEntity ? "player" : "entity";
+    private static string Describe(Entity? support) => support is null ? "tiles" : support is PlayerEntity ? "player" : "entity";
 
     /// <summary>
     /// The number of the entity's floor contacts in the engine's last step, and the normal force they imply: the sum
