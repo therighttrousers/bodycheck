@@ -9,9 +9,6 @@ public sealed class RobotController(Func<Entity?> target) : ICharacterController
 {
     private const float ArbitraryFirstMove = 1;
 
-    // Where the laser starts, above the robot's center: about where its eyes are.
-    private const float EyeHeight = 0.8f;
-
     // What a laser's beam stops at, and what hides a target from it.
     private const PhysicsLayer LaserBlockers = PhysicsLayer.DefaultCollisionMask;
 
@@ -115,7 +112,7 @@ public sealed class RobotController(Func<Entity?> target) : ICharacterController
     private void ApplyLaser(RobotEntity entity, float gameDt)
     {
         var features = Features.Current;
-        Vector3 origin = entity.Position + new Vector3(0, EyeHeight, 0);
+        Vector3 origin = entity.LaserOrigin(_facing);
         _seen = target() is Entity t && Sees(entity, origin, t) ? t : null;
 
         _laserTime = _laserPhase == LaserPhase.Off ? MathF.Max(_laserTime - gameDt, 0) : _laserTime + gameDt;

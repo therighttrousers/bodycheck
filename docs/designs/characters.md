@@ -43,7 +43,7 @@ If the NPC loses sight of the target for 100 ms while the laser follows it, it e
 
 The timeline should allow the player to avoid taking damage by jumping, with a generous timing window.
 
-Built so far, for robots only, with no damage: every robot fires at the player. A robot sees the player's center from its eyes, 0.8 tiles above its own center, when the player is within 45 degrees of level and 15 tiles, with nothing in between, and ahead of it, or on either side while it faces neither way: in the air, or overheated. Whenever it sees the player, cooling down or not, it stands still and turns to face it, except once the laser has stopped following it, so that it faces the way it fires; afterwards it patrols the way it faces. The beam stops at the first tile or entity it meets.
+Built so far, for robots only, with no damage: every robot fires at the player. A robot sees the player's center from between its eyes, where its model's `LaserOrigin` node is in the rest pose, fixed to its body and ahead of it in the direction it faces, so that animation doesn't move it, when the player is within 45 degrees of level and 15 tiles, with nothing in between, and ahead of it, or on either side while it faces neither way: in the air, or overheated. Whenever it sees the player, cooling down or not, it stands still and turns to face it, except once the laser has stopped following it, so that it faces the way it fires; afterwards it patrols the way it faces. The beam stops at the first tile or entity it meets.
 
 ## Type: rocket
 
