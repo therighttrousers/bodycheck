@@ -1,37 +1,15 @@
 [gd_scene format=3 uid="uid://dfkowqhj77duo"]
 
 [ext_resource type="PackedScene" uid="uid://ctq5ypfqqc5op" path="res://assets/bob_the_robot/scene.tscn" id="1_8r1pt"]
-[ext_resource type="Script" uid="uid://bvv55e8n0wf1q" path="res://main/LaserBeam.cs" id="2_lsr0b"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_2h3ep"]
 albedo_color = Color(0.4972931, 0.67427635, 0.92051667, 1)
 metallic = 0.8
 roughness = 0.5
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_lsr0b"]
-albedo_color = Color(1, 0.1, 0.05, 1)
-emission_enabled = true
-emission = Color(1, 0.1, 0.05, 1)
-emission_energy_multiplier = 3.0
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_lsr0b"]
-material = SubResource("StandardMaterial3D_lsr0b")
-top_radius = 0.5
-bottom_radius = 0.5
-height = 1.0
-radial_segments = 8
-rings = 0
-
 [node name="Robot" unique_id=1679574890 instance=ExtResource("1_8r1pt")]
 
-[node name="Object_23" parent="Model/Sketchfab_model/466f4e732ab24572a4bcf0fb382e93d7_fbx/Object_2/RootNode/bob_rig/Object_5/Skeleton3D" parent_id_path=PackedInt32Array(1250731866, 146952772) index="0" unique_id=858457670]
+[node name="Object_23" parent="Model/Sketchfab_model/466f4e732ab24572a4bcf0fb382e93d7_fbx/Object_2/RootNode/bob_rig/Object_5/Skeleton3D" parent_id_path=PackedInt32Array(1250731866, 1711431171) index="0" unique_id=1731681235]
 surface_material_override/0 = SubResource("StandardMaterial3D_2h3ep")
-
-[node name="LaserBeam" type="Node3D" parent="." unique_id=1427306511]
-script = ExtResource("2_lsr0b")
-
-[node name="Beam" type="MeshInstance3D" parent="LaserBeam" unique_id=402874915]
-cast_shadow = 0
-mesh = SubResource("CylinderMesh_lsr0b")
 
 [editable path="Model"]
