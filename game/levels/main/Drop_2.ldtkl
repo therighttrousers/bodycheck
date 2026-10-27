@@ -109,6 +109,38 @@
 					"fieldInstances": [],
 					"__worldX": 272,
 					"__worldY": 544
+				},
+				{
+					"__identifier": "Block",
+					"__grid": [48,3],
+					"__pivot": [0,0],
+					"__tags": [],
+					"__tile": null,
+					"__smartColor": "#BE4A2F",
+					"iid": "3d3276d0-bde0-11f1-91df-69d0fbb45cdc",
+					"width": 16,
+					"height": 16,
+					"defUid": 214,
+					"px": [768,48],
+					"fieldInstances": [],
+					"__worldX": 272,
+					"__worldY": 528
+				},
+				{
+					"__identifier": "Block",
+					"__grid": [48,2],
+					"__pivot": [0,0],
+					"__tags": [],
+					"__tile": null,
+					"__smartColor": "#BE4A2F",
+					"iid": "3d9fdea0-bde0-11f1-91df-a99699129240",
+					"width": 16,
+					"height": 16,
+					"defUid": 214,
+					"px": [768,32],
+					"fieldInstances": [],
+					"__worldX": 272,
+					"__worldY": 512
 				}
 			]
 		},

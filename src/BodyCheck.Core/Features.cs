@@ -145,16 +145,10 @@ public sealed record Features
     public float PlayerAirBrakeForce { get; init; } = 45;
 
     /// <summary>
-    /// The player's coefficient of friction with the ground, whether tiles or another body. Applied when not driving in
-    /// the direction of travel.
+    /// The player's coefficient of friction, rough, while it stands on something and doesn't slip: with the ground,
+    /// whether tiles or another body, and with what it carries. Applied when not driving in the direction of travel.
     /// </summary>
     public float PlayerGroundFriction { get; init; } = 4;
-
-    /// <summary>
-    /// The player's coefficient of friction with what it carries, such as a block on its head. It wins over the carried
-    /// body's own. Holding a carried block through a reversal takes about 5.6.
-    /// </summary>
-    public float PlayerCarryFriction { get; init; } = 6;
 
     /// <summary>
     /// The most torque with which the player holds the rotation of what it carries to its own. Robots don't hold what
@@ -168,7 +162,7 @@ public sealed record Features
     /// don't steady what they carry. This should be smaller than <see cref="PlayerGroundDriveForce"/> so a 2-tile-high
     /// tunnel can knock the block off the player's head (and not stop it from going through).
     /// </summary>
-    public float PlayerCarrySteadying { get; init; } = 0;
+    public float PlayerCarrySteadying { get; init; } = 60;
 
     /// <summary>Upward speed given by the jump impulse.</summary>
     public float PlayerJumpSpeed { get; init; } = 12.7f;
@@ -261,21 +255,22 @@ public sealed record Features
     public float RobotMass { get; init; } = 1;
 
     /// <summary>Speed at which a robot's run drive force falls to zero.</summary>
-    public float RobotTopSpeed { get; init; } = 3;
+    public float RobotTopSpeed { get; init; } = 3.75f;
 
-    /// <summary>Force applied to a robot when on the ground and facing the direction of motion.</summary>
-    public float RobotDriveForce { get; init; } = 11.25f;
+    /// <summary>
+    /// Force applied to a robot when on the ground and facing the direction of motion. A robot doesn't slip, so it
+    /// drives against its friction with the floor, which grows with what it carries.
+    /// </summary>
+    public float RobotDriveForce { get; init; } = 14.0625f;
     /// <summary>Force applied to a robot when on the ground and facing opposite the direction of motion.</summary>
     public float RobotBrakeForce { get; init; } = 22.5f;
 
     /// <summary>
-    /// A robot's coefficient of friction with the ground, whether tiles or another body. Applied when not driving in
-    /// the direction of travel.
+    /// A robot's coefficient of friction, against everything it touches. It is the same while the robot drives, so it
+    /// must be low enough for the drive to beat it. It is also how hard the robot's head holds what it carries: a block
+    /// slides on it when the robot speeds up or slows down by more than this times gravity.
     /// </summary>
-    public float RobotGroundFriction { get; init; } = 4;
-
-    /// <summary>A robot's coefficient of friction with what it carries. It wins over the carried body's own.</summary>
-    public float RobotCarryFriction { get; init; } = 6;
+    public float RobotEngineFriction { get; init; } = 0.1f;
 
     /// <summary>
     /// A robot whose speed toward the end it is heading for stays below this for <see cref="RobotStallTime"/> has

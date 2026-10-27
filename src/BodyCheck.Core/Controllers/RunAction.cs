@@ -13,6 +13,10 @@ internal static class RunAction
     /// - Drive force, if used (intent in the direction of motion), falls off smoothly near top speed.
     /// - Brake force, if used (intent against the direction of motion), is fully applied.
     /// </summary>
+    /// <returns>
+    /// Whether the entity should slip on its support this tick, if it is one that slips: the player does, robots don't
+    /// (see docs/designs/movement.md).
+    /// </returns>
     /// <param name="entity">The entity to walk, run or roll.</param>
     /// <param name="gameDt">Game-time tick duration.</param>
     /// <param name="move">How the entity intends to move on this frame, between -1 and 1.</param>
@@ -20,10 +24,10 @@ internal static class RunAction
     /// <param name="topSpeed">Maximum speed the entity ever tries to go, relative to its support.</param>
     /// <param name="driveForce">Force applied when the entity intends to drive in the direction of motion.</param>
     /// <param name="brakeForce">Force applied when the entity intends to drive against the direction of motion.</param>
-    public static void Run(WalkerEntity entity, float gameDt, float move, bool jumps, float topSpeed, float driveForce, float brakeForce)
+    public static bool Run(WalkerEntity entity, float gameDt, float move, bool jumps, float topSpeed, float driveForce, float brakeForce)
     {
         // Don't try to run if weightless (e.g. being grabbed).
-        if (entity.Weight == 0) return;
+        if (entity.Weight == 0) return false;
 
         // Speed is relative to whatever the entity stands on, so running on a platform or blocks works like running on tiles.
         float speed = entity.GroundSpeed;
@@ -34,6 +38,7 @@ internal static class RunAction
             || (move < 0 && entity.Contacts.HasFlag(Contacts.Left));
         bool brake = !pushes && speed != 0 && move * speed <= 0;
 
+        bool slips = false;
         float drive = 0;
         if (move != 0)
         {
@@ -48,15 +53,11 @@ internal static class RunAction
             // On the ground the drive is traction: the engine applies it, and pushes back on the support. The
             // entity's friction holds it still on its support while idle. Driving the way the entity is already
             // going, it slips, so that friction doesn't hold it back. Braking, friction stays on and helps to stop
-            // it, and stops at no slip, so it doesn't push on past zero towards the drive's target (019 §4.8).
-            // Jumping, it slips, whichever way it drives, so that a jump leaves with the entity's speed (019 §6.5).
-            // (027 §2)
+            // it, and stops at no slip, so it doesn't push on past zero towards the drive's target. Jumping, it
+            // slips, whichever way it drives, so that a jump leaves with the entity's speed.
             if (move != 0 || jumps)
             {
-                if (jumps || !brake)
-                {
-                    entity.SlipAfterEntitySteps();
-                }
+                slips = jumps || !brake;
                 entity.ApplyTraction(MathF.Sign(move) * topSpeed, drive);
             }
         }
@@ -64,5 +65,6 @@ internal static class RunAction
         {
             entity.ApplyCentralForce(new Vector3(MathF.Sign(move) * drive, 0, 0));
         }
+        return slips;
     }
 }

@@ -6,7 +6,7 @@ namespace BodyCheck.Core.Controllers;
 
 public sealed class RobotController : ICharacterController<WalkerEntity>
 {
-    private const float ArbitraryFirstMove = -1;
+    private const float ArbitraryFirstMove = 1;
     private float _move;
     private readonly StallDetector _stall = new();
 
@@ -59,6 +59,7 @@ public sealed class RobotController : ICharacterController<WalkerEntity>
         {
             return;
         }
+        // Robots don't slip: their friction is their own, all the time.
         RunAction.Run(
             entity: entity,
             gameDt: gameDt,

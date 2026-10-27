@@ -52,10 +52,9 @@ public enum EntityCue
 /// Bounce and damping are off in the engine. Drag is the entity's own force.
 /// </para>
 /// <para>
-/// Friction is the engine's. Each tick, after the entity steps, the entity sets its coefficient for this tick's step,
-/// from what it stands on: what a carrier holds takes the carrier's coefficient, a walker has none off the ground,
-/// and an entity has none while its controller lets it slip (027). A walker's traction is the motor of a joint
-/// between it and what it stands on, along X. What carries an entity may also steady it with a joint's motor.
+/// Friction is the engine's, at the body's own coefficient, all the time. Only the player's changes with what it
+/// touches and does; see <see cref="PlayerEntity"/>. A walker's traction is the motor of a joint between it and what
+/// it stands on, along X. What carries an entity may also steady it with a joint's motor.
 /// </para>
 /// <para>
 /// An entity is also the base node for advance expressions in the entity's visual; i.e. in the AnimationTree
@@ -99,9 +98,6 @@ public partial class Entity : RigidBody3D
     // Where the entity stood on what it stood on during the engine's last step: the middle of the contacts with it.
     private Vector3? _groundContact;
 
-    // Whether the controller lets the entity slip this tick. See SlipAfterEntitySteps.
-    private bool _slipAfterEntitySteps;
-
     // The joint whose motor steadies the entity at its center, for what carries it like a hand (019 §5.1). It is one of
     // Joints' free joints.
     private readonly Generic6DofJoint3D _steadying;
@@ -122,7 +118,7 @@ public partial class Entity : RigidBody3D
         AxisLockAngularY = true;
         AxisLockAngularZ = axisLockAngularZ;
 
-        // Its own, since SetFrictionAfterEntitySteps changes it every tick. Until the first, the tuning's.
+        // Its own, since UpdateFromFeatures changes it.
         PhysicsMaterialOverride = new PhysicsMaterial { Friction = tuning.EngineFriction(Features.Current), Bounce = 0, Rough = false };
         LinearDampMode = DampMode.Replace;
         LinearDamp = 0;
@@ -213,18 +209,37 @@ public partial class Entity : RigidBody3D
     /// </summary>
     public void UpdateFromFeatures()
     {
-        // Not the engine friction: SetFrictionAfterEntitySteps reads it from the features and puts it in the engine
-        // every tick, since what the entity touches changes it.
         float mass = Tuning.Mass(Features.Current);
         if (Mass != mass)
         {
             Mass = mass;
         }
+        UpdateFrictionFromFeatures();
     }
 
-    // The tuning's values for gripping and carrying, from the features in effect now. See BodyTuning.
-    private float? GroundFriction => Tuning.GroundFriction?.Invoke(Features.Current);
-    private float? CarryFriction => Tuning.CarryFriction?.Invoke(Features.Current);
+    /// <summary>Puts the tuning's engine friction in the engine. See <see cref="UpdateFromFeatures"/>.</summary>
+    protected virtual void UpdateFrictionFromFeatures() => SetFriction(Tuning.EngineFriction(Features.Current), rough: false);
+
+    /// <summary>
+    /// Sets the engine's coefficient of friction for this body, against everything it touches. The engine uses the
+    /// smaller of two bodies' coefficients, except that a rough one wins, and of two rough ones the larger (Godot
+    /// passes a rough coefficient to Jolt as negative, and Jolt takes the absolute value of the smaller).
+    /// </summary>
+    protected void SetFriction(float friction, bool rough)
+    {
+        // Godot reloads the body's material on every change, even to the same value.
+        PhysicsMaterial material = PhysicsMaterialOverride;
+        if (material.Friction != friction)
+        {
+            material.Friction = friction;
+        }
+        if (material.Rough != rough)
+        {
+            material.Rough = rough;
+        }
+    }
+
+    // The tuning's values for carrying, from the features in effect now. See BodyTuning.
     private float? CarrySteadying => Tuning.CarrySteadying?.Invoke(Features.Current);
     private float? CarryTorque => Tuning.CarryTorque?.Invoke(Features.Current);
 
@@ -311,10 +326,8 @@ public partial class Entity : RigidBody3D
     /// <param name="controlled">Whether the controller runs. Without it, the entity only coasts, under drag, gravity and friction.</param>
     public void Step(float gameDt, float realDt, IDefer defer, bool controlled = true)
     {
-        // A motor's push lasts one tick, like a force: it is off unless steadying or the controller uses it again. So
-        // does a controller's slip.
+        // A motor's push lasts one tick, like a force: it is off unless steadying or the controller uses it again.
         DisableMotors();
-        _slipAfterEntitySteps = false;
 
         Steady();
 
@@ -346,54 +359,11 @@ public partial class Entity : RigidBody3D
     }
 
     /// <summary>
-    /// Lets the entity slip on what it stands on in this tick's step: after the entity steps, its friction goes off.
-    /// For a tick in which friction shouldn't resist the entity sliding against its support, such as when the entity
-    /// moves itself along it, or leaves it with its speed. It lasts one tick.
+    /// Sets the engine's friction after the entity steps, for this tick's step, for a kind of body whose friction
+    /// changes with what it touches and does. Others keep their tuning's.
     /// </summary>
-    public void SlipAfterEntitySteps() => _slipAfterEntitySteps = true;
-
-    // Sets the engine's friction after the entity steps, for this tick's step, from what the entity stood on during the
-    // last step (027 §1). The engine uses the smaller of two bodies' coefficients, except that a rough one wins, and of
-    // two rough ones the larger (Godot passes a rough coefficient to Jolt as negative, and Jolt takes the absolute value
-    // of the smaller). So what a carrier holds is rough, with the carrier's coefficient, which wins over the carrier's
-    // own: a walker's is zero while it slips. The engine multiplies it by the normal force, so the grip grows with what
-    // is stacked above, and comes with a landing's impact. But a body's coefficient is for all its contacts, so while
-    // what is carried touches something at its side, it has its own, not rough, and doesn't grip a wall with its
-    // carrier's (027 §4). Something with a ground coefficient is rough too, so that it wins over the tiles' and a
-    // block's, but it grips only what it stands on: off the ground it has no friction, so that it slides along walls.
-    private void SetFrictionAfterEntitySteps(IDefer defer)
+    protected virtual void SetFrictionAfterEntitySteps(IDefer defer)
     {
-        defer.RunAfterEntitySteps(() =>
-        {
-            float friction = Tuning.EngineFriction(Features.Current);
-            bool rough = false;
-            if (_slipAfterEntitySteps || (GroundFriction is not null && !OnGround))
-            {
-                friction = 0;
-            }
-            else if (OnGround && Tuning.CanBeCarried && Support?.CarryFriction is float carryFriction
-                && (Contacts & (Contacts.Left | Contacts.Right)) == Contacts.None)
-            {
-                friction = carryFriction;
-                rough = true;
-            }
-            else if (GroundFriction is float groundFriction)
-            {
-                friction = groundFriction;
-                rough = true;
-            }
-
-            // Godot reloads the body's material on every change, even to the same value.
-            PhysicsMaterial material = PhysicsMaterialOverride;
-            if (material.Friction != friction)
-            {
-                material.Friction = friction;
-            }
-            if (material.Rough != rough)
-            {
-                material.Rough = rough;
-            }
-        });
     }
 
     // What carries the entity may steady it, like a hand held up behind its head: the steadying joint's motor, at the

@@ -135,6 +135,38 @@
 					],
 					"__worldX": 464,
 					"__worldY": 144
+				},
+				{
+					"__identifier": "Block",
+					"__grid": [15,11],
+					"__pivot": [0,0],
+					"__tags": [],
+					"__tile": null,
+					"__smartColor": "#BE4A2F",
+					"iid": "af8b1e70-bde0-11f1-91df-2520b5422d79",
+					"width": 16,
+					"height": 16,
+					"defUid": 214,
+					"px": [240,176],
+					"fieldInstances": [],
+					"__worldX": 560,
+					"__worldY": 176
+				},
+				{
+					"__identifier": "Block",
+					"__grid": [15,10],
+					"__pivot": [0,0],
+					"__tags": [],
+					"__tile": null,
+					"__smartColor": "#BE4A2F",
+					"iid": "afc31e60-bde0-11f1-91df-03e07b508207",
+					"width": 16,
+					"height": 16,
+					"defUid": 214,
+					"px": [240,160],
+					"fieldInstances": [],
+					"__worldX": 560,
+					"__worldY": 160
 				}
 			]
 		},
