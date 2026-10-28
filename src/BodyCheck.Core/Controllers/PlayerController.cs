@@ -102,8 +102,17 @@ public sealed class PlayerController : ICharacterController<PlayerEntity>
             // A press buffered in the air jumps on landing even if jump has been let go of since, as a tap.
             bool jumps = _jumpBufferLeft > 0 && _groundTimeLeft > 0 && _thrustTimeLeft == 0;
             ApplyRun(entity, move, gameDt, jumps);
-            ApplyJump(entity, input.JumpHeld, weight, gameDt, jumps);
-            ApplyUpwardCornerCorrection(entity, move, gameDt, defer);
+            Vector3 jumped = ApplyJump(entity, input.JumpHeld, weight, gameDt, jumps);
+
+            // Rising into the corner of a tile, the player is nudged round it, on the ground too: the engine still
+            // reports the floor for a tick after a jump.
+            CornerCorrection.UpwardCorrect(
+                entity: entity,
+                velocity: entity.LinearVelocity + jumped,
+                gameDt: gameDt,
+                maxNudge: Features.Current.PlayerUpwardCornerCorrection,
+                maxAngle: Features.Current.PlayerUpwardCornerCorrectionAngle,
+                defer: defer);
         }
 
         // Set animation variables
@@ -375,28 +384,9 @@ public sealed class PlayerController : ICharacterController<PlayerEntity>
         }
     }
 
-    /// <summary>
-    /// Nudges the player rising in the air around the corner of a tile that its head would bump in this tick's step: the
-    /// way it is driving, or either way while idle.
-    /// </summary>
-    private static void ApplyUpwardCornerCorrection(PlayerEntity entity, float move, float gameDt, IDefer defer)
-    {
-        if (entity.OnGround || entity.LinearVelocity.Y <= 0)
-        {
-            return;
-        }
-        Vector3[] sides = move switch
-        {
-            > 0 => [Vector3.Right],
-            < 0 => [Vector3.Left],
-            _ => [Vector3.Left, Vector3.Right],
-        };
-        var motion = new Vector3(0, entity.LinearVelocity.Y * gameDt, 0);
-        CornerCorrection.Correct(entity, motion, sides, Features.Current.PlayerUpwardCornerCorrection, defer);
-    }
-
+    /// <returns>The change in the entity's velocity from the jump's impulse, which shows only after the engine's step.</returns>
     /// <param name="jumps">Whether the entity jumps on this tick.</param>
-    private void ApplyJump(PlayerEntity entity, bool jumpHeld, float weight, float gameDt, bool jumps)
+    private Vector3 ApplyJump(PlayerEntity entity, bool jumpHeld, float weight, float gameDt, bool jumps)
     {
         if (jumps)
         {
@@ -413,12 +403,12 @@ public sealed class PlayerController : ICharacterController<PlayerEntity>
             entity.RaiseCue(EntityCue.Jumped);
 
             // Thrust starts on the next tick.
-            return;
+            return impulse / entity.Mass;
         }
 
         if (!jumpHeld)
         {
-            return;
+            return Vector3.Zero;
         }
 
         // If stopped rising (e.g. hit a ceiling), cancel thrust.
@@ -436,5 +426,6 @@ public sealed class PlayerController : ICharacterController<PlayerEntity>
             entity.ApplyCentralForce(force);
             entity.Support?.ApplyCentralForce(-force);
         }
+        return Vector3.Zero;
     }
 }

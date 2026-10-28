@@ -454,6 +454,49 @@ public class PlayerControllerTest
         AssertThat(highestFeet > 4).IsEqual(entersShaft);
     }
 
+    /// <summary>
+    /// The player slides down a wall into a tunnel, under the wall, and stands flush with the corner of the tunnel's
+    /// mouth. A full jump rises as high as from open ground, along the wall, without bumping the corner or being knocked
+    /// more than a pixel away from the wall: from a tunnel 3 tiles high, and from one 2 tiles high, where the head is
+    /// within a tick's rise of the corner when the jump starts.
+    /// </summary>
+    [TestCase(3)]
+    [TestCase(2)]
+    public async Task Jumping_flush_with_a_corner_rises_past_it(int tunnelHeight)
+    {
+        await Start(room: RoomRun.RoomOf(
+        [
+            "..P#..",
+            .. Enumerable.Repeat("...#..", 3 - tunnelHeight + 1),
+            "...###",
+            .. Enumerable.Repeat("......", tunnelHeight),
+            "######",
+        ]), settleTicks: 0);
+        for (int i = 0; i < 120 && !Player.Contacts.HasFlag(Contacts.Right); i++)
+        {
+            await Tick(Right);
+        }
+        for (int i = 0; i < 120 && !Player.OnGround; i++)
+        {
+            await Tick(Idle);
+        }
+        await Tick(Idle, 10);
+        AssertThat(Player.Position.X + Player.HalfSize.X).IsEqualApprox(3, 0.01f);
+
+        float highestFeet = 0;
+        float leftmostSide = 3;
+        for (int i = 0; i < 60; i++)
+        {
+            await Tick(Jump);
+            highestFeet = MathF.Max(highestFeet, Player.Position.Y - Player.HalfSize.Y);
+            leftmostSide = MathF.Min(leftmostSide, Player.Position.X + Player.HalfSize.X);
+        }
+
+        // The feet start 1 tile up, and the highest jump rises 4.5 tiles.
+        AssertThat(highestFeet).IsGreater(5.4f);
+        AssertThat(leftmostSide).IsGreaterEqual(3 - 1f / Constants.TilePixels);
+    }
+
     [TestCase]
     public async Task Thrust_ends_when_the_body_hits_a_ceiling()
     {

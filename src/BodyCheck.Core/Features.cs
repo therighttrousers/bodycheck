@@ -185,10 +185,17 @@ public sealed record Features
     public float PlayerJumpThrustFrac { get; init; } = 0.885f;
 
     /// <summary>
-    /// How far, in tiles, the player may be nudged sideways while rising in the air, so that its head clears the corner
-    /// of a tile it would otherwise bump. At 0, it bumps every corner it meets.
+    /// How far, in tiles, the player may be nudged sideways while rising, so that its head clears the corner of a tile
+    /// it would otherwise bump. At 0, it bumps every corner it meets.
     /// </summary>
     public float PlayerUpwardCornerCorrection { get; init; } = 0.25f;
+
+    /// <summary>
+    /// How far, in degrees, the player's velocity may lean away from a side, while rising, for it to be nudged to that
+    /// side round a corner. At 0, it is nudged only the way it leans, as in Celeste, or either way if it rises straight
+    /// up; at 90, either way, however it leans.
+    /// </summary>
+    public float PlayerUpwardCornerCorrectionAngle { get; init; } = 10;
 
     /// <summary>
     /// How long the player gets to jump, or turn around with ground thrust, *after* running off an edge, in ticks at

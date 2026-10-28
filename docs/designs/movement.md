@@ -55,11 +55,12 @@ Rationale: decision record `000 §1.8`.
 
 Rationale: decision record `033`.
 
-- Rising in the air, a player whose head would clip the corner of a tile in this tick's step is nudged sideways round it, by up to `PlayerUpwardCornerCorrection`, so that it doesn't bump. It is nudged the way it drives, or either way while idle, by the smallest nudge, in pixels of 1/16 tile, that clears. Any rise counts, not only a jump; on the ground, nothing is nudged (`033 §2.1`, `§2.3`).
-- The bump is predicted, before the engine's step, from the player's vertical velocity as of the last step, so nothing is lost: velocity and thrust go on as they were (`033 §1.1`, `§2.2`).
+- Rising, a player whose head would bump the corner of a tile in this tick's step is nudged sideways round it, by up to `PlayerUpwardCornerCorrection`, so that it doesn't. It is nudged by the smallest nudge, in quarter pixels, that clears, to a side its velocity doesn't lean away from by more than `PlayerUpwardCornerCorrectionAngle` (`033 §4.2`, `§4.4`). Any rise counts, not only a jump, on the ground too, since the engine still reports the floor for a tick after a jump (`033 §4.3`).
+- The bump is predicted, before the engine's step, from the player's vertical velocity: as of the last step, plus this tick's jump impulse, which the engine shows only after its step. So nothing is lost: velocity and thrust go on as they were (`033 §1.1`, `§4.3`).
+- The engine gives a contact to a corner that starts a step within its speculative contact distance, 0.02 tiles, and the contact knocks the player away from it. So a corner that the head would only pass within that distance of counts as a bump: the predicting cast is widened across the motion by that much and some slack, on each side as far as there is room (`033 §4.1`).
 - Only tiles are corrected round, and only when a tile is the first thing the head would meet, so a body, such as a block carried on the head, is bumped as usual. The nudge, and the rise after it, must be clear of everything the player collides with; otherwise there is no nudge, and the player bumps (`033 §1.3`–`§1.5`).
 - The nudge is made after the entity steps, like a phase's moves, and is drawn interpolated, as a slide. Corrections can chain, one per tick (`033 §1.6`, `§1.7`).
-- `CornerCorrection.Correct` takes the motion and the sides to nudge to, so a sideways correction, nudging up, could use it with its own threshold (`033 §1.8`).
+- `CornerCorrection.UpwardCorrect` takes any entity's velocity, so anything that rises, even an entity that flies, can use it. It is built on a correction along either axis, so a sideways correction, nudging up or down, can use that with its own nudge and angle (`033 §1.8`, `§4.3`).
 
 ## Physics engine
 
@@ -129,8 +130,8 @@ Rationale: decision records `019`, `027` and `032`.
 
 ## Open questions
 
-- Corner correction: whether nudging toward the input, rather than the horizontal speed as Celeste does, plays well; how far it should reach, 0.25 tiles to start against Celeste's equivalent 0.4 (`033 §2.3`, `§2.4`).
-- Corner correction doesn't see a jump's own tick, so a ceiling within a tick's rise of the head, as in a tunnel 2 tiles high, is bumped. Nor does it see a clip under `Entity.ContactTolerance` (`033 §3.1`, `§3.2`).
+- Corner correction: how far it should reach, 0.25 tiles to start against Celeste's equivalent 0.4, and how lax its angle should be, 10 degrees to start (`033 §2.4`, `§4.4`).
+- A player rising against a wall isn't widened into it, so a seam in the wall's face, where boxes stack, can still bump it (`033 §4.1`).
 - Sideways corner correction, nudging up a player whose feet clip the top corner of a step: it might make 1-tile gaps reliable to cross (`007`) and landing on ledges easier (`033 §3.3`).
 - For a level that wants a comb-shaped floor (1-tile gaps back to back) as a puzzle: how long must the comb be for the chance of crossing it to fall below 1%? What would make crossing reliable, such as bevelled bottom corners on the player's shape? (`007 §1.3`)
 - Landing on a ledge is unreliable. With an overhang of 0.16 tiles or less and a fall of under about 3 tiles, the player sinks past the corner in most cases and is eased out sideways. Longer falls land, except with the smallest overhangs, 0.02 tiles or less, which continuous detection used to catch (`028 §3.2`). Not yet tried: more physics ticks per second; a cap on falling speed; our own downward sweep before the step (`001 §1.3`).
