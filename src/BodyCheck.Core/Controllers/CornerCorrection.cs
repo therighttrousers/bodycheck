@@ -78,7 +78,11 @@ internal static class CornerCorrection
                 {
                     continue;
                 }
-                (wideCenter, wideHalfSize) = Widened(entity, center + nudge, across, all);
+                // Nudged against the velocity, the entity drifts back towards the corner during the step, as far as
+                // nothing stops it, so the motion must be clear from where that leaves it.
+                float drift = MathF.Max(0, -velocity.Dot(side) * gameDt);
+                Vector3 drifted = center + nudge - entity.RoomToMove(entity.HalfSize, center + nudge, -side, drift, all) * side;
+                (wideCenter, wideHalfSize) = Widened(entity, drifted, across, all);
                 if (IsClear(entity, wideCenter, wideHalfSize, motion, all))
                 {
                     // Drawn sliding there over the tick, not jumping there.

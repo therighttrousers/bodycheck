@@ -195,7 +195,7 @@ public sealed record Features
     /// side round a corner. At 0, it is nudged only the way it leans, as in Celeste, or either way if it rises straight
     /// up; at 90, either way, however it leans.
     /// </summary>
-    public float PlayerUpwardCornerCorrectionAngle { get; init; } = 10;
+    public float PlayerUpwardCornerCorrectionAngle { get; init; } = 30;
 
     /// <summary>
     /// How long the player gets to jump, or turn around with ground thrust, *after* running off an edge, in ticks at

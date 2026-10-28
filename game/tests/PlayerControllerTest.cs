@@ -497,6 +497,48 @@ public class PlayerControllerTest
         AssertThat(leftmostSide).IsGreaterEqual(3 - 1f / Constants.TilePixels);
     }
 
+    /// <summary>
+    /// Jumping from a tunnel 2 tiles high, with the head clipping the right corner of an opening in its ceiling, and
+    /// moving sideways so that the jump leans by an angle from straight up. The player is nudged left into the opening
+    /// when it leans left, however far, or leans right by no more than the correction's angle, but not when it leans
+    /// further right. The head is within the jump's first step of the ceiling, so it is nudged on the jump's own tick.
+    /// Leaning left, the clip is more than the jump's first step drifts left, so that the drift alone doesn't clear it.
+    /// Leaning right by 20 degrees, the step drifts back towards the corner by 0.08 tiles, so the nudge must be that much
+    /// larger.
+    /// </summary>
+    [TestCase(-40f, 0.2f, true)]
+    [TestCase(10f, 0.1f, true)]
+    [TestCase(20f, 0.1f, true)]
+    [TestCase(40f, 0.1f, false)]
+    public async Task Jumping_at_an_angle_corrects_toward_the_lean_or_against_it_within_the_angle(
+        float leanDegrees, float clip, bool entersOpening)
+    {
+        await Start(new() { PlayerUpwardCornerCorrection = 0.25f, PlayerUpwardCornerCorrectionAngle = 20 },
+            room: RoomRun.RoomOf(
+                "#.........#",
+                "#.........#",
+                "####...####",
+                "#.........#",
+                "#.....P...#",
+                "###########"));
+        // The opening's right corner is at x = 7.
+        Player.MoveTo(new Vector3(7 - Player.HalfSize.X + clip, Player.Position.Y, 0));
+        await Tick(Idle, 10);
+
+        // A jump slips, so ground friction doesn't take the speed away on the jump's tick.
+        float speedX = Features.Current.PlayerJumpSpeed * MathF.Tan(Mathf.DegToRad(leanDegrees));
+        Player.LinearVelocity = new Vector3(speedX, 0, 0);
+        float highestFeet = 0;
+        for (int i = 0; i < 60; i++)
+        {
+            await Tick(Jump);
+            highestFeet = MathF.Max(highestFeet, Player.Position.Y - Player.HalfSize.Y);
+        }
+
+        // The ceiling's underside is 3 tiles up, and the feet start 1 tile up.
+        AssertThat(highestFeet > 3).IsEqual(entersOpening);
+    }
+
     [TestCase]
     public async Task Thrust_ends_when_the_body_hits_a_ceiling()
     {
