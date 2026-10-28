@@ -103,6 +103,7 @@ public sealed class PlayerController : ICharacterController<PlayerEntity>
             bool jumps = _jumpBufferLeft > 0 && _groundTimeLeft > 0 && _thrustTimeLeft == 0;
             ApplyRun(entity, move, gameDt, jumps);
             ApplyJump(entity, input.JumpHeld, weight, gameDt, jumps);
+            ApplyUpwardCornerCorrection(entity, move, gameDt, defer);
         }
 
         // Set animation variables
@@ -372,6 +373,26 @@ public sealed class PlayerController : ICharacterController<PlayerEntity>
         {
             entity.SlipAfterEntitySteps();
         }
+    }
+
+    /// <summary>
+    /// Nudges the player rising in the air around the corner of a tile that its head would bump in this tick's step: the
+    /// way it is driving, or either way while idle.
+    /// </summary>
+    private static void ApplyUpwardCornerCorrection(PlayerEntity entity, float move, float gameDt, IDefer defer)
+    {
+        if (entity.OnGround || entity.LinearVelocity.Y <= 0)
+        {
+            return;
+        }
+        Vector3[] sides = move switch
+        {
+            > 0 => [Vector3.Right],
+            < 0 => [Vector3.Left],
+            _ => [Vector3.Left, Vector3.Right],
+        };
+        var motion = new Vector3(0, entity.LinearVelocity.Y * gameDt, 0);
+        CornerCorrection.Correct(entity, motion, sides, Features.Current.PlayerUpwardCornerCorrection, defer);
     }
 
     /// <param name="jumps">Whether the entity jumps on this tick.</param>

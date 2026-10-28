@@ -16,6 +16,7 @@ Relevant decision records:
 - [028: Continuous detection against walls](../decision-records/028-continuous-detection-against-walls.md)
 - [030: Gameplay speed](../decision-records/030-gameplay-speed.md)
 - [032: Player-only situational friction](../decision-records/032-player-only-situational-friction.md)
+- [033: Corner correction](../decision-records/033-corner-correction.md)
 
 ## Player movement
 
@@ -48,7 +49,17 @@ Rationale: decision record `000 §1.8`.
 - For a few ticks after moving off an edge without jumping, the player can still jump, and drives as on the ground: coyote time. A coyote jump is as high as one from the ground.
 - Jump thrust runs on game time, so the slowdown before a phase and a lower gameplay speed stretch it, and a jump rises as high at any speed. It is tuned in game seconds. A tick that the thrust's time covers only part of gets that part of the thrust, so the thrust adds the same speed whatever the ticks' length: the highest jump rises 4.50 tiles at speed 1, and 4.58 at speed 0.5, where shorter steps integrate the rise more closely (`030 §4.5`). Coyote time and jump buffering measure the player's reactions, so they run on real time: they are tuned in ticks at 60 per second, and always last exactly that many ticks (`018 §1.1`, `§2.1`, `030 §2.4`, `§2.6`).
 - 1-tile gaps don't belong on running paths: at any speed, a running player may cross one or catch on its far edge and fall in, depending on where the ticks land (`007 §1.1`, `007 §1.2`).
-- Jumping up through a 1-tile gap doesn't need perfect alignment.
+- Jumping up through a 1-tile gap doesn't need perfect alignment: the player has 0.2 tiles of slack in it, and upward corner correction, below, adds to that on each side.
+
+### Corner correction
+
+Rationale: decision record `033`.
+
+- Rising in the air, a player whose head would clip the corner of a tile in this tick's step is nudged sideways round it, by up to `PlayerUpwardCornerCorrection`, so that it doesn't bump. It is nudged the way it drives, or either way while idle, by the smallest nudge, in pixels of 1/16 tile, that clears. Any rise counts, not only a jump; on the ground, nothing is nudged (`033 §2.1`, `§2.3`).
+- The bump is predicted, before the engine's step, from the player's vertical velocity as of the last step, so nothing is lost: velocity and thrust go on as they were (`033 §1.1`, `§2.2`).
+- Only tiles are corrected round, and only when a tile is the first thing the head would meet, so a body, such as a block carried on the head, is bumped as usual. The nudge, and the rise after it, must be clear of everything the player collides with; otherwise there is no nudge, and the player bumps (`033 §1.3`–`§1.5`).
+- The nudge is made after the entity steps, like a phase's moves, and is drawn interpolated, as a slide. Corrections can chain, one per tick (`033 §1.6`, `§1.7`).
+- `CornerCorrection.Correct` takes the motion and the sides to nudge to, so a sideways correction, nudging up, could use it with its own threshold (`033 §1.8`).
 
 ## Physics engine
 
@@ -118,7 +129,9 @@ Rationale: decision records `019`, `027` and `032`.
 
 ## Open questions
 
-- Not yet checked: jumping up through a 1-tile gap without perfect alignment.
+- Corner correction: whether nudging toward the input, rather than the horizontal speed as Celeste does, plays well; how far it should reach, 0.25 tiles to start against Celeste's equivalent 0.4 (`033 §2.3`, `§2.4`).
+- Corner correction doesn't see a jump's own tick, so a ceiling within a tick's rise of the head, as in a tunnel 2 tiles high, is bumped. Nor does it see a clip under `Entity.ContactTolerance` (`033 §3.1`, `§3.2`).
+- Sideways corner correction, nudging up a player whose feet clip the top corner of a step: it might make 1-tile gaps reliable to cross (`007`) and landing on ledges easier (`033 §3.3`).
 - For a level that wants a comb-shaped floor (1-tile gaps back to back) as a puzzle: how long must the comb be for the chance of crossing it to fall below 1%? What would make crossing reliable, such as bevelled bottom corners on the player's shape? (`007 §1.3`)
 - Landing on a ledge is unreliable. With an overhang of 0.16 tiles or less and a fall of under about 3 tiles, the player sinks past the corner in most cases and is eased out sideways. Longer falls land, except with the smallest overhangs, 0.02 tiles or less, which continuous detection used to catch (`028 §3.2`). Not yet tried: more physics ticks per second; a cap on falling speed; our own downward sweep before the step (`001 §1.3`).
 - The player can land on a seam partway down a vertical wall. Boxes can't avoid this. Candidate fix: one concave mesh made of the exposed tile faces (`001 §1.2`).

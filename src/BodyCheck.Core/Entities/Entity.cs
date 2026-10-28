@@ -275,11 +275,18 @@ public partial class Entity : RigidBody3D
     /// its velocity, the engine pushes it apart from whatever it ends up overlapping, and a controller defers it until
     /// after the entity steps.
     /// </summary>
-    public void MoveTo(Vector3 destination)
+    /// <param name="interpolated">
+    /// Whether the entity is drawn moving there over the tick, as it moves in a step, for a short move. Otherwise it is
+    /// drawn there at once.
+    /// </param>
+    public void MoveTo(Vector3 destination, bool interpolated = false)
     {
         DisableMotors();
         GlobalPosition = destination;
-        ResetPhysicsInterpolation();
+        if (!interpolated)
+        {
+            ResetPhysicsInterpolation();
+        }
     }
 
     /// <summary>The colliders, other than this entity, that overlap a shape centered at a place.</summary>

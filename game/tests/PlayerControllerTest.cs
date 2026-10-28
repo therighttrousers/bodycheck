@@ -420,6 +420,40 @@ public class PlayerControllerTest
         AssertThat(Player.OnGround).IsTrue();
     }
 
+    /// <summary>
+    /// Jumping up into a shaft 1 tile wide, off center so that the head would clip the corner of its mouth, the player
+    /// is nudged into the shaft when the clip is within the correction, and bumps the corner when it isn't.
+    /// </summary>
+    [TestCase(0.25f, true)]
+    [TestCase(0.5f, false)]
+    public async Task Jumping_into_a_shaft_off_center_corrects_a_small_clip(float offCenter, bool entersShaft)
+    {
+        // The player's box is 0.8 tiles wide, so it clips the shaft's mouth by 0.15 tiles, or 0.4.
+        await Start(room: RoomRun.RoomOf(
+            "#########",
+            "####.####",
+            "####.####",
+            "####.####",
+            "####.####",
+            "####.####",
+            "#.......#",
+            "#.......#",
+            "#...P...#",
+            "#########"));
+        Player.MoveTo(Player.Position + new Vector3(offCenter, 0, 0));
+        await Tick(Idle, 10);
+
+        // The mouth of the shaft is 4 tiles up, and the feet start 1 tile up.
+        float highestFeet = 0;
+        for (int i = 0; i < 60; i++)
+        {
+            await Tick(Jump);
+            highestFeet = MathF.Max(highestFeet, Player.Position.Y - Player.HalfSize.Y);
+        }
+
+        AssertThat(highestFeet > 4).IsEqual(entersShaft);
+    }
+
     [TestCase]
     public async Task Thrust_ends_when_the_body_hits_a_ceiling()
     {

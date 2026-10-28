@@ -185,6 +185,12 @@ public sealed record Features
     public float PlayerJumpThrustFrac { get; init; } = 0.885f;
 
     /// <summary>
+    /// How far, in tiles, the player may be nudged sideways while rising in the air, so that its head clears the corner
+    /// of a tile it would otherwise bump. At 0, it bumps every corner it meets.
+    /// </summary>
+    public float PlayerUpwardCornerCorrection { get; init; } = 0.25f;
+
+    /// <summary>
     /// How long the player gets to jump, or turn around with ground thrust, *after* running off an edge, in ticks at
     /// <see cref="TuningTicksPerSecond"/> of real time, so that the time to react is the same at any
     /// <see cref="GameplaySpeed"/>.
