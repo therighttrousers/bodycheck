@@ -13,7 +13,7 @@ namespace BodyCheck;
 /// <summary>
 /// A placeholder for showing a phase being aimed: a mark around the target, and, with a direction held, two arrows from
 /// the center of mass of the player and the target, for the velocity each would leave with if phase were released now,
-/// at a tenth of a tile per tile per second. Like the <see cref="ShapeWireframes"/>, it is drawn
+/// at a tenth of a tile per tile per second. Like the <see cref="DebugOverlay"/>, it is drawn
 /// over the game at the window's full resolution, and it draws while the game is paused for the aim.
 /// </summary>
 public partial class PhaseAimMarker : Node2D

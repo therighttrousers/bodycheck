@@ -5,42 +5,41 @@ using Godot;
 namespace BodyCheck;
 
 /// <summary>
-/// Draws every box collision shape in the game's viewport as a wireframe, over the game, so that a body's
-/// box can be compared with its model. F4 switches it on and off.
+/// Shows every enabled collision shape in the game's viewport as Godot's own debug wireframe, so that a body's shape
+/// can be compared with its model. F4 switches it on and off.
 /// <para>
-/// It reads the shapes and the camera from the engine each frame, so it draws whatever world is loaded. Like
-/// the <see cref="DebugOverlay"/>, it belongs in the window's own viewport, where it is drawn at the window's
-/// full resolution and the colour pass doesn't touch it.
+/// Each shape shows as a child mesh, added to it while showing and removed when not. While showing, the shapes are
+/// read from the engine each frame, so it shows whatever world is loaded, and entities added since. While not, it
+/// doesn't process, so it costs nothing.
 /// </para>
 /// </summary>
-public partial class ShapeWireframes : Node2D
+public partial class ShapeWireframes : Node
 {
-    private static readonly Color LineColor = new(0.2f, 1, 0.4f, 0.8f);
-
-    // The corners of a box with half size 1, and the pairs of them that its 12 edges join.
-    private static readonly Vector3[] Corners = [
-        new(-1, -1, -1), new(1, -1, -1), new(1, 1, -1), new(-1, 1, -1),
-        new(-1, -1, 1), new(1, -1, 1), new(1, 1, 1), new(-1, 1, 1),
-    ];
-    private static readonly (int, int)[] Edges = [
-        (0, 1), (1, 2), (2, 3), (3, 0),
-        (4, 5), (5, 6), (6, 7), (7, 4),
-        (0, 4), (1, 5), (2, 6), (3, 7),
-    ];
+    // The name of the mesh added to each shape, by which it is found again.
+    private const string MeshName = "DebugMeshInstance";
 
     private readonly WorldViewportContainer _worldView;
-    private readonly Vector2[] _projected = new Vector2[Corners.Length];
 
-    public ShapeWireframes(WorldViewportContainer worldView)
+    public ShapeWireframes(WorldViewportContainer worldView) => _worldView = worldView;
+
+    /// <summary>Whether the shapes show, which is whether this processes.</summary>
+    public bool Visible
     {
-        _worldView = worldView;
-        Visible = false;
+        get => IsProcessing();
+        set
+        {
+            SetProcess(value);
+            // At once, so that the meshes go when it stops processing.
+            ShowMeshes(value);
+        }
     }
 
     public override void _Ready()
     {
         // Stay active when the game is paused.
         ProcessMode = ProcessModeEnum.Always;
+        // Godot turns processing on before this, because _Process is overridden.
+        SetProcess(false);
     }
 
     public override void _UnhandledKeyInput(InputEvent @event)
@@ -51,41 +50,31 @@ public partial class ShapeWireframes : Node2D
         }
     }
 
-    public override void _Process(double delta)
+    public override void _Process(double delta) => ShowMeshes(true);
+
+    /// <summary>Adds every enabled shape's debug mesh, or removes them all.</summary>
+    private void ShowMeshes(bool show)
     {
-        if (Visible)
+        foreach (Node node in _worldView.World.FindChildren("*", nameof(CollisionShape3D), owned: false))
         {
-            QueueRedraw();
+            if (node is CollisionShape3D shape)
+            {
+                ShowMesh(shape, show && !shape.Disabled);
+            }
         }
     }
 
-    public override void _Draw()
+    /// <summary>Adds the shape's debug mesh, or removes it, unless it is already there or gone.</summary>
+    private static void ShowMesh(CollisionShape3D shape, bool show)
     {
-        Camera3D? camera = _worldView.World.GetCamera3D();
-        if (camera is null)
+        var mesh = shape.GetNodeOrNull<MeshInstance3D>(MeshName);
+        if (show && mesh is null && shape.Shape is not null)
         {
-            return;
+            shape.AddChild(new MeshInstance3D { Name = MeshName, Mesh = shape.Shape.GetDebugMesh() });
         }
-
-        // From the game viewport's pixels to the window's, where the container draws it scaled up.
-        Transform2D toWindow = _worldView.GetGlobalTransform();
-        foreach (Node node in _worldView.World.FindChildren("*", nameof(CollisionShape3D), owned: false))
+        else if (!show && mesh is not null)
         {
-            if (node is not CollisionShape3D { Disabled: false, Shape: BoxShape3D box } shape)
-            {
-                continue;
-            }
-
-            Transform3D transform = shape.GlobalTransform;
-            for (int i = 0; i < Corners.Length; i++)
-            {
-                Vector3 corner = transform * (Corners[i] * box.Size / 2);
-                _projected[i] = toWindow * camera.UnprojectPosition(corner);
-            }
-            foreach (var (a, b) in Edges)
-            {
-                DrawLine(_projected[a], _projected[b], LineColor);
-            }
+            mesh.QueueFree();
         }
     }
 }

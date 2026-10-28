@@ -98,7 +98,7 @@ The Godot project, which holds the scenes and the other nodes.
 - `PhaseAimMarker` is a placeholder, at the window's resolution, for showing a phase being aimed: a box around the target, and arrows from the center of mass of the player and the target for the velocity each would leave with (`015 §5.7`).
 - `WorldNode.MapMarkers`, on F2, draws a box where each entity starts, of the size and colour of its box in LDtk, for comparing the world with its map and for seeing entities with no body, such as respawns. `Main` keeps whether they show as it loads worlds.
 - `DebugOverlay`, on F3, shows the frame rate and times and every telemetry value, at the window's resolution (`008 §2.3`).
-- `ShapeWireframes`, on F4, draws every box collision shape in the game as a wireframe, at the window's resolution, for comparing bodies with their models. It reads the shapes and the camera from the engine each frame.
+- `ShapeWireframes`, on F4, shows every enabled collision shape in the game as Godot's own debug wireframe, a mesh added to the shape, for comparing bodies with their models. It reads the shapes from the engine each frame while showing, and doesn't process while not.
 - `look/` holds the low-resolution view, the colour pass and the tools for judging the rendering. See [rendering.md](rendering.md).
 - `probes/` holds scripted measurements, run headless with `--probe=` and a name. They are only in the editor's build, `Debug`, where Godot defines `TOOLS`, so `Main`'s code for them is under `#if TOOLS` (`031 §2.3`).
 
