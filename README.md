@@ -83,7 +83,7 @@ Phase goes through the robot, block or platform nearest the player. Holding it w
 Debug controls:
 - F2: toggle display of original entity placement and control entities. Pass `--markers` after `--` to start with them on.
 - F3: debug overlay on or off, with measurements for tuning and level design. Pass `--overlay` after `--` to start with it on.
-- F4: collision shapes as wireframes on or off. Pass `--shapes` after `--` to start with them on.
+- F4: collision shapes as wireframes, and contact points, on or off. Pass `--collisions` after `--` to start with them on.
 - F5: read the worlds and configurations again, and restart the world, at the last respawn the player came near.
 - '[' and ']': previous or next configuration.
 - ';' and "'": restart the world at the previous or next respawn. Each world remembers its own respawn while the game runs.

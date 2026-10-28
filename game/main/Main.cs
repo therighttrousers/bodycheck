@@ -40,9 +40,9 @@ namespace BodyCheck;
 /// <para>
 /// User arguments, after "--" on the command line: a world's name; "--configuration=" and a configuration's
 /// name; "--probe=" and a probe's name to run that probe and quit, in the editor's build only; "--overlay" to start with the
-/// <see cref="DebugOverlay"/> showing; "--shapes" to start with the <see cref="ShapeWireframes"/> showing; "--markers" to start with
+/// <see cref="DebugOverlay"/> showing; "--collisions" to start with the <see cref="CollisionDebug"/> showing; "--markers" to start with
 /// the world's <see cref="WorldNode.MapMarkers"/> showing. F2 switches the markers on and off, for every world loaded after, F3 the
-/// overlay, and F4 the shapes.
+/// overlay, and F4 the collisions.
 /// </para>
 /// </summary>
 public partial class Main : Node
@@ -66,7 +66,7 @@ public partial class Main : Node
     private readonly WorldViewportContainer _worldView = new();
     private readonly DebugOverlay _overlay = new();
     private readonly ErrorOverlay _errorOverlay = new();
-    private ShapeWireframes _shapes = null!;
+    private CollisionDebug _collisions = null!;
     // Whether each world's map markers show, kept as worlds are loaded.
     private bool _showMapMarkers;
     // Each world's current respawn, by the world's name and the respawn's id, to start its player at when it restarts.
@@ -82,8 +82,8 @@ public partial class Main : Node
         AddChild(_worldView);
         AddLook();
         _worldView.World.AddChild(_cameraRig);
-        _shapes = new ShapeWireframes(_worldView);
-        AddChild(_shapes);
+        _collisions = new CollisionDebug(_worldView);
+        AddChild(_collisions);
         _phaseAimMarker = new PhaseAimMarker(_worldView);
         AddChild(_phaseAimMarker);
         AddChild(_overlay);
@@ -102,9 +102,9 @@ public partial class Main : Node
             {
                 _overlay.Visible = true;
             }
-            else if (arg == "--shapes")
+            else if (arg == "--collisions")
             {
-                _shapes.Visible = true;
+                _collisions.Visible = true;
             }
             else if (arg == "--markers")
             {
