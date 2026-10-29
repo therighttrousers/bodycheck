@@ -29,14 +29,13 @@ public sealed class PlayerController : IController<PlayerEntity>
     private readonly Entity _block;
     private readonly PhaseAction _phase;
     private readonly RunAction _run;
+    private readonly JumpAction _jump;
 
     // Timers count down in game time, except where they say otherwise.
     private bool _jumpWasHeld;
     // In real time: how much longer the player counts as on the ground, so that jumping just after running off an edge
     // jumps.
     private float _groundTimeLeft;
-    private Vector3 _lastGroundVelocity = Vector3.Zero;
-    private float _thrustTimeLeft;
     // In real time: how much longer the last press of jump counts, so that pressing it just before landing jumps.
     private float _jumpBufferLeft;
     private bool _spawnWasHeld;
@@ -60,6 +59,7 @@ public sealed class PlayerController : IController<PlayerEntity>
         _block = block;
         _phase = new PhaseAction(entity, PhaseTuning.Player);
         _run = new RunAction(entity, RunTuning.Player);
+        _jump = new JumpAction(entity, JumpTuning.Player);
     }
 
     public PlayerEntity Entity => _entity;
@@ -85,13 +85,11 @@ public sealed class PlayerController : IController<PlayerEntity>
     public void Apply(float gameDt, float realDt, IDefer defer)
     {
         PlayerInput input = _input();
-        float weight = _entity.Weight;
         float move = Math.Clamp(input.XAxis, -1, 1);
 
         if (_entity.OnGround)
         {
             _groundTimeLeft = Features.TicksToTime(Features.Current.PlayerCoyoteTicks + 1); // +1 to include this tick
-            _lastGroundVelocity = _entity.GroundVelocity;
         }
 
         if (input.JumpHeld && !_jumpWasHeld)
@@ -104,9 +102,9 @@ public sealed class PlayerController : IController<PlayerEntity>
             ApplySpawn(input, defer);
 
             // A press buffered in the air jumps on landing even if jump has been let go of since, as a tap.
-            bool jumps = _jumpBufferLeft > 0 && _groundTimeLeft > 0 && _thrustTimeLeft == 0;
+            bool jumps = _jumpBufferLeft > 0 && _groundTimeLeft > 0 && _jump.ThrustTimeLeft == 0;
             Vector3 runDeltaV = ApplyRun(move, gameDt, jumps);
-            Vector3 jumpDeltaV = ApplyJump(input.JumpHeld, weight, gameDt, jumps);
+            Vector3 jumpDeltaV = ApplyJump(input.JumpHeld, gameDt, jumps);
 
             // Predicted player velocity after the engine integrates forces this tick. Used for corner correction.
             Vector3 gravDeltaV = _entity.GetGravity() * gameDt;
@@ -140,14 +138,13 @@ public sealed class PlayerController : IController<PlayerEntity>
         // Set animation variables
         _entity.IsGrounded = _groundTimeLeft > 0;
         _entity.IsMoving = move != 0;
-        _entity.IsJumping = _thrustTimeLeft > 0;
+        _entity.IsJumping = _jump.Thrusting;
         // Face forward when in the air; otherwise use movement direction.
         _entity.Facing = _entity.IsGrounded ? Math.Sign(move) : 0;
 
         Report(gameDt);
 
         _groundTimeLeft = Math.Max(0, _groundTimeLeft - realDt);
-        _thrustTimeLeft = Math.Max(0, _thrustTimeLeft - gameDt);
         _jumpBufferLeft = Math.Max(0, _jumpBufferLeft - realDt);
         _jumpWasHeld = input.JumpHeld;
         _spawnWasHeld = input.SpawnHeld;
@@ -164,7 +161,7 @@ public sealed class PlayerController : IController<PlayerEntity>
         Telemetry.Report(Metric.GroundSpeed, _entity.GroundSpeed);
         Telemetry.Report(Metric.OnGround, _entity.OnGround);
         Telemetry.Report(Metric.CoyoteTime, _entity.OnGround ? 0 : _groundTimeLeft);
-        Telemetry.Report(Metric.ThrustTime, _thrustTimeLeft);
+        Telemetry.Report(Metric.ThrustTime, _jump.ThrustTimeLeft);
         Telemetry.Report(Metric.JumpBufferTime, _jumpBufferLeft);
 
         if (!_entity.OnGround)
@@ -191,7 +188,7 @@ public sealed class PlayerController : IController<PlayerEntity>
 
         // The engine still reports the floor contact for a tick after a jump, when the feet have already
         // risen. Thrust time counts from the jump, so it marks it.
-        if (_thrustTimeLeft == 0)
+        if (!_jump.Thrusting)
         {
             _takeOffFeet = feet;
         }
@@ -211,7 +208,7 @@ public sealed class PlayerController : IController<PlayerEntity>
         {
             // A phase ends a jump's thrust, coyote time and buffered press, and so does cancelling one: the aim took them.
             _groundTimeLeft = 0;
-            _thrustTimeLeft = 0;
+            _jump.Interrupt();
             _jumpBufferLeft = 0;
         }
         return outcome;
@@ -319,52 +316,17 @@ public sealed class PlayerController : IController<PlayerEntity>
         return deltaV;
     }
 
-    /// <returns>
-    /// The change in the entity's velocity from the jump's impulse or thrust, which shows only after the engine's step.
-    /// What the entity carries is pushed up with it, so it shares the change.
-    /// </returns>
-    /// <param name="jumps">Whether the entity jumps on this tick.</param>
-    private Vector3 ApplyJump(bool jumpHeld, float weight, float gameDt, bool jumps)
+    /// <summary>Jumps, or keeps up a jump's thrust. A jump uses up coyote time and the buffered press.</summary>
+    /// <returns>The change in the player's velocity from the jump, which shows only after the engine's step.</returns>
+    /// <param name="jumps">Whether the player jumps on this tick.</param>
+    private Vector3 ApplyJump(bool jumpHeld, float gameDt, bool jumps)
     {
+        Vector3 deltaV = _jump.Apply(jumps, jumpHeld, gameDt);
         if (jumps)
         {
-            // The jump speed is relative to the ground, as it moved on the last tick on it: whatever the entity
-            // gained or lost against it since, from falling in coyote ticks or being pushed off it, is undone.
-            var relativeVelocityY = _entity.LinearVelocity.Y - _lastGroundVelocity.Y;
-            var impulse = new Vector3(0, _entity.Mass * (Features.Current.PlayerJumpSpeed - relativeVelocityY), 0);
-            _entity.ApplyCentralImpulse(impulse);
-            _entity.Support?.ApplyCentralImpulse(-impulse);
             _groundTimeLeft = 0;
             _jumpBufferLeft = 0;
-            _thrustTimeLeft = Features.Current.PlayerJumpThrustTime + gameDt; // + gameDt to include this tick
-
-            _entity.RaiseCue(EntityCue.Jumped);
-
-            // Thrust starts on the next tick.
-            return impulse / _entity.LoadedMass;
         }
-
-        if (!jumpHeld)
-        {
-            return Vector3.Zero;
-        }
-
-        // If stopped rising (e.g. hit a ceiling), cancel thrust.
-        if (_entity.LinearVelocity.Y <= 0)
-        {
-            _thrustTimeLeft = 0;
-        }
-
-        if (_thrustTimeLeft > 0)
-        {
-            // The last tick of thrust gets only the part of it that the thrust time covers, so that the thrust adds the
-            // same speed whatever the ticks' length in game time.
-            float share = Math.Min(1, _thrustTimeLeft / gameDt);
-            var force = new Vector3(0, share * Features.Current.PlayerJumpThrustFrac * weight, 0);
-            _entity.ApplyCentralForce(force);
-            _entity.Support?.ApplyCentralForce(-force);
-            return force * gameDt / _entity.LoadedMass;
-        }
-        return Vector3.Zero;
+        return deltaV;
     }
 }

@@ -47,3 +47,16 @@ Goals:
   - It exposes the laser's stage and what it sees, which the robot's movement reads. Nothing else changes its timers.
 - [ ] 6.2 The footing rule: an entity that can move doesn't start aiming in the air, and gives up when off the ground too long (characters.md). A turret can't move, so the rule shouldn't hold for it. Left until there is a turret; the likely answer is a value in `LaserTuning` that turns the rule off (Claude).
 - [x] 6.3 The laser's place in its timeline was its phase, `LaserPhase`, which clashes with the player's phasing, now that the robot's controller reads the laser's beside code about phasing. Decision (Neil): it is its stage, `LaserStage`, and `Laser.Stage`. Claude weighed state (too general: it sounds like all of the laser's data), step (a tick's word), mode (something switched, not a sequence) and beat (unclear without explaining), and found nothing better.
+
+## 7. Jumping
+
+- [x] 7.1 `JumpAction` holds the jump: the impulse relative to how the ground last moved, the thrust while jump is held, ending the thrust at a ceiling, and the `Jumped` cue, with a `JumpTuning`. Decision (Neil): extract it, as laid out (Claude):
+  - When to jump is the controller's, so the action takes whether the entity jumps on the tick. The player's coyote time and buffered press stay in its controller: they are leniency for the player's fingers, on real time, and coyote time also picks the run's forces and the animation's `IsGrounded`. An NPC would just say when.
+  - A jump uses up the coyote time and the buffered press, which the controller clears on the tick it jumps. A phase ends the jump through its verb, `Interrupt` (§2.1).
+  - It exposes how much thrust time is left after the tick, and whether any is (Neil: computed from it, for one source), which the controller reads to keep a jump from beginning during another's thrust, and which the animation's `IsJumping` and the take-off point for telemetry read. They read it after it counts down, where they read it before, so `IsJumping` ends a tick sooner. Jump heights are the same to five decimals, for taps and holds of 1, 2, 5 and 600 ticks, as on `main`.
+  - Two small differences, neither seen in play: the overlay's thrust time shows what is left after the tick, one tick's worth less than before; and while a phase is aimed the action isn't run, so the thrust time doesn't count down, where it did, slowly, as the game slowed. The release ends the thrust either way.
+
+## 8. Later
+
+- [ ] 8.1 Patrolling as an action (Neil): many robot-like things might patrol. To be taken up at the end of these refactorings. It would decide intent, such as the robot's `_move` (§5.2), rather than act on the body, so it may be a different kind of thing from the actions so far.
+- [ ] 8.2 How to swap abilities (Neil): for example, robots that shoot a laser, shoot missiles, or don't shoot at all. To be discussed.
