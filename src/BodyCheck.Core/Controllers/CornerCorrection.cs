@@ -124,9 +124,9 @@ internal static class CornerCorrection
                         // What it carries goes with it, sliding along any tile in the way, so that the entity isn't
                         // nudged into it and pushed back. Not what that carries in turn: a stack is rarely nudged, since
                         // carrying one, the entity can't jump high.
-                        foreach (Entity above in entity.Above.Where(above => above.Tuning.CanBeCarried))
+                        foreach (Entity carried in entity.Carried)
                         {
-                            above.MoveThroughEntities(above.Position + nudge, interpolated: true);
+                            carried.MoveThroughEntities(carried.Position + nudge, interpolated: true);
                         }
                         entity.MoveTo(nudgedCenter, interpolated: true);
                     });

@@ -182,6 +182,15 @@ public partial class Entity : RigidBody3D
     /// </summary>
     public IReadOnlyList<Entity> Above => _above;
 
+    /// <summary>What the entity carries: what is <see cref="Above"/> it and can be carried.</summary>
+    public IEnumerable<Entity> Carried => _above.Where(above => above.Tuning.CanBeCarried);
+
+    /// <summary>
+    /// The entity's mass with what it carries, which moves with it, so that a push on the entity moves them together.
+    /// Not what that carries in turn, an approximation.
+    /// </summary>
+    public float LoadedMass => Mass + Carried.Sum(carried => carried.Mass);
+
     /// <summary>
     /// Where the entity touched what it stood on during the engine's last step: the middle of its contacts with the
     /// support, or else the tiles. Null if it touched nothing below it.

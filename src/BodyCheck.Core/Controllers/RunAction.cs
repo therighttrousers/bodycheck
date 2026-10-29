@@ -50,9 +50,8 @@ internal static class RunAction
         }
 
         Vector3 deltaV = Vector3.Zero;
-        // The drive moves what the entity carries too. Only what it carries directly counts, an approximation, like the
-        // rest of the prediction.
-        float mass = entity.Mass + entity.Above.Where(above => above.Tuning.CanBeCarried).Sum(above => above.Mass);
+        // The drive moves what the entity carries too.
+        float mass = entity.LoadedMass;
 
         if (entity.OnGround)
         {

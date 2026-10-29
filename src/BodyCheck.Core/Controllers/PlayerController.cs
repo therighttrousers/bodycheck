@@ -403,7 +403,10 @@ public sealed class PlayerController : ICharacterController<PlayerEntity>
         return deltaV;
     }
 
-    /// <returns>The change in the entity's velocity from the jump's impulse, which shows only after the engine's step.</returns>
+    /// <returns>
+    /// The change in the entity's velocity from the jump's impulse or thrust, which shows only after the engine's step.
+    /// What the entity carries is pushed up with it, so it shares the change.
+    /// </returns>
     /// <param name="jumps">Whether the entity jumps on this tick.</param>
     private Vector3 ApplyJump(PlayerEntity entity, bool jumpHeld, float weight, float gameDt, bool jumps)
     {
@@ -422,7 +425,7 @@ public sealed class PlayerController : ICharacterController<PlayerEntity>
             entity.RaiseCue(EntityCue.Jumped);
 
             // Thrust starts on the next tick.
-            return impulse / entity.Mass;
+            return impulse / entity.LoadedMass;
         }
 
         if (!jumpHeld)
@@ -444,6 +447,7 @@ public sealed class PlayerController : ICharacterController<PlayerEntity>
             var force = new Vector3(0, share * Features.Current.PlayerJumpThrustFrac * weight, 0);
             entity.ApplyCentralForce(force);
             entity.Support?.ApplyCentralForce(-force);
+            return force * gameDt / entity.LoadedMass;
         }
         return Vector3.Zero;
     }
