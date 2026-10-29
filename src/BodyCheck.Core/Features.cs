@@ -191,11 +191,24 @@ public sealed record Features
     public float PlayerUpwardCornerCorrection { get; init; } = 0.25f;
 
     /// <summary>
-    /// How far, in degrees, the player's velocity may lean away from a side, while rising, for it to be nudged to that
-    /// side round a corner. At 0, it is nudged only the way it leans, as in Celeste, or either way if it rises straight
-    /// up; at 90, either way, however it leans.
+    /// How much, in degrees, a corner-correcting horizontal nudge is allowed to work against velocity. At 0, it may
+    /// not, as in Celeste. At 90, a nudge may be opposite velocity (though that wouldn't help much).
     /// </summary>
     public float PlayerUpwardCornerCorrectionAngle { get; init; } = 30;
+
+    /// <summary>
+    /// How far, in tiles, the player may be nudged up or down while moving sideways, so that it clears the corner of a
+    /// tile it would otherwise run into, such as the top of a step or the far side of a gap. At 0, it bumps every corner
+    /// it meets.
+    /// </summary>
+    public float PlayerForwardCornerCorrection { get; init; } = 0.25f;
+
+    /// <summary>
+    /// How much, in degrees, a corner-correcting vertical nudge is allowed to work against velocity. At 0, it may
+    /// not, as in Celeste. At 90, a nudge may be opposite velocity (though that wouldn't help much). This should be
+    /// small, and should allow the player to consistently run over 1-tile gaps while carrying a block.
+    /// </summary>
+    public float PlayerForwardCornerCorrectionAngle { get; init; } = 10;
 
     /// <summary>
     /// How long the player gets to jump, or turn around with ground thrust, *after* running off an edge, in ticks at

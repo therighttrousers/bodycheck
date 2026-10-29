@@ -101,18 +101,36 @@ public sealed class PlayerController : ICharacterController<PlayerEntity>
 
             // A press buffered in the air jumps on landing even if jump has been let go of since, as a tap.
             bool jumps = _jumpBufferLeft > 0 && _groundTimeLeft > 0 && _thrustTimeLeft == 0;
-            ApplyRun(entity, move, gameDt, jumps);
-            Vector3 jumped = ApplyJump(entity, input.JumpHeld, weight, gameDt, jumps);
+            Vector3 runDeltaV = ApplyRun(entity, move, gameDt, jumps);
+            Vector3 jumpDeltaV = ApplyJump(entity, input.JumpHeld, weight, gameDt, jumps);
 
-            // Rising into the corner of a tile, the player is nudged round it, on the ground too: the engine still
-            // reports the floor for a tick after a jump.
-            CornerCorrection.UpwardCorrect(
+            // Predicted player velocity after the engine integrates forces this tick. Used for corner correction.
+            Vector3 gravDeltaV = entity.GetGravity() * gameDt;
+            Vector3 dragDeltaV = -entity.Tuning.Drag * entity.LinearVelocity * gameDt / entity.Mass;
+            Vector3 predictedVelocity = entity.LinearVelocity + runDeltaV + jumpDeltaV + gravDeltaV + dragDeltaV;
+            Telemetry.Report(Metric.PredictedVelocity, predictedVelocity.ToVector2());
+
+            // If rising into the bottom of a tile, possibly nudge the player left or right to clear a corner.
+            bool nudged = CornerCorrection.UpwardCorrect(
                 entity: entity,
-                velocity: entity.LinearVelocity + jumped,
+                velocity: predictedVelocity,
                 gameDt: gameDt,
                 maxNudge: Features.Current.PlayerUpwardCornerCorrection,
                 maxAngle: Features.Current.PlayerUpwardCornerCorrectionAngle,
                 defer: defer);
+
+            // When moving horizontally and hasn't been nudged yet, possibly nudge the player up or down to clear
+            // ledges, run over gaps in the floor, or climb steps.
+            if (!nudged)
+            {
+                CornerCorrection.ForwardCorrect(
+                    entity: entity,
+                    velocity: predictedVelocity,
+                    gameDt: gameDt,
+                    maxNudge: Features.Current.PlayerForwardCornerCorrection,
+                    maxAngle: Features.Current.PlayerForwardCornerCorrectionAngle,
+                    defer: defer);
+            }
         }
 
         // Set animation variables
@@ -367,10 +385,10 @@ public sealed class PlayerController : ICharacterController<PlayerEntity>
     }
 
     /// <param name="jumps">Whether the entity jumps on this tick.</param>
-    private void ApplyRun(PlayerEntity entity, float move, float gameDt, bool jumps)
+    private Vector3 ApplyRun(PlayerEntity entity, float move, float gameDt, bool jumps)
     {
         Features features = Features.Current;
-        bool slips = RunAction.Run(
+        (Vector3 deltaV, bool slips) = RunAction.Run(
             entity: entity,
             gameDt: gameDt,
             move: move,
@@ -382,6 +400,7 @@ public sealed class PlayerController : ICharacterController<PlayerEntity>
         {
             entity.SlipAfterEntitySteps();
         }
+        return deltaV;
     }
 
     /// <returns>The change in the entity's velocity from the jump's impulse, which shows only after the engine's step.</returns>

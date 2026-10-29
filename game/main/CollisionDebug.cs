@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 using BodyCheck.Core;
@@ -10,7 +11,9 @@ namespace BodyCheck;
 /// <summary>
 /// Shows the collisions in the game's viewport as Godot does with visible collision shapes on: every enabled
 /// collision shape as Godot's own debug wireframe, so that a body's shape can be compared with its model, and every
-/// contact point as a small diamond, in Godot's colour for contacts. F4 switches it on and off.
+/// contact point as a small diamond, in Godot's colour for contacts. F4 switches it on and off. The last corner
+/// correction shows too, for a moment: a line from where the entity was, marked with a diamond, to where it was nudged,
+/// drawn at least a couple of pixels long so that the smallest nudge shows.
 /// <para>
 /// Each shape shows as a child mesh, added to it while showing and removed when not. The contacts are those of the
 /// bodies that report theirs, which every entity does, as of the engine's last step: a contact between two of them
@@ -26,10 +29,20 @@ public partial class CollisionDebug : Node
     // A contact point's radius, in tiles.
     private const float PointRadius = 1.5f / Constants.TilePixels;
 
+    // How long a corner correction shows after it is made, fading out, in real seconds.
+    private const float CorrectionShowTime = 1.0f;
+    // Minimum displayed length of the nudge vector, in tiles.
+    private const float CorrectionNudgeMinLength = 2f / Constants.TilePixels;
+    // Half the width of a corner correction's line, in tiles.
+    private const float CorrectionHalfWidth = 0.5f / Constants.TilePixels;
+
     private readonly WorldViewportContainer _worldView;
     private readonly MultiMeshInstance3D _points;
     // This frame's contact positions, kept to save allocating.
     private readonly List<Vector3> _positions = [];
+    // Redrawn each frame, from the telemetry.
+    private readonly ImmediateMesh _correctionMesh = new();
+    private readonly MeshInstance3D _correction;
 
     public CollisionDebug(WorldViewportContainer worldView)
     {
@@ -60,6 +73,23 @@ public partial class CollisionDebug : Node
             PhysicsInterpolationMode = PhysicsInterpolationModeEnum.Off,
             Visible = false,
         };
+        _correction = new MeshInstance3D
+        {
+            Mesh = _correctionMesh,
+            MaterialOverride = new StandardMaterial3D
+            {
+                ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                NoDepthTest = true,
+                // So that it needn't matter which way round a triangle's corners go.
+                CullMode = BaseMaterial3D.CullModeEnum.Disabled,
+                // The colour, and the fade, are the vertices'.
+                VertexColorUseAsAlbedo = true,
+            },
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+            PhysicsInterpolationMode = PhysicsInterpolationModeEnum.Off,
+            Visible = false,
+        };
     }
 
     /// <summary>Whether the collisions show, which is whether this processes.</summary>
@@ -70,6 +100,7 @@ public partial class CollisionDebug : Node
         {
             SetProcess(value);
             _points.Visible = value;
+            _correction.Visible = value;
             // At once, so that the meshes go when it stops processing.
             Show(value);
         }
@@ -82,6 +113,7 @@ public partial class CollisionDebug : Node
         // Godot turns processing on before this, because _Process is overridden.
         SetProcess(false);
         _worldView.World.AddChild(_points);
+        _worldView.World.AddChild(_correction);
     }
 
     public override void _UnhandledKeyInput(InputEvent @event)
@@ -114,6 +146,7 @@ public partial class CollisionDebug : Node
             }
         }
         ShowPoints();
+        ShowCornerCorrection(show);
     }
 
     /// <summary>Adds the shape's debug mesh, or removes it, unless it is already there or gone.</summary>
@@ -160,5 +193,48 @@ public partial class CollisionDebug : Node
             multimesh.SetInstanceTransform(i, new Transform3D(Basis.Identity, _positions[i]));
         }
         multimesh.VisibleInstanceCount = _positions.Count;
+    }
+
+    /// <summary>Draws the last corner correction, if it was made lately, fading as it ages.</summary>
+    private void ShowCornerCorrection(bool show)
+    {
+        _correctionMesh.ClearSurfaces();
+        float age = (Time.GetTicksMsec() - (Telemetry.GetFloat(Metric.CornerCorrectionTime) ?? float.NegativeInfinity)) / 1000;
+        if (!show
+            || age > CorrectionShowTime
+            || Telemetry.GetVector2(Metric.CornerCorrectionCenter) is not Vector2 center
+            || Telemetry.GetVector2(Metric.CornerCorrectionNudge) is not Vector2 nudge)
+        {
+            return;
+        }
+
+        var nudgeLength = nudge.Length();
+        nudge = nudge.Normalized() * MathF.Max(CorrectionNudgeMinLength, nudgeLength);
+
+        Vector3 from = center.ToVector3();
+        Vector3 to = (center + nudge).ToVector3();
+        // Across the line, the length of its half width.
+        Vector3 across = new Vector3(-nudge.Y, nudge.X, 0).Normalized() * CorrectionHalfWidth;
+        _correctionMesh.SurfaceBegin(Mesh.PrimitiveType.Triangles);
+        _correctionMesh.SurfaceSetColor(Colors.Yellow with { A = 1 - age / CorrectionShowTime });
+        AddQuad(from - across, to - across, to + across, from + across);
+        AddDiamond(from);
+        _correctionMesh.SurfaceEnd();
+    }
+
+    private void AddDiamond(Vector3 center)
+    {
+        Vector3 right = new(PointRadius, 0, 0);
+        Vector3 up = new(0, PointRadius, 0);
+        AddQuad(center - right, center - up, center + right, center + up);
+    }
+
+    /// <summary>Adds a convex quad as two triangles, from its corners in order round it.</summary>
+    private void AddQuad(Vector3 a, Vector3 b, Vector3 c, Vector3 d)
+    {
+        foreach (Vector3 vertex in new[] { a, b, c, a, c, d })
+        {
+            _correctionMesh.SurfaceAddVertex(vertex);
+        }
     }
 }

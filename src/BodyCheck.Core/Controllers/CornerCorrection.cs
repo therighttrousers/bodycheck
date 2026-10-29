@@ -16,77 +16,123 @@ internal static class CornerCorrection
     private const float Step = 0.25f / Constants.TilePixels;
 
     /// <summary>
-    /// Nudges a rising entity sideways round the corner of a tile that it would bump. See <see cref="Correct"/>.
+    /// Possibly nudges a rising entity left or right to avoid bumping the bottom of a tile. See <see cref="Correct"/>.
     /// </summary>
     /// <returns>Whether the entity is nudged.</returns>
     public static bool UpwardCorrect(
         Entity entity, Vector3 velocity, float gameDt, float maxNudge, float maxAngle, IDefer defer) =>
-        velocity.Y > 0 && Correct(entity, velocity, Vector3.Up, gameDt, maxNudge, maxAngle, defer);
+        velocity.Y > 0 && Correct(entity, velocity, Vector3.Down, gameDt, maxNudge, maxAngle, defer);
 
     /// <summary>
-    /// If the entity's box would meet a tile on its way along <paramref name="direction"/> in this tick's step, as of
-    /// the engine's last step, finds the smallest nudge across it, up to <paramref name="maxNudge"/>, from which it
-    /// wouldn't, and makes it after the entity steps. The nudge, and the motion after it, must be clear of everything
-    /// the entity collides with. Where something else, such as a block, is in the way first, the entity meets it as
-    /// usual: correction is for the shape of the level, not for bodies.
+    /// Possibly nudges a sideways-moving entity up or down to avoid bumping the side of a tile. See <see cref="Correct"/>.
     /// </summary>
     /// <returns>Whether the entity is nudged.</returns>
-    /// <param name="entity">The entity to nudge.</param>
+    public static bool ForwardCorrect(
+        Entity entity, Vector3 velocity, float gameDt, float maxNudge, float maxAngle, IDefer defer) =>
+        velocity.X != 0 && Correct(entity, velocity, MathF.Sign(velocity.X) * Vector3.Left, gameDt, maxNudge, maxAngle, defer);
+
+    /// <summary>
+    /// Does corner correction: mitigates bonking on surfaces with normal <paramref name="surface"/> by nudging
+    /// <paramref name="entity"/> perpendicular to the surface. That is, if all of the following are true:
+    /// <list type="bullet">
+    /// <item><paramref name="velocity"/> opposes the surface normal (within 90 degrees)</item>
+    /// <item>moving <paramref name="entity"/> along <paramref name="velocity"/>*<paramref name="gameDt"/> would collide with a tile</item>
+    /// <item>the contacted surface normal is the same as <paramref name="surface"/></item>
+    /// <item>a position near the entity's current position but offset perpendicular to <paramref name="surface"/> can be found that would not cause a collision</item>
+    /// </list>
+    /// then this method moves <paramref name="entity"/> to that position (after all entity steps), and what it carries by
+    /// the same nudge.
+    /// </summary>
+    /// <returns>Whether the entity will be nudged.</returns>
+    /// <param name="entity">The entity to possibly nudge.</param>
     /// <param name="velocity">
-    /// The entity's velocity in this tick's step: its velocity as of the engine's last step, and any impulse applied
-    /// since, which the engine doesn't show until its next step.
+    /// A prediction of the entity's velocity after the engine integrates forces in this tick: its velocity as of the
+    /// last tick, plus the delta-v of all known impulses or forces applied in this tick.
     /// </param>
-    /// <param name="direction">The way the entity moves, along X or Y, as a unit vector. Only its velocity that way counts.</param>
+    /// <param name="surface">The normal of surfaces this tries to avoid bonking on.</param>
     /// <param name="gameDt">The tick's length in game time.</param>
     /// <param name="maxNudge">The furthest the entity may be nudged.</param>
     /// <param name="maxAngle">
-    /// How far, in degrees, the velocity may lean away from a side for the entity to be nudged to it. At 0, it is nudged
-    /// only to a side it leans towards, or either side if it doesn't lean, and at 90, to either side however it leans.
+    /// How much a nudge is allowed to oppose velocity, given as an angle. At 0, nudging may not oppose velocity. At 90,
+    /// nudging may be exactly opposite velocity.
     /// </param>
     /// <param name="defer">An object that allows running actions later in the tick.</param>
     private static bool Correct(
-        Entity entity, Vector3 velocity, Vector3 direction, float gameDt, float maxNudge, float maxAngle, IDefer defer)
+        Entity entity, Vector3 velocity, Vector3 surface, float gameDt, float maxNudge, float maxAngle, IDefer defer)
     {
-        float distance = velocity.Dot(direction) * gameDt;
-        if (distance <= 0)
+        // If velocity doesn't oppose the surface normal, don't correct.
+        if (velocity.Normalized().Dot(surface) > -0.0001f)
         {
             return false;
         }
-        Vector3 motion = distance * direction;
-        Vector3 across = new(direction.Y, -direction.X, 0);
-        // The cosine of the angle between the velocity and a side is the sine of how far the velocity leans towards it.
-        float leastLean = -MathF.Sin(Mathf.DegToRad(maxAngle));
-        Vector3[] sides = [.. new[] { -across, across }.Where(side => velocity.Normalized().Dot(side) >= leastLean)];
+
+        Vector3 across = new(surface.Y, -surface.X, 0);
         Vector3 center = entity.Position;
-        var all = (PhysicsLayer)entity.CollisionMask;
+        // Only tiles are checked, an approximation: correction is for the shape of the level, and what the entity carries
+        // moves with it. A nudge into any other entity leaves the engine to push the two apart, as when any two meet.
+        var tiles = PhysicsLayer.Static;
 
-        var (wideCenter, wideHalfSize) = Widened(entity, center, across, all);
-        float room = entity.RoomToMove(wideHalfSize, wideCenter, direction, distance, all);
-        if (room >= distance - Entity.ContactTolerance
-            || entity.RoomToMove(wideHalfSize, wideCenter, direction, distance, PhysicsLayer.Static) > room)
+        // We need to work with distances (because physics engine tolerances are distances), so define motion and
+        // distance such that motion*distance = velocity*gameDt.
+        Vector3 motion = velocity * gameDt;
+        float distance = motion.Length();
+        motion /= distance;
+        // But look at least as far ahead as the engine makes contacts. `RoomToMove` casts a box smaller by the contact
+        // tolerance, so a short motion that mostly slides along a wall the entity touches, such as rising against it
+        // while pushing into it, doesn't reach across that gap, and the wall would be seen only at the top of the rise.
+        distance = MathF.Max(distance, Constants.SpeculativeContactDistance);
+
+        var (wideCenter, wideHalfSize) = Widened(entity, center, across, tiles);
+        float room = entity.RoomToMove(wideHalfSize, wideCenter, motion, distance, tiles);
+        // If the entity can move all the way along velocity*gameDt, don't correct.
+        if (room >= distance)
+        {
+            return false;
+        }
+        // If the contacted surface normal isn't the given surface normal, don't correct. The cast's box, smaller by the
+        // contact tolerance, first touches what it meets at the room plus the tolerance; a tolerance further, it
+        // overlaps it, which it must to find the contact.
+        var contact = entity.GetNearestContact(wideHalfSize, wideCenter + motion * (room + Entity.ContactTolerance * 2), tiles);
+        if (contact is not ContactPoint c || surface.Dot(c.Normal) < 0.999f)
         {
             return false;
         }
 
-        // Smallest first, trying every side at each size.
-        for (int i = 1; i * Step <= maxNudge; i++)
+        // The maximum cosine of the angle between the velocity and a vector perpendicular to surface. (Yes, we use sin. Not a bug.)
+        float leastCos = -MathF.Sin(Mathf.DegToRad(maxAngle));
+        Vector3[] nudgeDirs = [.. new[] { -across, across }.Where(nudgeDir => velocity.Normalized().Dot(nudgeDir) >= leastCos)];
+
+        // Try different distances along nudgeDirs, smallest first.
+        for (float nudgeDist = Step; nudgeDist <= maxNudge; nudgeDist += Step)
         {
-            foreach (Vector3 side in sides)
+            foreach (Vector3 nudgeDir in nudgeDirs)
             {
-                Vector3 nudge = i * Step * side;
-                if (!IsClear(entity, center, entity.HalfSize, nudge, all))
+                // Try to move from center along nudgeDir*nudgeDist.
+                if (entity.RoomToMove(entity.HalfSize, center, nudgeDir, nudgeDist, tiles) < nudgeDist - Entity.ContactTolerance)
                 {
                     continue;
                 }
-                // Nudged against the velocity, the entity drifts back towards the corner during the step, as far as
-                // nothing stops it, so the motion must be clear from where that leaves it.
-                float drift = MathF.Max(0, -velocity.Dot(side) * gameDt);
-                Vector3 drifted = center + nudge - entity.RoomToMove(entity.HalfSize, center + nudge, -side, drift, all) * side;
-                (wideCenter, wideHalfSize) = Widened(entity, drifted, across, all);
-                if (IsClear(entity, wideCenter, wideHalfSize, motion, all))
+                Vector3 nudge = nudgeDir * nudgeDist;
+                Vector3 nudgedCenter = center + nudge;
+                // If a widened entity, moving from the nudged center along the original vector*gameDt, doesn't hit
+                // anything, we've found our correction.
+                (wideCenter, wideHalfSize) = Widened(entity, nudgedCenter, across, tiles);
+                if (entity.RoomToMove(wideHalfSize, wideCenter, motion, distance, tiles) >= distance)
                 {
-                    // Drawn sliding there over the tick, not jumping there.
-                    defer.RunAfterEntitySteps(() => entity.MoveTo(center + nudge, interpolated: true));
+                    defer.RunAfterEntitySteps(() =>
+                    {
+                        // What it carries goes with it, sliding along any tile in the way, so that the entity isn't
+                        // nudged into it and pushed back. Not what that carries in turn: a stack is rarely nudged, since
+                        // carrying one, the entity can't jump high.
+                        foreach (Entity above in entity.Above.Where(above => above.Tuning.CanBeCarried))
+                        {
+                            above.MoveThroughEntities(above.Position + nudge, interpolated: true);
+                        }
+                        entity.MoveTo(nudgedCenter, interpolated: true);
+                    });
+                    Telemetry.Report(Metric.CornerCorrectionTime, Time.GetTicksMsec());
+                    Telemetry.Report(Metric.CornerCorrectionCenter, center.ToVector2());
+                    Telemetry.Report(Metric.CornerCorrectionNudge, nudge.ToVector2());
                     return true;
                 }
             }
@@ -108,12 +154,5 @@ internal static class CornerCorrection
         float before = entity.RoomToMove(entity.HalfSize, center, -across, reach, layers);
         float after = entity.RoomToMove(entity.HalfSize, center, across, reach, layers);
         return (center + (after - before) / 2 * across, entity.HalfSize + (before + after) / 2 * across.ToVector2().Abs());
-    }
-
-    private static bool IsClear(Entity entity, Vector3 center, Vector2 halfSize, Vector3 motion, PhysicsLayer layers)
-    {
-        float distance = motion.Length();
-        return entity.RoomToMove(halfSize, center, motion / distance, distance, layers)
-            >= distance - Entity.ContactTolerance;
     }
 }

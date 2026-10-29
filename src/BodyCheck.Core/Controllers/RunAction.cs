@@ -14,8 +14,9 @@ internal static class RunAction
     /// - Brake force, if used (intent against the direction of motion), is fully applied.
     /// </summary>
     /// <returns>
-    /// Whether the entity should slip on its support this tick, if it is one that slips: the player does, robots don't
-    /// (see docs/designs/movement.md).
+    /// The change in the entity's velocity that the drive makes in this tick's step, which shows only after the step,
+    /// and whether the entity should slip on its support this tick, if it is one that slips: the player does, robots
+    /// don't (see docs/designs/movement.md).
     /// </returns>
     /// <param name="entity">The entity to walk, run or roll.</param>
     /// <param name="gameDt">Game-time tick duration.</param>
@@ -24,10 +25,10 @@ internal static class RunAction
     /// <param name="topSpeed">Maximum speed the entity ever tries to go, relative to its support.</param>
     /// <param name="driveForce">Force applied when the entity intends to drive in the direction of motion.</param>
     /// <param name="brakeForce">Force applied when the entity intends to drive against the direction of motion.</param>
-    public static bool Run(WalkerEntity entity, float gameDt, float move, bool jumps, float topSpeed, float driveForce, float brakeForce)
+    public static (Vector3 DeltaV, bool Slips) Run(WalkerEntity entity, float gameDt, float move, bool jumps, float topSpeed, float driveForce, float brakeForce)
     {
         // Don't try to run if weightless (e.g. being grabbed).
-        if (entity.Weight == 0) return false;
+        if (entity.Weight == 0) return (Vector3.Zero, false);
 
         // Speed is relative to whatever the entity stands on, so running on a platform or blocks works like running on tiles.
         float speed = entity.GroundSpeed;
@@ -48,6 +49,11 @@ internal static class RunAction
             drive = MathF.Abs(move) * (brake ? brakeForce : driveForce) * headroom;
         }
 
+        Vector3 deltaV = Vector3.Zero;
+        // The drive moves what the entity carries too. Only what it carries directly counts, an approximation, like the
+        // rest of the prediction.
+        float mass = entity.Mass + entity.Above.Where(above => above.Tuning.CanBeCarried).Sum(above => above.Mass);
+
         if (entity.OnGround)
         {
             // On the ground the drive is traction: the engine applies it, and pushes back on the support. The
@@ -58,13 +64,20 @@ internal static class RunAction
             if (move != 0 || jumps)
             {
                 slips = jumps || !brake;
-                entity.ApplyTraction(MathF.Sign(move) * topSpeed, drive);
+                float targetSpeed = MathF.Sign(move) * topSpeed;
+                entity.ApplyTraction(targetSpeed, drive);
+                // The engine's motor changes the speed relative to the support towards the target by at most the
+                // drive's change in a tick, and not past it. Friction, while the entity doesn't slip, makes the change
+                // smaller.
+                float most = drive * gameDt / mass;
+                deltaV = new Vector3(Math.Clamp(targetSpeed - speed, -most, most), 0, 0);
             }
         }
         else if (drive > 0)
         {
             entity.ApplyCentralForce(new Vector3(MathF.Sign(move) * drive, 0, 0));
+            deltaV = new Vector3(MathF.Sign(move) * drive * gameDt / mass, 0, 0);
         }
-        return slips;
+        return (deltaV, slips);
     }
 }
