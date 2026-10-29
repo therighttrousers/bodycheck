@@ -64,7 +64,7 @@ Rationale: decision record `033`.
 - The engine gives a contact to a corner that starts a step within its speculative contact distance, 0.02 tiles, and the contact knocks the player away from it. So a corner that the player would only pass within that distance of counts as a bump: the predicting cast is widened across the motion by that much and some slack, on each side as far as there is room (`033 §4.1`).
 - Only tiles are checked, an approximation. What the player carries, the entities on its head that can be carried, is moved by the same nudge, through entities but sliding along tiles; not what those carry. A nudge into any other body leaves the engine to push the two apart (`033 §6.6`).
 - The nudge is made after the entity steps, like a phase's moves, and is drawn interpolated, as a slide. Corrections can chain, one per tick (`033 §1.6`, `§1.7`).
-- `CornerCorrection` takes any entity's velocity, so anything, even an entity that flies, can use it (`033 §4.3`).
+- `CornerCorrectionAction` takes any entity's velocity, so anything, even an entity that flies, can use it, with a `CornerCorrectionTuning` of its own (`033 §4.3`, `035 §9.1`).
 - With collisions showing (F4), the last correction is drawn for a second: a line from where the player was to where it was nudged (`033 §6.8`).
 
 ## Physics engine

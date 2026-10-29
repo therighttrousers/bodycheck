@@ -63,7 +63,17 @@ Goals:
   - Nothing reads an outcome, so `Apply` returns none.
   - A small difference, as for the jump (§7.1): while a phase is aimed, and on the tick it is made, the action isn't run, so its cooldown doesn't count down, where it did.
 
-## 9. Later
+## 9. Corner correction
 
-- [ ] 9.1 Patrolling as an action (Neil): many robot-like things might patrol. To be taken up at the end of these refactorings. It would decide intent, such as the robot's `_move` (§5.2), rather than act on the body, so it may be a different kind of thing from the actions so far. Neil agrees it is more like a behaviour, and suggests conventions for defining behaviours that are often used.
-- [ ] 9.2 How to swap abilities (Neil): for example, robots that shoot a laser, shoot missiles, or don't shoot at all. To be discussed.
+- [x] 9.1 `CornerCorrection`'s static functions become `CornerCorrectionAction`, built with its entity and a `CornerCorrectionTuning` (Neil: it acts, so it is an action, §10.3). Trying the upward nudge first, and the forward one only if there was none, is the action's own rule, so it moves in, and `Apply` takes the predicted velocity. Predicting the velocity stays the controller's: it knows what it applied this tick. Nothing reads an outcome, so `Apply` returns none (Claude). Decision (Neil): extract it.
+
+## 10. Later
+
+- [ ] 10.1 Patrolling as an action (Neil): many robot-like things might patrol. To be taken up at the end of these refactorings. It would decide intent, such as the robot's `_move` (§5.2), rather than act on the body, so it may be a different kind of thing from the actions so far. Neil agrees it is more like a behaviour, and suggests conventions for defining behaviours that are often used.
+- [ ] 10.2 How to swap abilities (Neil): for example, robots that shoot a laser, shoot missiles, or don't shoot at all. To be discussed.
+- [x] 10.3 A taxonomy of what controllers are made of (Neil, Claude). Neil proposed sorting by what each thing does with its entity: updates it (actions), only reads it (behaviours, such as patrolling), or is independent of entities (such as `StallDetector` and `OverheatDetector`). That puts corner correction among the actions. Claude: the laser blurs it, since `LaserAction` no longer writes on its entity, but it is plainly an action. Decision (Neil): sort by role in a controller's tick instead, sense, decide and act, which explains the access rather than defining by it:
+  - Act: actions, which turn intent into effects, forces, impulses, moves and cues, on the entity or anything else. Phasing, running, jumping, spawning, the laser and corner correction.
+  - Decide: behaviours, which turn what the entity senses into intent for actions, such as patrolling, which decides where a robot goes and which way it faces. They don't act on the body, so they only read it. Conventions for them are §10.1.
+  - Sense: detectors, which turn a stream of readings into a condition, such as stalled or overheated. They are given numbers, so they are independent of entities. Some sensing lives in actions, such as what the laser sees and what a phase can reach; it moves out into something shared when a behaviour needs it too.
+  - The controller wires behaviours to actions, and settles precedence, as §2.1 has it.
+- [ ] 10.4 Detectors take their tuning on each call. Giving them a tuning record when built, as actions have, would make the robot's controller as uniform as the player's (Claude). To be done with patrolling, which owns the robot's detectors (§10.1).

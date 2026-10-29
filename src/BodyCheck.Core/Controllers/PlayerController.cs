@@ -30,6 +30,7 @@ public sealed class PlayerController : IController<PlayerEntity>
     private readonly RunAction _run;
     private readonly JumpAction _jump;
     private readonly SpawnAction _spawn;
+    private readonly CornerCorrectionAction _cornerCorrection;
 
     // Timers count down in game time, except where they say otherwise.
     private bool _jumpWasHeld;
@@ -59,6 +60,7 @@ public sealed class PlayerController : IController<PlayerEntity>
         _run = new RunAction(entity, RunTuning.Player);
         _jump = new JumpAction(entity, JumpTuning.Player);
         _spawn = new SpawnAction(entity, block, SpawnTuning.Player);
+        _cornerCorrection = new CornerCorrectionAction(entity, CornerCorrectionTuning.Player);
     }
 
     public PlayerEntity Entity => _entity;
@@ -111,27 +113,7 @@ public sealed class PlayerController : IController<PlayerEntity>
             Vector3 predictedVelocity = _entity.LinearVelocity + runDeltaV + jumpDeltaV + gravDeltaV + dragDeltaV;
             Telemetry.Report(Metric.PredictedVelocity, predictedVelocity.ToVector2());
 
-            // If rising into the bottom of a tile, possibly nudge the player left or right to clear a corner.
-            bool nudged = CornerCorrection.UpwardCorrect(
-                entity: _entity,
-                velocity: predictedVelocity,
-                gameDt: gameDt,
-                maxNudge: Features.Current.PlayerUpwardCornerCorrection,
-                maxAngle: Features.Current.PlayerUpwardCornerCorrectionAngle,
-                defer: defer);
-
-            // When moving horizontally and hasn't been nudged yet, possibly nudge the player up or down to clear
-            // ledges, run over gaps in the floor, or climb steps.
-            if (!nudged)
-            {
-                CornerCorrection.ForwardCorrect(
-                    entity: _entity,
-                    velocity: predictedVelocity,
-                    gameDt: gameDt,
-                    maxNudge: Features.Current.PlayerForwardCornerCorrection,
-                    maxAngle: Features.Current.PlayerForwardCornerCorrectionAngle,
-                    defer: defer);
-            }
+            _cornerCorrection.Apply(predictedVelocity, gameDt, defer);
         }
 
         // Set animation variables
