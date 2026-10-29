@@ -16,6 +16,7 @@ Relevant decision records:
 - [028: Continuous detection against walls](../decision-records/028-continuous-detection-against-walls.md)
 - [030: Gameplay speed](../decision-records/030-gameplay-speed.md)
 - [032: Player-only situational friction](../decision-records/032-player-only-situational-friction.md)
+- [033: Corner correction](../decision-records/033-corner-correction.md)
 
 ## Player movement
 
@@ -48,7 +49,23 @@ Rationale: decision record `000 §1.8`.
 - For a few ticks after moving off an edge without jumping, the player can still jump, and drives as on the ground: coyote time. A coyote jump is as high as one from the ground.
 - Jump thrust runs on game time, so the slowdown before a phase and a lower gameplay speed stretch it, and a jump rises as high at any speed. It is tuned in game seconds. A tick that the thrust's time covers only part of gets that part of the thrust, so the thrust adds the same speed whatever the ticks' length: the highest jump rises 4.50 tiles at speed 1, and 4.58 at speed 0.5, where shorter steps integrate the rise more closely (`030 §4.5`). Coyote time and jump buffering measure the player's reactions, so they run on real time: they are tuned in ticks at 60 per second, and always last exactly that many ticks (`018 §1.1`, `§2.1`, `030 §2.4`, `§2.6`).
 - 1-tile gaps don't belong on running paths: at any speed, a running player may cross one or catch on its far edge and fall in, depending on where the ticks land (`007 §1.1`, `007 §1.2`).
-- Jumping up through a 1-tile gap doesn't need perfect alignment.
+- Jumping up through a 1-tile gap doesn't need perfect alignment: the player has 0.2 tiles of slack in it, and upward corner correction, below, adds to that on each side.
+
+### Corner correction
+
+Rationale: decision record `033`.
+
+- A player that would bump the corner of a tile in this tick's step is nudged round it, so that it doesn't (`033 §1.1`, `§6.3`):
+  - **Upward:** rising into the bottom of a tile, it is nudged sideways, by up to `PlayerUpwardCornerCorrection`.
+  - **Forward:** moving sideways into the side of a tile, it is nudged up or down, by up to `PlayerForwardCornerCorrection`, so that it runs over 1-tile gaps in a floor, up low steps, and onto a step its jump falls just short of (`033 §6.1`). It is tried only if upward correction didn't nudge.
+- The bump is predicted, before the engine's step, from the velocity predicted for the step: as of the last step, plus the changes from this tick's jump impulse or thrust, run drive, gravity and drag, which the engine shows only after its step. So nothing is lost: velocity and thrust go on as they were. The drive, the jump and its thrust move what the player carries directly too, so their changes count it (`033 §1.1`, `§6.2`).
+- It counts as a bump only when the first tile the player's box would meet along that velocity, looking at least 0.02 tiles ahead, is met on the face being corrected round: the bottom of a tile for upward correction, its side for forward correction (`033 §6.3`, `§6.5`).
+- A nudge is taken if, from it, the player can make the whole step's motion along the velocity. Nudges are tried in quarter pixels, smallest first, to a side that the velocity doesn't lean away from by more than `PlayerUpwardCornerCorrectionAngle` or `PlayerForwardCornerCorrectionAngle`. Forward correction's angle is small, so that the player runs over 1-tile gaps but falls into 2-tile ones (`033 §4.2`, `§4.4`, `§6.1`, `§6.3`).
+- The engine gives a contact to a corner that starts a step within its speculative contact distance, 0.02 tiles, and the contact knocks the player away from it. So a corner that the player would only pass within that distance of counts as a bump: the predicting cast is widened across the motion by that much and some slack, on each side as far as there is room (`033 §4.1`).
+- Only tiles are checked, an approximation. What the player carries, the entities on its head that can be carried, is moved by the same nudge, through entities but sliding along tiles; not what those carry. A nudge into any other body leaves the engine to push the two apart (`033 §6.6`).
+- The nudge is made after the entity steps, like a phase's moves, and is drawn interpolated, as a slide. Corrections can chain, one per tick (`033 §1.6`, `§1.7`).
+- `CornerCorrection` takes any entity's velocity, so anything, even an entity that flies, can use it (`033 §4.3`).
+- With collisions showing (F4), the last correction is drawn for a second: a line from where the player was to where it was nudged (`033 §6.8`).
 
 ## Physics engine
 
@@ -68,7 +85,7 @@ Rationale: decision record `001`.
 - A controller pushes its entity with the engine's own forces and impulses, and a walker's also with traction, below.
 - A motor earns its place when its target speed binds, as in braking or holding against pushes, or when its push must land on another body. Otherwise a plain force does the same with less. So a platform moves itself with forces: one that cancels its weight; a drive along its line toward a target speed, which falls near the end so that it brakes to a stop there; and a critically damped PD controller of our own that holds it to the line and sags under a rider. The drive and the hold are capped, so that enough load overpowers them (`005 §3.6`, `025 §2.1`, `§2.3`).
 - A controller sees the world as of the engine's last step. Neither the forces nor the impulses applied this tick show in any entity's velocity until the next step, so what a controller decides doesn't depend on the order in which entities are stepped (`005 §3.4`).
-- A move through other entities, such as a phase's, waits until every entity has been stepped, and happens before the engine's step, so that it doesn't show to controllers stepped later in the same tick either. The controller defers it until after the entity steps, with `IDefer.RunAfterEntitySteps`, which the world runs once it has stepped every entity, whether the game is playing or paused for a controller (`022 §2.1`). The move sweeps the body toward where it goes against tiles only, sliding along any it meets, and leaves the engine's step to push apart whatever ends up overlapping. It resets physics interpolation, so the body isn't drawn sliding to where it went (`015 §4.2`, `§5.21`).
+- A move through other entities, such as a phase's, waits until every entity has been stepped, and happens before the engine's step, so that it doesn't show to controllers stepped later in the same tick either. The controller defers it until after the entity steps, with `IDefer.RunAfterEntitySteps`, which the world runs once it has stepped every entity, whether the game is playing or paused for a controller (`022 §2.1`). The move sweeps the body toward where it goes against tiles only, sliding along any it meets, and leaves the engine's step to push apart whatever ends up overlapping. It resets physics interpolation, so the body isn't drawn sliding to where it went, unless the move is short, as a corner correction's is (`015 §4.2`, `§5.21`, `033 §6.6`).
 - On the tick a phase is made, the contacts are from before the move, so the player's controller neither runs nor jumps then, and the phase clears its coyote time and buffered jump (`015 §5.21`). By the next tick, the engine has stepped from where the bodies went, whether the phase was made during play or while paused (`022 §3.1`). An entity asked to move through entities has no motors in this tick's step; its friction for that step is still from where it stood before the move (`019 §4.2`).
 - Gravity is set in one place: the project setting `physics/3d/default_gravity`, which the tests run under too. Core reads it as `Constants.Gravity`, for what needs gravity without the gravity scale (`025 §2.2`). An entity's weight uses the engine's figure for the gravity on it, which includes its gravity scale. Only a phase's grab changes the scale after an entity is built, to 0, so a held entity has no weight, and a walker with none doesn't run (`024 §1.1`). A change of gravity scale takes effect between two steps: the entity makes it after the engine's step, with `IDefer.RunAfterPhysicsStep`, at the start of the next tick. So every controller on that tick, and that tick's step, see the gravity from before the change, whatever order the entities are stepped in (`024 §1.2`, `027 §7.1`). A phase released while the game is paused restores gravity at the start of the next tick, before the engine steps again.
 
@@ -106,7 +123,7 @@ Rationale: decision records `019`, `027` and `032`.
 - Nothing is steadied while its carrier is in the air, so that jumping or falling can drop what it carries (`027 §5.4`).
 - The steadying force is below the player's drive, so that the lip of a tunnel 2 tiles high, pushing back on a block, can't stop the player. It is enough to catch a block that lands on the running player's head 5 tiles per second slower than it. A block stays on through running, starting and stopping. It comes off when the player reverses hard; when it jumps from idle to the side, or reverses in the air, since in free fall the block barely presses on the head and friction can't hold it; and when it runs into a tunnel 2 tiles high, whose lip knocks the block off behind (`027 §4.3`, `§5.4`). Running off a ledge with a light block and stopping on landing may throw it off, since it may have tipped in the air.
 - Robots don't steady what they carry; their own low coefficient alone keeps it on, so a block slides on a robot's head as the robot speeds up or slows down. Being indifferent to what the player drops on them fits the story (`019 §4.10`).
-- Moving through entities, as a phase does, leaves what the player carries where it was, to fall (`019 §3.2`).
+- Moving through entities, as a phase does, leaves what the player carries where it was, to fall (`019 §3.2`). A corner correction's nudge moves it with the player (`033 §6.6`).
 
 ## NPC movement
 
@@ -118,8 +135,10 @@ Rationale: decision records `019`, `027` and `032`.
 
 ## Open questions
 
-- Not yet checked: jumping up through a 1-tile gap without perfect alignment.
-- For a level that wants a comb-shaped floor (1-tile gaps back to back) as a puzzle: how long must the comb be for the chance of crossing it to fall below 1%? What would make crossing reliable, such as bevelled bottom corners on the player's shape? (`007 §1.3`)
+- Corner correction: how far it should reach, 0.25 tiles either way to start against Celeste's equivalent 0.4 upward, and how lax its angles should be: 30 degrees upward, and 10 forward (`033 §2.4`, `§4.4`, `§5.1`, `§6.1`).
+- Predicting the velocity leaves out friction, while the player brakes or is idle, and what a carried body carries (`033 §6.2`).
+- A player rising against a wall isn't widened into it, so a seam in the wall's face, where boxes stack, can still bump it (`033 §4.1`).
+- A comb-shaped floor (1-tile gaps back to back) is crossed every time at full speed and at half speed, with forward corner correction (`033 §6.7`). Whether a comb is still wanted as a puzzle, and if so, at what speed it should fail (`007 §1.3`).
 - Landing on a ledge is unreliable. With an overhang of 0.16 tiles or less and a fall of under about 3 tiles, the player sinks past the corner in most cases and is eased out sideways. Longer falls land, except with the smallest overhangs, 0.02 tiles or less, which continuous detection used to catch (`028 §3.2`). Not yet tried: more physics ticks per second; a cap on falling speed; our own downward sweep before the step (`001 §1.3`).
 - The player can land on a seam partway down a vertical wall. Boxes can't avoid this. Candidate fix: one concave mesh made of the exposed tile faces (`001 §1.2`).
 - When two moving bodies meet, they overlap for a tick or two: by up to 0.15 tiles when the player runs into a robot at top speed. The engine tests collisions between moving bodies once per tick, with no continuous detection (`028`). Is that acceptable, given the principle that player and NPCs can't occupy the same space? Bodies at rest against each other don't overlap.

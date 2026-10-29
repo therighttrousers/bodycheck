@@ -27,6 +27,9 @@ public partial class WorldNode : Node3D
     /// </summary>
     public const int PhysicsPriority = 0;
 
+    // How far tile colliders extend along Z.
+    private const float Depth = 1;
+
     private readonly List<Entity> _entities = [];
 
     // The world's colliders: one static body for every tile.
@@ -59,7 +62,7 @@ public partial class WorldNode : Node3D
         };
         foreach (Rect2I box in TileColliders(World))
         {
-            var size = new Vector3(box.Size.X, box.Size.Y, 1);
+            var size = new Vector3(box.Size.X, box.Size.Y, Depth);
             var position = new Vector3(box.Position.X + box.Size.X / 2f, box.Position.Y + box.Size.Y / 2f, 0);
             _tiles.AddChild(new CollisionShape3D { Shape = new BoxShape3D { Size = size }, Position = position });
         }

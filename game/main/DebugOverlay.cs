@@ -39,6 +39,12 @@ public partial class DebugOverlay : CanvasLayer
         Metric.CoyoteTime,
         Metric.ThrustTime,
         Metric.JumpBufferTime,
+        // This is really for testing:
+        Metric.PredictedVelocity,
+        // Comment these lines out if diving into the guts of corner correction again:
+        Metric.CornerCorrectionTime,
+        Metric.CornerCorrectionCenter,
+        Metric.CornerCorrectionNudge,
     ];
     private static readonly Metric[] Metrics = [.. Enum.GetValues<Metric>().Where(metric => !CustomRender.Contains(metric))];
     private static readonly string[] Labels = [.. Metrics.Select(metric => Words(metric.ToString()))];

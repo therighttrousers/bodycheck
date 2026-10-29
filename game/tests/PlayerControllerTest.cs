@@ -420,6 +420,294 @@ public class PlayerControllerTest
         AssertThat(Player.OnGround).IsTrue();
     }
 
+    /// <summary>
+    /// Jumping up into a shaft 1 tile wide, off center so that the head would clip the corner of its mouth, the player
+    /// is nudged into the shaft when the clip is within the correction, and bumps the corner when it isn't.
+    /// </summary>
+    [TestCase(0.25f, true)]
+    [TestCase(0.5f, false)]
+    public async Task Jumping_into_a_shaft_off_center_corrects_a_small_clip(float offCenter, bool entersShaft)
+    {
+        // The player's box is 0.8 tiles wide, so it clips the shaft's mouth by 0.15 tiles, or 0.4.
+        await Start(room: RoomRun.RoomOf(
+            "#########",
+            "####.####",
+            "####.####",
+            "####.####",
+            "####.####",
+            "####.####",
+            "#.......#",
+            "#.......#",
+            "#...P...#",
+            "#########"));
+        Player.MoveTo(Player.Position + new Vector3(offCenter, 0, 0));
+        await Tick(Idle, 10);
+
+        // The mouth of the shaft is 4 tiles up, and the feet start 1 tile up.
+        float highestFeet = 0;
+        for (int i = 0; i < 60; i++)
+        {
+            await Tick(Jump);
+            highestFeet = MathF.Max(highestFeet, Player.Position.Y - Player.HalfSize.Y);
+        }
+
+        AssertThat(highestFeet > 4).IsEqual(entersShaft);
+    }
+
+    /// <summary>
+    /// The player slides down a wall into a tunnel, under the wall, and stands flush with the corner of the tunnel's
+    /// mouth. A full jump rises as high as from open ground, along the wall, without bumping the corner or being knocked
+    /// more than a pixel away from the wall: from a tunnel 3 tiles high, and from one 2 tiles high, where the head is
+    /// within a tick's rise of the corner when the jump starts.
+    /// </summary>
+    [TestCase(3)]
+    [TestCase(2)]
+    public async Task Jumping_flush_with_a_corner_rises_past_it(int tunnelHeight)
+    {
+        await Start(room: RoomRun.RoomOf(
+        [
+            "..P#..",
+            .. Enumerable.Repeat("...#..", 3 - tunnelHeight + 1),
+            "...###",
+            .. Enumerable.Repeat("......", tunnelHeight),
+            "######",
+        ]), settleTicks: 0);
+        for (int i = 0; i < 120 && !Player.Contacts.HasFlag(Contacts.Right); i++)
+        {
+            await Tick(Right);
+        }
+        for (int i = 0; i < 120 && !Player.OnGround; i++)
+        {
+            await Tick(Idle);
+        }
+        await Tick(Idle, 10);
+        AssertThat(Player.Position.X + Player.HalfSize.X).IsEqualApprox(3, 0.01f);
+
+        float highestFeet = 0;
+        float leftmostSide = 3;
+        for (int i = 0; i < 60; i++)
+        {
+            await Tick(Jump);
+            highestFeet = MathF.Max(highestFeet, Player.Position.Y - Player.HalfSize.Y);
+            leftmostSide = MathF.Min(leftmostSide, Player.Position.X + Player.HalfSize.X);
+        }
+
+        // The feet start 1 tile up, and the highest jump rises 4.5 tiles.
+        AssertThat(highestFeet).IsGreater(5.4f);
+        AssertThat(leftmostSide).IsGreaterEqual(3 - 1f / Constants.TilePixels);
+    }
+
+    /// <summary>
+    /// Jumping from a tunnel 2 tiles high, with the head clipping the right corner of an opening in its ceiling, and
+    /// moving sideways so that the jump leans by an angle from straight up. The player is nudged left into the opening
+    /// when it leans left, however far, or leans right by no more than the correction's angle, but not when it leans
+    /// further right. The head is within the jump's first step of the ceiling, so it is nudged on the jump's own tick.
+    /// Leaning left, the clip is more than the jump's first step drifts left, so that the drift alone doesn't clear it.
+    /// Leaning right by 18 degrees, near the angle of 20, the step drifts back towards the corner by 0.07 tiles, so the
+    /// nudge must be that much larger. Not at the angle itself: the lean that counts is the predicted velocity's, which
+    /// gravity and drag change a little from the one set here.
+    /// </summary>
+    [TestCase(-40f, 0.2f, true)]
+    [TestCase(10f, 0.1f, true)]
+    [TestCase(18f, 0.1f, true)]
+    [TestCase(40f, 0.1f, false)]
+    public async Task Jumping_at_an_angle_corrects_toward_the_lean_or_against_it_within_the_angle(
+        float leanDegrees, float clip, bool entersOpening)
+    {
+        const float maxAngle = 20;
+        await Start(new() { PlayerUpwardCornerCorrection = 0.25f, PlayerUpwardCornerCorrectionAngle = maxAngle },
+            room: RoomRun.RoomOf(
+                "#.........#",
+                "#.........#",
+                "####...####",
+                "#.........#",
+                "#.....P...#",
+                "###########"));
+        // The opening's right corner is at x = 7.
+        Player.MoveTo(new Vector3(7 - Player.HalfSize.X + clip, Player.Position.Y, 0));
+        await Tick(Idle, 10);
+
+        float speedX = Features.Current.PlayerJumpSpeed * MathF.Tan(Mathf.DegToRad(leanDegrees));
+        Player.LinearVelocity = new Vector3(speedX, 0, 0);
+        float highestFeet = 0;
+        float predictedAngle = 0;
+        for (int i = 0; i < 60; i++)
+        {
+            await Tick(Jump);
+            highestFeet = MathF.Max(highestFeet, Player.Position.Y - Player.HalfSize.Y);
+            if (i == 0)
+            {
+                // The velocity used to determine whether the player should be nudged in the direction of the side.
+                Vector3 v = Telemetry.GetVector2(Metric.PredictedVelocity)?.ToVector3() ?? Vector3.Zero;
+                predictedAngle = Mathf.RadToDeg(MathF.Atan2(v.X, v.Y));
+            }
+        }
+
+        if (entersOpening)
+        {
+            // Test validity: the predicted velocity must lean right by no more than the angle, to allow the nudge left.
+            AssertThat(predictedAngle).IsLessEqual(maxAngle);
+            // The ceiling's underside is 3 tiles up, and the feet start 1 tile up.
+            AssertThat(highestFeet).IsGreater(3);
+        }
+        else
+        {
+            // Test validity: the predicted velocity must lean right by more than the angle, to forbid the nudge left.
+            AssertThat(predictedAngle).IsGreater(maxAngle);
+            // The ceiling's underside is 3 tiles up, and the feet start 1 tile up.
+            AssertThat(highestFeet).IsLessEqual(3);
+        }
+    }
+
+    /// <summary>
+    /// Running right over a comb-shaped floor, 10 gaps 1 tile wide, the player crosses every gap at full speed, and at
+    /// half speed, in every phase of the ticks tried: the starting place moves by about a fifth of a tick's run at full
+    /// speed. Over each gap, the player is unsupported for 0.2 tiles of its run, and falls a little, so that its feet would
+    /// catch on the far tile's corner. At a top speed of 2 tiles per second it falls longer, and leans down by about 50
+    /// degrees by the time it meets the corner, more than the correction's angle, so it falls into the first gap.
+    /// </summary>
+    [TestCase(12f, 0f, true)]
+    [TestCase(12f, 0.04f, true)]
+    [TestCase(12f, 0.08f, true)]
+    [TestCase(12f, 0.12f, true)]
+    [TestCase(12f, 0.16f, true)]
+    [TestCase(6f, 0f, true)]
+    [TestCase(6f, 0.04f, true)]
+    [TestCase(6f, 0.08f, true)]
+    [TestCase(6f, 0.12f, true)]
+    [TestCase(6f, 0.16f, true)]
+    [TestCase(2f, 0f, false)]
+    public async Task Running_over_a_comb_crosses_its_gaps_above_a_speed(float topSpeed, float offset, bool crosses)
+    {
+        await Start(
+            new()
+            {
+                PlayerTopSpeed = topSpeed,
+                PlayerForwardCornerCorrection = 0.25f,
+                PlayerForwardCornerCorrectionAngle = 30,
+            },
+            room: RoomRun.RoomOf(
+                "#" + new string('.', 38) + "#",
+                "#P" + new string('.', 37) + "#",
+                "#" + new string('#', 12) + string.Concat(Enumerable.Repeat(".#", 10)) + new string('#', 7),
+                new string('#', 40)));
+        Player.MoveTo(Player.Position + new Vector3(offset, 0, 0));
+        await Tick(Idle, 5);
+
+        // The comb's teeth are 2 tiles up, and the bottoms of its gaps 1 tile up. It ends at x = 33.
+        float lowestFeet = float.PositiveInfinity;
+        for (int i = 0; i < 1200 && Player.Position.X < 35; i++)
+        {
+            await Tick(Right);
+            lowestFeet = MathF.Min(lowestFeet, Player.Position.Y - Player.HalfSize.Y);
+        }
+
+        AssertThat(lowestFeet > 1.5f).IsEqual(crosses);
+    }
+
+    /// <summary>
+    /// With a longer, weaker jump thrust, carrying a block of mass 1, a jump rises only about 0.82 tiles. Running right
+    /// and jumping 2.8 tiles before a step 1 tile high, the feet meet the step's face near the top of the rise, short of
+    /// its top by about 0.18 tiles, and the player is nudged up onto it, with the block it carries.
+    /// </summary>
+    [TestCase(2.4f)] // Almost as close as possible for a valid test (at 2.2 or closer, it reaches the step too low)
+    [TestCase(2.8f)] // First contact with step is almost at apex of jump
+    [TestCase(3f)] // Nudge will be against velocity, which is downward at first contact with step
+    public async Task Jumping_onto_a_step_carrying_a_block_corrects_a_short_rise(float jumpPosition)
+    {
+        await Start(
+            new()
+            {
+                PlayerJumpThrustTime = 0.6f,
+                PlayerJumpThrustFrac = 0.518f,
+                BlockMass = 1,
+                PlayerForwardCornerCorrection = 0.25f,
+                PlayerForwardCornerCorrectionAngle = 30,
+            },
+            room: RoomRun.RoomOf(
+                "#..................#",
+                "#.B................#",
+                "#..................#",
+                "#.P.........########",
+                "####################"),
+            settleTicks: 40);
+        Entity block = _world!.Entities.Single(entity => entity != Player && entity.Visible);
+        AssertThat(block.Support).IsEqual(Player);
+
+        // Wait until the player's leading edge is within range of the step, which is at x = 12.
+        for (int i = 0; i < 300 && 12 - (Player.Position.X + Player.HalfSize.X) > jumpPosition; i++)
+        {
+            await Tick(Right);
+        }
+        // The feet as of the step in which the player reaches the step's face, where it is either stopped or corrected.
+        // Not after it: stopped, the player goes on rising against the face, and the contact shows only then.
+        float? reachingFeet = null;
+        for (int i = 0; i < 90; i++)
+        {
+            float feet = Player.Position.Y - Player.HalfSize.Y;
+            await Tick(new PlayerInput(1, 0, true));
+            if (reachingFeet is null
+                && (Player.Contacts.HasFlag(Contacts.Right)
+                    || Player.Position.X + Player.HalfSize.X >= 12 - Entity.ContactTolerance))
+            {
+                reachingFeet = feet;
+            }
+        }
+
+        // Test validity: reaching the step, the player must be high enough to get corner-corrected.
+        AssertThat(reachingFeet ?? 0).IsBetween(2 - Features.Current.PlayerForwardCornerCorrection, 2);
+
+        // The feet start 1 tile up, and the step's top is 2 tiles up.
+        AssertThat(Player.Position.Y - Player.HalfSize.Y).IsEqualApprox(2, 0.01f);
+        AssertThat(Player.OnGround).IsTrue();
+        AssertThat(block.Support).IsEqual(Player);
+    }
+
+    /// <summary>
+    /// As above, but standing against the step, pushing into it, and jumping while still pushing. The player's
+    /// velocity into the step is zero as of the engine's last step, so only what this tick's drive adds to it shows
+    /// that the player would meet the step. Its run into the step in a tick is less than the contact tolerance. It is
+    /// nudged while still rising, so even with an angle of 0, which allows no nudge against its velocity: nudged only at
+    /// the top of the rise, it would be falling by then. The step is 1 tile wide, so the player lets go on landing on it.
+    /// </summary>
+    [TestCase]
+    public async Task Jumping_onto_a_step_carrying_a_block_from_against_it_corrects_a_short_rise()
+    {
+        await Start(
+            new()
+            {
+                PlayerJumpThrustTime = 0.6f,
+                PlayerJumpThrustFrac = 0.518f,
+                BlockMass = 1,
+                PlayerForwardCornerCorrection = 0.25f,
+                PlayerForwardCornerCorrectionAngle = 0,
+            },
+            room: RoomRun.RoomOf(
+                "#.........#",
+                "#....B....#",
+                "#.........#",
+                "#...#P....#",
+                "###########"),
+            settleTicks: 40);
+        Entity block = _world!.Entities.Single(entity => entity != Player && entity.Visible);
+        AssertThat(block.Support).IsEqual(Player);
+
+        // The step's face is at x = 5.
+        PlayerInput left = new(-1, 0, false);
+        await Tick(left, 30);
+        AssertThat(Player.Position.X - Player.HalfSize.X).IsEqualApprox(5, 0.01f);
+        for (int i = 0; i < 90 && !(Player.OnGround && Player.Position.Y - Player.HalfSize.Y > 1.5f); i++)
+        {
+            await Tick(left with { JumpHeld = true });
+        }
+        await Tick(Idle, 20);
+
+        // The feet start 1 tile up, and the step's top is 2 tiles up.
+        AssertThat(Player.Position.Y - Player.HalfSize.Y).IsEqualApprox(2, 0.01f);
+        AssertThat(Player.OnGround).IsTrue();
+        AssertThat(block.Support).IsEqual(Player);
+    }
+
     [TestCase]
     public async Task Thrust_ends_when_the_body_hits_a_ceiling()
     {

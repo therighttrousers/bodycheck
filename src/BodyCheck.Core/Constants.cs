@@ -16,4 +16,13 @@ public static class Constants
     /// <c>physics/3d/default_gravity</c>, read when this is first used.
     /// </summary>
     public static readonly float Gravity = (float)ProjectSettings.GetSetting("physics/3d/default_gravity");
+
+    /// <summary>
+    /// How near two bodies must be, in tiles, at the start of the engine's step, for it to give them a contact in that
+    /// step: the project setting <c>physics/jolt_physics_3d/simulation/speculative_contact_distance</c>, read when this
+    /// is first used. So a body can be stopped by a corner that it would only pass within this distance of, with a
+    /// contact whose normal points from the corner to the body.
+    /// </summary>
+    public static readonly float SpeculativeContactDistance =
+        (float)ProjectSettings.GetSetting("physics/jolt_physics_3d/simulation/speculative_contact_distance");
 }

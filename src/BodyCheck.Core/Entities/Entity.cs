@@ -12,6 +12,9 @@ public enum Contacts
     Right = 8,
 }
 
+/// <summary>Where a shape touches a collider, and the normal of the collider's surface there, pointing out of it.</summary>
+public readonly record struct ContactPoint(Vector3 Position, Vector3 Normal);
+
 /// <summary>
 /// Something that happened to an entity, for the scene that draws it to react to: for now, by playing the sound named
 /// after it, if it has one. A controller raises it on its entity with <see cref="Entity.RaiseCue"/> (decision record
@@ -98,6 +101,9 @@ public partial class Entity : RigidBody3D
     // Where the entity stood on what it stood on during the engine's last step: the middle of the contacts with it.
     private Vector3? _groundContact;
 
+    // Refilled after each step, not replaced, to save allocating.
+    private readonly List<Entity> _above = [];
+
     // The joint whose motor steadies the entity at its center, for what carries it like a hand (019 §5.1). It is one of
     // Joints' free joints.
     private readonly Generic6DofJoint3D _steadying;
@@ -169,6 +175,21 @@ public partial class Entity : RigidBody3D
 
     /// <summary>The entity this one stood on during the engine's last step, or null if it stood on tiles or on nothing.</summary>
     public Entity? Support { get; private set; }
+
+    /// <summary>
+    /// The entities that touched this one's top during the engine's last step: what it carries, and also what it only
+    /// bumped from below, such as a platform.
+    /// </summary>
+    public IReadOnlyList<Entity> Above => _above;
+
+    /// <summary>What the entity carries: what is <see cref="Above"/> it and can be carried.</summary>
+    public IEnumerable<Entity> Carried => _above.Where(above => above.Tuning.CanBeCarried);
+
+    /// <summary>
+    /// The entity's mass with what it carries, which moves with it, so that a push on the entity moves them together.
+    /// Not what that carries in turn, an approximation.
+    /// </summary>
+    public float LoadedMass => Mass + Carried.Sum(carried => carried.Mass);
 
     /// <summary>
     /// Where the entity touched what it stood on during the engine's last step: the middle of its contacts with the
@@ -250,7 +271,11 @@ public partial class Entity : RigidBody3D
     /// (<see cref="IDefer.RunAfterEntitySteps"/>), so that the controllers stepped after it still see the world as of
     /// the engine's last step.
     /// </summary>
-    public void MoveThroughEntities(Vector3 destination)
+    /// <param name="interpolated">
+    /// Whether the entity is drawn moving there over the tick, as it moves in a step, for a short move. Otherwise it is
+    /// drawn there at once.
+    /// </param>
+    public void MoveThroughEntities(Vector3 destination, bool interpolated = false)
     {
         // Any motor settings are from before the move, so disable them in this tick's step.
         DisableMotors();
@@ -265,8 +290,10 @@ public partial class Entity : RigidBody3D
         }
         CollisionMask = mask;
 
-        // Drawn there at once, not interpolated across the room.
-        ResetPhysicsInterpolation();
+        if (!interpolated)
+        {
+            ResetPhysicsInterpolation();
+        }
     }
 
     /// <summary>
@@ -275,11 +302,18 @@ public partial class Entity : RigidBody3D
     /// its velocity, the engine pushes it apart from whatever it ends up overlapping, and a controller defers it until
     /// after the entity steps.
     /// </summary>
-    public void MoveTo(Vector3 destination)
+    /// <param name="interpolated">
+    /// Whether the entity is drawn moving there over the tick, as it moves in a step, for a short move. Otherwise it is
+    /// drawn there at once.
+    /// </param>
+    public void MoveTo(Vector3 destination, bool interpolated = false)
     {
         DisableMotors();
         GlobalPosition = destination;
-        ResetPhysicsInterpolation();
+        if (!interpolated)
+        {
+            ResetPhysicsInterpolation();
+        }
     }
 
     /// <summary>The colliders, other than this entity, that overlap a shape centered at a place.</summary>
@@ -314,6 +348,7 @@ public partial class Entity : RigidBody3D
     /// How far a box as deep as an entity's, centered at a place, can move in a direction before it meets a collider in
     /// the given layers, up to a distance, as of the engine's last step. It doesn't meet this entity. What it only
     /// touches where it starts doesn't stop it, but what it starts overlapping by more than that may not either.
+    /// Exactly the distance if it meets nothing, so that less means it meets something.
     /// </summary>
     /// <param name="direction">A unit vector.</param>
     public float RoomToMove(Vector2 halfSize, Vector3 center, Vector3 direction, float distance, PhysicsLayer layers)
@@ -331,7 +366,30 @@ public partial class Entity : RigidBody3D
         };
         // The fraction of the motion it can make without touching anything, then the fraction where it first would.
         float safe = GetWorld3D().DirectSpaceState.CastMotion(query)[0];
-        return Math.Clamp(safe * (distance + ContactTolerance) - ContactTolerance, 0, distance);
+        // Equivalent to `safe * (distance + ContactTolerance) - ContactTolerance` but more accurate when `distance` is
+        // small, especially with `safe` near 1: it keeps `distance` from being absorbed by `ContactTolerance`.
+        return Math.Clamp(safe * distance + (safe - 1.0f) * ContactTolerance, 0, distance);
+    }
+
+    /// <summary>
+    /// Where a box as deep as an entity's, smaller by <see cref="ContactTolerance"/> on every side as in
+    /// <see cref="RoomToMove"/>, centered at a place, overlaps the nearest collider in the given layers, other than
+    /// this entity, as of the engine's last step. Null if it overlaps none.
+    /// </summary>
+    public ContactPoint? GetNearestContact(Vector2 halfSize, Vector3 center, PhysicsLayer layers)
+    {
+        // Shrunk as RoomToMove's cast is, so that it overlaps only what that cast met, and not what the box touches at its
+        // sides, such as the floor or a wall it is flush with.
+        var shrunk = new Vector3(2 * (halfSize.X - ContactTolerance), 2 * (halfSize.Y - ContactTolerance), Depth);
+        var query = new PhysicsShapeQueryParameters3D
+        {
+            Shape = new BoxShape3D { Size = shrunk },
+            Transform = new Transform3D(Basis.Identity, center),
+            CollisionMask = (uint)layers,
+            Exclude = [GetRid()],
+        };
+        var dict = GetWorld3D().DirectSpaceState.GetRestInfo(query);
+        return dict.Count == 0 ? null : new ContactPoint(Position: (Vector3)dict["point"], Normal: (Vector3)dict["normal"]);
     }
 
     /// <summary>Call once per physics tick, before the engine's step.</summary>
@@ -438,6 +496,7 @@ public partial class Entity : RigidBody3D
         bool wasOnGround = OnGround;
         var contacts = Contacts.None;
         Entity? support = null;
+        _above.Clear();
         Rid groundCollider = default;
         // Summed over the floor contacts with the support, which may be several, e.g. the corners of a box.
         Vector3 groundVelocity = Vector3.Zero;
@@ -460,6 +519,11 @@ public partial class Entity : RigidBody3D
             else if (normal.Y < -SideThreshold)
             {
                 contacts |= Contacts.Ceiling;
+                // Each collider gives several contacts, such as one at each corner of a face.
+                if (state.GetContactColliderObject(i) is Entity above && !_above.Contains(above))
+                {
+                    _above.Add(above);
+                }
             }
             else if (normal.X > SideThreshold)
             {

@@ -22,6 +22,14 @@ public enum Metric
     ThrustTime,
     /// <summary>How much longer the last press of jump counts, in real seconds.</summary>
     JumpBufferTime,
+    /// <summary>The velocity the player's controller predicts for this tick's step, for corner correction.</summary>
+    PredictedVelocity,
+    /// <summary>When the last corner correction was made, in real milliseconds since the engine started.</summary>
+    CornerCorrectionTime,
+    /// <summary>Where the center of the entity that the last corner correction nudged was before the nudge.</summary>
+    CornerCorrectionCenter,
+    /// <summary>How far the last corner correction nudged its entity, and which way.</summary>
+    CornerCorrectionNudge,
 
     // The player's last time in the air, reported on landing. Measured from its feet on the last tick on
     // the ground.

@@ -101,8 +101,36 @@ public sealed class PlayerController : ICharacterController<PlayerEntity>
 
             // A press buffered in the air jumps on landing even if jump has been let go of since, as a tap.
             bool jumps = _jumpBufferLeft > 0 && _groundTimeLeft > 0 && _thrustTimeLeft == 0;
-            ApplyRun(entity, move, gameDt, jumps);
-            ApplyJump(entity, input.JumpHeld, weight, gameDt, jumps);
+            Vector3 runDeltaV = ApplyRun(entity, move, gameDt, jumps);
+            Vector3 jumpDeltaV = ApplyJump(entity, input.JumpHeld, weight, gameDt, jumps);
+
+            // Predicted player velocity after the engine integrates forces this tick. Used for corner correction.
+            Vector3 gravDeltaV = entity.GetGravity() * gameDt;
+            Vector3 dragDeltaV = -entity.Tuning.Drag * entity.LinearVelocity * gameDt / entity.Mass;
+            Vector3 predictedVelocity = entity.LinearVelocity + runDeltaV + jumpDeltaV + gravDeltaV + dragDeltaV;
+            Telemetry.Report(Metric.PredictedVelocity, predictedVelocity.ToVector2());
+
+            // If rising into the bottom of a tile, possibly nudge the player left or right to clear a corner.
+            bool nudged = CornerCorrection.UpwardCorrect(
+                entity: entity,
+                velocity: predictedVelocity,
+                gameDt: gameDt,
+                maxNudge: Features.Current.PlayerUpwardCornerCorrection,
+                maxAngle: Features.Current.PlayerUpwardCornerCorrectionAngle,
+                defer: defer);
+
+            // When moving horizontally and hasn't been nudged yet, possibly nudge the player up or down to clear
+            // ledges, run over gaps in the floor, or climb steps.
+            if (!nudged)
+            {
+                CornerCorrection.ForwardCorrect(
+                    entity: entity,
+                    velocity: predictedVelocity,
+                    gameDt: gameDt,
+                    maxNudge: Features.Current.PlayerForwardCornerCorrection,
+                    maxAngle: Features.Current.PlayerForwardCornerCorrectionAngle,
+                    defer: defer);
+            }
         }
 
         // Set animation variables
@@ -357,10 +385,10 @@ public sealed class PlayerController : ICharacterController<PlayerEntity>
     }
 
     /// <param name="jumps">Whether the entity jumps on this tick.</param>
-    private void ApplyRun(PlayerEntity entity, float move, float gameDt, bool jumps)
+    private Vector3 ApplyRun(PlayerEntity entity, float move, float gameDt, bool jumps)
     {
         Features features = Features.Current;
-        bool slips = RunAction.Run(
+        (Vector3 deltaV, bool slips) = RunAction.Run(
             entity: entity,
             gameDt: gameDt,
             move: move,
@@ -372,10 +400,15 @@ public sealed class PlayerController : ICharacterController<PlayerEntity>
         {
             entity.SlipAfterEntitySteps();
         }
+        return deltaV;
     }
 
+    /// <returns>
+    /// The change in the entity's velocity from the jump's impulse or thrust, which shows only after the engine's step.
+    /// What the entity carries is pushed up with it, so it shares the change.
+    /// </returns>
     /// <param name="jumps">Whether the entity jumps on this tick.</param>
-    private void ApplyJump(PlayerEntity entity, bool jumpHeld, float weight, float gameDt, bool jumps)
+    private Vector3 ApplyJump(PlayerEntity entity, bool jumpHeld, float weight, float gameDt, bool jumps)
     {
         if (jumps)
         {
@@ -392,12 +425,12 @@ public sealed class PlayerController : ICharacterController<PlayerEntity>
             entity.RaiseCue(EntityCue.Jumped);
 
             // Thrust starts on the next tick.
-            return;
+            return impulse / entity.LoadedMass;
         }
 
         if (!jumpHeld)
         {
-            return;
+            return Vector3.Zero;
         }
 
         // If stopped rising (e.g. hit a ceiling), cancel thrust.
@@ -414,6 +447,8 @@ public sealed class PlayerController : ICharacterController<PlayerEntity>
             var force = new Vector3(0, share * Features.Current.PlayerJumpThrustFrac * weight, 0);
             entity.ApplyCentralForce(force);
             entity.Support?.ApplyCentralForce(-force);
+            return force * gameDt / entity.LoadedMass;
         }
+        return Vector3.Zero;
     }
 }
