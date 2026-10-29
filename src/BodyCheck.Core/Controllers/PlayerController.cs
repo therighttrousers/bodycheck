@@ -26,10 +26,10 @@ public sealed class PlayerController : IController<PlayerEntity>
 
     private readonly PlayerEntity _entity;
     private readonly Func<PlayerInput> _input;
-    private readonly Entity _block;
     private readonly PhaseAction _phase;
     private readonly RunAction _run;
     private readonly JumpAction _jump;
+    private readonly SpawnAction _spawn;
 
     // Timers count down in game time, except where they say otherwise.
     private bool _jumpWasHeld;
@@ -39,7 +39,6 @@ public sealed class PlayerController : IController<PlayerEntity>
     // In real time: how much longer the last press of jump counts, so that pressing it just before landing jumps.
     private float _jumpBufferLeft;
     private bool _spawnWasHeld;
-    private float _spawnCooldownLeft;
 
     // The current time in the air, for telemetry: where the feet were on the last tick on the ground.
     private bool _inAir;
@@ -56,10 +55,10 @@ public sealed class PlayerController : IController<PlayerEntity>
     {
         _entity = entity;
         _input = input;
-        _block = block;
         _phase = new PhaseAction(entity, PhaseTuning.Player);
         _run = new RunAction(entity, RunTuning.Player);
         _jump = new JumpAction(entity, JumpTuning.Player);
+        _spawn = new SpawnAction(entity, block, SpawnTuning.Player);
     }
 
     public PlayerEntity Entity => _entity;
@@ -99,7 +98,7 @@ public sealed class PlayerController : IController<PlayerEntity>
 
         if (ApplyPhase(input, gameDt, realDt, defer) is PhaseOutcome.Idle or PhaseOutcome.Cancelled)
         {
-            ApplySpawn(input, defer);
+            _spawn.Apply(input.SpawnHeld && !_spawnWasHeld, gameDt, defer);
 
             // A press buffered in the air jumps on landing even if jump has been let go of since, as a tap.
             bool jumps = _jumpBufferLeft > 0 && _groundTimeLeft > 0 && !_jump.Thrusting;
@@ -148,7 +147,6 @@ public sealed class PlayerController : IController<PlayerEntity>
         _jumpBufferLeft = Math.Max(0, _jumpBufferLeft - realDt);
         _jumpWasHeld = input.JumpHeld;
         _spawnWasHeld = input.SpawnHeld;
-        _spawnCooldownLeft = Math.Max(0, _spawnCooldownLeft - gameDt);
     }
 
     /// <summary>Reports the player's measurements to <see cref="Telemetry"/>, as of the engine's last step.</summary>
@@ -209,90 +207,6 @@ public sealed class PlayerController : IController<PlayerEntity>
             _jumpBufferLeft = 0;
         }
         return outcome;
-    }
-
-    /// <summary>
-    /// Spawns the player's block under the player, on a press of spawn, after the cooldown. The block goes at the
-    /// player's height, as near its center as it fits beside the tiles, and as far straight down from there, through
-    /// entities, as it can go until it is under the player, or meets a tile. Then the player moves up through entities by
-    /// as much as the block fell short, onto it: on the ground, by the block's height, and in the open air, not at all.
-    /// Where the block doesn't fit, or the player has no room to rise onto it, the spawn is cancelled. There is only one block, so spawning it
-    /// takes it from wherever it was. The moves wait until after the entity steps, like a phase's.
-    /// </summary>
-    private void ApplySpawn(PlayerInput input, IDefer defer)
-    {
-        if (!input.SpawnHeld || _spawnWasHeld || _spawnCooldownLeft > 0)
-        {
-            return;
-        }
-
-        if (SpawnPlace() is not (Vector3 place, float rise))
-        {
-            _spawnCooldownLeft = Features.Current.PlayerSpawnCancelCooldownTime;
-            _entity.RaiseCue(EntityCue.SpawnCancelled);
-            return;
-        }
-        _spawnCooldownLeft = Features.Current.PlayerSpawnCooldownTime;
-
-        Vector3 velocity = Features.Current.PlayerSpawnMotion == SpawnMotion.WithPlayer ? _entity.LinearVelocity : Vector3.Zero;
-        Vector3 center = _entity.Position;
-        defer.RunAfterEntitySteps(() =>
-        {
-            // A new block, as far as anyone can tell: back in the world, level, and moving only as the spawn says.
-            _block.ProcessMode = Node.ProcessModeEnum.Inherit;
-            _block.Visible = true;
-            _block.GlobalTransform = Transform3D.Identity;
-            _block.LinearVelocity = velocity;
-            _block.AngularVelocity = Vector3.Zero;
-            _block.MoveTo(place);
-            if (rise > 0)
-            {
-                _entity.MoveTo(center + new Vector3(0, rise, 0));
-            }
-            _block.RaiseCue(EntityCue.Spawned);
-        });
-    }
-
-    /// <summary>
-    /// Where the block goes, and how far the player rises onto it, or null if it doesn't fit beside the tiles or the
-    /// player has no room to rise onto it. Found by casting boxes against tiles, as of the engine's last step, each
-    /// from where it is clear of them, so that no move starts inside a tile.
-    /// </summary>
-    private (Vector3 Place, float Rise)? SpawnPlace()
-    {
-        Vector2 playerHalf = _entity.HalfSize;
-        Vector2 blockHalf = _block.HalfSize;
-        Vector3 center = _entity.Position;
-
-        // A box of the player's width and the block's height, at the player's center, is inside the player, so clear of
-        // tiles. How far it can move to each side is the room the block has there. The block is wider than the player
-        // by `extra`, so it fits where the room on both sides adds up to that, and starts as near the player's center as
-        // it fits. The casts may come up short by the contact tolerance, so a block that only just fits, as in a shaft
-        // one tile wide, counts as fitting, and starts in the middle of the room.
-        float extra = 2 * (blockHalf.X - playerHalf.X);
-        var side = new Vector2(playerHalf.X, blockHalf.Y);
-        float left = _entity.RoomToMove(side, center, Vector3.Left, extra, PhysicsLayer.Static);
-        float right = _entity.RoomToMove(side, center, Vector3.Right, extra, PhysicsLayer.Static);
-        if (left + right < extra - Entities.Entity.ContactTolerance)
-        {
-            return null;
-        }
-        // Not Math.Clamp, which throws if rounding puts the bounds the wrong way round when the block only just fits.
-        float shift = left + right < extra
-            ? (right - left) / 2
-            : MathF.Min(MathF.Max(0, extra / 2 - left), right - extra / 2);
-        Vector3 start = center + new Vector3(shift, 0, 0);
-
-        // From there, the block falls until it is under the player, or meets a tile. The player rises by as much as it
-        // falls short, which needs that much room above the player.
-        float drop = playerHalf.Y + blockHalf.Y;
-        float fall = _entity.RoomToMove(blockHalf, start, Vector3.Down, drop, PhysicsLayer.Static);
-        float rise = drop - fall;
-        if (rise > 0 && _entity.RoomToMove(playerHalf, center, Vector3.Up, rise, PhysicsLayer.Static) < rise)
-        {
-            return null;
-        }
-        return (start - new Vector3(0, fall, 0), rise);
     }
 
     /// <summary>One of the eight directions, from the input, as a unit vector in the plane of play, or zero if none.</summary>

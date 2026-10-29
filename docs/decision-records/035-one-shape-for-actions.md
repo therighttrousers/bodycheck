@@ -57,7 +57,13 @@ Goals:
   - Two small differences, neither seen in play: the overlay's thrust time shows what is left after the tick, one tick's worth less than before; and while a phase is aimed the action isn't run, so the thrust time doesn't count down, where it did, slowly, as the game slowed. The release ends the thrust either way.
 - [x] 7.2 Decision (Neil): remove the player's leniency telemetry, `CoyoteTime`, `ThrustTime` and `JumpBufferTime`, and the overlay's line for them: nobody read them, since they go by too fast to see. The thrust time was exposed only for its metric, besides the check that a jump can't begin during another's thrust, which `Thrusting` answers, so it is private, and the action exposes only `Thrusting` and `Interrupt`. This supersedes the part of `008 §1.3` that has the controller report coyote and thrust time.
 
-## 8. Later
+## 8. Spawning
 
-- [ ] 8.1 Patrolling as an action (Neil): many robot-like things might patrol. To be taken up at the end of these refactorings. It would decide intent, such as the robot's `_move` (§5.2), rather than act on the body, so it may be a different kind of thing from the actions so far.
-- [ ] 8.2 How to swap abilities (Neil): for example, robots that shoot a laser, shoot missiles, or don't shoot at all. To be discussed.
+- [x] 8.1 `SpawnAction` holds spawning the player's block: the cooldown, finding where the block fits under the entity and how far the entity rises onto it, and the moves, with a `SpawnTuning`. It is built with the block, one of the fixed things an action works with (§1.1). The controller says when the entity spawns, from a press of spawn, which is input. Decision (Neil): extract it.
+  - Nothing reads an outcome, so `Apply` returns none.
+  - A small difference, as for the jump (§7.1): while a phase is aimed, and on the tick it is made, the action isn't run, so its cooldown doesn't count down, where it did.
+
+## 9. Later
+
+- [ ] 9.1 Patrolling as an action (Neil): many robot-like things might patrol. To be taken up at the end of these refactorings. It would decide intent, such as the robot's `_move` (§5.2), rather than act on the body, so it may be a different kind of thing from the actions so far. Neil agrees it is more like a behaviour, and suggests conventions for defining behaviours that are often used.
+- [ ] 9.2 How to swap abilities (Neil): for example, robots that shoot a laser, shoot missiles, or don't shoot at all. To be discussed.
