@@ -378,7 +378,8 @@ public partial class Entity : RigidBody3D
     /// </summary>
     public ContactPoint? GetNearestContact(Vector2 halfSize, Vector3 center, PhysicsLayer layers)
     {
-        // See RoomToMove for why we shrink this.
+        // Shrunk as RoomToMove's cast is, so that it overlaps only what that cast met, and not what the box touches at its
+        // sides, such as the floor or a wall it is flush with.
         var shrunk = new Vector3(2 * (halfSize.X - ContactTolerance), 2 * (halfSize.Y - ContactTolerance), Depth);
         var query = new PhysicsShapeQueryParameters3D
         {
