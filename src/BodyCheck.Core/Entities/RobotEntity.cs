@@ -75,20 +75,6 @@ public partial class RobotEntity : WalkerEntity
         return toVisual.Origin;
     }
 
-    /// <summary>
-    /// What decides the robot's actions each tick. It hides <see cref="WalkerEntity.Controller"/>, which a robot
-    /// doesn't run, so that the controller can set the robot's laser.
-    /// </summary>
-    public new ICharacterController<RobotEntity>? Controller { get; set; }
-
     /// <summary>The robot's laser as of the last tick. Set by the controller.</summary>
     public Laser Laser { get; set; }
-
-    public override bool RequestsPause => Controller?.RequestsPause ?? false;
-
-    protected override void ControlPaused(float realDt, IDefer defer) =>
-        Controller?.ApplyPaused(this, realDt, defer);
-
-    protected override void ApplyController(float gameDt, float realDt, IDefer defer) =>
-        Controller?.Apply(this, gameDt, realDt, defer);
 }

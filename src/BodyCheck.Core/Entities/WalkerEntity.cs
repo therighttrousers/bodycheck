@@ -41,9 +41,6 @@ public partial class WalkerEntity : Entity
         AddChild(_grip);
     }
 
-    /// <summary>What decides the walker's actions each tick. Without one it is only pushed around.</summary>
-    public ICharacterController<WalkerEntity>? Controller { get; set; }
-
     /// <summary>
     /// Applies traction, at once, for this tick's step: pushes against the ground to bring the walker's horizontal
     /// speed, relative to the ground, towards <paramref name="targetSpeed"/>, with at most
@@ -80,20 +77,11 @@ public partial class WalkerEntity : Entity
         _grip.SetFlagX(Generic6DofJoint3D.Flag.EnableLinearMotor, false);
     }
 
-    public override bool RequestsPause => Controller?.RequestsPause ?? false;
-
-    protected override void ControlPaused(float realDt, IDefer defer) =>
-        Controller?.ApplyPaused(this, realDt, defer);
-
     protected override void Control(float gameDt, float realDt, IDefer defer)
     {
-        ApplyController(gameDt, realDt, defer);
+        base.Control(gameDt, realDt, defer);
         UpdateAnimation(gameDt);
     }
-
-    /// <summary>Runs the walker's controller, if it has one.</summary>
-    protected virtual void ApplyController(float gameDt, float realDt, IDefer defer) =>
-        Controller?.Apply(this, gameDt, realDt, defer);
 
     private void UpdateAnimation(float gameDt)
     {

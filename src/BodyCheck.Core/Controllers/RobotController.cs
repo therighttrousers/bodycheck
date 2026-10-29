@@ -4,8 +4,9 @@ using Godot;
 
 namespace BodyCheck.Core.Controllers;
 
+/// <param name="entity">The robot, which the controller controls.</param>
 /// <param name="target">What the robot aims its laser at, or null for nothing.</param>
-public sealed class RobotController(Func<Entity?> target) : ICharacterController<RobotEntity>
+public sealed class RobotController(RobotEntity entity, Func<Entity?> target) : ICharacterController
 {
     private const float ArbitraryFirstMove = 1;
 
@@ -30,13 +31,15 @@ public sealed class RobotController(Func<Entity?> target) : ICharacterController
     // Which way the beam points: at the target while aiming, and fixed once it locks.
     private Vector3 _aim;
 
-    public void Apply(RobotEntity entity, float gameDt, float realDt, IDefer defer)
+    public Entity Entity => entity;
+
+    public void Apply(float gameDt, float realDt, IDefer defer)
     {
         var features = Features.Current;
 
         _stallHeat.CoolDown(features.RobotStallCooldownRate * gameDt);
 
-        ApplyLaser(entity, gameDt);
+        ApplyLaser(gameDt);
         bool shooting = _laserPhase != LaserPhase.Off;
 
         // Stand still and face the target while it can be seen, but not once the beam has locked, so that the robot faces
@@ -100,7 +103,7 @@ public sealed class RobotController(Func<Entity?> target) : ICharacterController
             _stall.Reset();
         }
 
-        ApplyRun(entity, _move, gameDt);
+        ApplyRun(_move, gameDt);
 
         // Set animation variables.
         entity.IsGrounded = entity.OnGround;
@@ -109,11 +112,11 @@ public sealed class RobotController(Func<Entity?> target) : ICharacterController
     }
 
     // Steps the laser through its timeline (see docs/designs/characters.md), and sets the entity's laser for what draws it.
-    private void ApplyLaser(RobotEntity entity, float gameDt)
+    private void ApplyLaser(float gameDt)
     {
         var features = Features.Current;
         Vector3 origin = entity.LaserOrigin(_facing);
-        _seen = target() is Entity t && Sees(entity, origin, t) ? t : null;
+        _seen = target() is Entity t && Sees(origin, t) ? t : null;
 
         _laserTime = _laserPhase == LaserPhase.Off ? MathF.Max(_laserTime - gameDt, 0) : _laserTime + gameDt;
         switch (_laserPhase)
@@ -194,7 +197,7 @@ public sealed class RobotController(Func<Entity?> target) : ICharacterController
 
     // Whether the robot can target the entity from its eyes: in front of it, not too far above or below level, in range,
     // and with nothing in between.
-    private bool Sees(RobotEntity entity, Vector3 origin, Entity target)
+    private bool Sees(Vector3 origin, Entity target)
     {
         var features = Features.Current;
         Vector3 toTarget = target.Position - origin;
@@ -208,7 +211,7 @@ public sealed class RobotController(Func<Entity?> target) : ICharacterController
         return entity.CastRay(origin, target.Position, LaserBlockers) is (_, GodotObject collider) && collider == target;
     }
 
-    private void ApplyRun(WalkerEntity entity, float move, float gameDt)
+    private void ApplyRun(float move, float gameDt)
     {
         if (!entity.OnGround)
         {

@@ -19,11 +19,12 @@ public readonly record struct PlayerInput(
 /// <summary>
 /// Turns player input into forces, impulses and traction on the entity it controls.
 /// </summary>
-public sealed class PlayerController : ICharacterController<PlayerEntity>
+public sealed class PlayerController : ICharacterController
 {
     // How far, from 0 to 1, the stick must be pushed for one of the eight directions to count as held.
     private const float DirectionDeadZone = 0.5f;
 
+    private readonly PlayerEntity _entity;
     private readonly Func<PlayerInput> _input;
     private readonly Entity _block;
 
@@ -48,15 +49,19 @@ public sealed class PlayerController : ICharacterController<PlayerEntity>
     private float _highestFeet;
     private float _airTime;
 
+    /// <param name="entity">The player, which the controller controls.</param>
     /// <param name="input">Supplies the player's input, once per tick.</param>
     /// <param name="block">
     /// The player's block, which it spawns. Until then it is disabled and hidden, so that it is out of the world.
     /// </param>
-    public PlayerController(Func<PlayerInput> input, Entity block)
+    public PlayerController(PlayerEntity entity, Func<PlayerInput> input, Entity block)
     {
+        _entity = entity;
         _input = input;
         _block = block;
     }
+
+    public Entity Entity => _entity;
 
     /// <summary>
     /// The phase being aimed, from when phase is held with a target in reach, after the cooldown, until it is released.
@@ -70,24 +75,24 @@ public sealed class PlayerController : ICharacterController<PlayerEntity>
     /// Aims the phase while the game is paused for it. Releasing phase ends the aim, and the bodies move on the next
     /// tick of play.
     /// </summary>
-    public void ApplyPaused(PlayerEntity entity, float realDt, IDefer defer)
+    public void ApplyPaused(float realDt, IDefer defer)
     {
         PlayerInput input = _input();
-        ApplyPhase(entity, input, 0, realDt, defer);
+        ApplyPhase(input, 0, realDt, defer);
         _jumpWasHeld = input.JumpHeld;
         _spawnWasHeld = input.SpawnHeld;
     }
 
-    public void Apply(PlayerEntity entity, float gameDt, float realDt, IDefer defer)
+    public void Apply(float gameDt, float realDt, IDefer defer)
     {
         PlayerInput input = _input();
-        float weight = entity.Weight;
+        float weight = _entity.Weight;
         float move = Math.Clamp(input.XAxis, -1, 1);
 
-        if (entity.OnGround)
+        if (_entity.OnGround)
         {
             _groundTimeLeft = Features.TicksToTime(Features.Current.PlayerCoyoteTicks + 1); // +1 to include this tick
-            _lastGroundVelocity = entity.GroundVelocity;
+            _lastGroundVelocity = _entity.GroundVelocity;
         }
 
         if (input.JumpHeld && !_jumpWasHeld)
@@ -95,24 +100,24 @@ public sealed class PlayerController : ICharacterController<PlayerEntity>
             _jumpBufferLeft = Features.TicksToTime(Features.Current.PlayerJumpBufferTicks);
         }
 
-        if (!ApplyPhase(entity, input, gameDt, realDt, defer))
+        if (!ApplyPhase(input, gameDt, realDt, defer))
         {
-            ApplySpawn(entity, input, defer);
+            ApplySpawn(input, defer);
 
             // A press buffered in the air jumps on landing even if jump has been let go of since, as a tap.
             bool jumps = _jumpBufferLeft > 0 && _groundTimeLeft > 0 && _thrustTimeLeft == 0;
-            Vector3 runDeltaV = ApplyRun(entity, move, gameDt, jumps);
-            Vector3 jumpDeltaV = ApplyJump(entity, input.JumpHeld, weight, gameDt, jumps);
+            Vector3 runDeltaV = ApplyRun(move, gameDt, jumps);
+            Vector3 jumpDeltaV = ApplyJump(input.JumpHeld, weight, gameDt, jumps);
 
             // Predicted player velocity after the engine integrates forces this tick. Used for corner correction.
-            Vector3 gravDeltaV = entity.GetGravity() * gameDt;
-            Vector3 dragDeltaV = -entity.Tuning.Drag * entity.LinearVelocity * gameDt / entity.Mass;
-            Vector3 predictedVelocity = entity.LinearVelocity + runDeltaV + jumpDeltaV + gravDeltaV + dragDeltaV;
+            Vector3 gravDeltaV = _entity.GetGravity() * gameDt;
+            Vector3 dragDeltaV = -_entity.Tuning.Drag * _entity.LinearVelocity * gameDt / _entity.Mass;
+            Vector3 predictedVelocity = _entity.LinearVelocity + runDeltaV + jumpDeltaV + gravDeltaV + dragDeltaV;
             Telemetry.Report(Metric.PredictedVelocity, predictedVelocity.ToVector2());
 
             // If rising into the bottom of a tile, possibly nudge the player left or right to clear a corner.
             bool nudged = CornerCorrection.UpwardCorrect(
-                entity: entity,
+                entity: _entity,
                 velocity: predictedVelocity,
                 gameDt: gameDt,
                 maxNudge: Features.Current.PlayerUpwardCornerCorrection,
@@ -124,7 +129,7 @@ public sealed class PlayerController : ICharacterController<PlayerEntity>
             if (!nudged)
             {
                 CornerCorrection.ForwardCorrect(
-                    entity: entity,
+                    entity: _entity,
                     velocity: predictedVelocity,
                     gameDt: gameDt,
                     maxNudge: Features.Current.PlayerForwardCornerCorrection,
@@ -134,13 +139,13 @@ public sealed class PlayerController : ICharacterController<PlayerEntity>
         }
 
         // Set animation variables
-        entity.IsGrounded = _groundTimeLeft > 0;
-        entity.IsMoving = move != 0;
-        entity.IsJumping = _thrustTimeLeft > 0;
+        _entity.IsGrounded = _groundTimeLeft > 0;
+        _entity.IsMoving = move != 0;
+        _entity.IsJumping = _thrustTimeLeft > 0;
         // Face forward when in the air; otherwise use movement direction.
-        entity.Facing = entity.IsGrounded ? Math.Sign(move) : 0;
+        _entity.Facing = _entity.IsGrounded ? Math.Sign(move) : 0;
 
-        Report(entity, gameDt);
+        Report(gameDt);
 
         _groundTimeLeft = Math.Max(0, _groundTimeLeft - realDt);
         _thrustTimeLeft = Math.Max(0, _thrustTimeLeft - gameDt);
@@ -152,19 +157,19 @@ public sealed class PlayerController : ICharacterController<PlayerEntity>
     }
 
     /// <summary>Reports the player's measurements to <see cref="Telemetry"/>, as of the engine's last step.</summary>
-    private void Report(PlayerEntity entity, float gameDt)
+    private void Report(float gameDt)
     {
-        var feet = new Vector2(entity.Position.X, entity.Position.Y - entity.HalfSize.Y);
-        var velocity = new Vector2(entity.LinearVelocity.X, entity.LinearVelocity.Y);
+        var feet = new Vector2(_entity.Position.X, _entity.Position.Y - _entity.HalfSize.Y);
+        var velocity = new Vector2(_entity.LinearVelocity.X, _entity.LinearVelocity.Y);
         Telemetry.Report(Metric.Feet, feet);
         Telemetry.Report(Metric.Velocity, velocity);
-        Telemetry.Report(Metric.GroundSpeed, entity.GroundSpeed);
-        Telemetry.Report(Metric.OnGround, entity.OnGround);
-        Telemetry.Report(Metric.CoyoteTime, entity.OnGround ? 0 : _groundTimeLeft);
+        Telemetry.Report(Metric.GroundSpeed, _entity.GroundSpeed);
+        Telemetry.Report(Metric.OnGround, _entity.OnGround);
+        Telemetry.Report(Metric.CoyoteTime, _entity.OnGround ? 0 : _groundTimeLeft);
         Telemetry.Report(Metric.ThrustTime, _thrustTimeLeft);
         Telemetry.Report(Metric.JumpBufferTime, _jumpBufferLeft);
 
-        if (!entity.OnGround)
+        if (!_entity.OnGround)
         {
             if (!_inAir)
             {
@@ -202,12 +207,12 @@ public sealed class PlayerController : ICharacterController<PlayerEntity>
     /// <param name="gameDt">The tick's length in game time: 0 while the game is paused.</param>
     /// <param name="realDt">The tick's length in real time.</param>
     /// <param name="defer">An object that allows running actions later in the tick.</param>
-    private bool ApplyPhase(PlayerEntity entity, PlayerInput input, float gameDt, float realDt, IDefer defer)
+    private bool ApplyPhase(PlayerInput input, float gameDt, float realDt, IDefer defer)
     {
-        if (Phase is null && input.PhaseHeld && _phaseCooldownLeft <= 0 && TargetedEntity(entity, input) is Entity target)
+        if (Phase is null && input.PhaseHeld && _phaseCooldownLeft <= 0 && TargetedEntity(input) is Entity target)
         {
             Phase = new PhaseAction(
-                player: entity,
+                player: _entity,
                 target: target,
                 gap: Features.Current.PlayerPhaseGap,
                 phaseThrow: Features.Current.PlayerPhaseThrow,
@@ -215,7 +220,7 @@ public sealed class PlayerController : ICharacterController<PlayerEntity>
                 defer: defer);
 
             _phaseDirectionTimeLeft = 0;
-            entity.RaiseCue(EntityCue.PhaseBegan);
+            _entity.RaiseCue(EntityCue.PhaseBegan);
         }
 
         if (Phase is null)
@@ -257,12 +262,12 @@ public sealed class PlayerController : ICharacterController<PlayerEntity>
         {
             Phase.Phase(defer);
             _phaseCooldownLeft = Features.Current.PlayerPhaseThrowCooldownTime;
-            entity.RaiseCue(EntityCue.PhaseThrown);
+            _entity.RaiseCue(EntityCue.PhaseThrown);
         }
         else
         {
             _phaseCooldownLeft = Features.Current.PlayerPhaseCancelCooldownTime;
-            entity.RaiseCue(EntityCue.PhaseCancelled);
+            _entity.RaiseCue(EntityCue.PhaseCancelled);
         }
 
         Phase.Stop(defer);
@@ -283,23 +288,23 @@ public sealed class PlayerController : ICharacterController<PlayerEntity>
     /// Where the block doesn't fit, or the player has no room to rise onto it, the spawn is cancelled. There is only one block, so spawning it
     /// takes it from wherever it was. The moves wait until after the entity steps, like a phase's.
     /// </summary>
-    private void ApplySpawn(PlayerEntity entity, PlayerInput input, IDefer defer)
+    private void ApplySpawn(PlayerInput input, IDefer defer)
     {
         if (!input.SpawnHeld || _spawnWasHeld || _spawnCooldownLeft > 0)
         {
             return;
         }
 
-        if (SpawnPlace(entity) is not (Vector3 place, float rise))
+        if (SpawnPlace() is not (Vector3 place, float rise))
         {
             _spawnCooldownLeft = Features.Current.PlayerSpawnCancelCooldownTime;
-            entity.RaiseCue(EntityCue.SpawnCancelled);
+            _entity.RaiseCue(EntityCue.SpawnCancelled);
             return;
         }
         _spawnCooldownLeft = Features.Current.PlayerSpawnCooldownTime;
 
-        Vector3 velocity = Features.Current.PlayerSpawnMotion == SpawnMotion.WithPlayer ? entity.LinearVelocity : Vector3.Zero;
-        Vector3 center = entity.Position;
+        Vector3 velocity = Features.Current.PlayerSpawnMotion == SpawnMotion.WithPlayer ? _entity.LinearVelocity : Vector3.Zero;
+        Vector3 center = _entity.Position;
         defer.RunAfterEntitySteps(() =>
         {
             // A new block, as far as anyone can tell: back in the world, level, and moving only as the spawn says.
@@ -311,7 +316,7 @@ public sealed class PlayerController : ICharacterController<PlayerEntity>
             _block.MoveTo(place);
             if (rise > 0)
             {
-                entity.MoveTo(center + new Vector3(0, rise, 0));
+                _entity.MoveTo(center + new Vector3(0, rise, 0));
             }
             _block.RaiseCue(EntityCue.Spawned);
         });
@@ -322,11 +327,11 @@ public sealed class PlayerController : ICharacterController<PlayerEntity>
     /// player has no room to rise onto it. Found by casting boxes against tiles, as of the engine's last step, each
     /// from where it is clear of them, so that no move starts inside a tile.
     /// </summary>
-    private (Vector3 Place, float Rise)? SpawnPlace(PlayerEntity entity)
+    private (Vector3 Place, float Rise)? SpawnPlace()
     {
-        Vector2 playerHalf = entity.HalfSize;
+        Vector2 playerHalf = _entity.HalfSize;
         Vector2 blockHalf = _block.HalfSize;
-        Vector3 center = entity.Position;
+        Vector3 center = _entity.Position;
 
         // A box of the player's width and the block's height, at the player's center, is inside the player, so clear of
         // tiles. How far it can move to each side is the room the block has there. The block is wider than the player
@@ -335,8 +340,8 @@ public sealed class PlayerController : ICharacterController<PlayerEntity>
         // one tile wide, counts as fitting, and starts in the middle of the room.
         float extra = 2 * (blockHalf.X - playerHalf.X);
         var side = new Vector2(playerHalf.X, blockHalf.Y);
-        float left = entity.RoomToMove(side, center, Vector3.Left, extra, PhysicsLayer.Static);
-        float right = entity.RoomToMove(side, center, Vector3.Right, extra, PhysicsLayer.Static);
+        float left = _entity.RoomToMove(side, center, Vector3.Left, extra, PhysicsLayer.Static);
+        float right = _entity.RoomToMove(side, center, Vector3.Right, extra, PhysicsLayer.Static);
         if (left + right < extra - Entity.ContactTolerance)
         {
             return null;
@@ -350,9 +355,9 @@ public sealed class PlayerController : ICharacterController<PlayerEntity>
         // From there, the block falls until it is under the player, or meets a tile. The player rises by as much as it
         // falls short, which needs that much room above the player.
         float drop = playerHalf.Y + blockHalf.Y;
-        float fall = entity.RoomToMove(blockHalf, start, Vector3.Down, drop, PhysicsLayer.Static);
+        float fall = _entity.RoomToMove(blockHalf, start, Vector3.Down, drop, PhysicsLayer.Static);
         float rise = drop - fall;
-        if (rise > 0 && entity.RoomToMove(playerHalf, center, Vector3.Up, rise, PhysicsLayer.Static) < rise)
+        if (rise > 0 && _entity.RoomToMove(playerHalf, center, Vector3.Up, rise, PhysicsLayer.Static) < rise)
         {
             return null;
         }
@@ -370,12 +375,12 @@ public sealed class PlayerController : ICharacterController<PlayerEntity>
     /// The entity in reach, if any, whose box is nearest a point offset from the player's center in the direction
     /// held. Reach is a sphere around the player's center, which meets every entity touching the player's box.
     /// </summary>
-    private Entity? TargetedEntity(PlayerEntity entity, PlayerInput input)
+    private Entity? TargetedEntity(PlayerInput input)
     {
-        float radius = entity.HalfSize.Length() + Features.Current.PlayerPhaseReach;
-        Vector2 from = (entity.Position + Features.Current.PlayerPhaseInputOffset * DirectionHeld(input)).ToVector2();
+        float radius = _entity.HalfSize.Length() + Features.Current.PlayerPhaseReach;
+        Vector2 from = (_entity.Position + Features.Current.PlayerPhaseInputOffset * DirectionHeld(input)).ToVector2();
         // A sphere meets a box exactly when the box's nearest point is within its radius of its center.
-        return entity.Overlapping(new SphereShape3D { Radius = radius }, entity.Position)
+        return _entity.Overlapping(new SphereShape3D { Radius = radius }, _entity.Position)
             .OfType<Entity>()
             .MinBy(other =>
             {
@@ -385,11 +390,11 @@ public sealed class PlayerController : ICharacterController<PlayerEntity>
     }
 
     /// <param name="jumps">Whether the entity jumps on this tick.</param>
-    private Vector3 ApplyRun(PlayerEntity entity, float move, float gameDt, bool jumps)
+    private Vector3 ApplyRun(float move, float gameDt, bool jumps)
     {
         Features features = Features.Current;
         (Vector3 deltaV, bool slips) = RunAction.Run(
-            entity: entity,
+            entity: _entity,
             gameDt: gameDt,
             move: move,
             jumps: jumps,
@@ -398,7 +403,7 @@ public sealed class PlayerController : ICharacterController<PlayerEntity>
             brakeForce: _groundTimeLeft > 0 ? features.PlayerGroundBrakeForce : features.PlayerAirBrakeForce);
         if (slips)
         {
-            entity.SlipAfterEntitySteps();
+            _entity.SlipAfterEntitySteps();
         }
         return deltaV;
     }
@@ -408,24 +413,24 @@ public sealed class PlayerController : ICharacterController<PlayerEntity>
     /// What the entity carries is pushed up with it, so it shares the change.
     /// </returns>
     /// <param name="jumps">Whether the entity jumps on this tick.</param>
-    private Vector3 ApplyJump(PlayerEntity entity, bool jumpHeld, float weight, float gameDt, bool jumps)
+    private Vector3 ApplyJump(bool jumpHeld, float weight, float gameDt, bool jumps)
     {
         if (jumps)
         {
             // The jump speed is relative to the ground, as it moved on the last tick on it: whatever the entity
             // gained or lost against it since, from falling in coyote ticks or being pushed off it, is undone.
-            var relativeVelocityY = entity.LinearVelocity.Y - _lastGroundVelocity.Y;
-            var impulse = new Vector3(0, entity.Mass * (Features.Current.PlayerJumpSpeed - relativeVelocityY), 0);
-            entity.ApplyCentralImpulse(impulse);
-            entity.Support?.ApplyCentralImpulse(-impulse);
+            var relativeVelocityY = _entity.LinearVelocity.Y - _lastGroundVelocity.Y;
+            var impulse = new Vector3(0, _entity.Mass * (Features.Current.PlayerJumpSpeed - relativeVelocityY), 0);
+            _entity.ApplyCentralImpulse(impulse);
+            _entity.Support?.ApplyCentralImpulse(-impulse);
             _groundTimeLeft = 0;
             _jumpBufferLeft = 0;
             _thrustTimeLeft = Features.Current.PlayerJumpThrustTime + gameDt; // + gameDt to include this tick
 
-            entity.RaiseCue(EntityCue.Jumped);
+            _entity.RaiseCue(EntityCue.Jumped);
 
             // Thrust starts on the next tick.
-            return impulse / entity.LoadedMass;
+            return impulse / _entity.LoadedMass;
         }
 
         if (!jumpHeld)
@@ -434,7 +439,7 @@ public sealed class PlayerController : ICharacterController<PlayerEntity>
         }
 
         // If stopped rising (e.g. hit a ceiling), cancel thrust.
-        if (entity.LinearVelocity.Y <= 0)
+        if (_entity.LinearVelocity.Y <= 0)
         {
             _thrustTimeLeft = 0;
         }
@@ -445,9 +450,9 @@ public sealed class PlayerController : ICharacterController<PlayerEntity>
             // same speed whatever the ticks' length in game time.
             float share = Math.Min(1, _thrustTimeLeft / gameDt);
             var force = new Vector3(0, share * Features.Current.PlayerJumpThrustFrac * weight, 0);
-            entity.ApplyCentralForce(force);
-            entity.Support?.ApplyCentralForce(-force);
-            return force * gameDt / entity.LoadedMass;
+            _entity.ApplyCentralForce(force);
+            _entity.Support?.ApplyCentralForce(-force);
+            return force * gameDt / _entity.LoadedMass;
         }
         return Vector3.Zero;
     }
