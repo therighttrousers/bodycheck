@@ -16,12 +16,6 @@ public enum Metric
     /// <summary>Speed along X relative to what the player stands on.</summary>
     GroundSpeed,
     OnGround,
-    /// <summary>Coyote time left, in real seconds.</summary>
-    CoyoteTime,
-    /// <summary>Jump thrust time left, in game seconds.</summary>
-    ThrustTime,
-    /// <summary>How much longer the last press of jump counts, in real seconds.</summary>
-    JumpBufferTime,
     /// <summary>The velocity the player's controller predicts for this tick's step, for corner correction.</summary>
     PredictedVelocity,
     /// <summary>When the last corner correction was made, in real milliseconds since the engine started.</summary>

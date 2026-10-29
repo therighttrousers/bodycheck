@@ -102,7 +102,7 @@ public sealed class PlayerController : IController<PlayerEntity>
             ApplySpawn(input, defer);
 
             // A press buffered in the air jumps on landing even if jump has been let go of since, as a tap.
-            bool jumps = _jumpBufferLeft > 0 && _groundTimeLeft > 0 && _jump.ThrustTimeLeft == 0;
+            bool jumps = _jumpBufferLeft > 0 && _groundTimeLeft > 0 && !_jump.Thrusting;
             Vector3 runDeltaV = ApplyRun(move, gameDt, jumps);
             Vector3 jumpDeltaV = ApplyJump(input.JumpHeld, gameDt, jumps);
 
@@ -160,9 +160,6 @@ public sealed class PlayerController : IController<PlayerEntity>
         Telemetry.Report(Metric.Velocity, velocity);
         Telemetry.Report(Metric.GroundSpeed, _entity.GroundSpeed);
         Telemetry.Report(Metric.OnGround, _entity.OnGround);
-        Telemetry.Report(Metric.CoyoteTime, _entity.OnGround ? 0 : _groundTimeLeft);
-        Telemetry.Report(Metric.ThrustTime, _jump.ThrustTimeLeft);
-        Telemetry.Report(Metric.JumpBufferTime, _jumpBufferLeft);
 
         if (!_entity.OnGround)
         {

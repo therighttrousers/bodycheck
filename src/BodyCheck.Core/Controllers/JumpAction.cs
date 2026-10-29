@@ -34,16 +34,14 @@ public sealed class JumpAction(WalkerEntity entity, JumpTuning tuning)
     // How the entity's ground moved on its last tick on it, which a jump's speed is relative to.
     private Vector3 _lastGroundVelocity = Vector3.Zero;
 
-    /// <summary>
-    /// In game time: how much longer the jump's thrust may last, after this tick. A jump can't begin until it is up.
-    /// </summary>
-    public float ThrustTimeLeft { get; private set; }
+    // In game time: how much longer the jump's thrust may last, after this tick.
+    private float _thrustTimeLeft;
 
     /// <summary>
     /// Whether the jump's thrust time has yet to run out, from the tick of the jump until the time is up or something ends
     /// it, whether or not jump is held. A jump can't begin until it has.
     /// </summary>
-    public bool Thrusting => ThrustTimeLeft > 0;
+    public bool Thrusting => _thrustTimeLeft > 0;
 
     /// <param name="jumps">Whether the entity jumps on this tick.</param>
     /// <param name="held">Whether jump is held, which keeps up the thrust.</param>
@@ -59,14 +57,14 @@ public sealed class JumpAction(WalkerEntity entity, JumpTuning tuning)
             _lastGroundVelocity = entity.GroundVelocity;
         }
         Vector3 deltaV = Step(jumps, held, gameDt);
-        ThrustTimeLeft = Math.Max(0, ThrustTimeLeft - gameDt);
+        _thrustTimeLeft = Math.Max(0, _thrustTimeLeft - gameDt);
         return deltaV;
     }
 
     /// <summary>Ends the jump's thrust, as when something else takes over the entity, such as a phase.</summary>
     public void Interrupt()
     {
-        ThrustTimeLeft = 0;
+        _thrustTimeLeft = 0;
     }
 
     private Vector3 Step(bool jumps, bool held, float gameDt)
@@ -79,7 +77,7 @@ public sealed class JumpAction(WalkerEntity entity, JumpTuning tuning)
             var impulse = new Vector3(0, entity.Mass * (tuning.Speed() - relativeVelocityY), 0);
             entity.ApplyCentralImpulse(impulse);
             entity.Support?.ApplyCentralImpulse(-impulse);
-            ThrustTimeLeft = tuning.ThrustTime() + gameDt; // + gameDt to include this tick
+            _thrustTimeLeft = tuning.ThrustTime() + gameDt; // + gameDt to include this tick
 
             entity.RaiseCue(EntityCue.Jumped);
 
@@ -95,14 +93,14 @@ public sealed class JumpAction(WalkerEntity entity, JumpTuning tuning)
         // If stopped rising (e.g. hit a ceiling), cancel thrust.
         if (entity.LinearVelocity.Y <= 0)
         {
-            ThrustTimeLeft = 0;
+            _thrustTimeLeft = 0;
         }
 
-        if (ThrustTimeLeft > 0)
+        if (_thrustTimeLeft > 0)
         {
             // The last tick of thrust gets only the part of it that the thrust time covers, so that the thrust adds the
             // same speed whatever the ticks' length in game time.
-            float share = Math.Min(1, ThrustTimeLeft / gameDt);
+            float share = Math.Min(1, _thrustTimeLeft / gameDt);
             var force = new Vector3(0, share * tuning.ThrustFrac() * entity.Weight, 0);
             entity.ApplyCentralForce(force);
             entity.Support?.ApplyCentralForce(-force);

@@ -55,6 +55,7 @@ Goals:
   - A jump uses up the coyote time and the buffered press, which the controller clears on the tick it jumps. A phase ends the jump through its verb, `Interrupt` (§2.1).
   - It exposes how much thrust time is left after the tick, and whether any is (Neil: computed from it, for one source), which the controller reads to keep a jump from beginning during another's thrust, and which the animation's `IsJumping` and the take-off point for telemetry read. They read it after it counts down, where they read it before, so `IsJumping` ends a tick sooner. Jump heights are the same to five decimals, for taps and holds of 1, 2, 5 and 600 ticks, as on `main`.
   - Two small differences, neither seen in play: the overlay's thrust time shows what is left after the tick, one tick's worth less than before; and while a phase is aimed the action isn't run, so the thrust time doesn't count down, where it did, slowly, as the game slowed. The release ends the thrust either way.
+- [x] 7.2 Decision (Neil): remove the player's leniency telemetry, `CoyoteTime`, `ThrustTime` and `JumpBufferTime`, and the overlay's line for them: nobody read them, since they go by too fast to see. The thrust time was exposed only for its metric, besides the check that a jump can't begin during another's thrust, which `Thrusting` answers, so it is private, and the action exposes only `Thrusting` and `Interrupt`. This supersedes the part of `008 §1.3` that has the controller report coyote and thrust time.
 
 ## 8. Later
 
