@@ -8,10 +8,10 @@ namespace BodyCheck.Core.Entities;
 /// A controller is built with the entity it controls, as the kind of body it needs, and controls only that one.
 /// </para>
 /// </summary>
-public interface ICharacterController
+public interface IController<out TEntity> where TEntity : Entity
 {
     /// <summary>The entity the controller controls.</summary>
-    public Entity Entity { get; }
+    public TEntity Entity { get; }
 
     /// <summary>Called once per physics tick, before the engine's step.</summary>
     /// <param name="gameDt">The tick's length in game time, which the engine's time scale shortens.</param>

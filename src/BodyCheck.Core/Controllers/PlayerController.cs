@@ -19,7 +19,7 @@ public readonly record struct PlayerInput(
 /// <summary>
 /// Turns player input into forces, impulses and traction on the entity it controls.
 /// </summary>
-public sealed class PlayerController : ICharacterController
+public sealed class PlayerController : IController<PlayerEntity>
 {
     // How far, from 0 to 1, the stick must be pushed for one of the eight directions to count as held.
     private const float DirectionDeadZone = 0.5f;
@@ -61,7 +61,7 @@ public sealed class PlayerController : ICharacterController
         _block = block;
     }
 
-    public Entity Entity => _entity;
+    public PlayerEntity Entity => _entity;
 
     /// <summary>
     /// The phase being aimed, from when phase is held with a target in reach, after the cooldown, until it is released.
@@ -342,7 +342,7 @@ public sealed class PlayerController : ICharacterController
         var side = new Vector2(playerHalf.X, blockHalf.Y);
         float left = _entity.RoomToMove(side, center, Vector3.Left, extra, PhysicsLayer.Static);
         float right = _entity.RoomToMove(side, center, Vector3.Right, extra, PhysicsLayer.Static);
-        if (left + right < extra - Entity.ContactTolerance)
+        if (left + right < extra - Entities.Entity.ContactTolerance)
         {
             return null;
         }

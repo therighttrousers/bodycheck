@@ -170,7 +170,7 @@ public partial class Entity : RigidBody3D
     /// What decides the entity's actions each tick. Without one it is only pushed around. It must be a controller built
     /// for this entity.
     /// </summary>
-    public ICharacterController? Controller
+    public IController<Entity>? Controller
     {
         get;
         set

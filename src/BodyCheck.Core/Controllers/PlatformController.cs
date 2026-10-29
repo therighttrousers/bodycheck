@@ -9,7 +9,7 @@ namespace BodyCheck.Core.Controllers;
 /// gravity, cancelling its own weight; along the line, toward the end it is heading for; and across the line, back
 /// onto it. The last two are capped, so a heavy enough load overpowers them.
 /// </summary>
-public sealed class PlatformController : ICharacterController
+public sealed class PlatformController : IController<Entity>
 {
     private readonly Entity _entity;
     private readonly Vector2 _rangeA;

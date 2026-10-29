@@ -6,7 +6,7 @@ namespace BodyCheck.Core.Controllers;
 
 /// <param name="entity">The robot, which the controller controls.</param>
 /// <param name="target">What the robot aims its laser at, or null for nothing.</param>
-public sealed class RobotController(RobotEntity entity, Func<Entity?> target) : ICharacterController
+public sealed class RobotController(RobotEntity entity, Func<Entity?> target) : IController<RobotEntity>
 {
     private const float ArbitraryFirstMove = 1;
 
@@ -31,7 +31,7 @@ public sealed class RobotController(RobotEntity entity, Func<Entity?> target) : 
     // Which way the beam points: at the target while aiming, and fixed once it locks.
     private Vector3 _aim;
 
-    public Entity Entity => entity;
+    public RobotEntity Entity => entity;
 
     public void Apply(float gameDt, float realDt, IDefer defer)
     {
