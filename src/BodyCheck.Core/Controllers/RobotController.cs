@@ -19,6 +19,7 @@ public sealed class RobotController(RobotEntity entity, Func<Entity?> target) : 
     private float _facing = ArbitraryFirstMove;
     private readonly StallDetector _stall = new();
     private readonly OverheatDetector _stallHeat = new();
+    private readonly RunAction _run = new(entity, RunTuning.Robot);
 
     private Entity? _seen;
     private LaserPhase _laserPhase = LaserPhase.Off;
@@ -103,7 +104,8 @@ public sealed class RobotController(RobotEntity entity, Func<Entity?> target) : 
             _stall.Reset();
         }
 
-        ApplyRun(_move, gameDt);
+        // Robots don't slip: their friction is their own, all the time.
+        _run.Apply(_move, grounded: entity.OnGround, jumps: false, gameDt);
 
         // Set animation variables.
         entity.IsGrounded = entity.OnGround;
@@ -209,22 +211,5 @@ public sealed class RobotController(RobotEntity entity, Func<Entity?> target) : 
             return false;
         }
         return entity.CastRay(origin, target.Position, LaserBlockers) is (_, GodotObject collider) && collider == target;
-    }
-
-    private void ApplyRun(float move, float gameDt)
-    {
-        if (!entity.OnGround)
-        {
-            return;
-        }
-        // Robots don't slip: their friction is their own, all the time.
-        RunAction.Run(
-            entity: entity,
-            gameDt: gameDt,
-            move: move,
-            jumps: false,
-            topSpeed: Features.Current.RobotTopSpeed,
-            driveForce: Features.Current.RobotDriveForce,
-            brakeForce: Features.Current.RobotBrakeForce);
     }
 }

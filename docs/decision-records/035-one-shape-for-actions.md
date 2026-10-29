@@ -34,3 +34,8 @@ Goals:
 ## 4. Phasing
 
 - [x] 4.1 `PhaseAction` becomes `PhaseAim`: what exists while a phase is aimed, with the grab, the direction and the phase itself. A new `PhaseAction` holds what lasts: the cooldown, how long the last direction held still counts, choosing the target, starting the aim, and its release, which phases or cancels. It raises the phase's cues. Decision (Neil): yes. Its outcome is idle, aiming, phased or cancelled. `PhaseAim` is nested in `PhaseAction`, so that the logic of phasing is in one file (Neil).
+
+## 5. Running
+
+- [x] 5.1 `RunAction` becomes an object, built with its walker and a `RunTuning`, with nothing to keep between ticks (§1.1). Its tuning has forces for the ground and for the air, and `Apply` takes whether to use the ground's: the player's controller says so for a moment after it leaves the ground, as before, and the robot's says so while it is on the ground. A robot's forces in the air are 0, which takes the place of its controller not running it in the air (Claude). Decision (Neil): yes, for running too.
+- [x] 5.2 Neil: should the robot's `_move` move into the action? Decision (Neil): no, for the reasons below (Claude). Making it pluggable, with something the action asks where to go, would invert control for what a controller does just as well. It is where the robot decides to go, from its stalls, its contacts and overheating, and it also sets the way the robot faces, what its stall detector measures and `IsMoving`. That is intent, which an action takes and doesn't keep (§1.2). The player's is the same, without state: its stick on each tick.

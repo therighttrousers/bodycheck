@@ -28,6 +28,7 @@ public sealed class PlayerController : IController<PlayerEntity>
     private readonly Func<PlayerInput> _input;
     private readonly Entity _block;
     private readonly PhaseAction _phase;
+    private readonly RunAction _run;
 
     // Timers count down in game time, except where they say otherwise.
     private bool _jumpWasHeld;
@@ -58,6 +59,7 @@ public sealed class PlayerController : IController<PlayerEntity>
         _input = input;
         _block = block;
         _phase = new PhaseAction(entity, PhaseTuning.Player);
+        _run = new RunAction(entity, RunTuning.Player);
     }
 
     public PlayerEntity Entity => _entity;
@@ -309,15 +311,7 @@ public sealed class PlayerController : IController<PlayerEntity>
     /// <param name="jumps">Whether the entity jumps on this tick.</param>
     private Vector3 ApplyRun(float move, float gameDt, bool jumps)
     {
-        Features features = Features.Current;
-        (Vector3 deltaV, bool slips) = RunAction.Run(
-            entity: _entity,
-            gameDt: gameDt,
-            move: move,
-            jumps: jumps,
-            topSpeed: features.PlayerTopSpeed,
-            driveForce: _groundTimeLeft > 0 ? features.PlayerGroundDriveForce : features.PlayerAirDriveForce,
-            brakeForce: _groundTimeLeft > 0 ? features.PlayerGroundBrakeForce : features.PlayerAirBrakeForce);
+        (Vector3 deltaV, bool slips) = _run.Apply(move, grounded: _groundTimeLeft > 0, jumps, gameDt);
         if (slips)
         {
             _entity.SlipAfterEntitySteps();
