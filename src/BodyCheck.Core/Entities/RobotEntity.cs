@@ -3,7 +3,7 @@ using Godot;
 namespace BodyCheck.Core.Entities;
 
 /// <summary>Where a robot's laser is in its firing timeline. See docs/designs/characters.md.</summary>
-public enum LaserPhase
+public enum LaserStage
 {
     /// <summary>No beam: the robot is looking for a target, or cooling down.</summary>
     Off,
@@ -18,8 +18,8 @@ public enum LaserPhase
     Firing,
 }
 
-/// <summary>A robot's laser as of the last tick: its phase, and where its beam starts and ends, in world coordinates.</summary>
-public readonly record struct Laser(LaserPhase Phase, float Progress, Vector3 Origin, Vector3 End);
+/// <summary>A robot's laser as of the last tick: its stage, and where its beam starts and ends, in world coordinates.</summary>
+public readonly record struct Laser(LaserStage Stage, float Progress, Vector3 Origin, Vector3 End);
 
 /// <summary>
 /// A robot's body: a walker with a laser. Its controller sets the laser each tick, for what draws the robot to show.
