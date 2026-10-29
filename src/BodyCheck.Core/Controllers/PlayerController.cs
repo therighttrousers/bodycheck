@@ -27,6 +27,7 @@ public sealed class PlayerController : IController<PlayerEntity>
     private readonly PlayerEntity _entity;
     private readonly Func<PlayerInput> _input;
     private readonly Entity _block;
+    private readonly PhaseAction _phase;
 
     // Timers count down in game time, except where they say otherwise.
     private bool _jumpWasHeld;
@@ -37,9 +38,6 @@ public sealed class PlayerController : IController<PlayerEntity>
     private float _thrustTimeLeft;
     // In real time: how much longer the last press of jump counts, so that pressing it just before landing jumps.
     private float _jumpBufferLeft;
-    private float _phaseCooldownLeft;
-    // In real time: how much longer the last direction held while a phase is aimed still counts, once let go of.
-    private float _phaseDirectionTimeLeft;
     private bool _spawnWasHeld;
     private float _spawnCooldownLeft;
 
@@ -59,14 +57,13 @@ public sealed class PlayerController : IController<PlayerEntity>
         _entity = entity;
         _input = input;
         _block = block;
+        _phase = new PhaseAction(entity, PhaseTuning.Player);
     }
 
     public PlayerEntity Entity => _entity;
 
-    /// <summary>
-    /// The phase being aimed, from when phase is held with a target in reach, after the cooldown, until it is released.
-    /// </summary>
-    public PhaseAction? Phase { get; private set; }
+    /// <summary>The phase being aimed, if any: see <see cref="PhaseAction.Aim"/>.</summary>
+    public PhaseAction.PhaseAim? Phase => _phase.Aim;
 
     /// <summary>The game is paused while a phase is aimed, so that the player can take its time over the direction.</summary>
     public bool RequestsPause => Phase is not null;
@@ -100,7 +97,7 @@ public sealed class PlayerController : IController<PlayerEntity>
             _jumpBufferLeft = Features.TicksToTime(Features.Current.PlayerJumpBufferTicks);
         }
 
-        if (!ApplyPhase(input, gameDt, realDt, defer))
+        if (ApplyPhase(input, gameDt, realDt, defer) is PhaseOutcome.Idle or PhaseOutcome.Cancelled)
         {
             ApplySpawn(input, defer);
 
@@ -151,7 +148,6 @@ public sealed class PlayerController : IController<PlayerEntity>
         _thrustTimeLeft = Math.Max(0, _thrustTimeLeft - gameDt);
         _jumpBufferLeft = Math.Max(0, _jumpBufferLeft - realDt);
         _jumpWasHeld = input.JumpHeld;
-        _phaseCooldownLeft = Math.Max(0, _phaseCooldownLeft - gameDt);
         _spawnWasHeld = input.SpawnHeld;
         _spawnCooldownLeft = Math.Max(0, _spawnCooldownLeft - gameDt);
     }
@@ -200,84 +196,23 @@ public sealed class PlayerController : IController<PlayerEntity>
     }
 
     /// <summary>
-    /// Begins, holds, aims and releases a phase. Returns whether the phase takes the place of running and jumping on
-    /// this tick: while it is aimed, and on the tick it is made, when the bodies move after the entity steps and the
-    /// contacts are from before it.
+    /// Begins, holds, aims and releases a phase. It takes the place of running and jumping on this tick while it is aimed,
+    /// and on the tick it is made, when the bodies move after the entity steps and the contacts are from before it.
     /// </summary>
     /// <param name="gameDt">The tick's length in game time: 0 while the game is paused.</param>
     /// <param name="realDt">The tick's length in real time.</param>
     /// <param name="defer">An object that allows running actions later in the tick.</param>
-    private bool ApplyPhase(PlayerInput input, float gameDt, float realDt, IDefer defer)
+    private PhaseOutcome ApplyPhase(PlayerInput input, float gameDt, float realDt, IDefer defer)
     {
-        if (Phase is null && input.PhaseHeld && _phaseCooldownLeft <= 0 && TargetedEntity(input) is Entity target)
+        PhaseOutcome outcome = _phase.Apply(input.PhaseHeld, DirectionHeld(input), gameDt, realDt, defer);
+        if (outcome is PhaseOutcome.Phased or PhaseOutcome.Cancelled)
         {
-            Phase = new PhaseAction(
-                player: _entity,
-                target: target,
-                gap: Features.Current.PlayerPhaseGap,
-                phaseThrow: Features.Current.PlayerPhaseThrow,
-                speed: Features.Current.PlayerPhaseSpeed,
-                defer: defer);
-
-            _phaseDirectionTimeLeft = 0;
-            _entity.RaiseCue(EntityCue.PhaseBegan);
+            // A phase ends a jump's thrust, coyote time and buffered press, and so does cancelling one: the aim took them.
+            _groundTimeLeft = 0;
+            _thrustTimeLeft = 0;
+            _jumpBufferLeft = 0;
         }
-
-        if (Phase is null)
-        {
-            return false;
-        }
-
-        // The direction held, or the last one held if it was let go of only just now, so that letting go of it just
-        // before phase, or with it, still phases.
-        Vector3 held = DirectionHeld(input);
-        if (held != Vector3.Zero)
-        {
-            Phase.Direction = held;
-            _phaseDirectionTimeLeft = Features.TicksToTime(Features.Current.PlayerPhaseReleaseTicks + 1); // +1 to include this tick
-        }
-        else
-        {
-            _phaseDirectionTimeLeft = Math.Max(0, _phaseDirectionTimeLeft - realDt);
-            if (_phaseDirectionTimeLeft == 0)
-            {
-                Phase.Direction = Vector3.Zero;
-            }
-        }
-
-        if (input.PhaseHeld)
-        {
-            // Only on ticks of play: while paused, nothing drifts, and the velocities read are from the engine's last
-            // step, so every grab would add the same impulses again. And not on the release, so that the phase reads
-            // the velocities it replaces.
-            if (gameDt > 0)
-            {
-                Phase.Grab(gameDt);
-            }
-            return true;
-        }
-
-        bool phased = Phase.Direction != Vector3.Zero;
-        if (phased)
-        {
-            Phase.Phase(defer);
-            _phaseCooldownLeft = Features.Current.PlayerPhaseThrowCooldownTime;
-            _entity.RaiseCue(EntityCue.PhaseThrown);
-        }
-        else
-        {
-            _phaseCooldownLeft = Features.Current.PlayerPhaseCancelCooldownTime;
-            _entity.RaiseCue(EntityCue.PhaseCancelled);
-        }
-
-        Phase.Stop(defer);
-        Phase = null;
-
-        // A phase ends a jump's thrust, coyote time and buffered press, and so does cancelling one: the aim took them.
-        _groundTimeLeft = 0;
-        _thrustTimeLeft = 0;
-        _jumpBufferLeft = 0;
-        return phased;
+        return outcome;
     }
 
     /// <summary>
@@ -369,24 +304,6 @@ public sealed class PlayerController : IController<PlayerEntity>
     {
         var held = new Vector2(input.XAxis, input.YAxis);
         return held.Length() >= DirectionDeadZone ? Vector2.EightWay(held).ToVector3() : Vector3.Zero;
-    }
-
-    /// <summary>
-    /// The entity in reach, if any, whose box is nearest a point offset from the player's center in the direction
-    /// held. Reach is a sphere around the player's center, which meets every entity touching the player's box.
-    /// </summary>
-    private Entity? TargetedEntity(PlayerInput input)
-    {
-        float radius = _entity.HalfSize.Length() + Features.Current.PlayerPhaseReach;
-        Vector2 from = (_entity.Position + Features.Current.PlayerPhaseInputOffset * DirectionHeld(input)).ToVector2();
-        // A sphere meets a box exactly when the box's nearest point is within its radius of its center.
-        return _entity.Overlapping(new SphereShape3D { Radius = radius }, _entity.Position)
-            .OfType<Entity>()
-            .MinBy(other =>
-            {
-                Vector2 apart = ((from - other.Position.ToVector2()).Abs() - other.HalfSize).Max(Vector2.Zero);
-                return apart.LengthSquared();
-            });
     }
 
     /// <param name="jumps">Whether the entity jumps on this tick.</param>
