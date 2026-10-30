@@ -174,7 +174,7 @@ public sealed class CornerCorrectionAction(Entity entity, CornerCorrectionTuning
                         }
                         entity.MoveTo(nudgedCenter, interpolated: true);
                     });
-                    Telemetry.Report(Metric.CornerCorrectionTime, Time.GetTicksMsec());
+                    Telemetry.Report(Metric.CornerCorrectionTime, Time.GetTicksMsec() / 1000f);
                     Telemetry.Report(Metric.CornerCorrectionCenter, center.ToVector2());
                     Telemetry.Report(Metric.CornerCorrectionNudge, nudge.ToVector2());
                     return true;

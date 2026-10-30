@@ -80,7 +80,7 @@ public class RidingTest
         await Tick(Idle, 120);
 
         // The shortest jump from tiles clears 2 tiles but not 3.
-        AssertThat(Telemetry.Get(Metric.AirRise)!.Value.X).IsBetween(2f, 3f);
+        AssertThat(Telemetry.Get<float>(Metric.AirRise)).IsBetween(2f, 3f);
     }
 
     [TestCase]

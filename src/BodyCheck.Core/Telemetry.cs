@@ -1,5 +1,3 @@
-using Godot;
-
 namespace BodyCheck.Core;
 
 /// <summary>
@@ -18,7 +16,7 @@ public enum Metric
     OnGround,
     /// <summary>The velocity the player's controller predicts for this tick's step, for corner correction.</summary>
     PredictedVelocity,
-    /// <summary>When the last corner correction was made, in real milliseconds since the engine started.</summary>
+    /// <summary>When the last corner correction was made, in real seconds since the engine started.</summary>
     CornerCorrectionTime,
     /// <summary>Where the center of the entity that the last corner correction nudged was before the nudge.</summary>
     CornerCorrectionCenter,
@@ -40,28 +38,12 @@ public enum Metric
     MouseTile,
 }
 
-/// <summary>How a <see cref="TelemetryValue"/> is to be read.</summary>
-public enum TelemetryKind
-{
-    Float,
-    Int,
-    Vector2,
-    Vector2I,
-    Bool,
-}
-
-/// <summary>One reported value. An int and a bool are kept in <see cref="X"/>; a bool is 1 or 0.</summary>
-public readonly record struct TelemetryValue(TelemetryKind Kind, float X, float Y = 0)
-{
-    public Vector2 Pair => new(X, Y);
-}
-
 /// <summary>
 /// Measurements that game code pushes, for whatever wants to show or check them, such as the debug overlay
 /// and tests. Each <see cref="Metric"/> keeps the last value reported for it until it is reported again or
 /// the telemetry is reset, so a value reported once, such as a jump's height on landing, stays readable.
 /// <para>
-/// Reporting stores a value in place, so it costs next to nothing each tick, whether or not anything reads it.
+/// Reporting only boxes a value and stores it, so it costs next to nothing each tick, whether or not anything reads it.
 /// </para>
 /// <para>
 /// <b>Prefer to record the game equivalents of SI units</b>; e.g. seconds, meters (tiles), kilograms.
@@ -72,57 +54,26 @@ public readonly record struct TelemetryValue(TelemetryKind Kind, float X, float 
 /// </summary>
 public static class Telemetry
 {
-    private static readonly TelemetryValue?[] Values = new TelemetryValue?[Enum.GetValues<Metric>().Length];
+    private static readonly object?[] Values = new object?[Enum.GetValues<Metric>().Length];
 
-    public static void Report(Metric metric, float value) => Set(metric, new(TelemetryKind.Float, value));
-
-    public static void Report(Metric metric, int value) => Set(metric, new(TelemetryKind.Int, value));
-
-    public static void Report(Metric metric, Vector2 value) => Set(metric, new(TelemetryKind.Vector2, value.X, value.Y));
-
-    public static void Report(Metric metric, Vector2I value) => Set(metric, new(TelemetryKind.Vector2I, value.X, value.Y));
-
-    public static void Report(Metric metric, bool value) => Set(metric, new(TelemetryKind.Bool, value ? 1 : 0));
+    public static void Report<T>(Metric metric, T value) where T : struct => Values[(int)metric] = value;
 
     /// <summary>The last value reported for a metric, or null if none has been since the last reset.</summary>
-    public static TelemetryValue? Get(Metric metric) => Values[(int)metric];
+    public static object? Get(Metric metric) => Values[(int)metric];
 
-    public static float? GetFloat(Metric metric)
+    /// <summary>The last value reported for a metric. Throws if none has been since the last reset, or it isn't a T.</summary>
+    public static T Get<T>(Metric metric) where T : struct => Get(metric) switch
     {
-        var value = Get(metric);
-        return value?.Kind switch { TelemetryKind.Float => value.Value.Pair.X, _ => null };
-    }
+        T value => value,
+        null => throw new InvalidOperationException($"Nothing has been reported for {metric} since the last reset."),
+        var value => throw new InvalidOperationException($"{metric} is a {value.GetType().Name}, not a {typeof(T).Name}."),
+    };
 
-    public static int? GetInt(Metric metric)
-    {
-        var value = Get(metric);
-        return value?.Kind switch { TelemetryKind.Int => (int)value.Value.Pair.X, _ => null };
-    }
-
-    public static Vector2? GetVector2(Metric metric)
-    {
-        var value = Get(metric);
-        return value?.Kind switch { TelemetryKind.Vector2 => value.Value.Pair, _ => null };
-    }
-
-    public static Vector2I? GetVector2I(Metric metric)
-    {
-        var value = Get(metric);
-        return value?.Kind switch
-        {
-            TelemetryKind.Vector2I => new Vector2I((int)value.Value.Pair.X, (int)value.Value.Pair.Y),
-            _ => null
-        };
-    }
-
-    public static bool? GetBool(Metric metric)
-    {
-        var value = Get(metric);
-        return value?.Kind switch { TelemetryKind.Bool => value.Value.Pair.X != 0, _ => null };
-    }
+    /// <summary>
+    /// The last value reported for a metric, or a fallback if none has been since the last reset. Throws if it isn't a T.
+    /// </summary>
+    public static T Get<T>(Metric metric, T fallback) where T : struct => Get(metric) is null ? fallback : Get<T>(metric);
 
     /// <summary>Forgets every value, e.g. when a new room is loaded.</summary>
     public static void Reset() => Array.Clear(Values);
-
-    private static void Set(Metric metric, TelemetryValue value) => Values[(int)metric] = value;
 }

@@ -199,15 +199,14 @@ public partial class CollisionDebug : Node
     private void ShowCornerCorrection(bool show)
     {
         _correctionMesh.ClearSurfaces();
-        float age = (Time.GetTicksMsec() - (Telemetry.GetFloat(Metric.CornerCorrectionTime) ?? float.NegativeInfinity)) / 1000;
-        if (!show
-            || age > CorrectionShowTime
-            || Telemetry.GetVector2(Metric.CornerCorrectionCenter) is not Vector2 center
-            || Telemetry.GetVector2(Metric.CornerCorrectionNudge) is not Vector2 nudge)
+        float age = Time.GetTicksMsec() / 1000f - Telemetry.Get(Metric.CornerCorrectionTime, float.NegativeInfinity);
+        if (!show || age > CorrectionShowTime)
         {
             return;
         }
 
+        var center = Telemetry.Get<Vector2>(Metric.CornerCorrectionCenter);
+        var nudge = Telemetry.Get<Vector2>(Metric.CornerCorrectionNudge);
         var nudgeLength = nudge.Length();
         nudge = nudge.Normalized() * MathF.Max(CorrectionNudgeMinLength, nudgeLength);
 

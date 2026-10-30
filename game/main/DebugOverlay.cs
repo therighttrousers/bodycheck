@@ -99,17 +99,17 @@ public partial class DebugOverlay : CanvasLayer
         var frameMs = (float)Performance.GetMonitor(Performance.Monitor.TimeProcess) * 1000;
         var physicsMs = (float)Performance.GetMonitor(Performance.Monitor.TimePhysicsProcess) * 1000;
         // If/when we add more views (e.g. UI), their respective render times should be vector-added here.
-        var renderMs = (Telemetry.GetVector2(Metric.WorldRenderTime) ?? Vector2.Zero) * 1000;
-        var velocity = Telemetry.GetVector2(Metric.Velocity) ?? Vector2.Zero;
+        var renderMs = Telemetry.Get(Metric.WorldRenderTime, Vector2.Zero) * 1000;
+        var velocity = Telemetry.Get(Metric.Velocity, Vector2.Zero);
         var speed = velocity.Length();
         var angle = Mathf.RadToDeg(velocity.Angle());
-        var ground = Telemetry.GetFloat(Metric.GroundSpeed) ?? 0;
-        var airRise = Telemetry.GetFloat(Metric.AirRise) ?? 0;
-        var airRun = Telemetry.GetFloat(Metric.AirRun) ?? 0;
-        var airLand = Telemetry.GetFloat(Metric.AirLand) ?? 0;
-        var airTime = Telemetry.GetFloat(Metric.AirTime) ?? 0;
-        var feet = Telemetry.GetVector2(Metric.Feet) ?? Vector2.Zero;
-        var onGround = (Telemetry.GetBool(Metric.OnGround) ?? false) ? "true " : "false";
+        var ground = Telemetry.Get(Metric.GroundSpeed, 0f);
+        var airRise = Telemetry.Get(Metric.AirRise, 0f);
+        var airRun = Telemetry.Get(Metric.AirRun, 0f);
+        var airLand = Telemetry.Get(Metric.AirLand, 0f);
+        var airTime = Telemetry.Get(Metric.AirTime, 0f);
+        var feet = Telemetry.Get(Metric.Feet, Vector2.Zero);
+        var onGround = Telemetry.Get(Metric.OnGround, false) ? "true " : "false";
 
         _items.Clear();
 
@@ -144,13 +144,13 @@ public partial class DebugOverlay : CanvasLayer
         return words.ToString();
     }
 
-    private static string Format(TelemetryValue? value) => value?.Kind switch
+    private static string Format(object? value) => value switch
     {
-        TelemetryKind.Float => Signed(value.Value.X),
-        TelemetryKind.Int => Signed(value.Value.X, "0000"),
-        TelemetryKind.Vector2 => $"{Signed(value.Value.X)} {Signed(value.Value.Y)}",
-        TelemetryKind.Vector2I => $"{Signed(value.Value.X, "0000")} {Signed(value.Value.Y, "0000")}",
-        TelemetryKind.Bool => value.Value.X != 0 ? " true" : "false",
+        float number => Signed(number),
+        int number => Signed(number, "0000"),
+        Vector2 vector => $"{Signed(vector.X)} {Signed(vector.Y)}",
+        Vector2I vector => $"{Signed(vector.X, "0000")} {Signed(vector.Y, "0000")}",
+        bool flag => flag ? " true" : "false",
         _ => "?",
     };
 
