@@ -397,7 +397,7 @@ public class PlayerControllerTest
     public async Task Falling_fast_while_driving_into_a_wall_reaches_the_floor()
     {
         // The player starts 34 tiles up, beside a wall, and holds towards it all the way down. The engine's continuous
-        // detection, which starts above about 18 tiles per second, used to stop it in the air (028).
+        // detection, which starts above about 18 tiles per second, used to stop it in the air.
         string[] rows =
         [
             new string('#', 20),

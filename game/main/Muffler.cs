@@ -7,7 +7,7 @@ namespace BodyCheck;
 /// the master bus. Each frame, it sets the filter's cutoff from the <see cref="GameMode"/> and the
 /// <see cref="GameModeManager.SlowdownFactor"/>: open while playing; falling in octaves with the slowdown factor while
 /// slowing for a phase, most of the way early on; closed in every mode
-/// that pauses. It keeps no state of its own, so it can't drift from the slowdown (decision record 021 §2.2).
+/// that pauses. It keeps no state of its own, so it can't drift from the slowdown.
 /// <para>
 /// The filter is tuned in the bus layout: its cutoff there is the closed one, and its slope how sharply it cuts above
 /// that. It is off there, so that sounds aren't

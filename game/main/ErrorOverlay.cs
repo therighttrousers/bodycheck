@@ -6,7 +6,7 @@ namespace BodyCheck;
 
 /// <summary>
 /// Shows the errors from the last time the game read its maps and configurations, in the bottom left corner, so that a
-/// mistake in a file doesn't stop play (decision record 017). Hidden when there are none. Drawn at the window's
+/// mistake in a file doesn't stop play. Hidden when there are none. Drawn at the window's
 /// full resolution, like the <see cref="DebugOverlay"/>.
 /// </summary>
 public partial class ErrorOverlay : CanvasLayer

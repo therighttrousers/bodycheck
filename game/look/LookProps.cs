@@ -48,7 +48,7 @@ public partial class LookProps : Node3D
         torus.AddChild(new OmniLight3D { LightColor = glow, LightEnergy = 2, OmniRange = 6 });
 
         // A pure yellow lamp, out of reach of the torus's light. Its falloff over the gray wall is where bands
-        // and false colours in the colour pass show first (decision record 004).
+        // and false colours in the colour pass show first.
         var yellow = new Color(1, 1, 0);
         var lamp = new MeshInstance3D
         {

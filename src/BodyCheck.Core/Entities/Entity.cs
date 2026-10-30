@@ -17,8 +17,7 @@ public readonly record struct ContactPoint(Vector3 Position, Vector3 Normal);
 
 /// <summary>
 /// Something that happened to an entity, for the scene that draws it to react to: for now, by playing the sound named
-/// after it, if it has one. A controller raises it on its entity with <see cref="Entity.RaiseCue"/> (decision record
-/// 021).
+/// after it, if it has one. A controller raises it on its entity with <see cref="Entity.RaiseCue"/>.
 /// </summary>
 public enum EntityCue
 {
@@ -84,8 +83,8 @@ public partial class Entity : RigidBody3D
     /// </summary>
     public const float ContactTolerance = 0.01f;
 
-    // How many contacts the engine reports for an entity. Past it, it drops contacts, which may be all the floor's
-    // (024 §3.1). Every collider an entity touches gives 4, at the corners of the face, so this allows for 16: a
+    // How many contacts the engine reports for an entity. Past it, it drops contacts, which may be all the floor's.
+    // Every collider an entity touches gives 4, at the corners of the face, so this allows for 16: a
     // player against several tile boxes on each side, the floor and the ceiling, and entities, with room to spare.
     private const int MaxContacts = 64;
 
@@ -104,8 +103,8 @@ public partial class Entity : RigidBody3D
     // Refilled after each step, not replaced, to save allocating.
     private readonly List<Entity> _above = [];
 
-    // The joint whose motor steadies the entity at its center, for what carries it like a hand (019 §5.1). It is one of
-    // Joints' free joints.
+    // The joint whose motor steadies the entity at its center, for what carries it like a hand (see
+    // docs/designs/movement.md#carrying). It is one of Joints' free joints.
     private readonly Generic6DofJoint3D _steadying;
     private bool _steadyingAnchored;
     private Entity? _steadyingAnchor;
@@ -133,7 +132,7 @@ public partial class Entity : RigidBody3D
         CollisionMask = (uint)PhysicsLayer.DefaultCollisionMask;
         ContactMonitor = true;
         MaxContactsReported = MaxContacts;
-        // No continuous collision detection: it stops a fast body pressed against what it touches (028).
+        // No continuous collision detection: it stops a fast body pressed against what it touches.
         ContinuousCd = false;
 
         var size = new Vector3(2 * tuning.HalfSize.X, 2 * tuning.HalfSize.Y, Depth);
@@ -243,7 +242,7 @@ public partial class Entity : RigidBody3D
     /// <summary>
     /// Puts the tuning's values that the engine holds in it, from the features in effect now. Whatever steps entities
     /// calls this for every one at the start of the tick after the features change, before any steps, so that all see
-    /// the same values (029 §2.1).
+    /// the same values.
     /// </summary>
     public void UpdateFromFeatures()
     {
@@ -453,12 +452,12 @@ public partial class Entity : RigidBody3D
 
     // What carries the entity may steady it, like a hand held up behind its head: the steadying joint's motor, at the
     // entity's center, holds the center's speed to the carrier's, so that friction at the base needn't, and doesn't tip
-    // it (019 §5.1). The engine solves it with everything else, in the same step. At the center, it would also keep the
+    // it. The engine solves it with everything else, in the same step. At the center, it would also keep the
     // entity from tipping off an edge, so the hand lets go once the center is past the carrier's side.
     private void Steady()
     {
         // Something that can't be carried isn't steadied either. Nor is anything while its carrier is in the air, so
-        // that jumping or falling can drop what it carries (027 §5).
+        // that jumping or falling can drop what it carries.
         if (!OnGround || !Tuning.CanBeCarried || Support is { OnGround: false })
         {
             return;

@@ -35,7 +35,7 @@ public enum SpawnMotion
 }
 
 /// <summary>
-/// The values that shape gameplay, in one place: the only source of each (decision record 016). Read them from
+/// The values that shape gameplay, in one place: the only source of each. Read them from
 /// <see cref="Current"/> where they are used. A feature must be a simple value that nothing derives from or caches.
 /// Changes are eventually consistent: what reads a feature sees the change at once, except an action in progress, such
 /// as a jump, which goes on with the values it started with.
@@ -48,7 +48,7 @@ public sealed record Features
     /// <summary>
     /// Raised after <see cref="Current"/> changes. Try not to need it: read features where they are used, instead of
     /// deriving from them or caching them, so that there is nothing to bring up to date. What must copy them into the
-    /// engine may listen, as the world does (029 §2.5), but a node should listen only while it is in the tree, so that
+    /// engine may listen, as the world does, but a node should listen only while it is in the tree, so that
     /// the event doesn't keep it alive.
     /// </summary>
     public static event Action? Changed;
@@ -68,7 +68,7 @@ public sealed record Features
 
     /// <summary>
     /// Reads a configuration: a JSON object that names features by their properties' names and gives their values. A
-    /// feature it doesn't name keeps its default (decision record 017). Comments and trailing commas are allowed, so
+    /// feature it doesn't name keeps its default. Comments and trailing commas are allowed, so
     /// that a file is easy to edit by hand.
     /// </summary>
     /// <param name="path">The configuration's path, for errors.</param>

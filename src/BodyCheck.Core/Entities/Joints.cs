@@ -26,7 +26,7 @@ internal static class Joints
     /// Anchors a joint to two nodes, at a point. A null node is the world, as for tiles.
     /// <para>
     /// Godot builds the engine's joint whenever a node path changes to a new value, and fixes the joint's place in each
-    /// body then, from where the joint node is (019 §2.2). So the joint is put at the point, level, first. Both paths
+    /// body then, from where the joint node is. So the joint is put at the point, level, first. Both paths
     /// are cleared before they are set, so that setting them builds the joint even when neither node has changed.
     /// </para>
     /// </summary>

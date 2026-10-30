@@ -313,8 +313,8 @@ public sealed class WobbleProbe : IProbe
 }
 
 /// <summary>
-/// In the "Carrying" room, checks for decision record 019 §3.2, §3.3 and §5.4, one after another. The player runs
-/// with the block on its head, stops, and stands still for 10 seconds: how far the two drift. The player is moved 3
+/// In the "Carrying" room, a series of checks, one after another. The player runs with the block on its head, stops,
+/// and stands still for 10 seconds: how far the two drift. The player is moved 3
 /// tiles through entities, as a phase moves it, with the block anchored to it: how the block follows. The block stacked
 /// on the floor is put onto a spare walker, which is then freed under it. And how long Godot takes to build a joint
 /// again when its node A changes.
