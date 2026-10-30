@@ -200,29 +200,26 @@ parameters/Move/BlendSpace1D/blend_position = 0.0
 script = ExtResource("2_512o4")
 metadata/_custom_type_script = "uid://bhce8wcrkqb6w"
 
-[node name="Jumped" type="AudioStreamPlayer" parent="CueSounds" unique_id=609246016]
+[node name="Jumped" type="AudioStreamPlayer3D" parent="CueSounds" unique_id=1689891269]
 stream = ExtResource("3_a0sfp")
+bus = &"Sfx"
+
+[node name="PhaseBegan" type="AudioStreamPlayer3D" parent="CueSounds" unique_id=244687950]
+stream = ExtResource("2_elv8a")
 volume_db = -5.0
 bus = &"Sfx"
 
-[node name="PhaseBegan" type="AudioStreamPlayer" parent="CueSounds" unique_id=1608614738]
-stream = ExtResource("2_elv8a")
-volume_db = -10.0
-bus = &"Sfx"
-
-[node name="PhaseThrown" type="AudioStreamPlayer" parent="CueSounds" unique_id=622185188]
+[node name="PhaseThrown" type="AudioStreamPlayer3D" parent="CueSounds" unique_id=1843692425]
 stream = ExtResource("3_512o4")
-volume_db = -10.0
+volume_db = -5.0
 bus = &"Sfx"
 
-[node name="PhaseCancelled" type="AudioStreamPlayer" parent="CueSounds" unique_id=841733799]
+[node name="PhaseCancelled" type="AudioStreamPlayer3D" parent="CueSounds" unique_id=1704896934]
 stream = ExtResource("5_hvsop")
-volume_db = -10.0
 bus = &"Sfx"
 
-[node name="SpawnCancelled" type="AudioStreamPlayer" parent="CueSounds" unique_id=1950364817]
+[node name="SpawnCancelled" type="AudioStreamPlayer3D" parent="CueSounds" unique_id=2086342470]
 stream = ExtResource("5_hvsop")
-volume_db = -10.0
 bus = &"Sfx"
 
 [node name="LaserBeam" type="Node3D" parent="." unique_id=1733284419]
