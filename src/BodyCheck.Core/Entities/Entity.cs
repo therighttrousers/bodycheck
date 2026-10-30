@@ -117,7 +117,7 @@ public partial class Entity : RigidBody3D
     public Entity(BodyTuning tuning, Node3D? visual = null, bool axisLockAngularZ = true)
     {
         Tuning = tuning;
-        Mass = tuning.Mass(Features.Current);
+        Mass = tuning.Mass();
 
         AxisLockLinearZ = true;
         AxisLockAngularX = true;
@@ -125,7 +125,7 @@ public partial class Entity : RigidBody3D
         AxisLockAngularZ = axisLockAngularZ;
 
         // Its own, since UpdateFromFeatures changes it.
-        PhysicsMaterialOverride = new PhysicsMaterial { Friction = tuning.EngineFriction(Features.Current), Bounce = 0, Rough = false };
+        PhysicsMaterialOverride = new PhysicsMaterial { Friction = tuning.EngineFriction(), Bounce = 0, Rough = false };
         LinearDampMode = DampMode.Replace;
         LinearDamp = 0;
         CanSleep = false;
@@ -247,7 +247,7 @@ public partial class Entity : RigidBody3D
     /// </summary>
     public void UpdateFromFeatures()
     {
-        float mass = Tuning.Mass(Features.Current);
+        float mass = Tuning.Mass();
         if (Mass != mass)
         {
             Mass = mass;
@@ -256,7 +256,7 @@ public partial class Entity : RigidBody3D
     }
 
     /// <summary>Puts the tuning's engine friction in the engine. See <see cref="UpdateFromFeatures"/>.</summary>
-    protected virtual void UpdateFrictionFromFeatures() => SetFriction(Tuning.EngineFriction(Features.Current), rough: false);
+    protected virtual void UpdateFrictionFromFeatures() => SetFriction(Tuning.EngineFriction(), rough: false);
 
     /// <summary>
     /// Sets the engine's coefficient of friction for this body, against everything it touches. The engine uses the
@@ -278,8 +278,8 @@ public partial class Entity : RigidBody3D
     }
 
     // The tuning's values for carrying, from the features in effect now. See BodyTuning.
-    private float? CarrySteadying => Tuning.CarrySteadying?.Invoke(Features.Current);
-    private float? CarryTorque => Tuning.CarryTorque?.Invoke(Features.Current);
+    private float? CarrySteadying => Tuning.CarrySteadying?.Invoke();
+    private float? CarryTorque => Tuning.CarryTorque?.Invoke();
 
     /// <summary>
     /// Moves the entity toward <paramref name="destination"/> at once, through other entities but not through tiles:

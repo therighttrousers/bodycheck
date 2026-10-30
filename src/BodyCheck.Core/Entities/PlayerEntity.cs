@@ -41,13 +41,13 @@ public partial class PlayerEntity : WalkerEntity
         {
             bool slips = _slipAfterEntitySteps;
             _slipAfterEntitySteps = false;
-            if (!slips && OnGround && Tuning.GroundFriction?.Invoke(Features.Current) is float groundFriction)
+            if (!slips && OnGround && Tuning.GroundFriction?.Invoke() is float groundFriction)
             {
                 SetFriction(groundFriction, rough: true);
             }
             else
             {
-                SetFriction(Tuning.EngineFriction(Features.Current), rough: false);
+                SetFriction(Tuning.EngineFriction(), rough: false);
             }
         });
     }

@@ -29,7 +29,7 @@ Goals:
 - [x] 3.1 Features are read when used, so an action can't keep them from when it was built (`016 §3.1`), and a shared action can't read one entity's features, such as the player's, itself. Options:
   - (a) The action is built with a function that picks its tuning, a record of the values it needs, out of the features, and calls it with `Features.Current` on each tick. First built this way.
   - (b) The action is built with its tuning, a record whose values are functions, each of which reads its feature from `Features.Current` when called. Like `BodyTuning`, so one convention for both. It reads only the values it uses, when it uses them, and a test can change one value with `with`, as `BodyTuning.Player with { Drag = 0 }` does, without the features.
-  - Decision (Neil): (b), with functions of no arguments: every call passes `Features.Current`, so a parameter would only suggest another source. Each kind of thing that uses an action has one tuning instance, such as `PhaseTuning.Player`. `BodyTuning`'s functions, which take the features now, move to no arguments in a later change, once the controllers are refactored. An action in progress, such as a phase being aimed, still goes on with the values it started with.
+  - Decision (Neil): (b), with functions of no arguments: every call passes `Features.Current`, so a parameter would only suggest another source. Each kind of thing that uses an action has one tuning instance, such as `PhaseTuning.Player`. `BodyTuning`'s functions, which took the features, moved to no arguments in a change of their own, once the controllers were refactored. An action in progress, such as a phase being aimed, still goes on with the values it started with.
 
 ## 4. Phasing
 
