@@ -5,18 +5,19 @@ namespace BodyCheck.Core.Entities;
 /// with forces, impulses and the motors that the entity's kind of body has, and with actions it defers to the end of
 /// the tick.
 /// <para>
-/// <typeparamref name="TEntity"/> is the kind of body the controller needs. A controller that needs less
-/// fits more: one written for any <see cref="Entity"/> can control every kind.
+/// A controller is built with the entity it controls, as the kind of body it needs, and controls only that one.
 /// </para>
 /// </summary>
-public interface ICharacterController<in TEntity>
-    where TEntity : Entity
+public interface IController<out TEntity> where TEntity : Entity
 {
+    /// <summary>The entity the controller controls.</summary>
+    public TEntity Entity { get; }
+
     /// <summary>Called once per physics tick, before the engine's step.</summary>
     /// <param name="gameDt">The tick's length in game time, which the engine's time scale shortens.</param>
     /// <param name="realDt">The tick's length in real time, which the time scale doesn't change.</param>
     /// <param name="defer">An object that allows running actions later in the tick.</param>
-    public void Apply(TEntity entity, float gameDt, float realDt, IDefer defer);
+    public void Apply(float gameDt, float realDt, IDefer defer);
 
     /// <summary>
     /// Whether the controller asks for the game to be paused, so that it can decide something with all else
@@ -31,7 +32,7 @@ public interface ICharacterController<in TEntity>
     /// </summary>
     /// <param name="realDt">The tick's length in real time.</param>
     /// <param name="defer">An object that allows running actions later in the tick.</param>
-    public void ApplyPaused(TEntity entity, float realDt, IDefer defer)
+    public void ApplyPaused(float realDt, IDefer defer)
     {
     }
 }

@@ -4,12 +4,52 @@ using Godot;
 
 namespace BodyCheck.Core.Controllers;
 
-internal static class RunAction
+/// <summary>
+/// How a <see cref="RunAction"/> is tuned. Each value is a function that reads it from the features in effect when it is
+/// used, so that a change to them takes effect at once.
+/// </summary>
+public sealed record RunTuning
+{
+    /// <summary>The most speed the entity ever tries to go, relative to its support.</summary>
+    public required Func<float> TopSpeed { get; init; }
+    /// <summary>The force with which the entity drives the way it moves, on the ground.</summary>
+    public required Func<float> GroundDriveForce { get; init; }
+    /// <summary>The force with which the entity drives against the way it moves, on the ground.</summary>
+    public required Func<float> GroundBrakeForce { get; init; }
+    /// <summary>The force with which the entity drives the way it moves, in the air.</summary>
+    public required Func<float> AirDriveForce { get; init; }
+    /// <summary>The force with which the entity drives against the way it moves, in the air.</summary>
+    public required Func<float> AirBrakeForce { get; init; }
+
+    public static RunTuning Player { get; } = new()
+    {
+        TopSpeed = () => Features.Current.PlayerTopSpeed,
+        GroundDriveForce = () => Features.Current.PlayerGroundDriveForce,
+        GroundBrakeForce = () => Features.Current.PlayerGroundBrakeForce,
+        AirDriveForce = () => Features.Current.PlayerAirDriveForce,
+        AirBrakeForce = () => Features.Current.PlayerAirBrakeForce,
+    };
+
+    /// <summary>A robot, which doesn't drive in the air.</summary>
+    public static RunTuning Robot { get; } = new()
+    {
+        TopSpeed = () => Features.Current.RobotTopSpeed,
+        GroundDriveForce = () => Features.Current.RobotDriveForce,
+        GroundBrakeForce = () => Features.Current.RobotBrakeForce,
+        AirDriveForce = () => 0,
+        AirBrakeForce = () => 0,
+    };
+}
+
+/// <summary>Walking, running or rolling: a walker driving itself along the ground, or through the air.</summary>
+/// <param name="entity">The walker that runs.</param>
+/// <param name="tuning">How the action is tuned.</param>
+public sealed class RunAction(WalkerEntity entity, RunTuning tuning)
 {
     /// <summary>
-    /// Makes an entity run, subject to the following rules:
+    /// Makes the entity run, subject to the following rules:
     /// - If weightless, it doesn't run.
-    /// - Otherwise, it tries to reach topSpeed relative to its support (or relative to the world if no support).
+    /// - Otherwise, it tries to reach its top speed relative to its support (or relative to the world if no support).
     /// - Drive force, if used (intent in the direction of motion), falls off smoothly near top speed.
     /// - Brake force, if used (intent against the direction of motion), is fully applied.
     /// </summary>
@@ -18,17 +58,20 @@ internal static class RunAction
     /// and whether the entity should slip on its support this tick, if it is one that slips: the player does, robots
     /// don't (see docs/designs/movement.md).
     /// </returns>
-    /// <param name="entity">The entity to walk, run or roll.</param>
-    /// <param name="gameDt">Game-time tick duration.</param>
-    /// <param name="move">How the entity intends to move on this frame, between -1 and 1.</param>
+    /// <param name="move">How the entity intends to move on this tick, between -1 and 1.</param>
+    /// <param name="grounded">
+    /// Whether it drives with its forces for the ground: when it is on the ground, or, for the player, just after it left.
+    /// </param>
     /// <param name="jumps">Whether the entity jumps on this tick.</param>
-    /// <param name="topSpeed">Maximum speed the entity ever tries to go, relative to its support.</param>
-    /// <param name="driveForce">Force applied when the entity intends to drive in the direction of motion.</param>
-    /// <param name="brakeForce">Force applied when the entity intends to drive against the direction of motion.</param>
-    public static (Vector3 DeltaV, bool Slips) Run(WalkerEntity entity, float gameDt, float move, bool jumps, float topSpeed, float driveForce, float brakeForce)
+    /// <param name="gameDt">The tick's length in game time.</param>
+    public (Vector3 DeltaV, bool Slips) Apply(float move, bool grounded, bool jumps, float gameDt)
     {
         // Don't try to run if weightless (e.g. being grabbed).
         if (entity.Weight == 0) return (Vector3.Zero, false);
+
+        float topSpeed = tuning.TopSpeed();
+        float driveForce = grounded ? tuning.GroundDriveForce() : tuning.AirDriveForce();
+        float brakeForce = grounded ? tuning.GroundBrakeForce() : tuning.AirBrakeForce();
 
         // Speed is relative to whatever the entity stands on, so running on a platform or blocks works like running on tiles.
         float speed = entity.GroundSpeed;

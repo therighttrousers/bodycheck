@@ -7,7 +7,7 @@ namespace BodyCheck.Core.Entities;
 /// other bodies.
 /// <para>
 /// Its values that are features, which playtesting tunes, are functions that read them from the features in effect when
-/// they are used (016 §3.1).
+/// they are used, so that a change to them takes effect at once.
 /// </para>
 /// </summary>
 public sealed record BodyTuning
@@ -16,9 +16,9 @@ public sealed record BodyTuning
 
     /// <summary>
     /// The body's mass. The engine holds it, and the world puts it there at the start of each tick, before any entity
-    /// steps, so that a change to the features takes effect at the next tick (029 §2.1). Read the entity's own.
+    /// steps, so that a change to the features takes effect at the next tick. Read the entity's own.
     /// </summary>
-    public required Func<Features, float> Mass { get; init; }
+    public required Func<float> Mass { get; init; }
 
     /// <summary>Linear drag coefficient: drag force is -Drag × velocity.</summary>
     public float Drag { get; init; } = 0.375f;
@@ -33,26 +33,26 @@ public sealed record BodyTuning
     /// Where two bodies touch, the engine uses the smaller of their coefficients, unless one is rough.
     /// </para>
     /// </summary>
-    public Func<Features, float> EngineFriction { get; init; } = _ => 0;
+    public Func<float> EngineFriction { get; init; } = () => 0;
 
     /// <summary>
     /// The player's coefficient of friction, rough, while it stands on something and doesn't slip, in place of
     /// <see cref="EngineFriction"/>. Only a <see cref="PlayerEntity"/> reads it.
     /// </summary>
-    public Func<Features, float>? GroundFriction { get; init; }
+    public Func<float>? GroundFriction { get; init; }
 
     /// <summary>
     /// The most force with which this body steadies what stands on it: it holds that body's speed at its center to its
-    /// own, like a hand held up behind the head, so that friction at that body's base needn't, and doesn't tip it
-    /// (019 §5.1). Null for none.
+    /// own, like a hand held up behind the head, so that friction at that body's base needn't, and doesn't tip it.
+    /// See docs/designs/movement.md#carrying. Null for none.
     /// </summary>
-    public Func<Features, float>? CarrySteadying { get; init; }
+    public Func<float>? CarrySteadying { get; init; }
 
     /// <summary>
     /// The most torque with which this body, while it steadies what stands on it, turns that body towards level, as a
-    /// hand would (019 §5.1, §5.2). Null for none.
+    /// hand would. See docs/designs/movement.md#carrying. Null for none.
     /// </summary>
-    public Func<Features, float>? CarryTorque { get; init; }
+    public Func<float>? CarryTorque { get; init; }
 
     /// <summary>
     /// Whether an entity this body rests on may steady it, with the values above. Either way, friction holds it to
@@ -63,20 +63,20 @@ public sealed record BodyTuning
     public static BodyTuning Player { get; } = new()
     {
         HalfSize = new(0.4f, 0.9f),
-        Mass = features => features.PlayerMass,
+        Mass = () => Features.Current.PlayerMass,
         CollisionLayer = PhysicsLayer.Character,
         CanBeCarried = false,
-        GroundFriction = features => features.PlayerGroundFriction,
-        CarrySteadying = features => features.PlayerCarrySteadying,
-        CarryTorque = features => features.PlayerCarryTorque,
+        GroundFriction = () => Features.Current.PlayerGroundFriction,
+        CarrySteadying = () => Features.Current.PlayerCarrySteadying,
+        CarryTorque = () => Features.Current.PlayerCarryTorque,
     };
 
     /// <summary>A robot, which doesn't steady what it carries.</summary>
     public static BodyTuning Robot { get; } = new()
     {
         HalfSize = new(0.4f, 0.9f),
-        Mass = features => features.RobotMass,
-        EngineFriction = features => features.RobotEngineFriction,
+        Mass = () => Features.Current.RobotMass,
+        EngineFriction = () => Features.Current.RobotEngineFriction,
         CollisionLayer = PhysicsLayer.Character,
     };
 
@@ -87,8 +87,8 @@ public sealed record BodyTuning
     public static BodyTuning Platform { get; } = new()
     {
         HalfSize = new(1.4f, 0.4f),
-        Mass = features => features.PlatformMass,
-        EngineFriction = features => features.PlatformEngineFriction,
+        Mass = () => Features.Current.PlatformMass,
+        EngineFriction = () => Features.Current.PlatformEngineFriction,
         CollisionLayer = PhysicsLayer.Character,
         CanBeCarried = false,
     };
@@ -97,8 +97,8 @@ public sealed record BodyTuning
     public static BodyTuning PlayerBlock { get; } = new()
     {
         HalfSize = new(0.5f, 0.5f),
-        Mass = features => features.PlayerBlockMass,
-        EngineFriction = features => features.PlayerBlockEngineFriction,
+        Mass = () => Features.Current.PlayerBlockMass,
+        EngineFriction = () => Features.Current.PlayerBlockEngineFriction,
         CollisionLayer = PhysicsLayer.Prop
     };
 
@@ -106,8 +106,8 @@ public sealed record BodyTuning
     public static BodyTuning Block { get; } = new()
     {
         HalfSize = new(0.5f, 0.5f),
-        Mass = features => features.BlockMass,
-        EngineFriction = features => features.BlockEngineFriction,
+        Mass = () => Features.Current.BlockMass,
+        EngineFriction = () => Features.Current.BlockEngineFriction,
         CollisionLayer = PhysicsLayer.Prop
     };
 }

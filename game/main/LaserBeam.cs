@@ -9,7 +9,7 @@ namespace BodyCheck;
 /// <summary>
 /// Draws a robot's <see cref="Laser"/>. It goes in the scene that draws the robot, with a mesh under it named "Beam",
 /// one unit long along its Y axis and one unit across, centered on its origin, such as a cylinder. Each frame it
-/// stretches the beam from where the laser starts to where it ends, as thick as the laser's phase calls for, and hides
+/// stretches the beam from where the laser starts to where it ends, as thick as the laser's stage calls for, and hides
 /// it while the laser is off. It shows the robot it is under.
 /// </summary>
 [GlobalClass]
@@ -69,16 +69,16 @@ public partial class LaserBeam : Node3D
 
     public override void _Process(double gameDt)
     {
-        if (_robot?.Laser is not { Phase: not LaserPhase.Off } laser || laser.Origin.IsEqualApprox(laser.End))
+        if (_robot?.Laser is not { Stage: not LaserStage.Off } laser || laser.Origin.IsEqualApprox(laser.End))
         {
             _beam.Visible = false;
             return;
         }
 
-        (float width, Color color) = laser.Phase switch
+        (float width, Color color) = laser.Stage switch
         {
-            LaserPhase.Aiming => (AimingWidth, AimingColor),
-            LaserPhase.Locked => (LockedWidth, GetLockedColor(laser)),
+            LaserStage.Aiming => (AimingWidth, AimingColor),
+            LaserStage.Locked => (LockedWidth, GetLockedColor(laser)),
             _ => (FiringWidth, GetFiringColor(laser)),
         };
         // The beam's Y axis along the laser, and its other two across it, one in the plane of play.
@@ -105,7 +105,7 @@ public partial class LaserBeam : Node3D
     private static float GetFlicker(Laser laser)
     {
         // If firing, flicker 5 times, with flicker attenuating over time.
-        return laser.Phase == LaserPhase.Firing
+        return laser.Stage == LaserStage.Firing
             ? 1 + 0.5f * MathF.Sin(laser.Progress * 2 * MathF.PI * 5) * MathF.Pow(1 - laser.Progress, 0.5f)
             : 1;
     }

@@ -9,8 +9,9 @@ namespace BodyCheck.Core.Controllers;
 /// gravity, cancelling its own weight; along the line, toward the end it is heading for; and across the line, back
 /// onto it. The last two are capped, so a heavy enough load overpowers them.
 /// </summary>
-public sealed class PlatformController : ICharacterController<SimpleControlledEntity>
+public sealed class PlatformController : IController<Entity>
 {
+    private readonly Entity _entity;
     private readonly Vector2 _rangeA;
     private readonly Vector2 _rangeB;
     private readonly float _length;
@@ -19,14 +20,20 @@ public sealed class PlatformController : ICharacterController<SimpleControlledEn
     /// <summary>A direction perpendicular to the line.</summary>
     private readonly Vector2 _across;
     private bool _towardB = true;
-    private readonly StallDetector _stall = new();
+    private readonly StallDetector _stall = new(new StallTuning
+    {
+        MinSpeed = () => Features.Current.PlatformStallSpeed,
+        MaxTime = () => Features.Current.PlatformStallTime,
+    });
 
+    /// <param name="entity">The platform, which the controller controls.</param>
     /// <param name="rangeA">One end of the line that the platform's center moves along.</param>
     /// <param name="rangeB">
     /// The other end, which the platform heads for first. Must not be the same as <paramref name="rangeA"/>.
     /// </param>
-    public PlatformController(Vector2 rangeA, Vector2 rangeB)
+    public PlatformController(Entity entity, Vector2 rangeA, Vector2 rangeB)
     {
+        _entity = entity;
         _rangeA = rangeA;
         _rangeB = rangeB;
         _length = rangeA.DistanceTo(rangeB);
@@ -34,11 +41,13 @@ public sealed class PlatformController : ICharacterController<SimpleControlledEn
         _across = _along.Orthogonal();
     }
 
-    public void Apply(SimpleControlledEntity entity, float gameDt, float realDt, IDefer defer)
+    public Entity Entity => _entity;
+
+    public void Apply(float gameDt, float realDt, IDefer defer)
     {
         Features features = Features.Current;
-        var position = new Vector2(entity.Position.X, entity.Position.Y);
-        var velocity = new Vector2(entity.LinearVelocity.X, entity.LinearVelocity.Y);
+        var position = new Vector2(_entity.Position.X, _entity.Position.Y);
+        var velocity = new Vector2(_entity.LinearVelocity.X, _entity.LinearVelocity.Y);
 
         // Where the platform is along the line, as a fraction: 0 at A, 1 at B. It turns around a little before each
         // end, so that it doesn't touch a wall there.
@@ -49,11 +58,7 @@ public sealed class PlatformController : ICharacterController<SimpleControlledEn
         // It also turns around when something stops it on the way, such as the player. Only between the places where
         // it turns, though: beyond them, the end it is heading for is the way back to its line.
         bool between = fraction > turnFraction && fraction < 1 - turnFraction;
-        bool stalled = _stall.Update(
-            velocity.Dot(_towardB ? _along : -_along),
-            gameDt,
-            features.PlatformStallSpeed,
-            features.PlatformStallTime);
+        bool stalled = _stall.Update(velocity.Dot(_towardB ? _along : -_along), gameDt);
 
         if (atEnd || (stalled && between))
         {
@@ -62,7 +67,7 @@ public sealed class PlatformController : ICharacterController<SimpleControlledEn
         }
 
         // The caps don't depend on the gravity scale, so a platform pushes as hard while a grab holds it.
-        float unscaledWeight = entity.Mass * Constants.Gravity;
+        float unscaledWeight = _entity.Mass * Constants.Gravity;
 
         // Drive toward the end it is heading for at a target speed: top speed, or less near the end, so that braking
         // at a constant rate would stop it there. The braking curve aims past the end by the turn distance, so the
@@ -75,17 +80,17 @@ public sealed class PlatformController : ICharacterController<SimpleControlledEn
             MathF.Sqrt(2 * braking * MathF.Max(0, distanceLeft + features.PlatformTurnDistance)));
         float maxDrive = features.PlatformMaxDriveFrac * unscaledWeight;
         float drive = Math.Clamp(
-            entity.Mass * features.PlatformDriveGain * (targetSpeed - velocity.Dot(heading)), -maxDrive, maxDrive);
+            _entity.Mass * features.PlatformDriveGain * (targetSpeed - velocity.Dot(heading)), -maxDrive, maxDrive);
 
         float hold = CriticallyDampedThrust(
-            entity.Mass,
+            _entity.Mass,
             features.PlatformHoldFrequency,
             error: (_rangeA - position).Dot(_across),
             rate: velocity.Dot(_across),
             max: features.PlatformMaxHoldFrac * unscaledWeight);
 
         Vector2 thrust = drive * heading + hold * _across;
-        entity.ApplyCentralForce(new Vector3(thrust.X, thrust.Y, 0) - entity.Mass * entity.GetGravity());
+        _entity.ApplyCentralForce(new Vector3(thrust.X, thrust.Y, 0) - _entity.Mass * _entity.GetGravity());
     }
 
     /// <summary>

@@ -23,20 +23,6 @@ public partial class PlayerEntity : WalkerEntity
     }
 
     /// <summary>
-    /// What decides the player's actions each tick. It hides <see cref="WalkerEntity.Controller"/>, which a player
-    /// doesn't run, so that the controller can make the player slip.
-    /// </summary>
-    public new ICharacterController<PlayerEntity>? Controller { get; set; }
-
-    public override bool RequestsPause => Controller?.RequestsPause ?? false;
-
-    protected override void ControlPaused(float realDt, IDefer defer) =>
-        Controller?.ApplyPaused(this, realDt, defer);
-
-    protected override void ApplyController(float gameDt, float realDt, IDefer defer) =>
-        Controller?.Apply(this, gameDt, realDt, defer);
-
-    /// <summary>
     /// Lets the player slip on what it stands on in this tick's step: after it steps, its friction goes off. For a tick
     /// in which friction shouldn't resist the player sliding against its support, such as when it moves itself along
     /// it, or leaves it with its speed. It lasts one tick.
@@ -55,13 +41,13 @@ public partial class PlayerEntity : WalkerEntity
         {
             bool slips = _slipAfterEntitySteps;
             _slipAfterEntitySteps = false;
-            if (!slips && OnGround && Tuning.GroundFriction?.Invoke(Features.Current) is float groundFriction)
+            if (!slips && OnGround && Tuning.GroundFriction?.Invoke() is float groundFriction)
             {
                 SetFriction(groundFriction, rough: true);
             }
             else
             {
-                SetFriction(Tuning.EngineFriction(Features.Current), rough: false);
+                SetFriction(Tuning.EngineFriction(), rough: false);
             }
         });
     }

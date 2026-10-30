@@ -95,8 +95,7 @@ public partial class WorldNode : Node3D
                 EntityKind.Player => Player = CreatePlayer(
                     (EntityConfig.Player)config,
                     GetVisual(config),
-                    playerBody ?? BodyTuning.Player,
-                    PlayerController = new PlayerController(Input, PlayerBlock)),
+                    playerBody ?? BodyTuning.Player),
 
                 EntityKind.Robot => CreateRobot((EntityConfig.Robot)config, GetVisual(config)),
                 EntityKind.Platform => CreatePlatform((EntityConfig.Platform)config, GetVisual(config)),
@@ -125,29 +124,34 @@ public partial class WorldNode : Node3D
 
         // Redundant but harmless: the `World` constructor also ensures this.
         Debug.Assert(Player is not null);
+
+        // Here and not in CreatePlayer, since only the constructor can set PlayerController.
+        PlayerController = new PlayerController(Player, Input, PlayerBlock);
+        Player.Controller = PlayerController;
     }
 
-    private static PlayerEntity CreatePlayer(EntityConfig.Player config, Node3D visual, BodyTuning body, PlayerController controller)
+    private static PlayerEntity CreatePlayer(EntityConfig.Player config, Node3D visual, BodyTuning body)
     {
         var player = new PlayerEntity(body, visual);
         player.AddChild(new OmniLight3D { OmniRange = 15, ShadowEnabled = true, Position = new Vector3(0, 0, 2) });
-        player.Controller = controller;
         return player;
     }
 
     private RobotEntity CreateRobot(EntityConfig.Robot config, Node3D visual)
     {
         // The player may be built after the robot, so the controller asks for it when it aims.
-        return new RobotEntity(BodyTuning.Robot, visual) { Controller = new RobotController(() => Player) };
+        var robot = new RobotEntity(BodyTuning.Robot, visual);
+        robot.Controller = new RobotController(robot, () => Player);
+        return robot;
     }
 
-    private static SimpleControlledEntity CreatePlatform(EntityConfig.Platform config, Node3D visual)
+    private static Entity CreatePlatform(EntityConfig.Platform config, Node3D visual)
     {
-        var platform = new SimpleControlledEntity(BodyTuning.Platform, visual);
+        var platform = new Entity(BodyTuning.Platform, visual);
         // The range is where the middle of the platform's box goes. Its body starts at the bottom of its box, which is
         // taller, and keeps that place in the box wherever it goes.
         var offset = new Vector2(0, platform.HalfSize.Y - config.MapHalfSize.Y);
-        platform.Controller = new PlatformController(config.RangeA + offset, config.RangeB + offset);
+        platform.Controller = new PlatformController(platform, config.RangeA + offset, config.RangeB + offset);
         return platform;
     }
 

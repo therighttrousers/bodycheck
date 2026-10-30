@@ -46,7 +46,7 @@ public partial class PhaseAimMarker : Node2D
     public override void _Draw()
     {
         Camera3D? camera = _worldView.World.GetCamera3D();
-        if (camera is null || World?.PlayerController.Phase is not PhaseAction phase)
+        if (camera is null || World?.PlayerController.Phase is not PhaseAction.PhaseAim phase)
         {
             return;
         }

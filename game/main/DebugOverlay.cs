@@ -36,9 +36,6 @@ public partial class DebugOverlay : CanvasLayer
         Metric.AirTime,
         Metric.Feet,
         Metric.OnGround,
-        Metric.CoyoteTime,
-        Metric.ThrustTime,
-        Metric.JumpBufferTime,
         // This is really for testing:
         Metric.PredictedVelocity,
         // Comment these lines out if diving into the guts of corner correction again:
@@ -113,9 +110,6 @@ public partial class DebugOverlay : CanvasLayer
         var airTime = Telemetry.GetFloat(Metric.AirTime) ?? 0;
         var feet = Telemetry.GetVector2(Metric.Feet) ?? Vector2.Zero;
         var onGround = (Telemetry.GetBool(Metric.OnGround) ?? false) ? "true " : "false";
-        var coyoteTime = Telemetry.GetFloat(Metric.CoyoteTime) ?? 0;
-        var thrustTime = Telemetry.GetFloat(Metric.ThrustTime) ?? 0;
-        var jumpBufferTime = Telemetry.GetFloat(Metric.JumpBufferTime) ?? 0;
 
         _items.Clear();
 
@@ -123,7 +117,6 @@ public partial class DebugOverlay : CanvasLayer
         _items.Add(new Item("Velocity", $"Vec {Signed(velocity.X, "00.00")} {Signed(velocity.Y, "00.00")}  Mag {Signed(speed, "00.00")}  Angle {Signed(angle, "000")}  Gnd {Signed(ground, "00.00")}"));
         _items.Add(new Item("Last air", $"Rise {Signed(airRise, "00.00")}  Run {Signed(airRun, "00.00")}  Land {Signed(airLand, "00.00")}  Time {Signed(airTime, "00.000")}"));
         _items.Add(new Item("Feet", $"Vec {Signed(feet.X, "0000.00")} {Signed(feet.Y, "0000.00")}  OnGround {onGround}"));
-        _items.Add(new Item("Leniency", $"Coyote {Signed(coyoteTime, "0.000")}  Thrust {Signed(thrustTime, "0.000")}  Buffer {Signed(jumpBufferTime, "0.000")}"));
 
         // Add all the leftover telemetry.
         foreach (var (label, metric) in Labels.Zip(Metrics))

@@ -46,10 +46,10 @@ public enum EntityCue
 /// body itself, a box that can only move in the XY plane, so that what the engine reports about bodies
 /// (contacts, what stands on what) is about entities. Entities may only rotate about Z (default off).
 /// <para>
-/// An entity is a body and its looks. This class is a body with nothing to move itself by, such as a
-/// block: it is only pushed, carried and stood on. A subclass is a kind of body that has a controller, and
-/// may give it ways to move the entity, such as a walker's traction. The room calls <see cref="Step"/> on
-/// every entity once per physics tick.
+/// An entity is a body and its looks. This class is a body that moves only by forces and impulses: without a
+/// controller, such as a block, it is only pushed, carried and stood on; with one, such as a platform, the controller
+/// pushes it. A subclass is a kind of body that gives its controller more ways to move it, such as a walker's
+/// traction. The room calls <see cref="Step"/> on every entity once per physics tick.
 /// </para>
 /// <para>
 /// Bounce and damping are off in the engine. Drag is the entity's own force.
@@ -117,7 +117,7 @@ public partial class Entity : RigidBody3D
     public Entity(BodyTuning tuning, Node3D? visual = null, bool axisLockAngularZ = true)
     {
         Tuning = tuning;
-        Mass = tuning.Mass(Features.Current);
+        Mass = tuning.Mass();
 
         AxisLockLinearZ = true;
         AxisLockAngularX = true;
@@ -125,7 +125,7 @@ public partial class Entity : RigidBody3D
         AxisLockAngularZ = axisLockAngularZ;
 
         // Its own, since UpdateFromFeatures changes it.
-        PhysicsMaterialOverride = new PhysicsMaterial { Friction = tuning.EngineFriction(Features.Current), Bounce = 0, Rough = false };
+        PhysicsMaterialOverride = new PhysicsMaterial { Friction = tuning.EngineFriction(), Bounce = 0, Rough = false };
         LinearDampMode = DampMode.Replace;
         LinearDamp = 0;
         CanSleep = false;
@@ -165,6 +165,23 @@ public partial class Entity : RigidBody3D
 
     /// <summary>Says that <paramref name="cue"/> happened to the entity, so that what draws it may react.</summary>
     public void RaiseCue(EntityCue cue) => CueRaised?.Invoke(cue);
+
+    /// <summary>
+    /// What decides the entity's actions each tick. Without one it is only pushed around. It must be a controller built
+    /// for this entity.
+    /// </summary>
+    public IController<Entity>? Controller
+    {
+        get;
+        set
+        {
+            if (value is not null && value.Entity != this)
+            {
+                throw new ArgumentException("The controller was built for another entity.", nameof(value));
+            }
+            field = value;
+        }
+    }
 
     public BodyTuning Tuning { get; }
 
@@ -230,7 +247,7 @@ public partial class Entity : RigidBody3D
     /// </summary>
     public void UpdateFromFeatures()
     {
-        float mass = Tuning.Mass(Features.Current);
+        float mass = Tuning.Mass();
         if (Mass != mass)
         {
             Mass = mass;
@@ -239,7 +256,7 @@ public partial class Entity : RigidBody3D
     }
 
     /// <summary>Puts the tuning's engine friction in the engine. See <see cref="UpdateFromFeatures"/>.</summary>
-    protected virtual void UpdateFrictionFromFeatures() => SetFriction(Tuning.EngineFriction(Features.Current), rough: false);
+    protected virtual void UpdateFrictionFromFeatures() => SetFriction(Tuning.EngineFriction(), rough: false);
 
     /// <summary>
     /// Sets the engine's coefficient of friction for this body, against everything it touches. The engine uses the
@@ -261,8 +278,8 @@ public partial class Entity : RigidBody3D
     }
 
     // The tuning's values for carrying, from the features in effect now. See BodyTuning.
-    private float? CarrySteadying => Tuning.CarrySteadying?.Invoke(Features.Current);
-    private float? CarryTorque => Tuning.CarryTorque?.Invoke(Features.Current);
+    private float? CarrySteadying => Tuning.CarrySteadying?.Invoke();
+    private float? CarryTorque => Tuning.CarryTorque?.Invoke();
 
     /// <summary>
     /// Moves the entity toward <paramref name="destination"/> at once, through other entities but not through tiles:
@@ -421,15 +438,10 @@ public partial class Entity : RigidBody3D
     /// </summary>
     /// <param name="realDt">The tick's length in real time. No game time passes.</param>
     /// <param name="defer">An object that allows running actions later in the tick.</param>
-    public void StepPaused(float realDt, IDefer defer) => ControlPaused(realDt, defer);
+    public void StepPaused(float realDt, IDefer defer) => Controller?.ApplyPaused(realDt, defer);
 
     /// <summary>Whether this entity's controller asks for the game to be paused.</summary>
-    public virtual bool RequestsPause => false;
-
-    /// <summary>Runs the paused step of the controller of this kind of body, if it has one.</summary>
-    protected virtual void ControlPaused(float realDt, IDefer defer)
-    {
-    }
+    public bool RequestsPause => Controller?.RequestsPause ?? false;
 
     /// <summary>
     /// Sets the engine's friction after the entity steps, for this tick's step, for a kind of body whose friction
@@ -486,10 +498,9 @@ public partial class Entity : RigidBody3D
         _steadying.SetFlagZ(Generic6DofJoint3D.Flag.EnableMotor, false);
     }
 
-    /// <summary>Runs the controller of this kind of body, if it has one.</summary>
-    protected virtual void Control(float gameDt, float realDt, IDefer defer)
-    {
-    }
+    /// <summary>Runs the entity's controller, if it has one.</summary>
+    protected virtual void Control(float gameDt, float realDt, IDefer defer) =>
+        Controller?.Apply(gameDt, realDt, defer);
 
     public override void _IntegrateForces(PhysicsDirectBodyState3D state)
     {
