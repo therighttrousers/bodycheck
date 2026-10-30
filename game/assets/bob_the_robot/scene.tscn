@@ -6,6 +6,7 @@
 [ext_resource type="AudioStream" uid="uid://ch8ghbvfp6t6n" path="res://assets/player_sounds/172206__leszek_szary__teleport.wav" id="3_512o4"]
 [ext_resource type="AudioStream" uid="uid://cq3spuybsurnp" path="res://assets/player_sounds/146726__leszek_szary__jumping.wav" id="3_a0sfp"]
 [ext_resource type="AudioStream" uid="uid://b8qt1lbwiencp" path="res://assets/player_sounds/844890__dan2008__critical-error.wav" id="5_hvsop"]
+[ext_resource type="AudioStream" uid="uid://bh3nb8eg1s2wu" path="res://assets/weapon_sounds/160421__bigkahuna360__electrical-shock-zap_1_5_sec.wav" id="7_x1ji0"]
 [ext_resource type="Script" uid="uid://bvv55e8n0wf1q" path="res://main/LaserBeam.cs" id="7_ydmpv"]
 
 [sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_2h3ep"]
@@ -230,5 +231,9 @@ script = ExtResource("7_ydmpv")
 [node name="Beam" type="MeshInstance3D" parent="LaserBeam" unique_id=285034969]
 cast_shadow = 0
 mesh = SubResource("CylinderMesh_x1ji0")
+
+[node name="Sound" type="AudioStreamPlayer3D" parent="LaserBeam" unique_id=1897797676]
+stream = ExtResource("7_x1ji0")
+bus = &"Sfx"
 
 [editable path="Model"]

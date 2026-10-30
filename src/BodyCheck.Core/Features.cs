@@ -339,7 +339,7 @@ public sealed record Features
     /// <summary>How long, in game time, a robot's beam stays locked before it fires.</summary>
     public float RobotLaserLockTime { get; init; } = 0.75f;
     /// <summary>How long, in game time, a robot's laser fires.</summary>
-    public float RobotLaserFireTime { get; init; } = 0.5f;
+    public float RobotLaserFireTime { get; init; } = 0.75f;
     /// <summary>How long, in game time, a robot waits after its laser stops before it can aim again.</summary>
     public float RobotLaserCooldownTime { get; init; } = 3;
     /// <summary>

@@ -30,7 +30,7 @@ public partial class WorldViewportContainer : SubViewportContainer
     }
 
     /// <summary>The viewport the game is drawn in.</summary>
-    public SubViewport World { get; } = new() { HandleInputLocally = false };
+    public SubViewport World { get; } = new() { HandleInputLocally = false, AudioListenerEnable3D = true };
 
     /// <summary>The size the game is drawn at, or null to draw it at the window's own size.</summary>
     public Vector2I? Resolution
