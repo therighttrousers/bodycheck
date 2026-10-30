@@ -199,7 +199,7 @@ public partial class CollisionDebug : Node
     private void ShowCornerCorrection(bool show)
     {
         _correctionMesh.ClearSurfaces();
-        float age = (Time.GetTicksMsec() - (Telemetry.GetFloat(Metric.CornerCorrectionTime) ?? float.NegativeInfinity)) / 1000;
+        float age = Time.GetTicksMsec() / 1000f - (Telemetry.GetFloat(Metric.CornerCorrectionTime) ?? float.NegativeInfinity);
         if (!show
             || age > CorrectionShowTime
             || Telemetry.GetVector2(Metric.CornerCorrectionCenter) is not Vector2 center

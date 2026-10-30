@@ -18,7 +18,7 @@ public enum Metric
     OnGround,
     /// <summary>The velocity the player's controller predicts for this tick's step, for corner correction.</summary>
     PredictedVelocity,
-    /// <summary>When the last corner correction was made, in real milliseconds since the engine started.</summary>
+    /// <summary>When the last corner correction was made, in real seconds since the engine started.</summary>
     CornerCorrectionTime,
     /// <summary>Where the center of the entity that the last corner correction nudged was before the nudge.</summary>
     CornerCorrectionCenter,
