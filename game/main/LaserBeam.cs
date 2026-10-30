@@ -11,6 +11,10 @@ namespace BodyCheck;
 /// one unit long along its Y axis and one unit across, centered on its origin, such as a cylinder. Each frame it
 /// stretches the beam from where the laser starts to where it ends, as thick as the laser's stage calls for, and hides
 /// it while the laser is off. It shows the robot it is under.
+/// <para>
+/// It may also have an <see cref="AudioStreamPlayer3D"/> under it named "Sound", which it plays from when the laser
+/// locks until it stops firing, and stops early if the laser gives up.
+/// </para>
 /// </summary>
 [GlobalClass]
 public partial class LaserBeam : Node3D
@@ -40,9 +44,14 @@ public partial class LaserBeam : Node3D
     private MeshInstance3D _beam = null!;
     private StandardMaterial3D _material = null!;
     private float _emissionMultiplier;
+    private AudioStreamPlayer3D? _sound;
+    // Whether the laser was locked or firing last frame, so that the sound starts once, when it locks, and doesn't
+    // start again if it ends before the laser stops firing.
+    private bool _wasSounding;
 
     public override void _Ready()
     {
+        _sound = GetNodeOrNull<AudioStreamPlayer3D>("Sound");
         _beam = GetNode<MeshInstance3D>("Beam");
         // Placed in world coordinates each frame, from the laser's own, so not moved with the robot or turned with it.
         _beam.TopLevel = true;
@@ -69,6 +78,20 @@ public partial class LaserBeam : Node3D
 
     public override void _Process(double gameDt)
     {
+        bool sounding = _robot?.Laser.Stage is LaserStage.Locked or LaserStage.Firing;
+        if (sounding != _wasSounding)
+        {
+            if (sounding)
+            {
+                _sound?.Play();
+            }
+            else
+            {
+                _sound?.Stop();
+            }
+            _wasSounding = sounding;
+        }
+
         if (_robot?.Laser is not { Stage: not LaserStage.Off } laser || laser.Origin.IsEqualApprox(laser.End))
         {
             _beam.Visible = false;
