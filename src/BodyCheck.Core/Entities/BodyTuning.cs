@@ -16,7 +16,7 @@ public sealed record BodyTuning
 
     /// <summary>
     /// The body's mass. The engine holds it, and the world puts it there at the start of each tick, before any entity
-    /// steps, so that a change to the features takes effect at the next tick (029 §2.1). Read the entity's own.
+    /// steps, so that a change to the features takes effect at the next tick. Read the entity's own.
     /// </summary>
     public required Func<float> Mass { get; init; }
 
@@ -43,14 +43,14 @@ public sealed record BodyTuning
 
     /// <summary>
     /// The most force with which this body steadies what stands on it: it holds that body's speed at its center to its
-    /// own, like a hand held up behind the head, so that friction at that body's base needn't, and doesn't tip it
-    /// (019 §5.1). Null for none.
+    /// own, like a hand held up behind the head, so that friction at that body's base needn't, and doesn't tip it.
+    /// See docs/designs/movement.md#carrying. Null for none.
     /// </summary>
     public Func<float>? CarrySteadying { get; init; }
 
     /// <summary>
     /// The most torque with which this body, while it steadies what stands on it, turns that body towards level, as a
-    /// hand would (019 §5.1, §5.2). Null for none.
+    /// hand would. See docs/designs/movement.md#carrying. Null for none.
     /// </summary>
     public Func<float>? CarryTorque { get; init; }
 
