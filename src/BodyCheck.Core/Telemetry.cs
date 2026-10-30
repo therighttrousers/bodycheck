@@ -61,8 +61,18 @@ public static class Telemetry
     /// <summary>The last value reported for a metric, or null if none has been since the last reset.</summary>
     public static object? Get(Metric metric) => Values[(int)metric];
 
-    /// <summary>The last value reported for a metric, or null if none has been since the last reset or it isn't a T.</summary>
-    public static T? Get<T>(Metric metric) where T : struct => Get(metric) is T value ? value : null;
+    /// <summary>The last value reported for a metric. Throws if none has been since the last reset, or it isn't a T.</summary>
+    public static T Get<T>(Metric metric) where T : struct => Get(metric) switch
+    {
+        T value => value,
+        null => throw new InvalidOperationException($"Nothing has been reported for {metric} since the last reset."),
+        var value => throw new InvalidOperationException($"{metric} is a {value.GetType().Name}, not a {typeof(T).Name}."),
+    };
+
+    /// <summary>
+    /// The last value reported for a metric, or a fallback if none has been since the last reset. Throws if it isn't a T.
+    /// </summary>
+    public static T Get<T>(Metric metric, T fallback) where T : struct => Get(metric) is null ? fallback : Get<T>(metric);
 
     /// <summary>Forgets every value, e.g. when a new room is loaded.</summary>
     public static void Reset() => Array.Clear(Values);

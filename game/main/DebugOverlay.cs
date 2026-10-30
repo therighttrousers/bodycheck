@@ -99,17 +99,17 @@ public partial class DebugOverlay : CanvasLayer
         var frameMs = (float)Performance.GetMonitor(Performance.Monitor.TimeProcess) * 1000;
         var physicsMs = (float)Performance.GetMonitor(Performance.Monitor.TimePhysicsProcess) * 1000;
         // If/when we add more views (e.g. UI), their respective render times should be vector-added here.
-        var renderMs = (Telemetry.Get<Vector2>(Metric.WorldRenderTime) ?? Vector2.Zero) * 1000;
-        var velocity = Telemetry.Get<Vector2>(Metric.Velocity) ?? Vector2.Zero;
+        var renderMs = Telemetry.Get(Metric.WorldRenderTime, Vector2.Zero) * 1000;
+        var velocity = Telemetry.Get(Metric.Velocity, Vector2.Zero);
         var speed = velocity.Length();
         var angle = Mathf.RadToDeg(velocity.Angle());
-        var ground = Telemetry.Get<float>(Metric.GroundSpeed) ?? 0;
-        var airRise = Telemetry.Get<float>(Metric.AirRise) ?? 0;
-        var airRun = Telemetry.Get<float>(Metric.AirRun) ?? 0;
-        var airLand = Telemetry.Get<float>(Metric.AirLand) ?? 0;
-        var airTime = Telemetry.Get<float>(Metric.AirTime) ?? 0;
-        var feet = Telemetry.Get<Vector2>(Metric.Feet) ?? Vector2.Zero;
-        var onGround = (Telemetry.Get<bool>(Metric.OnGround) ?? false) ? "true " : "false";
+        var ground = Telemetry.Get(Metric.GroundSpeed, 0f);
+        var airRise = Telemetry.Get(Metric.AirRise, 0f);
+        var airRun = Telemetry.Get(Metric.AirRun, 0f);
+        var airLand = Telemetry.Get(Metric.AirLand, 0f);
+        var airTime = Telemetry.Get(Metric.AirTime, 0f);
+        var feet = Telemetry.Get(Metric.Feet, Vector2.Zero);
+        var onGround = Telemetry.Get(Metric.OnGround, false) ? "true " : "false";
 
         _items.Clear();
 

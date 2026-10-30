@@ -93,7 +93,7 @@ public class PlayerControllerTest
         Telemetry.Reset();
         await Tick(Jump, ticksHeld);
         await Tick(Idle, 120);
-        return Telemetry.Get<float>(Metric.AirRise)!.Value;
+        return Telemetry.Get<float>(Metric.AirRise);
     }
 
     [TestCase]
@@ -538,7 +538,7 @@ public class PlayerControllerTest
             if (i == 0)
             {
                 // The velocity used to determine whether the player should be nudged in the direction of the side.
-                Vector3 v = Telemetry.Get<Vector2>(Metric.PredictedVelocity)?.ToVector3() ?? Vector3.Zero;
+                Vector3 v = Telemetry.Get(Metric.PredictedVelocity, Vector2.Zero).ToVector3();
                 predictedAngle = Mathf.RadToDeg(MathF.Atan2(v.X, v.Y));
             }
         }
