@@ -326,7 +326,7 @@ public partial class WorldNode : Node3D
     private void OnFeaturesChanged() => _featuresChanged = true;
 
     // Puts the features that the engine holds in it, if they have changed, before any entity steps, so that a change
-    // takes effect at the next tick and every controller sees it (029 §2).
+    // takes effect at the next tick and every controller sees it.
     private void UpdateFromFeatures()
     {
         if (!_featuresChanged)

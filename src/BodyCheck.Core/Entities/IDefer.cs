@@ -15,7 +15,7 @@ namespace BodyCheck.Core.Entities;
 /// action asked for then runs before the engine steps next.
 /// </para>
 /// <para>
-/// The actions of a tick whose entity steps fail partway never run (022 §2.1).
+/// The actions of a tick whose entity steps fail partway never run.
 /// </para>
 /// </summary>
 public interface IDefer

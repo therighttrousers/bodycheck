@@ -31,7 +31,7 @@ namespace BodyCheck;
 /// switch to the previous and next configuration, without restarting the world. F5 reads the LDtk project and the
 /// configurations again, and restarts the world, with the player at the world's current respawn, if it has one. Each
 /// world's current respawn is remembered while the game runs. ';' and "'" restart the world at its previous and next
-/// respawn, in the order of its levels. An error in a file is shown, and play goes on without it (decision record 017).
+/// respawn, in the order of its levels. An error in a file is shown, and play goes on without it.
 /// </para>
 /// <para>
 /// Escape and Tab, or the gamepad's Start and Back, open and close the menu and the map (see

@@ -6,7 +6,7 @@ using Godot;
 namespace BodyCheck.Probes;
 
 /// <summary>
-/// Measures the riding criteria of decision record 000 §2.2 and the platform numbers of §2.4: the player
+/// Measures how well a carrier carries, and how far it gives under its rider: the player
 /// is dropped onto a carrier (a patrolling robot, or a hovering platform), stands idle on it for 30
 /// seconds, then taps jump.
 /// </summary>

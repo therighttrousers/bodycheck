@@ -6,8 +6,7 @@ using Godot;
 namespace BodyCheck.Look;
 
 /// <summary>
-/// Switches for each part of the rendering pipeline, on the number keys, so that the look can be judged
-/// by eye (decision records 003 and 004):
+/// Switches for each part of the rendering pipeline, on the number keys, so that the look can be judged by eye:
 /// <list type="bullet">
 /// <item>1: low resolution on or off</item>
 /// <item>2: next low-resolution size</item>

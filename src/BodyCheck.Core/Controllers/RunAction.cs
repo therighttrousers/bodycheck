@@ -76,8 +76,7 @@ public sealed class RunAction(WalkerEntity entity, RunTuning tuning)
         // Speed is relative to whatever the entity stands on, so running on a platform or blocks works like running on tiles.
         float speed = entity.GroundSpeed;
         // Driving into something it touches is driving, not braking, whichever way the entity is moving against its
-        // support: a support moving under an entity held by a wall would otherwise make it brake, and grip the wall
-        // (027 §6).
+        // support: a support moving under an entity held by a wall would otherwise make it brake, and grip the wall.
         bool pushes = (move > 0 && entity.Contacts.HasFlag(Contacts.Right))
             || (move < 0 && entity.Contacts.HasFlag(Contacts.Left));
         bool brake = !pushes && speed != 0 && move * speed <= 0;

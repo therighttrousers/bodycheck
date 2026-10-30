@@ -7,7 +7,7 @@ namespace BodyCheck.Look;
 
 /// <summary>
 /// The game's 256 colours, as images for <c>mode_x.gdshader</c>. They are generated here for now;
-/// when the palette is final it becomes an asset (decision record 004).
+/// when the palette is final it becomes an asset.
 /// </summary>
 public static class Palette
 {
@@ -15,8 +15,7 @@ public static class Palette
     private const int Height = 32;
 
     // The values of the coloured ramps: evenly spaced lightness, by CIE L*, turned into the luminance that has
-    // it. That puts more of a ramp's colours in the dark, where evenly spaced values left too few (decision
-    // record 004).
+    // it. That puts more of a ramp's colours in the dark, where evenly spaced values left too few.
     private static float ValueRamp(float v)
     {
         float l = v * 100.0f;

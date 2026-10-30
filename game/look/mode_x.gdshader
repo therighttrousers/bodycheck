@@ -1,7 +1,7 @@
 shader_type canvas_item;
 
 // The colour pass: everything drawn so far, read back and written out again in the palette. Each pixel becomes
-// the palette colour nearest to it in Oklab, after a dither offset (decision record 004). ColorPass.cs sets the
+// the palette colour nearest to it in Oklab, after a dither offset. ColorPass.cs sets the
 // uniforms, and Palette.cs makes the two palette textures.
 // FRAGCOORD.xy is in pixels of the low-resolution image, and the colours read are already tone mapped sRGB.
 

@@ -6,7 +6,7 @@ namespace BodyCheck.Look;
 
 /// <summary>
 /// Draws the game at a low resolution, scaled up to the window by the largest whole number that fits, with
-/// nearest-neighbour sampling and black bars around it (decision record 003).
+/// nearest-neighbour sampling and black bars around it.
 /// <para>
 /// The game is drawn into <see cref="World"/>, a viewport of its own, so that what is drawn outside it, in
 /// the window's own viewport, is at the window's full resolution. As a container of a viewport, it passes

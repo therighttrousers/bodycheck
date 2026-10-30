@@ -46,7 +46,7 @@ public partial class WalkerEntity : Entity
     /// speed, relative to the ground, towards <paramref name="targetSpeed"/>, with at most
     /// <paramref name="maxForce"/>, and pushes the ground the other way equally. It has no effect in the air.
     /// <para>
-    /// The engine applies it, as the target speed and force limit of a motor (019 §1.6).
+    /// The engine applies it, as the target speed and force limit of a motor.
     /// </para>
     /// </summary>
     public void ApplyTraction(float targetSpeed, float maxForce)
@@ -57,7 +57,7 @@ public partial class WalkerEntity : Entity
             return;
         }
 
-        // The grip acts where the walker touches what it stands on (019 §2.2). The motor pushes only along X, so only
+        // The grip acts where the walker touches what it stands on. The motor pushes only along X, so only
         // the joint's height changes what it does.
         if (!_gripAnchored || Support != _gripAnchor || MathF.Abs(ToGlobal(_gripPoint).Y - groundContact.Y) > GripDrift)
         {

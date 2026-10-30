@@ -7,7 +7,7 @@ namespace BodyCheck;
 /// <summary>
 /// Plays an entity's sounds for its <see cref="EntityCue"/>s. It goes in the scene that draws the entity, with an audio
 /// player under it for each cue that has a sound, named after the cue, such as "PhaseBegan". A cue with no player
-/// named after it plays nothing. It listens to the entity it is under (decision record 021).
+/// named after it plays nothing. It listens to the entity it is under.
 /// </summary>
 [GlobalClass]
 public partial class CueSounds : Node3D
