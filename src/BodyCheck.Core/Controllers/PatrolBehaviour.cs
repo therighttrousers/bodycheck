@@ -41,8 +41,13 @@ public sealed class PatrolBehaviour(WalkerEntity entity, PatrolTuning tuning)
     private const float ArbitraryFirstMove = 1;
 
     private float _move;
-    private readonly StallDetector _stall = new();
-    private readonly OverheatDetector _stallHeat = new();
+    private readonly StallDetector _stall = new(new StallTuning { MinSpeed = tuning.StallSpeed, MaxTime = tuning.StallTime });
+    private readonly OverheatDetector _stallHeat = new(new OverheatTuning
+    {
+        HeatPerEvent = tuning.StallHeat,
+        MaxHeat = tuning.StallMaxHeat,
+        CooldownRate = tuning.StallCooldownRate,
+    });
 
     /// <summary>
     /// Patrols, or, if it doesn't on this tick, stands still. Off tiles, such as in the air or on another entity, it
@@ -54,7 +59,7 @@ public sealed class PatrolBehaviour(WalkerEntity entity, PatrolTuning tuning)
     /// <param name="gameDt">The tick's length in game time.</param>
     public PatrolIntent Apply(bool patrols, float facing, float gameDt)
     {
-        _stallHeat.CoolDown(tuning.StallCooldownRate() * gameDt);
+        _stallHeat.CoolDown(gameDt);
 
         if (!patrols)
         {
@@ -74,15 +79,11 @@ public sealed class PatrolBehaviour(WalkerEntity entity, PatrolTuning tuning)
         bool contactLeft = entity.Contacts.HasFlag(Contacts.Left);
         bool contactRight = entity.Contacts.HasFlag(Contacts.Right);
 
-        bool stalled = _stall.Update(
-            entity.LinearVelocity.X * _move,
-            gameDt,
-            tuning.StallSpeed(),
-            tuning.StallTime());
+        bool stalled = _stall.Update(entity.LinearVelocity.X * _move, gameDt);
 
         if (stalled)
         {
-            _stallHeat.HeatUp(tuning.StallHeat(), tuning.StallMaxHeat());
+            _stallHeat.HeatUp();
         }
 
         if (_stallHeat.Overheated)

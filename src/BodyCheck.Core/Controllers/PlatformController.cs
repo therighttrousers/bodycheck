@@ -20,7 +20,11 @@ public sealed class PlatformController : IController<Entity>
     /// <summary>A direction perpendicular to the line.</summary>
     private readonly Vector2 _across;
     private bool _towardB = true;
-    private readonly StallDetector _stall = new();
+    private readonly StallDetector _stall = new(new StallTuning
+    {
+        MinSpeed = () => Features.Current.PlatformStallSpeed,
+        MaxTime = () => Features.Current.PlatformStallTime,
+    });
 
     /// <param name="entity">The platform, which the controller controls.</param>
     /// <param name="rangeA">One end of the line that the platform's center moves along.</param>
@@ -54,11 +58,7 @@ public sealed class PlatformController : IController<Entity>
         // It also turns around when something stops it on the way, such as the player. Only between the places where
         // it turns, though: beyond them, the end it is heading for is the way back to its line.
         bool between = fraction > turnFraction && fraction < 1 - turnFraction;
-        bool stalled = _stall.Update(
-            velocity.Dot(_towardB ? _along : -_along),
-            gameDt,
-            features.PlatformStallSpeed,
-            features.PlatformStallTime);
+        bool stalled = _stall.Update(velocity.Dot(_towardB ? _along : -_along), gameDt);
 
         if (atEnd || (stalled && between))
         {
