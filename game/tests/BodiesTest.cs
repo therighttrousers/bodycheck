@@ -376,7 +376,7 @@ public class BodiesTest
         await run.Tick(Idle, 120);
 
         // The shortest jump from tiles clears 2 tiles but not 3.
-        AssertThat(Telemetry.Get(Metric.AirRise)!.Value.X).IsBetween(2f, 3f);
+        AssertThat(Telemetry.Get<float>(Metric.AirRise)!.Value).IsBetween(2f, 3f);
         AssertThat(block.Position.X).IsEqualApprox(blockStart, 0.01f);
     }
 
@@ -428,6 +428,6 @@ public class BodiesTest
         await run.Tick(Right, ticks);
         await run.Tick(Jump, 120);
 
-        AssertThat(Telemetry.GetFloat(Metric.AirRise) ?? 1e10).IsLess(5f);
+        AssertThat(Telemetry.Get<float>(Metric.AirRise) ?? 1e10).IsLess(5f);
     }
 }
