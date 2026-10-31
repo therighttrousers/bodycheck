@@ -44,7 +44,7 @@ _subresources={
 "Body": {
 "use_external/enabled": true,
 "use_external/fallback_path": "res://assets/platform/body.tres",
-"use_external/path": "res://assets/platform/body.tres"
+"use_external/path": "uid://bgoyrl15765qm"
 }
 }
 }

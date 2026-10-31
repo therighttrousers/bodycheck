@@ -96,6 +96,7 @@ The tree is the interface between code and art (`006 §4`).
   - `parameters/Move/TimeScale/scale`: the same, so that a clip with a custom timeline of length `n`, stretched, plays one cycle per `n` tiles.
   - A model whose tree has no such parameter ignores it. A misspelt parameter name is ignored too, silently. A misspelt name in an expression is an error.
 - **Bob's tree**, the player's and the robots' model: a state machine of `Idle`, `Move`, `Jump` and `InAir`. `Move` is a blend space of idle at 0 tiles per second, walk at 4 and run at 15, followed by a time scale.
+- **The platform's tree:** a state machine of `smile`, `straight` and `frown`, whose clips show one mouth and hide the others. Its `AnimationPlayer` is in the wrapper scene, since the `.glb` has no animations. It is straight above a `Strain` of 0.15 and frowns above 0.75. Clips last 1 second and transitions switch at their end, so `Strain` needs no smoothing: a one-tick spike, such as when the player lands on a platform or jumps off it, makes a frown that lasts a moment (`037 §3.5`).
 - **Rest pose:** the import setting `animation/import_rest_as_RESET` is on for animated models. The editor plays the tree while the scene is open, and without a `RESET` animation it would save the pose it happened to show into the wrapper scene.
 
 ## Sounds
@@ -128,7 +129,6 @@ The game's tests load the same wrapper scenes as the game, since they are in the
 ## Open questions
 
 - Whether game-resolution art with nearest filtering is the style, as on the platform, or only suits the front face (`037 §4.3`).
-- Whether a one-tick spike in `Strain` makes a platform's mouth flicker, and whether clips about 0.1 seconds long that switch at their end cure it, as a flinch (`037 §3.5`).
 - Whether a model's size belongs in its import settings (Bob is imported at 0.85) or in its wrapper scene.
 - A walker's walk is wrong at very low speeds, such as the player's when a tunnel knocked a block off its head (`019 §6.4`).
 - Animation that follows what a walker is trying to do, not only how fast it moves. A walker pushed by something it faces walks backwards at the speed it's pushed, and an idle walker that faces the camera and is pushed walks towards the camera. Issue #25.
