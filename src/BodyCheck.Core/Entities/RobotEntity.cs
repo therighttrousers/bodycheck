@@ -35,7 +35,7 @@ public partial class RobotEntity : WalkerEntity
     private readonly float _laserForward;
 
     /// <param name="visual">
-    /// What to draw for the entity, centered on the middle of its box. A node in it named "LaserOrigin" says where the
+    /// What to draw for the entity, with its origin at the body's anchor. A node in it named "LaserOrigin" says where the
     /// laser starts, as it is in the model's rest pose, facing the camera; see <see cref="LaserOrigin"/>.
     /// </param>
     public RobotEntity(BodyTuning tuning, Node3D? visual = null)
@@ -43,7 +43,7 @@ public partial class RobotEntity : WalkerEntity
     {
         if (visual is not null && RestPosition(visual, "LaserOrigin") is Vector3 origin)
         {
-            _laserHeight = origin.Y - HalfSize.Y;
+            _laserHeight = origin.Y + AnchorOffset.Y;
             // The model faces +Z at rest, which turns to +X when it faces right.
             _laserForward = origin.Z;
         }

@@ -12,7 +12,17 @@ namespace BodyCheck.Core.Entities;
 /// </summary>
 public sealed record BodyTuning
 {
+    // How far a platform's body is inside its box in the map, on every side, in tiles.
+    private const float PlatformMargin = 1f / Constants.TilePixels;
+
     public required Vector2 HalfSize { get; init; }
+
+    /// <summary>
+    /// A spot on the body's box, as fractions of its size from its center: -0.5 is the left or the bottom, and 0.5 the right
+    /// or the top. The body's model has its origin here, and the body starts with this spot at the same spot on its box in
+    /// the map, which is usually larger. By default the middle of its bottom edge, where it stands.
+    /// </summary>
+    public Vector2 Anchor { get; init; } = new(0, -0.5f);
 
     /// <summary>
     /// The body's mass. The engine holds it, and the world puts it there at the start of each tick, before any entity
@@ -81,13 +91,14 @@ public sealed record BodyTuning
     };
 
     /// <summary>
-    /// A hovering platform. Its friction carries the things that rest on it. Nothing carries it, so that the player
-    /// can't wear one that comes down on its head.
+    /// A hovering platform in a box in the map of <paramref name="mapSize"/> tiles. Its friction carries the things that
+    /// rest on it. Nothing carries it, so that the player can't wear one that comes down on its head.
     /// </summary>
-    public static BodyTuning Platform { get; } = new()
+    public static BodyTuning Platform(Vector2I mapSize) => new()
     {
-        HalfSize = new(1.4f, 0.4f),
-        Mass = () => Features.Current.PlatformMass,
+        HalfSize = (Vector2)mapSize / 2f - new Vector2(PlatformMargin, PlatformMargin),
+        Anchor = Vector2.Zero,
+        Mass = () => mapSize.X * Features.Current.PlatformMassPerTile,
         EngineFriction = () => Features.Current.PlatformEngineFriction,
         CollisionLayer = PhysicsLayer.Character,
         CanBeCarried = false,

@@ -355,9 +355,18 @@ public sealed record Features
 
     #region Platforms
     /// <summary>
-    /// A platform's mass. Its drive and its hold on its line are fractions of its weight, so they scale with it.
+    /// A platform's mass per tile of width.
     /// </summary>
-    public float PlatformMass { get; init; } = 5;
+    public float PlatformMassPerTile { get; init; } = 2.5f;
+
+    /// <summary>
+    /// How much mass a platform can hold up, per tile of width. Its drive along its line and its thrust back onto it are
+    /// each capped at the weight of this mass under unscaled gravity, so the same load overloads a platform whichever way
+    /// it moves, and every width accelerates alike. A little above the player's mass, so that every platform carries the
+    /// player.
+    /// </summary>
+    public float PlatformCapacityPerTile { get; init; } = 1.25f;
+
     /// <summary>
     /// A platform's coefficient of friction, with which it carries what rests on it. The smaller of two bodies'
     /// coefficients wins, unless one is rough, as a walker's is.
@@ -371,8 +380,6 @@ public sealed record Features
     /// that speed, until its drive is at its maximum. Higher -> holds its speed better under load.
     /// </summary>
     public float PlatformDriveGain { get; init; } = 10;
-    /// <summary>A platform's maximum drive along its line, as a fraction of its weight under unscaled gravity.</summary>
-    public float PlatformMaxDriveFrac { get; init; } = 0.5f;
     /// <summary>
     /// How hard a platform plans to brake as it nears the end of its line, as a fraction of its maximum drive. The
     /// rest is spare, for braking a load. Higher -> stops later and harder.
@@ -384,11 +391,6 @@ public sealed record Features
     /// line. Being a frequency, it holds platforms of any mass alike. Higher -> less sag.
     /// </summary>
     public float PlatformHoldFrequency { get; init; } = 4.75f;
-    /// <summary>
-    /// A platform's maximum thrust back toward its line, as a fraction of its weight under unscaled gravity. A load
-    /// heavier than this fraction of its weight sinks a platform that moves sideways.
-    /// </summary>
-    public float PlatformMaxHoldFrac { get; init; } = 0.5f;
 
     /// <summary>How near to the end of its line a platform turns around, in tiles.</summary>
     public float PlatformTurnDistance { get; init; } = 0.1f;

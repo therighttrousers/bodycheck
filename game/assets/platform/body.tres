@@ -1,0 +1,12 @@
+[gd_resource type="StandardMaterial3D" format=3 uid="uid://bgoyrl15765qm"]
+
+[ext_resource type="Texture2D" uid="uid://cb57ywf0crit7" path="res://assets/platform/platform_traces.png" id="1_traces"]
+
+[resource]
+resource_name = "Body"
+albedo_color = Color(0.25530446, 0.4536686, 0.31039557, 1)
+metallic = 0.6
+roughness = 0.35
+emission_enabled = true
+emission_texture = ExtResource("1_traces")
+texture_filter = 0

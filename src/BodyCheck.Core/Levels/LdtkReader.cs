@@ -12,8 +12,8 @@ namespace BodyCheck.Core.Levels;
 /// checks everything it reads. A level may be any whole number of tiles in size, at any whole number of tiles from the
 /// others, as long as no two overlap. Everything outside a world's rooms is empty. A level has three layers:
 /// <c>SolidGeometry</c>, an IntGrid in which every value but 0 is a solid tile, <c>Characters</c>, of entities with
-/// bodies, and <c>ControlEntities</c>, of entities without, such as respawns. Each entity starts with the middle of its
-/// base at the middle of the bottom edge of its box in LDtk, and keeps that box's size and colour.
+/// bodies, and <c>ControlEntities</c>, of entities without, such as respawns. Each entity keeps the place, size and
+/// colour of its box in LDtk, which must be whole tiles.
 /// </summary>
 public static class LdtkReader
 {
@@ -157,23 +157,46 @@ public static class LdtkReader
             }
 
             // LDtk's y is down, from the top of the level, and the room's is up, from the bottom.
-            float left = entity.Px[0] - entity.Pivot[0] * entity.Width;
-            float bottom = entity.Px[1] + (1 - entity.Pivot[1]) * entity.Height;
-            var start = new Vector2(
-                (left + entity.Width / 2f) / Constants.TilePixels,
-                height - bottom / Constants.TilePixels
-            );
-            var halfSize = new Vector2(
-                entity.Width / 2f / Constants.TilePixels,
-                entity.Height / 2f / Constants.TilePixels
-            );
+            int leftPx = entity.Px[0] - (int)(entity.Pivot[0] * entity.Width);
+            int bottomPx = entity.Px[1] + (int)((1 - entity.Pivot[1]) * entity.Height);
+            if (leftPx % Constants.TilePixels != 0
+                || bottomPx % Constants.TilePixels != 0
+                || entity.Width % Constants.TilePixels != 0
+                || entity.Height % Constants.TilePixels != 0)
+            {
+                throw Invalid(path, $"In level '{level.Identifier}', a {entity.Identifier}'s box isn't a whole number "
+                    + $"of {Constants.TilePixels}-pixel tiles in size and from the level's corner.");
+            }
+            var start = new Vector2I(leftPx / Constants.TilePixels, height - bottomPx / Constants.TilePixels);
+            var size = new Vector2I(entity.Width, entity.Height) / Constants.TilePixels;
             entityConfigs.Add(entity.Identifier switch
             {
-                LdtkEntityName.PlayerStart => new EntityConfig.Player(start, halfSize, new Color(entity.SmartColor)),
-                LdtkEntityName.RobotBasic => new EntityConfig.Robot(start, halfSize, new Color(entity.SmartColor)),
-                LdtkEntityName.Platform => ReadPlatform(path, level, entity, start, halfSize, height),
-                LdtkEntityName.Block => new EntityConfig.Block(start, halfSize, new Color(entity.SmartColor)),
-                LdtkEntityName.Respawn => new EntityConfig.Respawn(start, halfSize, new Color(entity.SmartColor), entity.Iid),
+                LdtkEntityName.PlayerStart => new EntityConfig.Player()
+                {
+                    MapOrigin = start,
+                    MapSize = size,
+                    MapColor = new Color(entity.SmartColor)
+                },
+                LdtkEntityName.RobotBasic => new EntityConfig.Robot()
+                {
+                    MapOrigin = start,
+                    MapSize = size,
+                    MapColor = new Color(entity.SmartColor)
+                },
+                LdtkEntityName.Platform => ReadPlatform(path, level, entity, start, size, height),
+                LdtkEntityName.Block => new EntityConfig.Block()
+                {
+                    MapOrigin = start,
+                    MapSize = size,
+                    MapColor = new Color(entity.SmartColor)
+                },
+                LdtkEntityName.Respawn => new EntityConfig.Respawn()
+                {
+                    MapOrigin = start,
+                    MapSize = size,
+                    MapColor = new Color(entity.SmartColor),
+                    Id = entity.Iid
+                },
             });
         }
 
@@ -186,21 +209,36 @@ public static class LdtkReader
     /// </summary>
     /// <param name="height">The level's height, in tiles.</param>
     private static EntityConfig.Platform ReadPlatform(
-        string path, LdtkLevel level, LdtkEntityInstance entity, Vector2 start, Vector2 halfSize, int height)
+        string path, LdtkLevel level, LdtkEntityInstance entity, Vector2I mapOrigin, Vector2I mapSize, int height)
     {
-        Vector2 rangeA = ReadPoint(path, level, entity, "RangeA", height);
-        Vector2 rangeB = ReadPoint(path, level, entity, "RangeB", height);
+        if (mapSize.X <= 0)
+        {
+            throw Invalid(path, $"In level '{level.Identifier}', a {entity.Identifier}'s width is not positive.");
+        }
+        if (mapSize.Y != 1)
+        {
+            throw Invalid(path, $"In level '{level.Identifier}', a {entity.Identifier}'s height is not 1 tile.");
+        }
+        Vector2I rangeA = ReadPoint(path, level, entity, "RangeA", height);
+        Vector2I rangeB = ReadPoint(path, level, entity, "RangeB", height);
         if (rangeA == rangeB)
         {
             throw Invalid(path, $"In level '{level.Identifier}', a {entity.Identifier}'s RangeA and RangeB are the "
                 + "same cell.");
         }
-        return new EntityConfig.Platform(start, halfSize, new Color(entity.SmartColor), rangeA, rangeB);
+        return new EntityConfig.Platform()
+        {
+            MapOrigin = mapOrigin,
+            MapSize = mapSize,
+            MapColor = new Color(entity.SmartColor),
+            RangeA = rangeA,
+            RangeB = rangeB,
+        };
     }
 
-    /// <summary>Reads an entity's Point field as the middle of its cell.</summary>
+    /// <summary>Reads an entity's Point field as its cell, in the room's coordinates.</summary>
     /// <param name="height">The level's height, in tiles.</param>
-    private static Vector2 ReadPoint(string path, LdtkLevel level, LdtkEntityInstance entity, string field, int height)
+    private static Vector2I ReadPoint(string path, LdtkLevel level, LdtkEntityInstance entity, string field, int height)
     {
         JsonElement? value = entity.FieldInstances.FirstOrDefault(instance => instance.Identifier == field)?.Value;
         if (value is not { ValueKind: JsonValueKind.Object })
@@ -218,7 +256,7 @@ public static class LdtkReader
             throw Invalid(path, $"In level '{level.Identifier}', a {entity.Identifier}'s {field} isn't a point.", e);
         }
         // LDtk's y is down, from the top of the level, and the room's is up, from the bottom.
-        return new Vector2(point.Cx + 0.5f, height - point.Cy - 0.5f);
+        return new Vector2I(point.Cx, height - 1 - point.Cy);
     }
 
     private static T Parse<T>(string path, string json, JsonTypeInfo<T> type)

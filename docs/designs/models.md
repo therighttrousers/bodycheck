@@ -6,6 +6,7 @@ Relevant decision records:
 - [021: Sound](../decision-records/021-sound.md)
 - [024: Playtesting feedback](../decision-records/024-playtesting-feedback.md)
 - [031: Tests in the game's project](../decision-records/031-tests-in-the-game-project.md)
+- [037: Resizable platforms, and a first try at the game's style](../decision-records/037-resizable-platforms-and-first-style.md)
 
 What the game asks of a 3D model, and how code and art meet in it. The models in the game now are placeholders.
 
@@ -16,9 +17,19 @@ What the game asks of a 3D model, and how code and art meet in it. The models in
 - **A wrapper scene** beside the glTF, `scene.tscn` in the model's folder in `game/assets/`, is what the game loads. It holds what Godot adds to the model: an animation tree, material overrides, and any adjustment to the model's position, size or direction.
 - **The wrapper's layout** (`006 §1.3`): its root is a plain `Node3D` with no transform, which the game moves and turns. The glTF is the root's child, named `Model`, which the artist moves, scales and turns. Each transform has one owner. The child's transform applies first, so the game turns the model about the root's origin, which is the model's base, wherever the glTF's own origin was.
 - **Units:** one unit is one tile. The player is 0.8 tiles wide and 1.8 tall ([movement.md](movement.md)).
-- **The base is the origin** (`006 §1.1`). The base is where the model stands on the ground: between a character's feet, or the middle of a block's bottom face. A model made for this game has its base at the origin in Blender. A model from elsewhere is adjusted in its wrapper scene until it does.
+- **The anchor is the origin** (`006 §1.1`, `037 §1.6`). The anchor is a spot on the body's box. For most bodies it is the base, where the model stands on the ground: between a character's feet, or the middle of a block's bottom face. For a hovering platform, which stands on nothing, it is the center. A model made for this game has its anchor at the origin in Blender. A model from elsewhere is adjusted in its wrapper scene until it does.
 - **It faces +Z**, towards the camera. The game turns it to face left or right.
 - **A variant**, such as a robot in the player's shape with another colour, is an inherited scene of the model's wrapper scene, with what differs set in the editor. `robot.tscn` beside Bob's wrapper scene overrides the body's material.
+
+## The platform's model
+
+A platform's model fits any width (`037 §4`). It is the first model in the game's style: simple dark beveled shapes, with glowing traces 1 pixel wide.
+
+- **Its parts** are separate objects in one `.glb`. `CapLeft` and `CapRight` are 6 pixels wide, with their origins at their outer ends, so `AssetLibrary` puts them at the ends of the body. `Center` is one unit wide, and `AssetLibrary` stretches it between the caps. Its art is only horizontal traces, so stretching doesn't show.
+- **The art** is `platform_traces.png`, an emission map at the game's resolution. The front face, level with the tiles' fronts, is exactly 16 pixels to the tile, so a texel lands on one pixel. Edit its pixels and the game shows them, with no export.
+- **Its material** is `body.tres`, which replaces the glTF's in the `.glb`'s import settings, because Godot ignores a glTF's nearest filtering. The body's color and the glow are set there, not in the `.blend`. Keep its `emission` black: the material adds the map to it.
+- **The face** is `Eyes`, `MouthSmile`, `MouthStraight` and `MouthFrown`: quads just in front of the front face. A mouth changes by showing one and hiding the others.
+- **Keep lit pixels off mesh edges.** MSAA dims them. A quad's edges run through an empty margin of its art, and the art on the caps and center repeats one column past each end in the atlas, for the seams between them (`037 §4.7`).
 
 ## A model made in Blender
 
@@ -50,7 +61,8 @@ To make a variant of the wrapper scene; for example, to create a model with a di
 
 ## How the game places a model
 
-- Each entity is given its model when it is made, as a child. The entity's own origin is the centre of its body, so it lowers the model by half the body's height, and the model's base meets the bottom of the body (`006 §2.1`).
+- Each entity is given its model when it is made, as a child. The entity's own origin is the centre of its body, so it moves the model to the body's anchor, which `BodyTuning` sets (`006 §2.1`, `037 §1.6`).
+- A body starts with its anchor at the same spot on its box in LDtk, which is usually larger: a character on the bottom of its box, and a platform in the middle of its box (`037 §1.3`).
 - A walker turns its model about the vertical axis at a fixed rate, towards facing right, left or the camera, as its controller sets `Facing` to 1, -1 or 0. The body doesn't turn (`006 §3.1`).
 
 ## Animation
@@ -73,11 +85,18 @@ The tree is the interface between code and art (`006 §4`).
 | `GroundSpeed` | Speed along X relative to what it stands on, in tiles per second, signed. | The entity |
 | `OnGround` | Whether touching the ground this tick. | The entity |
 
+- **What a platform publishes for the tree:**
+
+| Property | Meaning | Set by |
+|---|---|---|
+| `Strain` | How hard it works against what pushes it around, from 0 to 1, its most. Moving itself along its line doesn't count, nor does a load that carries it the way it is going (`037 §3.4`). On a platform 3 tiles wide the player gives about 0.3, or 0.05 going down, a block about 0.5, and anything that stops it 1. | The controller |
+
 - **Parameters** that code sets each tick, because a blend space and a time scale take a number, not an expression:
   - `parameters/Move/BlendSpace1D/blend_position`: the absolute ground speed, in tiles per second.
   - `parameters/Move/TimeScale/scale`: the same, so that a clip with a custom timeline of length `n`, stretched, plays one cycle per `n` tiles.
   - A model whose tree has no such parameter ignores it. A misspelt parameter name is ignored too, silently. A misspelt name in an expression is an error.
 - **Bob's tree**, the player's and the robots' model: a state machine of `Idle`, `Move`, `Jump` and `InAir`. `Move` is a blend space of idle at 0 tiles per second, walk at 4 and run at 15, followed by a time scale.
+- **The platform's tree:** a state machine of `smile`, `straight` and `frown`, whose clips show one mouth and hide the others. Its `AnimationPlayer` is in the wrapper scene, since the `.glb` has no animations. It is straight above a `Strain` of 0.15 and frowns above 0.75. Clips last 1 second and transitions switch at their end, so `Strain` needs no smoothing: a one-tick spike, such as when the player lands on a platform or jumps off it, makes a frown that lasts a moment (`037 §3.5`).
 - **Rest pose:** the import setting `animation/import_rest_as_RESET` is on for animated models. The editor plays the tree while the scene is open, and without a `RESET` animation it would save the pose it happened to show into the wrapper scene.
 
 ## Sounds
@@ -109,6 +128,7 @@ The game's tests load the same wrapper scenes as the game, since they are in the
 
 ## Open questions
 
+- Whether game-resolution art with nearest filtering is the style, as on the platform, or only suits the front face (`037 §4.3`).
 - Whether a model's size belongs in its import settings (Bob is imported at 0.85) or in its wrapper scene.
 - A walker's walk is wrong at very low speeds, such as the player's when a tunnel knocked a block off its head (`019 §6.4`).
 - Animation that follows what a walker is trying to do, not only how fast it moves. A walker pushed by something it faces walks backwards at the speed it's pushed, and an idle walker that faces the camera and is pushed walks towards the camera. Issue #25.

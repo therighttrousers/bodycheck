@@ -275,6 +275,95 @@ public class BodiesTest
     }
 
     [TestCase]
+    public void A_models_origin_is_at_its_bodys_anchor()
+    {
+        RoomRun run = Start(RoomOf(
+            "#.........#",
+            "#....H....#",
+            "#.P.......#",
+            new string('#', 11)));
+
+        static float ModelY(Entity entity) => entity.GetChildren().OfType<Node3D>()
+            .Single(child => child is not (CollisionShape3D or Joint3D or Light3D)).Position.Y;
+
+        Entity platform = run.Node.EntitiesOf(EntityKind.Platform).Single();
+        AssertThat(ModelY(run.Player)).IsEqual(-run.Player.HalfSize.Y);
+        AssertThat(ModelY(run.Node.PlayerBlock)).IsEqual(-run.Node.PlayerBlock.HalfSize.Y);
+        AssertThat(ModelY(platform)).IsEqual(0f);
+    }
+
+    /// <summary>How a platform moving up and down strains over some seconds, by the way it is moving.</summary>
+    private async Task<(float Up, float Down, float Most)> StrainOnAVerticalLine(string playerRow)
+    {
+        string[] rows =
+        [
+            .. Enumerable.Repeat("#............#", 9),
+            playerRow,
+            "#............#",
+            "#............#",
+            new string('#', 14),
+        ];
+        var platform = new EntityConfig.Platform
+        {
+            MapOrigin = new Vector2I(5, 2),
+            MapSize = new Vector2I(3, 1),
+            MapColor = Colors.Green,
+            RangeA = new Vector2I(6, 2),
+            RangeB = new Vector2I(6, 9),
+        };
+        Room text = RoomOf(rows);
+        RoomRun run = Start(new Room("Test", default, TileGrid.FromText(rows), [.. text.EntityConfigs, platform]));
+        var entity = (PlatformEntity)run.Node.EntitiesOf(EntityKind.Platform).Single();
+
+        await run.Tick(Idle, 60);
+        var up = new List<float>();
+        var down = new List<float>();
+        float most = 0;
+        await run.Tick(Idle, 8 * 60, () =>
+        {
+            most = MathF.Max(most, entity.Strain);
+            (entity.LinearVelocity.Y > 0 ? up : down).Add(entity.Strain);
+        });
+        return (up.Average(), down.Average(), most);
+    }
+
+    [TestCase]
+    public async Task A_platform_doesnt_strain_to_move_itself()
+    {
+        (_, _, float most) = await StrainOnAVerticalLine("#P...........#");
+
+        AssertThat(most).IsLess(0.1f);
+    }
+
+    [TestCase]
+    public async Task A_platform_strains_to_lift_the_player_and_not_to_lower_it()
+    {
+        (float up, float down, _) = await StrainOnAVerticalLine("#......P.....#");
+
+        AssertThat(up).IsBetween(0.2f, 0.4f);
+        AssertThat(down).IsLess(0.1f);
+    }
+
+    [TestCase]
+    public async Task A_platform_strains_to_hold_up_a_load_as_it_moves_sideways()
+    {
+        RoomRun run = Start(RoomOf(
+            "#....................#",
+            "#...........B........#",
+            "#....................#",
+            "#..........H.........#",
+            "#....................#",
+            "#.P..................#",
+            new string('#', 22)));
+        var platform = (PlatformEntity)run.Node.EntitiesOf(EntityKind.Platform).Single();
+
+        await run.Tick(Idle, 90);
+
+        float blockShare = Features.Current.BlockMass / (3 * Features.Current.PlatformCapacityPerTile);
+        AssertThat(platform.Strain).IsEqualApprox(blockShare, 0.05f);
+    }
+
+    [TestCase]
     public async Task A_platform_that_the_player_stops_turns_around()
     {
         // The player stands by the left wall, in the way of the platform's left end.
