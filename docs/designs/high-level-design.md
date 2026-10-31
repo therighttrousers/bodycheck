@@ -7,6 +7,7 @@ Relevant decision records:
 - [001: Godot's 3D physics engine](../decision-records/001-godot-3d-physics.md)
 - [003: Rendering pipeline for the Star Fox SNES look](../decision-records/003-snes-3d-look.md)
 - [005: Jolt's joint motors for traction](../decision-records/005-jolt-motors-for-traction.md)
+- [037: Resizable platforms, and a first try at the game's style](../decision-records/037-resizable-platforms-and-first-style.md)
 
 ## Detailed design docs
 

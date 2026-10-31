@@ -21,6 +21,16 @@ What the game asks of a 3D model, and how code and art meet in it. The models in
 - **It faces +Z**, towards the camera. The game turns it to face left or right.
 - **A variant**, such as a robot in the player's shape with another colour, is an inherited scene of the model's wrapper scene, with what differs set in the editor. `robot.tscn` beside Bob's wrapper scene overrides the body's material.
 
+## The platform's model
+
+A platform's model fits any width (`037 §4`). It is the first model in the game's style: simple dark beveled shapes, with glowing traces 1 pixel wide.
+
+- **Its parts** are separate objects in one `.glb`. `CapLeft` and `CapRight` are 6 pixels wide, with their origins at their outer ends, so `AssetLibrary` puts them at the ends of the body. `Center` is one unit wide, and `AssetLibrary` stretches it between the caps. Its art is only horizontal traces, so stretching doesn't show.
+- **The art** is `platform_traces.png`, an emission map at the game's resolution. The front face, level with the tiles' fronts, is exactly 16 pixels to the tile, so a texel lands on one pixel. Edit its pixels and the game shows them, with no export.
+- **Its material** is `body.tres`, which replaces the glTF's in the `.glb`'s import settings, because Godot ignores a glTF's nearest filtering. The body's color and the glow are set there, not in the `.blend`. Keep its `emission` black: the material adds the map to it.
+- **The face** is `Eyes`, `MouthSmile`, `MouthStraight` and `MouthFrown`: quads just in front of the front face. A mouth changes by showing one and hiding the others.
+- **Keep lit pixels off mesh edges.** MSAA dims them. A quad's edges run through an empty margin of its art, and the art on the caps and center repeats one column past each end in the atlas, for the seams between them (`037 §4.7`).
+
 ## A model made in Blender
 
 1. **Keep the `.blend` in the model's folder** in `game/assets/`, beside its export. It is the source; the export is what the game uses.
@@ -75,6 +85,12 @@ The tree is the interface between code and art (`006 §4`).
 | `GroundSpeed` | Speed along X relative to what it stands on, in tiles per second, signed. | The entity |
 | `OnGround` | Whether touching the ground this tick. | The entity |
 
+- **What a platform publishes for the tree:**
+
+| Property | Meaning | Set by |
+|---|---|---|
+| `Strain` | How hard it works against what pushes it around, from 0 to 1, its most. Moving itself along its line doesn't count, nor does a load that carries it the way it is going (`037 §3.4`). On a platform 3 tiles wide the player gives about 0.3, or 0.05 going down, a block about 0.5, and anything that stops it 1. | The controller |
+
 - **Parameters** that code sets each tick, because a blend space and a time scale take a number, not an expression:
   - `parameters/Move/BlendSpace1D/blend_position`: the absolute ground speed, in tiles per second.
   - `parameters/Move/TimeScale/scale`: the same, so that a clip with a custom timeline of length `n`, stretched, plays one cycle per `n` tiles.
@@ -111,6 +127,8 @@ The game's tests load the same wrapper scenes as the game, since they are in the
 
 ## Open questions
 
+- Whether game-resolution art with nearest filtering is the style, as on the platform, or only suits the front face (`037 §4.3`).
+- Whether a one-tick spike in `Strain` makes a platform's mouth flicker, and whether clips about 0.1 seconds long that switch at their end cure it, as a flinch (`037 §3.5`).
 - Whether a model's size belongs in its import settings (Bob is imported at 0.85) or in its wrapper scene.
 - A walker's walk is wrong at very low speeds, such as the player's when a tunnel knocked a block off its head (`019 §6.4`).
 - Animation that follows what a walker is trying to do, not only how fast it moves. A walker pushed by something it faces walks backwards at the speed it's pushed, and an idle walker that faces the camera and is pushed walks towards the camera. Issue #25.

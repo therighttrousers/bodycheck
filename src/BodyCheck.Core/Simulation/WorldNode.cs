@@ -149,9 +149,9 @@ public partial class WorldNode : Node3D
         return robot;
     }
 
-    private static Entity CreatePlatform(EntityConfig.Platform config, Node3D? visual)
+    private static PlatformEntity CreatePlatform(EntityConfig.Platform config, Node3D? visual)
     {
-        var platform = new Entity(BodyTuning.Platform(config.MapSize), visual);
+        var platform = new PlatformEntity(BodyTuning.Platform(config.MapSize), visual);
         // The range is two cells, and the platform's center moves between their middles.
         var cellMiddle = new Vector2(0.5f, 0.5f);
         platform.Controller = new PlatformController(platform, config.RangeA + cellMiddle, config.RangeB + cellMiddle);

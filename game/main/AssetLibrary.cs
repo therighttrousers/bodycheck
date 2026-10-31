@@ -17,6 +17,7 @@ public class AssetLibrary : IAssetLibrary
 {
     private const string TilePath = "res://assets/tile/tile.tscn";
     private const string BlockPath = "res://assets/portal_cube/scene.tscn";
+    private const string PlatformPath = "res://assets/platform/scene.tscn";
 
     // How opaque the player's block is: a ghost of a block.
     private const float PlayerBlockAlpha = 0.4f;
@@ -28,7 +29,7 @@ public class AssetLibrary : IAssetLibrary
     {
         EntityKind.Player => InstantiateModel("res://assets/bob_the_robot/scene.tscn"),
         EntityKind.Robot => InstantiateModel("res://assets/bob_the_robot/robot.tscn"),
-        EntityKind.Platform => GetDebugBoxVisual(2 * BodyTuning.Platform(config.MapSize).HalfSize, config.MapColor, 1.0f),
+        EntityKind.Platform => InstantiatePlatform(2 * BodyTuning.Platform(config.MapSize).HalfSize.X),
         EntityKind.Block => InstantiateModel(BlockPath),
         EntityKind.Respawn => null,
     };
@@ -76,6 +77,23 @@ public class AssetLibrary : IAssetLibrary
     {
         var scene = GD.Load<PackedScene>(path);
         return scene.Instantiate<Node3D>();
+    }
+
+    /// <summary>
+    /// The platform's model, <paramref name="width"/> tiles wide: its end caps, whose origins are at their outer ends, go
+    /// to the ends, and its center, one tile wide, stretches between them.
+    /// </summary>
+    private static Node3D InstantiatePlatform(float width)
+    {
+        Node3D model = InstantiateModel(PlatformPath);
+        var capLeft = model.GetNode<MeshInstance3D>("Model/CapLeft");
+        var capRight = model.GetNode<MeshInstance3D>("Model/CapRight");
+        var center = model.GetNode<MeshInstance3D>("Model/Center");
+        capLeft.Position = capLeft.Position with { X = -width / 2 };
+        capRight.Position = capRight.Position with { X = width / 2 };
+        float capsWidth = capLeft.GetAabb().Size.X + capRight.GetAabb().Size.X;
+        center.Scale = center.Scale with { X = width - capsWidth };
+        return model;
     }
 
     /// <summary>
