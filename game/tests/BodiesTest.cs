@@ -275,6 +275,24 @@ public class BodiesTest
     }
 
     [TestCase]
+    public void A_models_origin_is_at_its_bodys_anchor()
+    {
+        RoomRun run = Start(RoomOf(
+            "#.........#",
+            "#....H....#",
+            "#.P.......#",
+            new string('#', 11)));
+
+        static float ModelY(Entity entity) => entity.GetChildren().OfType<Node3D>()
+            .Single(child => child is not (CollisionShape3D or Joint3D or Light3D)).Position.Y;
+
+        Entity platform = run.Node.EntitiesOf(EntityKind.Platform).Single();
+        AssertThat(ModelY(run.Player)).IsEqual(-run.Player.HalfSize.Y);
+        AssertThat(ModelY(run.Node.PlayerBlock)).IsEqual(-run.Node.PlayerBlock.HalfSize.Y);
+        AssertThat(ModelY(platform)).IsEqual(0f);
+    }
+
+    [TestCase]
     public async Task A_platform_that_the_player_stops_turns_around()
     {
         // The player stands by the left wall, in the way of the platform's left end.

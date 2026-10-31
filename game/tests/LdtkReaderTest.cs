@@ -106,11 +106,11 @@ public class LdtkReaderTest
         AssertThat(upper.IsSolid(0, 14)).IsTrue(); // Its top left tile
         AssertThat(upper.IsSolid(1, 14)).IsFalse();
         EntityConfig robotConfig = upper.EntityConfigs.Single();
-        AssertThat((robotConfig.Kind, robotConfig.Start)).IsEqual((EntityKind.Robot, new Vector2(0.5f, 0)));
+        AssertThat((robotConfig.Kind, robotConfig.MapOrigin)).IsEqual((EntityKind.Robot, new Vector2I(0, 0)));
 
         AssertThat(lower.Origin).IsEqual(new Vector2I(20, 0));
         EntityConfig playerConfig = lower.EntityConfigs.Single();
-        AssertThat((playerConfig.Kind, playerConfig.Start)).IsEqual((EntityKind.Player, new Vector2(1.5f, 14)));
+        AssertThat((playerConfig.Kind, playerConfig.MapOrigin)).IsEqual((EntityKind.Player, new Vector2I(1, 14)));
     }
 
     [TestCase]
@@ -126,7 +126,7 @@ public class LdtkReaderTest
         AssertThat((big.Origin, big.Size)).IsEqual((Vector2I.Zero, new Vector2I(40, 30)));
         AssertThat(big.IsSolid(0, 0)).IsTrue(); // Its bottom left tile
         AssertThat((small.Origin, small.Size)).IsEqual((new Vector2I(41, 22), new Vector2I(7, 5)));
-        AssertThat(small.EntityConfigs.Single().Start).IsEqual(new Vector2(1.5f, 4));
+        AssertThat(small.EntityConfigs.Single().MapOrigin).IsEqual(new Vector2I(1, 4));
     }
 
     [TestCase]
@@ -139,26 +139,28 @@ public class LdtkReaderTest
         World world = ReadOne(Project(Level(0, 0, PlayerStart, controlEntities: respawn)));
 
         EntityConfig.Respawn read = world.Respawns.Single();
-        AssertThat((read.Id, read.Start, read.MapHalfSize)).IsEqual(("a1b2", new Vector2(2.5f, 0), new Vector2(0.5f, 1)));
+        AssertThat((read.Id, read.MapOrigin, read.MapSize)).IsEqual(("a1b2", new Vector2I(2, 0), new Vector2I(1, 2)));
     }
 
     /// <summary>A platform 3 tiles wide in tiles 1 to 3 of a level's top row, with these fields.</summary>
-    private static string Platform(string fields) => $$"""
-        { "__identifier": "Platform", "__pivot": [0, 0], "px": [16, 0], "width": 48, "height": 16,
+    private static string Platform(string fields, int x = 16, int width = 48, int height = 16) => $$"""
+        { "__identifier": "Platform", "__pivot": [0, 0], "px": [{{x}}, 0], "width": {{width}}, "height": {{height}},
           "__smartColor": "#63C74D", "iid": "h", "fieldInstances": [ {{fields}} ] }
         """;
 
     /// <summary>A platform's RangeA, at the middle of its box.</summary>
     private const string RangeA = """{ "__identifier": "RangeA", "__value": { "cx": 2, "cy": 0 } }""";
 
+    /// <summary>A platform's RangeB, under its RangeA.</summary>
+    private const string RangeB = """{ "__identifier": "RangeB", "__value": { "cx": 2, "cy": 10 } }""";
+
     [TestCase]
-    public void Reads_a_platforms_range_as_the_middles_of_its_cells()
+    public void Reads_a_platforms_ranges_directly()
     {
-        const string rangeB = """{ "__identifier": "RangeB", "__value": { "cx": 2, "cy": 10 } }""";
-        World world = ReadOne(Project(Level(0, 0, PlayerStart + ", " + Platform(RangeA + ", " + rangeB))));
+        World world = ReadOne(Project(Level(0, 0, PlayerStart + ", " + Platform(RangeA + ", " + RangeB))));
 
         var platform = world.Rooms.Single().EntityConfigs.OfType<EntityConfig.Platform>().Single();
-        AssertThat((platform.RangeA, platform.RangeB)).IsEqual((new Vector2(2.5f, 14.5f), new Vector2(2.5f, 4.5f)));
+        AssertThat((platform.RangeA, platform.RangeB)).IsEqual((new Vector2I(2, 14), new Vector2I(2, 4)));
     }
 
     [TestCase("")]
@@ -169,6 +171,17 @@ public class LdtkReaderTest
     public void Rejects_a_platform_without_two_different_points(string fields)
     {
         var e = Thrown<InvalidDataException>(() => ReadOne(Project(Level(0, 0, PlayerStart + ", " + Platform(fields)))));
+        AssertThat(e.Message).StartsWith("test.ldtk: ");
+    }
+
+    [TestCase(8, 48, 16)] // Not on a tile
+    [TestCase(16, 40, 16)] // Not a whole number of tiles wide
+    [TestCase(16, 48, 8)] // Not a whole number of tiles high
+    [TestCase(16, 48, 32)] // Not one tile high
+    public void Rejects_a_platform_with_a_box_it_cant_have(int x, int width, int height)
+    {
+        string platform = Platform(RangeA + ", " + RangeB, x, width, height);
+        var e = Thrown<InvalidDataException>(() => ReadOne(Project(Level(0, 0, PlayerStart + ", " + platform))));
         AssertThat(e.Message).StartsWith("test.ldtk: ");
     }
 

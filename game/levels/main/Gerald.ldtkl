@@ -123,7 +123,6 @@
 					"defUid": 204,
 					"px": [144,144],
 					"fieldInstances": [
-						{ "__identifier": "Width", "__type": "Int", "__value": 3, "__tile": null, "defUid": 208, "realEditorValues": [] },
 						{ "__identifier": "RangeA", "__type": "Point", "__value": { "cx": 10, "cy": 6 }, "__tile": null, "defUid": 228, "realEditorValues": [{
 							"id": "V_String",
 							"params": ["10,6"]

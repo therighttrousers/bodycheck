@@ -112,7 +112,7 @@ public partial class Entity : RigidBody3D
     // Whether the entity has warned that the engine reported as many contacts as it may, once, so as not to every tick.
     private bool _warnedOfMaxContacts;
 
-    /// <param name="visual">What to draw for the entity, centered on the middle of its box.</param>
+    /// <param name="visual">What to draw for the entity, with its origin at the body's anchor.</param>
     public Entity(BodyTuning tuning, Node3D? visual = null, bool axisLockAngularZ = true)
     {
         Tuning = tuning;
@@ -143,7 +143,7 @@ public partial class Entity : RigidBody3D
 
         if (visual is not null)
         {
-            visual.Position -= new Vector3(0, tuning.HalfSize.Y, 0);
+            visual.Position += AnchorOffset.ToVector3();
             Visual = visual;
             AddChild(visual);
 
@@ -185,6 +185,9 @@ public partial class Entity : RigidBody3D
     public BodyTuning Tuning { get; }
 
     public Vector2 HalfSize => Tuning.HalfSize;
+
+    /// <summary>Where the body's anchor is, from its center.</summary>
+    public Vector2 AnchorOffset => 2 * HalfSize * Tuning.Anchor;
 
     /// <summary>Which sides touched tiles or other entities during the engine's last step.</summary>
     public Contacts Contacts { get; private set; }

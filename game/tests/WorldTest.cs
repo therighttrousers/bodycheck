@@ -59,8 +59,8 @@ public class WorldTest
         AssertThat(world.IsSolid(3, 1)).IsFalse(); // Between the rooms
         AssertThat(world.IsSolid(0, 2)).IsFalse(); // Above the left room
 
-        AssertArray(world.EntityConfigs.Select(config => (config.Kind, config.Start))).ContainsExactly(
-            (EntityKind.Player, new Vector2(1.5f, 0)), (EntityKind.Block, new Vector2(4.5f, 1)));
+        AssertArray(world.EntityConfigs.Select(config => (config.Kind, config.MapOrigin))).ContainsExactly(
+            (EntityKind.Player, new Vector2I(1, 0)), (EntityKind.Block, new Vector2I(4, 1)));
     }
 
     [TestCase]
@@ -71,6 +71,6 @@ public class WorldTest
         var world = new World("Test", [Room.FromText("Player", "P.."), platformRoom]);
 
         var platform = world.EntityConfigs.OfType<EntityConfig.Platform>().Single();
-        AssertThat((platform.RangeA, platform.RangeB)).IsEqual((new Vector2(5.5f, 1.5f), new Vector2(9.5f, 1.5f)));
+        AssertThat((platform.RangeA, platform.RangeB)).IsEqual((new Vector2I(5, 1), new Vector2I(9, 1)));
     }
 }

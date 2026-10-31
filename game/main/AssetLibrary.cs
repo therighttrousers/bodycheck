@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 
+using BodyCheck.Core.Entities;
 using BodyCheck.Core.Simulation;
 using BodyCheck.Core.WorldData;
 
@@ -20,8 +21,6 @@ public class AssetLibrary : IAssetLibrary
     // How opaque the player's block is: a ghost of a block.
     private const float PlayerBlockAlpha = 0.4f;
 
-    private static readonly Color PlatformColor = new(0.9f, 0.1f, 0.7f);
-
     private (Mesh Mesh, Transform3D Transform)? _tile;
     private readonly Dictionary<float, Mesh> _darkenedTiles = [];
 
@@ -29,7 +28,7 @@ public class AssetLibrary : IAssetLibrary
     {
         EntityKind.Player => InstantiateModel("res://assets/bob_the_robot/scene.tscn"),
         EntityKind.Robot => InstantiateModel("res://assets/bob_the_robot/robot.tscn"),
-        EntityKind.Platform => GetDebugBoxVisual(new(1.4f, 0.4f), PlatformColor, 1.0f),
+        EntityKind.Platform => GetDebugBoxVisual(2 * BodyTuning.Platform(config.MapSize).HalfSize, config.MapColor, 1.0f),
         EntityKind.Block => InstantiateModel(BlockPath),
         EntityKind.Respawn => null,
     };
@@ -57,20 +56,19 @@ public class AssetLibrary : IAssetLibrary
         return (darkened, transform);
     }
 
-    public MeshInstance3D GetDebugBoxVisual(Vector2 halfSize, Color color, float alpha = 0.5f)
+    public MeshInstance3D GetDebugBoxVisual(Vector2 size, Color color, float alpha = 0.5f)
     {
         return new MeshInstance3D
         {
             Mesh = new BoxMesh
             {
-                Size = new Vector3(2 * halfSize.X, 2 * halfSize.Y, 2 * halfSize.X),
+                Size = new Vector3(size.X, size.Y, 1),
                 Material = new StandardMaterial3D
                 {
                     AlbedoColor = new Color(color.R, color.G, color.B, alpha),
                     Transparency = alpha < 1 ? BaseMaterial3D.TransparencyEnum.Alpha : BaseMaterial3D.TransparencyEnum.Disabled,
                 },
             },
-            Position = new Vector3(0, halfSize.Y, 0),
         };
     }
 

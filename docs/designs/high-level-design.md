@@ -40,6 +40,7 @@ The player is a maintenance robot who has been asked by a mysterious Voice to re
 - The target look is mid-1990s 3D games such as Star Fox, Quake and Descent, but with modern rendering features: anti-aliasing, shadows, transparency, ambient occlusion, refraction, reflection, subsurface scattering. It should look like something that would have astonished a teenager in the mid-1990s, while still passing as somewhat believable mid-1990s technology.
 - The image is Mode X: 320x240 and 256 colours, with dither. See [rendering.md](rendering.md).
 - Art is basic shapes until the mechanics are proven.
+- Everything that can move on its own has distinguishable eyes, because eyes are how people recognise intent and agency. They are simple, since there are few pixels to draw them with.
 
 ## Principles
 

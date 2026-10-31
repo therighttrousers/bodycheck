@@ -372,9 +372,11 @@ public class PhaseTest
     [TestCase]
     public async Task ALongPauseDoesntChangeThePhase()
     {
-        // In the air beside a hovering platform, where the grab has drift to take back.
+        // In the air beside a hovering platform, where the grab has drift to take back. High enough that the phase up
+        // doesn't reach the ceiling on the tick checked.
         _run = new RoomRun(RoomRun.RoomOf(
             "############",
+            "#..........#",
             "#..........#",
             "#..........#",
             "#P.H.......#",

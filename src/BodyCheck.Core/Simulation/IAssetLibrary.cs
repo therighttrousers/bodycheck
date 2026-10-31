@@ -8,21 +8,22 @@ namespace BodyCheck.Core.Simulation;
 public interface IAssetLibrary
 {
     /// <summary>
-    /// Makes what to draw for an entity of <paramref name="kind"/>, with a body of <paramref name="halfSize"/>, with its
-    /// origin at the middle of its base. It is called once for each entity.
+    /// Makes what to draw for an entity, with its origin where its body's anchor goes, or null for an entity with no body.
+    /// It is called once for each entity.
     /// </summary>
     Node3D? GetEntityVisual(EntityConfig config);
 
     /// <summary>
-    /// Makes what to draw for the block the player spawns, with a body of <paramref name="halfSize"/>, with its origin at
-    /// the middle of its base. It is called once for each world.
+    /// Makes what to draw for the block the player spawns, with a body of <paramref name="halfSize"/>, with its origin
+    /// where its body's anchor goes. It is called once for each world.
     /// </summary>
     Node3D GetPlayerBlockVisual(Vector2 halfSize);
 
     /// <summary>
-    /// Returns a box with the given size and color/alpha for debugging, or as a placeholder for an eventual model.
+    /// Returns a box with the given size and color/alpha, centered on its origin, for debugging, or as a placeholder for
+    /// an eventual model.
     /// </summary>
-    MeshInstance3D GetDebugBoxVisual(Vector2 halfSize, Color color, float alpha = 0.5f);
+    MeshInstance3D GetDebugBoxVisual(Vector2 size, Color color, float alpha = 0.5f);
 
     /// <summary>
     /// The mesh to draw a tile with, darkened by <paramref name="darkening"/> from 0 to 1, and the transform that fits it

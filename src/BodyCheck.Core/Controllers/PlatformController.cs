@@ -69,25 +69,28 @@ public sealed class PlatformController : IController<Entity>
         // The caps don't depend on the gravity scale, so a platform pushes as hard while a grab holds it.
         float unscaledWeight = _entity.Mass * Constants.Gravity;
 
+        // On-axis or off-axis maximum thrust, as a fraction of the platform's weight.
+        float maxThrustFrac = features.PlatformCapacityPerTile / features.PlatformMassPerTile;
+
         // Drive toward the end it is heading for at a target speed: top speed, or less near the end, so that braking
         // at a constant rate would stop it there. The braking curve aims past the end by the turn distance, so the
         // target speed is still above zero where the platform turns, and a load can't keep it from getting there.
         Vector2 heading = _towardB ? _along : -_along;
         float distanceLeft = ((_towardB ? _rangeB : _rangeA) - position).Dot(heading);
-        float braking = features.PlatformBrakeFrac * features.PlatformMaxDriveFrac * Constants.Gravity;
+        float braking = features.PlatformBrakeFrac * maxThrustFrac * Constants.Gravity;
         float targetSpeed = MathF.Min(
             features.PlatformTopSpeed,
             MathF.Sqrt(2 * braking * MathF.Max(0, distanceLeft + features.PlatformTurnDistance)));
-        float maxDrive = features.PlatformMaxDriveFrac * unscaledWeight;
+        float maxThrust = maxThrustFrac * unscaledWeight;
         float drive = Math.Clamp(
-            _entity.Mass * features.PlatformDriveGain * (targetSpeed - velocity.Dot(heading)), -maxDrive, maxDrive);
+            _entity.Mass * features.PlatformDriveGain * (targetSpeed - velocity.Dot(heading)), -maxThrust, maxThrust);
 
         float hold = CriticallyDampedThrust(
             _entity.Mass,
             features.PlatformHoldFrequency,
             error: (_rangeA - position).Dot(_across),
             rate: velocity.Dot(_across),
-            max: features.PlatformMaxHoldFrac * unscaledWeight);
+            max: maxThrust);
 
         Vector2 thrust = drive * heading + hold * _across;
         _entity.ApplyCentralForce(new Vector3(thrust.X, thrust.Y, 0) - _entity.Mass * _entity.GetGravity());

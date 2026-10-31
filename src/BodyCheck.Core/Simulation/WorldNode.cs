@@ -85,35 +85,32 @@ public partial class WorldNode : Node3D
             Visible = false,
         };
 
-        Node3D GetVisual(EntityConfig config) =>
-            assets.GetEntityVisual(config) ?? assets.GetDebugBoxVisual(config.MapHalfSize, config.MapColor);
-
         foreach (EntityConfig config in world.EntityConfigs)
         {
             Entity? entity = config.Kind switch
             {
                 EntityKind.Player => Player = CreatePlayer(
                     (EntityConfig.Player)config,
-                    GetVisual(config),
+                    assets.GetEntityVisual(config),
                     playerBody ?? BodyTuning.Player),
 
-                EntityKind.Robot => CreateRobot((EntityConfig.Robot)config, GetVisual(config)),
-                EntityKind.Platform => CreatePlatform((EntityConfig.Platform)config, GetVisual(config)),
-                EntityKind.Block => CreateBlock((EntityConfig.Block)config, GetVisual(config)),
+                EntityKind.Robot => CreateRobot((EntityConfig.Robot)config, assets.GetEntityVisual(config)),
+                EntityKind.Platform => CreatePlatform((EntityConfig.Platform)config, assets.GetEntityVisual(config)),
+                EntityKind.Block => CreateBlock((EntityConfig.Block)config, assets.GetEntityVisual(config)),
 
                 EntityKind.Respawn => null,
             };
 
             if (entity is not null)
             {
-                Vector2 start = config.Kind == EntityKind.Player && CurrentRespawn is not null ? CurrentRespawn.Start : config.Start;
-                entity.Position = new Vector3(start.X, start.Y + entity.HalfSize.Y, 0);
+                EntityConfig startBox = config.Kind == EntityKind.Player && CurrentRespawn is not null ? CurrentRespawn : config;
+                entity.Position = StartPosition(entity, startBox);
                 AddChild(entity);
                 _entities.Add(entity);
             }
 
-            var marker = assets.GetDebugBoxVisual(config.MapHalfSize, config.MapColor);
-            marker.Position = new Vector3(config.Start.X, config.Start.Y + config.MapHalfSize.Y, 0);
+            var marker = assets.GetDebugBoxVisual(config.MapSize, config.MapColor);
+            marker.Position = config.MapCenter.ToVector3();
             MapMarkers.AddChild(marker);
         }
         AddChild(MapMarkers);
@@ -130,14 +127,21 @@ public partial class WorldNode : Node3D
         Player.Controller = PlayerController;
     }
 
-    private static PlayerEntity CreatePlayer(EntityConfig.Player config, Node3D visual, BodyTuning body)
+    /// <summary>
+    /// Where an entity's center starts, in a box from the map that is usually larger than its body: where its body's
+    /// anchor is at the same spot on the box.
+    /// </summary>
+    private static Vector3 StartPosition(Entity entity, EntityConfig box) =>
+        (box.MapCenter + ((Vector2)box.MapSize - 2 * entity.HalfSize) * entity.Tuning.Anchor).ToVector3();
+
+    private static PlayerEntity CreatePlayer(EntityConfig.Player config, Node3D? visual, BodyTuning body)
     {
         var player = new PlayerEntity(body, visual);
         player.AddChild(new OmniLight3D { OmniRange = 15, ShadowEnabled = true, Position = new Vector3(0, 0, 2) });
         return player;
     }
 
-    private RobotEntity CreateRobot(EntityConfig.Robot config, Node3D visual)
+    private RobotEntity CreateRobot(EntityConfig.Robot config, Node3D? visual)
     {
         // The player may be built after the robot, so the controller asks for it when it aims.
         var robot = new RobotEntity(BodyTuning.Robot, visual);
@@ -145,17 +149,16 @@ public partial class WorldNode : Node3D
         return robot;
     }
 
-    private static Entity CreatePlatform(EntityConfig.Platform config, Node3D visual)
+    private static Entity CreatePlatform(EntityConfig.Platform config, Node3D? visual)
     {
-        var platform = new Entity(BodyTuning.Platform, visual);
-        // The range is where the middle of the platform's box goes. Its body starts at the bottom of its box, which is
-        // taller, and keeps that place in the box wherever it goes.
-        var offset = new Vector2(0, platform.HalfSize.Y - config.MapHalfSize.Y);
-        platform.Controller = new PlatformController(platform, config.RangeA + offset, config.RangeB + offset);
+        var platform = new Entity(BodyTuning.Platform(config.MapSize), visual);
+        // The range is two cells, and the platform's center moves between their middles.
+        var cellMiddle = new Vector2(0.5f, 0.5f);
+        platform.Controller = new PlatformController(platform, config.RangeA + cellMiddle, config.RangeB + cellMiddle);
         return platform;
     }
 
-    private static Entity CreateBlock(EntityConfig.Block config, Node3D visual)
+    private static Entity CreateBlock(EntityConfig.Block config, Node3D? visual)
     {
         return new Entity(BodyTuning.Block, visual, axisLockAngularZ: false);
     }
@@ -360,8 +363,7 @@ public partial class WorldNode : Node3D
         foreach (EntityConfig.Respawn respawn in World.Respawns)
         {
             // How far apart the boxes are along each axis, or 0 where they overlap along it.
-            Vector2 apart = (center - respawn.Start - new Vector2(0, respawn.MapHalfSize.Y)).Abs()
-                - Player.HalfSize - respawn.MapHalfSize;
+            Vector2 apart = (center - respawn.MapCenter).Abs() - Player.HalfSize - (Vector2)respawn.MapSize / 2f;
             float gap = new Vector2(MathF.Max(apart.X, 0), MathF.Max(apart.Y, 0)).Length();
             if (gap <= Features.Current.PlayerRespawnReach && (nearest is null || gap < nearestGap))
             {
