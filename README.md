@@ -92,6 +92,7 @@ Debug controls:
 Rendering switches:
 - 1: low resolution on or off
 - 2: vertex snapping on or off
+- 3: animations in steps or not
 - 4: colour pass on or off
 - 5: dither on or off
 - 6: the palette, in place of the game, on or off

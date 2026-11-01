@@ -10,6 +10,7 @@ namespace BodyCheck.Look;
 /// <list type="bullet">
 /// <item>1: low resolution on or off</item>
 /// <item>2: vertex snapping on or off</item>
+/// <item>3: animations in steps or not</item>
 /// <item>4: colour pass on or off</item>
 /// <item>5: dither on or off</item>
 /// <item>6: the palette, in place of the game, on or off</item>
@@ -26,23 +27,27 @@ public partial class LookSwitches : Node
     private readonly Godot.Environment _environment;
     private readonly ColorPass _colorPass;
     private readonly VertexSnap _vertexSnap;
+    private readonly AnimationStepper _animationStepper;
 
     private bool _lowRes = true;
     private bool _dither = true;
     private bool _snap = true;
+    private bool _stepAnimations = true;
 
     public LookSwitches(
         WorldViewportContainer view,
         DirectionalLight3D light,
         Godot.Environment environment,
         ColorPass colorPass,
-        VertexSnap vertexSnap)
+        VertexSnap vertexSnap,
+        AnimationStepper animationStepper)
     {
         _worldView = view;
         _light = light;
         _environment = environment;
         _colorPass = colorPass;
         _vertexSnap = vertexSnap;
+        _animationStepper = animationStepper;
     }
 
     /// <summary>Raised after any switch changes. The size of the viewport may have changed with it.</summary>
@@ -57,6 +62,7 @@ public partial class LookSwitches : Node
             {
                 _lowRes ? $"{LowResolution.X}x{LowResolution.Y}" : "native",
                 _snap ? "vertex snap" : "no vertex snap",
+                _stepAnimations ? "stepped animation" : "smooth animation",
                 _colorPass.Visible
                     ? (_dither ? $"dither {_colorPass.LightnessSpread:0.00}/{_colorPass.ChromaSpread:0.000}" : "no dither")
                     : "full colour",
@@ -84,6 +90,7 @@ public partial class LookSwitches : Node
         {
             case Key.Key1: _lowRes = !_lowRes; break;
             case Key.Key2: _snap = !_snap; break;
+            case Key.Key3: _stepAnimations = !_stepAnimations; break;
             case Key.Key4: _colorPass.Visible = !_colorPass.Visible; break;
             case Key.Key5: _dither = !_dither; break;
             case Key.Key6: _colorPass.PaletteShown = !_colorPass.PaletteShown; break;
@@ -102,6 +109,7 @@ public partial class LookSwitches : Node
 
         _colorPass.Dither = _dither;
         _vertexSnap.Enabled = _snap;
+        _animationStepper.Enabled = _stepAnimations;
 
         GD.Print($"Look: {Summary}");
         Changed?.Invoke();

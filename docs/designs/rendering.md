@@ -47,6 +47,10 @@ The camera isn't snapped: on whole pixels, it hides most of the effect (`038 §1
 
 Imported models get nearest filtering from `nearest_textures_import.gd`, a post-import script, since smoothed textures took hardware that the games of the look didn't have. It's the default for new models, in `project.godot`. It reaches only materials embedded in a model: one saved in a file of its own, such as the platform's `body.tres`, has to set nearest filtering itself, and the import warns if it doesn't.
 
+## Animation steps
+
+`AnimationStepper` advances every animation 10 times a second of real time, so that slow motion doesn't make animations choppier, by the game time that has passed (`038 §4.1`). See [models.md](models.md#animation).
+
 ## Palette
 
 The palette has 256 colours. `Palette.cs` generates it when the game starts, as an image in sRGB (`004 §2.6`). It is defined in HSV (`003 §3.1`, `004 §4.6`):

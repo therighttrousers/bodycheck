@@ -7,6 +7,7 @@ Relevant decision records:
 - [024: Playtesting feedback](../decision-records/024-playtesting-feedback.md)
 - [031: Tests in the game's project](../decision-records/031-tests-in-the-game-project.md)
 - [037: Resizable platforms, and a first try at the game's style](../decision-records/037-resizable-platforms-and-first-style.md)
+- [038: Vertices on a grid, for the jitter of mid-1990s 3D](../decision-records/038-vertex-grid.md)
 
 What the game asks of a 3D model, and how code and art meet in it. The models in the game now are placeholders.
 
@@ -67,6 +68,8 @@ To make a variant of the wrapper scene; for example, to create a model with a di
 
 ## Animation
 
+Animations advance 10 times a second of real time, all together, and show each pose until the next (`038 §4.1`). Bodies still move smoothly. So a clip doesn't need much precision, and a cross-fade of 0.1 seconds or less doesn't show. A tree sees its expressions and parameters only at those steps, so a condition that lasts a tick will usually be missed. Key 3 turns the steps off, to compare.
+
 Godot plays a model's animations with two nodes:
 - The **`AnimationPlayer`**, which the importer makes from the glTF's animations, holds the clips, such as `bob_rig|walk`.
 - The **`AnimationTree`**, which the artist adds to the wrapper scene's root, decides which clips play and how they mix. It is built in the editor's AnimationTree panel and saved in the wrapper scene. The game finds it by its name, `AnimationTree`.
@@ -89,14 +92,14 @@ The tree is the interface between code and art (`006 §4`).
 
 | Property | Meaning | Set by |
 |---|---|---|
-| `Strain` | How hard it works against what pushes it around, from 0 to 1, its most. Moving itself along its line doesn't count, nor does a load that carries it the way it is going (`037 §3.4`). On a platform 3 tiles wide the player gives about 0.3, or 0.05 going down, a block about 0.5, and anything that stops it 1. | The controller |
+| `Strain` | How hard it works against what pushes it around, from 0 to 1, its most, smoothed. Moving itself along its line doesn't count, nor does a load that carries it the way it is going (`037 §3.4`). On a platform 3 tiles wide the player gives about 0.3, or 0.05 going down, a block about 0.5, and anything that stops it 1. | The controller |
 
 - **Parameters** that code sets each tick, because a blend space and a time scale take a number, not an expression:
   - `parameters/Move/BlendSpace1D/blend_position`: the absolute ground speed, in tiles per second.
   - `parameters/Move/TimeScale/scale`: the same, so that a clip with a custom timeline of length `n`, stretched, plays one cycle per `n` tiles.
   - A model whose tree has no such parameter ignores it. A misspelt parameter name is ignored too, silently. A misspelt name in an expression is an error.
 - **Bob's tree**, the player's and the robots' model: a state machine of `Idle`, `Move`, `Jump` and `InAir`. `Move` is a blend space of idle at 0 tiles per second, walk at 4 and run at 15, followed by a time scale.
-- **The platform's tree:** a state machine of `smile`, `straight` and `frown`, whose clips show one mouth and hide the others. Its `AnimationPlayer` is in the wrapper scene, since the `.glb` has no animations. It is straight above a `Strain` of 0.15 and frowns above 0.75. Clips last 1 second and transitions switch at their end, so `Strain` needs no smoothing: a one-tick spike, such as when the player lands on a platform or jumps off it, makes a frown that lasts a moment (`037 §3.5`).
+- **The platform's tree:** a state machine of `smile`, `straight` and `frown`, whose clips show one mouth and hide the others. Its `AnimationPlayer` is in the wrapper scene, since the `.glb` has no animations. It is straight above a `Strain` of 0.15 and frowns above 0.4. Transitions are immediate, and go through `straight`. `Strain` is smoothed by the controller, because the tree looks at it only when animations step, so a one-tick spike would usually go unseen. A spike, such as when the player lands on a platform or jumps off it, still makes a frown that lasts a moment (`038 §4.2`).
 - **Rest pose:** the import setting `animation/import_rest_as_RESET` is on for animated models. The editor plays the tree while the scene is open, and without a `RESET` animation it would save the pose it happened to show into the wrapper scene.
 
 ## Sounds

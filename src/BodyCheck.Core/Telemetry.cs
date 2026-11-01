@@ -23,6 +23,9 @@ public enum Metric
     /// <summary>How far the last corner correction nudged its entity, and which way.</summary>
     CornerCorrectionNudge,
 
+    /// <summary>The strain of the platform the player is on.</summary>
+    PlatformStrain,
+
     // The player's last time in the air, reported on landing. Measured from its feet on the last tick on
     // the ground.
     /// <summary>How far the feet rose, to the highest point.</summary>

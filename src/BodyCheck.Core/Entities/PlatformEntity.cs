@@ -11,7 +11,7 @@ public partial class PlatformEntity : Entity
     /// <summary>
     /// How hard the platform works against what is pushing it around, from 0 to 1, its most: what it carries, what is in
     /// its way, or being off its line. Moving itself along its line doesn't count, nor does letting a load carry it the
-    /// way it is going. Set by the controller.
+    /// way it is going. Smoothed, and set by the controller.
     /// </summary>
     public float Strain { get; set; }
     #endregion

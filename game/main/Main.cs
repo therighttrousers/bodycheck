@@ -391,7 +391,10 @@ public partial class Main : Node
         var vertexSnap = new VertexSnap();
         AddChild(vertexSnap);
 
-        _look = new LookSwitches(_worldView, light, environment, colorPass, vertexSnap);
+        var animationStepper = new AnimationStepper();
+        AddChild(animationStepper);
+
+        _look = new LookSwitches(_worldView, light, environment, colorPass, vertexSnap, animationStepper);
         AddChild(_look);
 
         _look.Changed += ShowTitle;
