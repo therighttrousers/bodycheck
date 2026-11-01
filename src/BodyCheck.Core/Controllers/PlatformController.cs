@@ -12,8 +12,6 @@ namespace BodyCheck.Core.Controllers;
 /// </summary>
 public sealed class PlatformController : IController<PlatformEntity>
 {
-    // For smoothing the entity's Strain with an exponential moving average.
-    private const float StrainSmoothingAlpha = 0.1f;
     private readonly PlatformEntity _entity;
     private readonly Vector2 _rangeA;
     private readonly Vector2 _rangeB;
@@ -104,7 +102,8 @@ public sealed class PlatformController : IController<PlatformEntity>
         _entity.ApplyCentralForce(new Vector3(thrust.X, thrust.Y, 0) - _entity.Mass * _entity.GetGravity());
 
         float strain = MathF.Min(1, MathF.Max(MathF.Abs(hold), DriveFought(velocity)) / maxThrust);
-        _entity.Strain = (1 - StrainSmoothingAlpha) * _entity.Strain + StrainSmoothingAlpha * strain;
+        // An exponential moving average, which settles at the same rate at any tick length.
+        _entity.Strain += (strain - _entity.Strain) * (1 - MathF.Exp(-gameDt / features.PlatformStrainTime));
         _lastDrive = drive;
         _lastHeading = heading;
         _lastVelocity = velocity;
