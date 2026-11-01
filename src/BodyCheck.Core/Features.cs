@@ -407,8 +407,8 @@ public sealed record Features
     public float PlatformStallTime { get; init; } = 0.25f;
 
     /// <summary>
-    /// The time constant, in game time, of the smoothing of <see cref="Entities.PlatformEntity.Strain"/>. Long enough
-    /// for a spike of one tick to outlast the gaps between animation steps at the thresholds of the platform's tree.
+    /// The time constant, in game time, of the smoothing of <see cref="Entities.PlatformEntity.Strain"/>, which keeps a
+    /// short rise in strain visible between animation steps.
     /// </summary>
     public float PlatformStrainTime { get; init; } = 0.16f;
     #endregion
