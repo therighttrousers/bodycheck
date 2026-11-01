@@ -405,6 +405,12 @@ public sealed record Features
     /// it takes to speed up again after turning around.
     /// </summary>
     public float PlatformStallTime { get; init; } = 0.25f;
+
+    /// <summary>
+    /// The time constant, in game time, of the smoothing of <see cref="Entities.PlatformEntity.Strain"/>, which keeps a
+    /// short rise in strain visible between animation steps.
+    /// </summary>
+    public float PlatformStrainTime { get; init; } = 0.16f;
     #endregion
 
     #region Blocks

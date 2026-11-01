@@ -101,11 +101,18 @@ public sealed class PlatformController : IController<PlatformEntity>
         Vector2 thrust = drive * heading + hold * _across;
         _entity.ApplyCentralForce(new Vector3(thrust.X, thrust.Y, 0) - _entity.Mass * _entity.GetGravity());
 
-        _entity.Strain = MathF.Min(1, MathF.Max(MathF.Abs(hold), DriveFought(velocity)) / maxThrust);
+        float strain = MathF.Min(1, MathF.Max(MathF.Abs(hold), DriveFought(velocity)) / maxThrust);
+        // An exponential moving average, which settles at the same rate at any tick length.
+        _entity.Strain += (strain - _entity.Strain) * (1 - MathF.Exp(-gameDt / features.PlatformStrainTime));
         _lastDrive = drive;
         _lastHeading = heading;
         _lastVelocity = velocity;
         _lastDt = gameDt;
+
+        if (_entity.Above.Any(e => e is PlayerEntity))
+        {
+            Telemetry.Report(Metric.PlatformStrain, _entity.Strain);
+        }
     }
 
     /// <summary>

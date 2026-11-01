@@ -15,34 +15,20 @@ animation = &"straight"
 advance_mode = 2
 
 [sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_rmdkr"]
-switch_mode = 2
 advance_mode = 2
-advance_expression = "Strain <= 0.75"
+advance_expression = "Strain <= 0.4"
 
 [sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_on2u8"]
-switch_mode = 2
 advance_mode = 2
 advance_expression = "Strain <= 0.15"
 
 [sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_rg3oi"]
-switch_mode = 2
 advance_mode = 2
-advance_expression = "Strain > 0.75"
+advance_expression = "Strain > 0.4"
 
 [sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_7etum"]
-switch_mode = 2
 advance_mode = 2
 advance_expression = "Strain > 0.15"
-
-[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_lwqlv"]
-switch_mode = 2
-advance_mode = 2
-advance_expression = "Strain > 0.75"
-
-[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_4tl4b"]
-switch_mode = 2
-advance_mode = 2
-advance_expression = "Strain <= 0.15"
 
 [sub_resource type="AnimationNodeStateMachine" id="AnimationNodeStateMachine_lwqlv"]
 states/End/position = Vector2(199.52002, 232)
@@ -51,8 +37,8 @@ states/frown/position = Vector2(650.80005, 97.52959)
 states/smile/node = SubResource("AnimationNodeAnimation_4tl4b")
 states/smile/position = Vector2(350.8, 96)
 states/straight/node = SubResource("AnimationNodeAnimation_uxgws")
-states/straight/position = Vector2(482.80005, 262.88)
-transitions = ["Start", "smile", SubResource("AnimationNodeStateMachineTransition_mkl5w"), "frown", "straight", SubResource("AnimationNodeStateMachineTransition_rmdkr"), "straight", "smile", SubResource("AnimationNodeStateMachineTransition_on2u8"), "straight", "frown", SubResource("AnimationNodeStateMachineTransition_rg3oi"), "smile", "straight", SubResource("AnimationNodeStateMachineTransition_7etum"), "smile", "frown", SubResource("AnimationNodeStateMachineTransition_lwqlv"), "frown", "smile", SubResource("AnimationNodeStateMachineTransition_4tl4b")]
+states/straight/position = Vector2(499.60004, 95.29599)
+transitions = ["Start", "smile", SubResource("AnimationNodeStateMachineTransition_mkl5w"), "frown", "straight", SubResource("AnimationNodeStateMachineTransition_rmdkr"), "straight", "smile", SubResource("AnimationNodeStateMachineTransition_on2u8"), "straight", "frown", SubResource("AnimationNodeStateMachineTransition_rg3oi"), "smile", "straight", SubResource("AnimationNodeStateMachineTransition_7etum")]
 
 [sub_resource type="Animation" id="Animation_t0tga"]
 length = 0.001
@@ -222,10 +208,10 @@ _data = {
 
 [node name="Model" parent="." unique_id=1132809182 instance=ExtResource("1_model")]
 
-[node name="MouthFrown" parent="Model" index="4" unique_id=1465770227]
+[node name="MouthFrown" parent="Model" index="4" unique_id=1077692705]
 visible = false
 
-[node name="MouthStraight" parent="Model" index="6" unique_id=1705668301]
+[node name="MouthStraight" parent="Model" index="6" unique_id=2114219563]
 visible = false
 
 [node name="AnimationTree" type="AnimationTree" parent="." unique_id=2078913325]
