@@ -19,5 +19,7 @@ func _set_filters(node: Node) -> void:
 			# show in the editor, which keeps the file loaded, and not in the game.
 			if material is BaseMaterial3D and material.resource_path.is_empty():
 				material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+			elif material is BaseMaterial3D and material.texture_filter != BaseMaterial3D.TEXTURE_FILTER_NEAREST:
+				push_warning("%s should set nearest filtering." % material.resource_path)
 	for child in node.get_children():
 		_set_filters(child)

@@ -45,7 +45,7 @@ The engine has no vertex hook that covers every material, and doesn't give out t
 
 The camera isn't snapped: on whole pixels, it hides most of the effect (`038 §1.4`).
 
-Imported models get nearest filtering from `nearest_textures_import.gd`, a post-import script, since smoothed textures took hardware that the games of the look didn't have. It's the default for new models, in `project.godot`. It reaches only materials embedded in a model: one saved in a file of its own, such as the platform's `body.tres`, has to set nearest filtering itself.
+Imported models get nearest filtering from `nearest_textures_import.gd`, a post-import script, since smoothed textures took hardware that the games of the look didn't have. It's the default for new models, in `project.godot`. It reaches only materials embedded in a model: one saved in a file of its own, such as the platform's `body.tres`, has to set nearest filtering itself, and the import warns if it doesn't.
 
 ## Palette
 
