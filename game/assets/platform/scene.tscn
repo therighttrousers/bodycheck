@@ -222,10 +222,10 @@ _data = {
 
 [node name="Model" parent="." unique_id=1132809182 instance=ExtResource("1_model")]
 
-[node name="MouthFrown" parent="Model" index="4" unique_id=1465770227]
+[node name="MouthFrown" parent="Model" index="4" unique_id=1077692705]
 visible = false
 
-[node name="MouthStraight" parent="Model" index="6" unique_id=1705668301]
+[node name="MouthStraight" parent="Model" index="6" unique_id=2114219563]
 visible = false
 
 [node name="AnimationTree" type="AnimationTree" parent="." unique_id=2078913325]

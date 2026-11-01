@@ -29,7 +29,7 @@ A platform's model fits any width (`037 §4`). It is the first model in the game
 - **The art** is `platform_traces.png`, an emission map at the game's resolution. The front face, level with the tiles' fronts, is exactly 16 pixels to the tile, so a texel lands on one pixel. Edit its pixels and the game shows them, with no export.
 - **Its material** is `body.tres`, which replaces the glTF's in the `.glb`'s import settings, because Godot ignores a glTF's nearest filtering. The body's color and the glow are set there, not in the `.blend`. Keep its `emission` black: the material adds the map to it.
 - **The face** is `Eyes`, `MouthSmile`, `MouthStraight` and `MouthFrown`: quads just in front of the front face. A mouth changes by showing one and hiding the others.
-- **Keep lit pixels off mesh edges.** MSAA dims them. A quad's edges run through an empty margin of its art, and the art on the caps and center repeats one column past each end in the atlas, for the seams between them (`037 §4.7`).
+- **A quad's edges run through an empty margin of its art,** and the art on the caps and center repeats one column past each end in the atlas, for the seams between them. This was for MSAA, which dimmed lit pixels on mesh edges (`037 §4.7`), and the game no longer uses it (`038 §1.3`). The platform's art still follows it.
 
 ## A model made in Blender
 

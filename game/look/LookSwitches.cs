@@ -9,8 +9,7 @@ namespace BodyCheck.Look;
 /// Switches for each part of the rendering pipeline, on the number keys, so that the look can be judged by eye:
 /// <list type="bullet">
 /// <item>1: low resolution on or off</item>
-/// <item>2: next low-resolution size</item>
-/// <item>3: next anti-aliasing level</item>
+/// <item>2: vertex snapping on or off</item>
 /// <item>4: colour pass on or off</item>
 /// <item>5: dither on or off</item>
 /// <item>6: the palette, in place of the game, on or off</item>
@@ -20,26 +19,30 @@ namespace BodyCheck.Look;
 /// </summary>
 public partial class LookSwitches : Node
 {
-    private static readonly Vector2I[] Sizes = [new(320, 240), new(256, 224), new(384, 216), new(640, 480)];
-    private static readonly Viewport.Msaa[] MsaaLevels =
-        [Viewport.Msaa.Disabled, Viewport.Msaa.Msaa2X, Viewport.Msaa.Msaa4X, Viewport.Msaa.Msaa8X];
+    private static readonly Vector2I LowResolution = new(320, 240);
 
     private readonly WorldViewportContainer _worldView;
     private readonly DirectionalLight3D _light;
     private readonly Godot.Environment _environment;
     private readonly ColorPass _colorPass;
+    private readonly VertexSnap _vertexSnap;
 
     private bool _lowRes = true;
-    private int _size;
-    private int _msaa = 1;
     private bool _dither = true;
+    private bool _snap = true;
 
-    public LookSwitches(WorldViewportContainer view, DirectionalLight3D light, Godot.Environment environment, ColorPass colorPass)
+    public LookSwitches(
+        WorldViewportContainer view,
+        DirectionalLight3D light,
+        Godot.Environment environment,
+        ColorPass colorPass,
+        VertexSnap vertexSnap)
     {
         _worldView = view;
         _light = light;
         _environment = environment;
         _colorPass = colorPass;
+        _vertexSnap = vertexSnap;
     }
 
     /// <summary>Raised after any switch changes. The size of the viewport may have changed with it.</summary>
@@ -52,8 +55,8 @@ public partial class LookSwitches : Node
         {
             var parts = new List<string>
             {
-                _lowRes ? $"{Sizes[_size].X}x{Sizes[_size].Y}" : "native",
-                MsaaLevels[_msaa] == Viewport.Msaa.Disabled ? "no AA" : $"MSAA {1 << (int)MsaaLevels[_msaa]}x",
+                _lowRes ? $"{LowResolution.X}x{LowResolution.Y}" : "native",
+                _snap ? "vertex snap" : "no vertex snap",
                 _colorPass.Visible
                     ? (_dither ? $"dither {_colorPass.LightnessSpread:0.00}/{_colorPass.ChromaSpread:0.000}" : "no dither")
                     : "full colour",
@@ -80,8 +83,7 @@ public partial class LookSwitches : Node
         switch (key.PhysicalKeycode)
         {
             case Key.Key1: _lowRes = !_lowRes; break;
-            case Key.Key2: _size = (_size + 1) % Sizes.Length; break;
-            case Key.Key3: _msaa = (_msaa + 1) % MsaaLevels.Length; break;
+            case Key.Key2: _snap = !_snap; break;
             case Key.Key4: _colorPass.Visible = !_colorPass.Visible; break;
             case Key.Key5: _dither = !_dither; break;
             case Key.Key6: _colorPass.PaletteShown = !_colorPass.PaletteShown; break;
@@ -96,10 +98,10 @@ public partial class LookSwitches : Node
 
     private void Apply()
     {
-        _worldView.Resolution = _lowRes ? Sizes[_size] : null;
-        _worldView.World.Msaa3D = MsaaLevels[_msaa];
+        _worldView.Resolution = _lowRes ? LowResolution : null;
 
         _colorPass.Dither = _dither;
+        _vertexSnap.Enabled = _snap;
 
         GD.Print($"Look: {Summary}");
         Changed?.Invoke();

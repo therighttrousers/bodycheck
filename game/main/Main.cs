@@ -388,7 +388,10 @@ public partial class Main : Node
         var colorPass = new ColorPass();
         _worldView.World.AddChild(colorPass);
 
-        _look = new LookSwitches(_worldView, light, environment, colorPass);
+        var vertexSnap = new VertexSnap();
+        AddChild(vertexSnap);
+
+        _look = new LookSwitches(_worldView, light, environment, colorPass, vertexSnap);
         AddChild(_look);
 
         _look.Changed += ShowTitle;
