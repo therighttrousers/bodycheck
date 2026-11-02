@@ -64,8 +64,9 @@ public partial class Main : Node
     private CameraRig _cameraRig = null!;
     private LookSwitches _look = null!;
     private readonly WorldViewportContainer _worldView = new();
-    private readonly DebugOverlay _overlay = new();
+    private readonly DebugOverlay _debugOverlay = new();
     private readonly ErrorOverlay _errorOverlay = new();
+    private readonly PauseMenuOverlay _pauseMenuOverlay = new();
     private CollisionDebug _collisions = null!;
     // Whether each world's map markers show, kept as worlds are loaded.
     private bool _showMapMarkers;
@@ -87,10 +88,14 @@ public partial class Main : Node
         AddChild(_collisions);
         _phaseAimMarker = new PhaseAimMarker(_worldView);
         AddChild(_phaseAimMarker);
-        AddChild(_overlay);
+        AddChild(_debugOverlay);
         AddChild(_errorOverlay);
         AddChild(_gameModeManager);
         AddChild(new Muffler(_gameModeManager));
+
+        _pauseMenuOverlay.Visible = false;
+        _worldView.World.AddChild(_pauseMenuOverlay);
+        _gameModeManager.GameModeChanged += gameMode => _pauseMenuOverlay.Visible = gameMode == GameMode.Menu;
 
         string? worldName = null;
         string? configurationName = null;
@@ -99,7 +104,7 @@ public partial class Main : Node
         {
             if (arg == "--overlay")
             {
-                _overlay.Visible = true;
+                _debugOverlay.Visible = true;
             }
             else if (arg == "--collisions")
             {
@@ -362,6 +367,8 @@ public partial class Main : Node
     /// <summary>Adds the lights, the colour pass, and the switches that turn parts of the pipeline on and off.</summary>
     private void AddLook()
     {
+        RenderingServer.SetDefaultClearColor(Colors.Black); // The bars around the view.
+
         var light = new DirectionalLight3D
         {
             RotationDegrees = new Vector3(-35, 10, 0),

@@ -32,12 +32,12 @@ public partial class CameraRig : Node3D
     /// 320x240 screen, at every size of the viewport, so a tile's face is TilePixels high at 320x240 and the other
     /// sizes show the same framing.
     /// </summary>
-    private const float HalfHeight = 240f / Constants.TilePixels / 2;
+    private static readonly float HalfHeight = (float)Constants.Resolution.Y / Constants.TilePixels / 2;
 
     /// <summary>How far above the player's centre the view's centre is, in tiles, when the world allows it.</summary>
     private const float Lift = 3;
     /// <summary>How far from the player's centre the view's centre is, in tiles, when the player looks up or down and the world allows it.</summary>
-    private const float LookOffset = 0.75f * HalfHeight;
+    private static readonly float LookOffset = 0.75f * HalfHeight;
     /// <summary>How long the user must hold up or down before panning starts, in real seconds.</summary>
     private const float LookDelay = 0.5f;
     /// <summary>How long it takes to pan fully up or down after panning starts, in real seconds.</summary>
