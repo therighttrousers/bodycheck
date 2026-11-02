@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://cgqe7ga88n8dy"]
 
 [ext_resource type="Script" uid="uid://cakqgwylp40r" path="res://main/Main.cs" id="1"]
-[ext_resource type="AudioStream" uid="uid://du1w2vwuoi8qu" path="res://assets/music/854317__bassimat__experimental-piano-loops-superpositions.ogg" id="2_wbnyf"]
+[ext_resource type="AudioStream" uid="uid://b21ht0xyd85ic" path="res://assets/music/invention13/invention13-groove.ogg" id="2_wbnyf"]
 
 [node name="Main" type="Node" unique_id=245510479]
 script = ExtResource("1")

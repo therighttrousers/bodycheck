@@ -21,6 +21,7 @@ Prerequisites:
 - If you want to edit the code, Visual Studio Code
 - If you want to edit the map, version 1.5.3 of the [LDtk editor](https://ldtk.io/download/)
 - If you want to edit models, Blender
+- If you want to edit music, LMMS and ADLplug ([setup steps below](#setting-up-lmms))
 - If you want to edit sounds, Audacity (`winget install Audacity.Audacity`)
 - A parent directory to clone the repository into, **which must not contain spaces anywhere in its path** because Blender is dumb
 
@@ -111,3 +112,20 @@ To make a new world for a puzzle, add a world to `main.ldtk` in LDtk. Save in LD
 ## Configurations
 
 A configuration is a set of gameplay values to try, such as a stronger jump. Each is a JSONC file (JSON with comments) in `game/configurations/` that names only the values it changes; see `strong-jump.jsonc`. The values and their defaults are the properties of `src/BodyCheck.Core/Features.cs`. The game starts with the defaults, unless a configuration is named after `--` with `--configuration=`, for example `play.cmd --configuration=strong-jump`. '[' and ']' switch between configurations, and the window's title shows which is playing. Edit a file in any text editor, then press F5, or switch to it, to play the change. A mistake in a file is shown at the bottom of the window, and the game goes on without it.
+
+## Setting up LMMS
+
+This project's original music is made using an emulated *Yamaha OPL3* chip, which in the 1990s provided FM music synthesis on the iconic *Sound Blaster Pro 2.0* sound card (and the ill-fated *AdLib Gold 1000*). To make and edit chiptunes, you'll need (download both now)
+- LMMS v1.2.2, a digital audio workstation (https://github.com/LMMS/lmms/releases/download/v1.2.2/lmms-1.2.2-win64.exe)
+- ADLplug v1.0.2 to emulate the OPL3 chip (https://github.com/jpcima/ADLplug/releases/download/v1.0.2/ADLplug-1.0.2-win64.7z)
+
+Install and configure:
+- Run the LMMS v1.2.2 installer, accept any defaults
+- Create directory `C:\Program Files\VstPlugins`
+  - LMMS's file format stores an absolute path to `ADLplug.dll`, so it has to be in the same directory on our machines (ugh)
+- Double-click `ADLplug-1.0.2-win64.7z`, navigate to `ADLplug-1.0.2-win64\vst2` inside, copy `ADLplug.dll` (Ctrl+C), and paste it into `C:\Program Files\VstPlugins` (Ctrl+V)
+- Configure LMMS paths for convenience
+  - Open LMMS
+  - Go to Edit -> Settings
+  - Change "LMMS WORKING DIRECTORY" to `<parent-directory>\bodycheck\game\assets\`
+  - Change other directories? (TODO: determine this)

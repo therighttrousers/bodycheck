@@ -1,3 +1,4 @@
 * text=auto eol=lf
-*.psd filter=lfs diff=lfs merge=lfs -text
 *.cmd text eol=crlf
+*.psd filter=lfs diff=lfs merge=lfs -text
+*.mmpz filter=lfs diff=lfs merge=lfs -text
