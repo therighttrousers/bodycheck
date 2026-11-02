@@ -1,3 +1,5 @@
 * text=auto eol=lf
-*.psd filter=lfs diff=lfs merge=lfs -text
 *.cmd text eol=crlf
+*.psd filter=lfs diff=lfs merge=lfs -text
+*.mmp* filter=lfs diff=lfs merge=lfs -text
+*.blend filter=lfs diff=lfs merge=lfs -text
