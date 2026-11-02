@@ -11,7 +11,7 @@ namespace BodyCheck;
 /// What the game is doing: playing, or paused for the menu, the map, or the player aiming a phase. Before the pause
 /// for a phase, it slows down to it.
 /// </summary>
-public enum GameMode { Playing, Menu, Map, SlowingForPhase, Phasing }
+public enum GameMode { Playing, Menu, Map, EndingMap, SlowingForPhase, Phasing }
 
 /// <summary>
 /// Holds the <see cref="GameMode"/>, and switches it on the "menu" and "map" actions. The tree is paused in every mode
@@ -78,7 +78,9 @@ public partial class GameModeManager : Node
                 GameMode.Playing => GameMode.Menu,
                 GameMode.Menu => GameMode.Playing,
                 GameMode.Map => GameMode.Menu,
-                GameMode.SlowingForPhase or GameMode.Phasing => GameMode.Menu,
+                GameMode.EndingMap => GameMode.Menu,
+                GameMode.SlowingForPhase => GameMode.Menu,
+                GameMode.Phasing => GameMode.Menu,
             };
         }
         else if (@event.IsActionPressed("map"))
@@ -88,14 +90,25 @@ public partial class GameModeManager : Node
             {
                 GameMode.Playing => GameMode.Map,
                 GameMode.Menu => GameMode.Map,
-                GameMode.Map => GameMode.Playing,
-                GameMode.SlowingForPhase or GameMode.Phasing => GameMode.Map,
+                GameMode.Map => GameMode.EndingMap,
+                GameMode.EndingMap => GameMode.Map,
+                GameMode.SlowingForPhase => GameMode.Map,
+                GameMode.Phasing => GameMode.Map,
             };
         }
 
         if (newGameMode is not null)
         {
             SetGameMode(newGameMode.Value);
+        }
+    }
+
+    public void NotLookingAtMap()
+    {
+        GD.Print($"NotLookingAtMap: {GameMode}");
+        if (GameMode == GameMode.EndingMap)
+        {
+            SetGameMode(World is not null && World.PauseRequested ? GameMode.Phasing : GameMode.Playing);
         }
     }
 
@@ -127,6 +140,8 @@ public partial class GameModeManager : Node
         _slowdown?.Kill();
         _slowdown = null;
         SlowdownFactor = 1;
+
+        GD.Print($"SetGameMode: {GameMode} -> {gameMode}");
 
         GameMode = gameMode;
         GetTree().Paused = GameMode is not (GameMode.Playing or GameMode.SlowingForPhase);

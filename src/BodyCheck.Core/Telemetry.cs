@@ -26,6 +26,8 @@ public enum Metric
     /// <summary>The strain of the platform the player is on.</summary>
     PlatformStrain,
 
+    CurrentCamera,
+
     // The player's last time in the air, reported on landing. Measured from its feet on the last tick on
     // the ground.
     /// <summary>How far the feet rose, to the highest point.</summary>
@@ -59,13 +61,13 @@ public static class Telemetry
 {
     private static readonly object?[] Values = new object?[Enum.GetValues<Metric>().Length];
 
-    public static void Report<T>(Metric metric, T value) where T : struct => Values[(int)metric] = value;
+    public static void Report<T>(Metric metric, T value) => Values[(int)metric] = value;
 
     /// <summary>The last value reported for a metric, or null if none has been since the last reset.</summary>
     public static object? Get(Metric metric) => Values[(int)metric];
 
     /// <summary>The last value reported for a metric. Throws if none has been since the last reset, or it isn't a T.</summary>
-    public static T Get<T>(Metric metric) where T : struct => Get(metric) switch
+    public static T Get<T>(Metric metric) => Get(metric) switch
     {
         T value => value,
         null => throw new InvalidOperationException($"Nothing has been reported for {metric} since the last reset."),
@@ -75,7 +77,7 @@ public static class Telemetry
     /// <summary>
     /// The last value reported for a metric, or a fallback if none has been since the last reset. Throws if it isn't a T.
     /// </summary>
-    public static T Get<T>(Metric metric, T fallback) where T : struct => Get(metric) is null ? fallback : Get<T>(metric);
+    public static T Get<T>(Metric metric, T fallback) => Get(metric) is null ? fallback : Get<T>(metric);
 
     /// <summary>Forgets every value, e.g. when a new room is loaded.</summary>
     public static void Reset() => Array.Clear(Values);

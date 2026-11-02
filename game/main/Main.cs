@@ -61,7 +61,7 @@ public partial class Main : Node
     private string? _levelsError;
     private string? _configurationError;
     private WorldNode _world = null!;
-    private readonly CameraRig _cameraRig = new();
+    private CameraRig _cameraRig = null!;
     private LookSwitches _look = null!;
     private readonly WorldViewportContainer _worldView = new();
     private readonly DebugOverlay _overlay = new();
@@ -81,6 +81,7 @@ public partial class Main : Node
         AddInputActions();
         AddChild(_worldView);
         AddLook();
+        _cameraRig = new CameraRig(_gameModeManager);
         _worldView.World.AddChild(_cameraRig);
         _collisions = new CollisionDebug(_worldView);
         AddChild(_collisions);
@@ -88,8 +89,6 @@ public partial class Main : Node
         AddChild(_phaseAimMarker);
         AddChild(_overlay);
         AddChild(_errorOverlay);
-
-        _gameModeManager.GameModeChanged += _cameraRig.OnGameModeChanged;
         AddChild(_gameModeManager);
         AddChild(new Muffler(_gameModeManager));
 
