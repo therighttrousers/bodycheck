@@ -14,16 +14,16 @@ Relevant decision records:
 - [024: Playtesting feedback](../decision-records/024-playtesting-feedback.md)
 - [038: Vertices on a grid, for the jitter of mid-1990s 3D](../decision-records/038-vertex-grid.md)
 - [039: Pausing for the menu and the map](../decision-records/039-modes-kept-across-pauses.md)
+- [040: No vertex snap](../decision-records/040-no-vertex-snap.md)
 
-The image is Mode X with modern lighting: 320x240 and 256 colours, as on a VGA card in the mid-1990s, drawn with anti-aliasing, shadows, ambient occlusion, reflections and bloom. Star Fox, Quake and Descent are the references for the geometry, and Mode X for the image (`003`).
+The image is Mode X with modern lighting: 320x240 and 256 colours, as on a VGA card in the mid-1990s, drawn with shadows, ambient occlusion, reflections and bloom. Star Fox, Quake and Descent are the references for the geometry, and Mode X for the image (`003`).
 
 ## Pipeline
 
 1. **Low resolution.** `WorldViewportContainer` draws the game into a viewport of its own, 320x240 (`003 §1.1`, `§2.1`). The window's own viewport is the window's size, so what is drawn there, outside the game's viewport, is at full resolution and doesn't go through the colour pass, such as the debug overlay (`008 §2.3`).
-2. **Vertices on whole pixels.** Each vertex's position on the screen is rounded to a pixel, which gives the jitter of mid-1990s 3D (`038 §1.1`). See [Vertex snap](#vertex-snap).
-3. **Lighting.** Shadows, ambient occlusion, screen-space reflections and glow, which is the engine's name for bloom. All were chosen by eye at the target size (`003 §4.2`). There is no anti-aliasing (`038 §1.3`).
-4. **Colour pass.** `ColorPass` covers the screen with a rectangle whose shader, `game/look/mode_x.gdshader`, reads what is behind it and writes each pixel back as a colour of the palette, with dither (`003 §3.3`, `004 §2.10`).
-5. **Scaling.** `WorldViewportContainer` scales the image to the window by the largest whole number that fits, with nearest-neighbour sampling, and fills the rest with black bars. The window starts at 1280x960, which is 4x.
+2. **Lighting.** Shadows, ambient occlusion, screen-space reflections and glow, which is the engine's name for bloom. All were chosen by eye at the target size (`003 §4.2`). There is no anti-aliasing (`038 §1.3`).
+3. **Colour pass.** `ColorPass` covers the screen with a rectangle whose shader, `game/look/mode_x.gdshader`, reads what is behind it and writes each pixel back as a colour of the palette, with dither (`003 §3.3`, `004 §2.10`).
+4. **Scaling.** `WorldViewportContainer` scales the image to the window by the largest whole number that fits, with nearest-neighbour sampling, and fills the rest with black bars. The window starts at 1280x960, which is 4x.
 
 Besides the world, the game's viewport draws two placeholders, which are scaled with it (`039 §2.1`, `§2.3`):
 
@@ -40,16 +40,9 @@ The camera is at the distance where a tile's front face is 16 pixels, whatever t
 
 The camera follows the player with a lag, and its view is centred 3 tiles above the player, which puts the player 70% of the way down the screen (`010 §1`). Up and down, on the same inputs as moving, look up or down, but only while they are the only input: no moving, no jumping and no phase held (`010 §1.3`, `014 §1.1`, `015 §5.15`). After a hold of 0.5 seconds the view eases over 1 second to where the player's centre is 5.625 tiles from the view's, on the 1/8 or 7/8 line, partway for the left stick partway pushed; when any other input starts, it goes straight back, as fast as damping allows (`014 §1.2`, `§1.3`). Since this measures from the player and not from the 3-tile lift, looking up does little for now. It shows only the room: the view's centre is clamped so that the view at the tiles' front faces stays inside the room, and is centred on the room where the room is smaller than the view (`010 §2.1`, `§2.2`). A 20x15 room fills the view, so the camera doesn't move in it.
 
-## Vertex snap
+## Textures
 
-The engine has no vertex hook that covers every material, and doesn't give out the shader it generates for a `StandardMaterial3D`. So materials are authored and tuned as `StandardMaterial3D`, and `VertexSnap` replaces each one on each node that enters the tree with a `ShaderMaterial` from one template, which reimplements the features the game uses (`038 §1.2`). The template has to keep up with those features. On the "Look" room, with the snap off, it matches the originals pixel for pixel with the colour pass off (`038 §2.1`).
-
-- A material with a feature the template lacks stays as it is, unsnapped, and the log says so. Those are the laser beam, for its alpha hash, and the "Look" room's glass, for its refraction.
-- A change to a material after it's replaced doesn't show.
-- The editor shows materials unsnapped.
-- Directional shadows aren't snapped.
-
-The camera isn't snapped: on whole pixels, it hides most of the effect (`038 §1.4`).
+Vertices aren't snapped to whole pixels. A snap was tried and removed: it was barely noticeable at 320x240, and it needed every material replaced at runtime by a shader that reimplemented it (`038 §1.1`, `§1.2`, `040 §1.1`).
 
 Imported models get nearest filtering from `nearest_textures_import.gd`, a post-import script, since smoothed textures took hardware that the games of the look didn't have. It's the default for new models, in `project.godot`. It reaches only materials embedded in a model: one saved in a file of its own, such as the platform's `body.tres`, has to set nearest filtering itself, and the import warns if it doesn't.
 
