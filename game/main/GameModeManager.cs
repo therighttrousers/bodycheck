@@ -149,11 +149,6 @@ public partial class GameModeManager : Node
             _modeState = newModeState;
         }
 
-        Notify();
-    }
-
-    private void Notify()
-    {
         GetTree().Paused = _modeState.Pause;
         GameModeChanged?.Invoke(GameMode);
     }
@@ -164,20 +159,22 @@ public partial class GameModeManager : Node
         public static readonly GameModeState Menu = new Simple(mode: GameMode.Menu, uiPause: true, pause: true);
         public static readonly GameModeState Map = new Simple(mode: GameMode.Map, uiPause: true, pause: true);
         public static readonly GameModeState EndingMap = new Simple(mode: GameMode.EndingMap, uiPause: true, pause: true);
-        public static readonly GameModeState Phasing = new Simple(mode: GameMode.Phasing, uiPause: false, pause: true);
+        public static readonly GameModeState Phasing = new Simple(
+            mode: GameMode.Phasing, uiPause: false, pause: true, slowdownFactor: SlowestSlowdownFactor);
 
         private GameModeState() { }
 
         public abstract GameMode Mode { get; }
         public abstract bool UiPause { get; }
         public abstract bool Pause { get; }
-        public virtual double SlowdownFactor => 1;
+        public abstract double SlowdownFactor { get; }
 
-        private sealed class Simple(GameMode mode, bool uiPause, bool pause) : GameModeState
+        private sealed class Simple(GameMode mode, bool uiPause, bool pause, double slowdownFactor = 1) : GameModeState
         {
-            public override GameMode Mode { get; } = mode;
-            public override bool UiPause { get; } = uiPause;
-            public override bool Pause { get; } = pause;
+            public override GameMode Mode => mode;
+            public override bool UiPause => uiPause;
+            public override bool Pause => pause;
+            public override double SlowdownFactor => slowdownFactor;
         }
 
         public sealed class SlowingForPhase : GameModeState
@@ -191,10 +188,6 @@ public partial class GameModeManager : Node
 
             public bool Step(double realDt)
             {
-                if (_slowdown >= 1)
-                {
-                    return false;
-                }
                 _slowdown = Math.Min(1, _slowdown + realDt / SlowdownTime);
                 return _slowdown >= 1;
             }

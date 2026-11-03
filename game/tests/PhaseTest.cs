@@ -460,6 +460,8 @@ public class PhaseTest
         AssertThat(fastest).IsEqual(0.5);
         AssertThat(slowest).IsBetween(0.5 * GameModeManager.SlowestSlowdownFactor, 0.25);
         await _run.Tick(AimRight);
+        AssertThat(Engine.TimeScale).IsEqual(0.5 * GameModeManager.SlowestSlowdownFactor);
+        await _run.Tick(RoomRun.Idle);
         AssertThat(Engine.TimeScale).IsEqual(0.5);
     }
 }
