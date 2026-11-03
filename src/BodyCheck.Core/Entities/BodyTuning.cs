@@ -13,7 +13,7 @@ namespace BodyCheck.Core.Entities;
 public sealed record BodyTuning
 {
     // How much is subtracted from the platform's horizontal and vertical extent, in tiles.
-    private static readonly Vector2 PlatformMargin = new(2f / Constants.TilePixels, 1f / Constants.TilePixels);
+    private static readonly Vector2 PlatformMargin = new(1.5f / Constants.TilePixels, 1f / Constants.TilePixels);
 
     public required Vector2 HalfSize { get; init; }
 
