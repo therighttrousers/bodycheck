@@ -151,7 +151,9 @@ public partial class DebugOverlay : CanvasLayer
         Vector2 vector => $"{Signed(vector.X)} {Signed(vector.Y)}",
         Vector2I vector => $"{Signed(vector.X, "0000")} {Signed(vector.Y, "0000")}",
         bool flag => flag ? " true" : "false",
-        _ => "?",
+        string text => text,
+        null => "null",
+        _ => $"<{value.GetType().Name}>",
     };
 
     /// <summary>

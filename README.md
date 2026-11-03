@@ -75,7 +75,7 @@ Game controls:
   - C/X/Z (left hand)
   - Gamepad A/X/RT (these are Xbox names; uses buttons in the same positions on other controllers)
 - Map: Tab, or gamepad Back. Pauses the game and zooms out to show the whole world; press again to zoom back in.
-- Pause: Escape, or gamepad Start. There's no menu yet.
+- Pause: Escape, or gamepad Start. The menu is a placeholder that only says the game is paused.
 
 Hold the jump button to jump higher.
 

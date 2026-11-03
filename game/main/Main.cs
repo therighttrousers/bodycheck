@@ -61,17 +61,18 @@ public partial class Main : Node
     private string? _levelsError;
     private string? _configurationError;
     private WorldNode _world = null!;
-    private readonly CameraRig _cameraRig = new();
+    private CameraRig _cameraRig = null!;
     private LookSwitches _look = null!;
     private readonly WorldViewportContainer _worldView = new();
-    private readonly DebugOverlay _overlay = new();
+    private readonly DebugOverlay _debugOverlay = new();
     private readonly ErrorOverlay _errorOverlay = new();
+    private readonly PauseMenuOverlay _pauseMenuOverlay = new();
     private CollisionDebug _collisions = null!;
     // Whether each world's map markers show, kept as worlds are loaded.
     private bool _showMapMarkers;
     // Each world's current respawn, by the world's name and the respawn's id, to start its player at when it restarts.
     private readonly Dictionary<string, string> _respawnIds = [];
-    private PhaseAimMarker _phaseAimMarker = null!;
+    private readonly PhaseAimMarker _phaseAimMarker = new();
 #if TOOLS
     private IProbe? _probe;
 #endif
@@ -81,17 +82,19 @@ public partial class Main : Node
         AddInputActions();
         AddChild(_worldView);
         AddLook();
+        _cameraRig = new CameraRig(_gameModeManager);
         _worldView.World.AddChild(_cameraRig);
         _collisions = new CollisionDebug(_worldView);
         AddChild(_collisions);
-        _phaseAimMarker = new PhaseAimMarker(_worldView);
-        AddChild(_phaseAimMarker);
-        AddChild(_overlay);
+        _worldView.World.AddChild(_phaseAimMarker);
+        AddChild(_debugOverlay);
         AddChild(_errorOverlay);
-
-        _gameModeManager.GameModeChanged += _cameraRig.OnGameModeChanged;
         AddChild(_gameModeManager);
         AddChild(new Muffler(_gameModeManager));
+
+        _pauseMenuOverlay.Visible = false;
+        _worldView.World.AddChild(_pauseMenuOverlay);
+        _gameModeManager.GameModeChanged += gameMode => _pauseMenuOverlay.Visible = gameMode == GameMode.Menu;
 
         string? worldName = null;
         string? configurationName = null;
@@ -100,7 +103,7 @@ public partial class Main : Node
         {
             if (arg == "--overlay")
             {
-                _overlay.Visible = true;
+                _debugOverlay.Visible = true;
             }
             else if (arg == "--collisions")
             {
@@ -363,6 +366,8 @@ public partial class Main : Node
     /// <summary>Adds the lights, the colour pass, and the switches that turn parts of the pipeline on and off.</summary>
     private void AddLook()
     {
+        RenderingServer.SetDefaultClearColor(Colors.Black); // The bars around the view.
+
         var light = new DirectionalLight3D
         {
             RotationDegrees = new Vector3(-35, 10, 0),

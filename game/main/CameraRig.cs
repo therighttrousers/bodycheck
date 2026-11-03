@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 using BodyCheck.Core;
 using BodyCheck.Core.Controllers;
@@ -30,12 +32,12 @@ public partial class CameraRig : Node3D
     /// 320x240 screen, at every size of the viewport, so a tile's face is TilePixels high at 320x240 and the other
     /// sizes show the same framing.
     /// </summary>
-    private const float HalfHeight = 240f / Constants.TilePixels / 2;
+    private static readonly float HalfHeight = (float)Constants.Resolution.Y / Constants.TilePixels / 2;
 
     /// <summary>How far above the player's centre the view's centre is, in tiles, when the world allows it.</summary>
     private const float Lift = 3;
     /// <summary>How far from the player's centre the view's centre is, in tiles, when the player looks up or down and the world allows it.</summary>
-    private const float LookOffset = 0.75f * HalfHeight;
+    private static readonly float LookOffset = 0.75f * HalfHeight;
     /// <summary>How long the user must hold up or down before panning starts, in real seconds.</summary>
     private const float LookDelay = 0.5f;
     /// <summary>How long it takes to pan fully up or down after panning starts, in real seconds.</summary>
@@ -49,6 +51,8 @@ public partial class CameraRig : Node3D
     /// </summary>
     private readonly Vector3 _followDampingValue = new(0.15f, 0.15f, 0);
 
+    private GameModeManager _gameModeManager = null!;
+
     /// <summary>The priority of the player's camera, which is above the map camera's when the map is closed.</summary>
     private const int CameraPriority = 50;
     /// <summary>The priority of the map camera, when it's enabled. Should be greater than all other priorities.</summary>
@@ -57,6 +61,7 @@ public partial class CameraRig : Node3D
     private readonly Node3D _target = new() { PhysicsInterpolationMode = PhysicsInterpolationModeEnum.Off };
     private PhantomCamera3D _phantomCamera = null!;
     private PhantomCamera3D _mapPhantomCamera = null!;
+    private List<PhantomCamera3D> _currentCameras = [];
     private WorldNode? _world;
 
     /// <summary>Eases <see cref="_lookAmount"/> from 0 to 1 while the player looks; null while the player doesn't.</summary>
@@ -65,6 +70,12 @@ public partial class CameraRig : Node3D
     private float _lookAmount;
 
     public Camera3D Camera { get; } = new() { Fov = Fov, Current = true };
+
+    public CameraRig(GameModeManager gameModeManager)
+    {
+        _gameModeManager = gameModeManager;
+        _gameModeManager.GameModeChanged += OnGameModeChanged;
+    }
 
     public override void _Ready()
     {
@@ -86,12 +97,18 @@ public partial class CameraRig : Node3D
         _phantomCamera.FollowTarget = _target;
         _phantomCamera.FollowDampingValue = _followDampingValue;
         _phantomCamera.Priority = CameraPriority;
+        _phantomCamera.Node3D.Name = "PlayerCamera";
+        _phantomCamera.TweenStarted += () => OnTweenStarted(_phantomCamera);
+        _phantomCamera.TweenCompleted += () => OnTweenCompleted(_phantomCamera);
 
         Node3D mapPhantom = NewPhantomCameraNode<Node3D>("phantom_camera/phantom_camera_3d.gd");
         mapPhantom.Set("follow_mode", (int)FollowMode3D.None);
         AddChild(mapPhantom);
         _mapPhantomCamera = mapPhantom.AsPhantomCamera3D();
         _mapPhantomCamera.Priority = 0;
+        _mapPhantomCamera.Node3D.Name = "MapCamera";
+        _mapPhantomCamera.TweenStarted += () => OnTweenStarted(_mapPhantomCamera);
+        _mapPhantomCamera.TweenCompleted += () => OnTweenCompleted(_mapPhantomCamera);
     }
 
     /// <summary>Follows the player of <paramref name="world"/>, from where the camera should be at once, undamped.</summary>
@@ -104,15 +121,37 @@ public partial class CameraRig : Node3D
     }
 
     /// <summary>Switches to the map camera in <see cref="GameMode.Map"/>, and back to the player's otherwise.</summary>
-    public void OnGameModeChanged(GameMode gameMode)
+    private void OnGameModeChanged(GameMode gameMode)
     {
-        // The host tweens to a camera over that camera's duration, in game time. Out of the slowdown for a phase, which
-        // a change of mode ends, game time runs at the gameplay speed, so this keeps the move quick however slow the
-        // game is.
+        // The host tweens to a camera over that camera's duration, in game time. In the map, and on the way back from
+        // it, game time runs at the gameplay speed, whatever mode the map was opened from, so this keeps the move quick
+        // however slow the game is.
         float duration = MapMoveTime * Features.Current.GameplaySpeed;
         _phantomCamera.TweenDuration = duration;
         _mapPhantomCamera.TweenDuration = duration;
         _mapPhantomCamera.Priority = gameMode == GameMode.Map ? MapCameraPriority : 0;
+    }
+
+    private void OnTweenStarted(PhantomCamera3D camera)
+    {
+        _currentCameras.Add(camera);
+        ReportCurrentCameras();
+    }
+
+    private void OnTweenCompleted(PhantomCamera3D camera)
+    {
+        _currentCameras = [camera];
+        ReportCurrentCameras();
+        if (!ReferenceEquals(camera, _mapPhantomCamera))
+        {
+            _gameModeManager.NotLookingAtMap();
+        }
+    }
+
+    private void ReportCurrentCameras()
+    {
+        var names = _currentCameras.Select(camera => camera.Node3D.Name.ToString()).ToArray();
+        Telemetry.Report(Metric.CurrentCamera, string.Join(" -> ", names));
     }
 
     // A parent is processed before its children, so the phantom camera reads where the target is this frame.
