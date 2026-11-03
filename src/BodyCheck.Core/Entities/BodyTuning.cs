@@ -12,8 +12,8 @@ namespace BodyCheck.Core.Entities;
 /// </summary>
 public sealed record BodyTuning
 {
-    // How far a platform's body is inside its box in the map, on every side, in tiles.
-    private const float PlatformMargin = 1f / Constants.TilePixels;
+    // How much is subtracted from the platform's horizontal and vertical extent, in tiles.
+    private static readonly Vector2 PlatformMargin = new(2f / Constants.TilePixels, 1f / Constants.TilePixels);
 
     public required Vector2 HalfSize { get; init; }
 
@@ -96,7 +96,7 @@ public sealed record BodyTuning
     /// </summary>
     public static BodyTuning Platform(Vector2I mapSize) => new()
     {
-        HalfSize = (Vector2)mapSize / 2f - new Vector2(PlatformMargin, PlatformMargin),
+        HalfSize = (Vector2)mapSize / 2f - PlatformMargin,
         Anchor = Vector2.Zero,
         Mass = () => mapSize.X * Features.Current.PlatformMassPerTile,
         EngineFriction = () => Features.Current.PlatformEngineFriction,
