@@ -288,22 +288,20 @@ public sealed record Features
     public float RobotMass { get; init; } = 1;
 
     /// <summary>Speed at which a robot's run drive force falls to zero.</summary>
-    public float RobotTopSpeed { get; init; } = 3.75f;
+    public float RobotTopSpeed { get; init; } = 4f;
 
     /// <summary>
-    /// Force applied to a robot when on the ground and facing the direction of motion. A robot doesn't slip, so it
+    /// Force applied to a robot when on the ground, facing the direction of motion or not. A robot doesn't slip, so it
     /// drives against its friction with the floor, which grows with what it carries.
     /// </summary>
-    public float RobotDriveForce { get; init; } = 14.0625f;
-    /// <summary>Force applied to a robot when on the ground and facing opposite the direction of motion.</summary>
-    public float RobotBrakeForce { get; init; } = 22.5f;
+    public float RobotDriveForce { get; init; } = 60f;
 
     /// <summary>
     /// A robot's coefficient of friction, against everything it touches. It is the same while the robot drives, so it
     /// must be low enough for the drive to beat it. It is also how hard the robot's head holds what it carries: a block
     /// slides on it when the robot speeds up or slows down by more than this times gravity.
     /// </summary>
-    public float RobotEngineFriction { get; init; } = 0.1f;
+    public float RobotEngineFriction { get; init; } = 0.5f;
 
     /// <summary>
     /// A robot whose speed toward the end it is heading for stays below this for <see cref="RobotStallTime"/> has
