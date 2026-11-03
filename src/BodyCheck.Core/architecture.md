@@ -1,0 +1,93 @@
+# `BodyCheck.Core`
+
+Relevant decision records:
+- [002: `BodyCheck.Core` depends on GodotSharp](../../docs/decision-records/002-core-depends-on-godotsharp.md)
+- [005: Jolt's joint motors for traction](../../docs/decision-records/005-jolt-motors-for-traction.md)
+- [008: Telemetry, and a debug overlay drawn at the window's resolution](../../docs/decision-records/008-telemetry-and-overlay.md)
+- [009: The first level loader](../../docs/decision-records/009-level-loader.md)
+- [012: Subsystems in `BodyCheck.Core`](../../docs/decision-records/012-core-subsystems.md)
+- [015: The phase ability](../../docs/decision-records/015-phase.md)
+- [016: Features](../../docs/decision-records/016-features.md)
+- [017: The playtesting and puzzle design workflow](../../docs/decision-records/017-playtesting-workflow.md)
+- [018: Game time and real time](../../docs/decision-records/018-game-and-real-time.md)
+- [021: Sound](../../docs/decision-records/021-sound.md)
+- [022: Actions at the end of a tick](../../docs/decision-records/022-end-of-tick-actions.md)
+- [025: Platforms that move along any line](../../docs/decision-records/025-platforms-on-any-line.md)
+- [029: Tunable bodies](../../docs/decision-records/029-tunable-bodies.md)
+- [030: Gameplay speed](../../docs/decision-records/030-gameplay-speed.md)
+- [036: Telemetry keeps the values reported to it](../../docs/decision-records/036-telemetry-keeps-original-values.md)
+
+## What it is
+
+The game's rules, as a class library: entities, character controllers, tuning, the world, its rooms and their tiles. It defines node classes, so its rules need a running engine (`005 §3`, which supersedes that part of `002`). It references the GodotSharp assembly of the installed engine, so `scripts/dev-setup.ps1` has to be run before it builds (`002`), and Godot's source generators, without which the engine never calls a node class's overrides.
+
+Core's classes have no `res://` path, so they are created in code and can't be attached to a scene in the editor.
+
+## What it is not for
+
+Anything that knows the Godot project's scenes or asset paths, or reads input devices: those are the game's.
+
+## Subsystems
+
+Core is split into subsystems, each a subdirectory and a namespace (`012`). The rules for adding to them are in the root `AGENTS.md`.
+
+- [**`Entities`**](Entities/architecture.md): the things in a room that have a body, and what a controller of one is. Not what any of them does.
+- [**`Controllers`**](Controllers/architecture.md): what decides each entity's actions each tick. Not new capabilities of a body.
+- [**`WorldData`**](WorldData/architecture.md): the world and its rooms, as data. Nothing that runs.
+- [**`Levels`**](Levels/architecture.md): reading LDtk levels into the world's data. Not what a room means once read.
+- [**`Simulation`**](Simulation/architecture.md): the world brought to life, with its entities stepped each tick. Not presentation.
+
+```mermaid
+graph BT
+    Controllers --> Entities
+    Levels --> WorldData
+    Simulation --> WorldData
+    Simulation --> Entities
+    Simulation --> Controllers
+```
+
+An arrow points from a subsystem to one it uses. Every subsystem may use the root, which uses none of them, so the root is at the bottom of every chain; those arrows aren't drawn. There are no cycles.
+
+- **Controllers use entities** through what a body offers: forces, impulses, motors and queries. Entities know nothing of controllers beyond the interface they define for them, so a controller doesn't know where its entity is in a room or how it got there.
+- **Levels produce the world's data.** The world's data knows nothing of where it came from.
+- **Simulation joins the rest.** It builds each entity from the world's data, gives it its controller, and steps it; none of the subsystems it uses know about it.
+
+## How a tick runs
+
+The order of a tick is in [the conventions](../../docs/designs/architecture.md#conventions). Within it:
+
+- `WorldNode` steps each entity, which switches its motors off, applies its carrier's steadying, and runs its controller's `Apply`, with an `IDefer` (`022 §2.1`).
+- **Controllers can defer actions to later in the tick.** A controller hands an action to its `IDefer` for one of two points. `RunAfterEntitySteps` is for an action that changes the world at once, such as moving a body, so that no controller sees it in the same tick: `WorldNode` runs these once it has stepped every entity, on either path, before the engine's step. `RunAfterPhysicsStep` is for an action whose effect controllers this tick must not see even in the engine's step, such as a change of gravity they reckoned with: `WorldNode` runs these at the start of the next tick, played or paused, before it steps any entity. `IDefer` has only those two, so a controller can't run the actions itself. If a tick's entity steps fail partway, `WorldNode` drops that tick's actions, so they never run against a later tick's world (`022 §2.1`).
+- **A controller can ask for the game to pause**, to decide something with everything else standing still: the player's does while a phase is aimed. While the game is paused for that, controllers run on a second path beside the normal one: the game calls `WorldNode.StepPaused`, which calls each `Entity.StepPaused`, which calls the controller's `ApplyPaused`. A controller asks through `RequestsPause`, which its entity passes on, and `WorldNode.PauseRequested` says whether any does. Both are default interface members that do nothing, so only controllers that pause have them. Nothing moves on this path but what controllers defer until after the entity steps: the engine doesn't step (`015 §5.10`). The game decides whether a tick is played or paused.
+- **Controllers get game time and real time.** `Apply` takes each tick's length on both clocks: game time, which the engine's time scale shortens, and real time, a physics tick's length whatever the scale. `ApplyPaused` takes real time only, since no game time passes. A timer that governs the world runs on game time, and one about the player's fingers on real time (`018 §1.1`, `§1.2`). A feature that is a duration on game time is given in game seconds, and one on real time in ticks at `Features.TuningTicksPerSecond`, converted by `Features.TicksToTime`, so that its unit tells its clock (`030 §2.6`).
+- **Cues.** A controller says that something happened to its entity by raising a cue on it, which the entity passes on as an event. Logic knows no sounds or effects: whatever draws the entity reacts to cues. A cue names what happened, not the reaction, so that particles, one-shot animations and the like can react to the same cues later (`021 §1.3`).
+
+## The root
+
+The root holds only what several subsystems, or the game, share: telemetry, `Constants`, `Features`, `PhysicsLayer`, extension members on Godot's vector types, and a JSON converter that reads enums by name only. It is not for anything that belongs to one subsystem, even if it is small, except a feature: a value that shapes gameplay belongs in the features, even if only one subsystem reads it. Nor is it for anything derived from a feature or cached from one, or for settings that belong to a machine rather than to gameplay, such as graphics.
+
+### Telemetry
+
+Game code pushes measurements to `Telemetry`, by `Metric`, an enum. Each metric keeps its last value, as it was reported, until it is reported again or the telemetry is reset. Whatever wants the measurements reads them: the debug overlay, and tests. A read throws if the value is of another type, or if nothing has been reported, unless it gives a fallback for that (`036 §2`). Nothing that reports knows what reads, so telemetry puts no constraint on how game code is divided up (`008 §1`).
+
+### Constants
+
+`Constants` holds constants that more than one subsystem or the game needs: `TilePixels`, the size of a tile's face in pixels (`009 §5.1`), a level's size in tiles, and `Gravity`, read from the project setting, for what needs gravity without an entity's gravity scale (`025 §2.2`). Other constants move there as we come across them (`012 §2.3`).
+
+### Features
+
+`Features` is a record of the values that shape gameplay: the tuning of the player's running, jumping, phasing, carrying and spawning, which includes the choices of `PhaseThrow` and `SpawnMotion`, of the robots' and platforms' controllers, of the walkers' friction, and each kind of body's mass and engine friction (`029 §1.1`). Every name is prefixed with what it tunes: `Player`, `Robot`, `Platform`, `PlayerBlock` or `Block` (`016 §3.6`).
+
+- `Features.Current` is the only source of each: what uses a feature reads it there, when it uses it. `Features.Set` replaces it and raises `Features.Changed`, and `Features.Reset` puts back the defaults, which are the properties' initializers; tests that change features reset them. `Features.Read` reads a configuration (`017 §2`).
+- A feature is a simple value that nothing derives from or caches, except an action in progress, such as a jump or a phase being aimed, which goes on with the values it started with, so a change takes effect at the next one: changes are eventually consistent, with that bound (`016 §3.1`).
+- A feature the engine holds, such as a body's mass or the tiles' friction, is put there by what owns what holds it, at the start of the tick after `Features.Changed`, so a change takes effect at the next tick (`029 §2`).
+- **Gameplay speed.** The feature `GameplaySpeed`, from 0.5 to 1, is how fast the game plays: the game sets the engine's time scale to it, times any slowdown. Every other feature is tuned at speed 1. What runs on game time, which is every force, speed and world timer, scales with it; what runs on real time doesn't (`030 §1.1`, `§1.3`).
+- Graphics settings, the camera's values and debug toggles are not features (`016 §3.2`, `§3.4`).
+
+### Physics layers
+
+`PhysicsLayer` names the engine's physics layers, as flags: static tiles, liquids, triggers, props such as blocks, and characters, which include platforms. The game's project settings name the same layers, and a test checks that the two agree. An entity's layer is part of its tuning, and its mask is every layer that has a collider: tiles and both kinds of entity. Queries should try to use layers instead of filtering what they find.
+
+## Open questions
+
+- Can the Godot editor attach a script to a scene only when the script is in the Godot project itself? Believed so. Core's node classes are created in code, which doesn't need it (`005 §3.2`).

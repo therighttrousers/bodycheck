@@ -11,7 +11,7 @@ Relevant decision records:
 
 ## Detailed design docs
 
-- [architecture.md](architecture.md): the tools, the code's structure, and the tests.
+- [architecture.md](architecture.md): the tools, the layout and the conventions, and the top of the architecture docs beside the code.
 - [movement.md](movement.md): how the player and other bodies move, collide and grip.
 - [progression.md](progression.md): abilities, world changes, water, in the order the player meets them.
 - [rendering.md](rendering.md): the low-resolution pipeline, the palette, and the tools for judging them.

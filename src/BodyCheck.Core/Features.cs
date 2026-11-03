@@ -117,7 +117,7 @@ public sealed record Features
     /// <summary>
     /// How fast the game plays: the engine's time scale while playing, outside the slowdown to a phase's pause. The
     /// other features are tuned at speed 1, and every one on game time scales with it, while those on real time, such
-    /// as the leniencies for the player's fingers, don't (see docs/designs/architecture.md). From 0.5 to 1.
+    /// as the leniencies for the player's fingers, don't (see src/BodyCheck.Core/architecture.md). From 0.5 to 1.
     /// </summary>
     public float GameplaySpeed { get; init; } = 1;
 
