@@ -35,7 +35,7 @@ public sealed record RunTuning
     {
         TopSpeed = () => Features.Current.RobotTopSpeed,
         GroundDriveForce = () => Features.Current.RobotDriveForce,
-        GroundBrakeForce = () => Features.Current.RobotBrakeForce,
+        GroundBrakeForce = () => Features.Current.RobotDriveForce,
         AirDriveForce = () => 0,
         AirBrakeForce = () => 0,
     };
