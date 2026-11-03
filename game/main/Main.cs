@@ -72,7 +72,7 @@ public partial class Main : Node
     private bool _showMapMarkers;
     // Each world's current respawn, by the world's name and the respawn's id, to start its player at when it restarts.
     private readonly Dictionary<string, string> _respawnIds = [];
-    private PhaseAimMarker _phaseAimMarker = null!;
+    private readonly PhaseAimMarker _phaseAimMarker = new();
 #if TOOLS
     private IProbe? _probe;
 #endif
@@ -86,8 +86,7 @@ public partial class Main : Node
         _worldView.World.AddChild(_cameraRig);
         _collisions = new CollisionDebug(_worldView);
         AddChild(_collisions);
-        _phaseAimMarker = new PhaseAimMarker(_worldView);
-        AddChild(_phaseAimMarker);
+        _worldView.World.AddChild(_phaseAimMarker);
         AddChild(_debugOverlay);
         AddChild(_errorOverlay);
         AddChild(_gameModeManager);

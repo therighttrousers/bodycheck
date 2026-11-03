@@ -1,4 +1,4 @@
-# 039: Game modes kept across the menu and the map
+# 039: Pausing for the menu and the map
 
 ## Context
 
@@ -18,3 +18,11 @@ Goals:
   - Decision (Neil): the slowest factor. A camera that creeps on is better than one that speeds up and snaps into place. While the menu or the map is open, the factor is 1, so the camera catches up then.
 - [x] 1.4 Slowing and phasing as one mode, with the pause starting at the end of the slowdown. Tried and backed out (Neil): with two modes, `GameModeManager` raises its change event at the right times more easily, and code outside it can tell the slowdown from the pause.
 - [x] 1.5 Known gap (Claude): from `EndingMap`, opening the menu and closing it goes straight back to the remembered mode, before the camera has moved back. Decision (Neil): not fixed. A player is very unlikely to notice. A fix would need `GameModeManager` to know what the camera is doing, or a stack of modes with rules for when to push or replace, and both are more than the gap is worth.
+
+## 2. The menu's placeholder
+
+Neil added a placeholder menu, a panel that says the game is paused, to tell the menu's pause from the pause for a phase, and to see what drawing UI at 320x240 takes.
+
+- [x] 2.1 Where it is drawn. First built: a second viewport of its own, at 320x240, scaled up like the game's. Claude: the game's viewport already is a 320x240 image scaled up with nearest-neighbour sampling, and a canvas layer above the colour pass isn't dithered (`008 §2.2`). A second viewport with a transparent background also blends a translucent panel twice, so it comes out darker (from memory, not tested). Decision (Neil): a canvas layer in the game's viewport, above the colour pass. Laid out at the viewport's size and centred, it stays centred with low resolution off, only smaller.
+- [x] 2.2 Text and edges. Neil tried the default font aliased: it looked terrible, so it stays antialiased. The panel's corners aren't antialiased. Its translucency doesn't matter for a placeholder; the real menu will almost certainly be opaque.
+- [x] 2.3 The aim marker. It was drawn at the window's resolution, over the whole game view, so it showed over the menu when the menu was opened during an aim. Decision (Neil): move it into the game's viewport, under the colour pass and the menu, with its sizes in pixels at 320x240. That fixes the order, and it is a step toward the real effect, which is likely to be part of the game's image (Claude), however it is drawn.

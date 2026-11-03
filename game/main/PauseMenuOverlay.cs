@@ -7,8 +7,8 @@ using Godot;
 namespace BodyCheck;
 
 /// <summary>
-/// A full-viewport overlay meant to show when the game is paused. Its contents are size 320x240 and scaled to fit
-/// the viewport.
+/// A placeholder for the menu: a panel that says the game is paused. It belongs in the game's viewport, on a layer
+/// above the colour pass, and is centred in the viewport at whatever size it is.
 /// </summary>
 public partial class PauseMenuOverlay : CanvasLayer
 {
@@ -16,7 +16,8 @@ public partial class PauseMenuOverlay : CanvasLayer
     {
         Layer = 2; // Above the colour pass, so the dither leaves it alone.
 
-        var center = new CenterContainer { Size = Constants.Resolution };
+        var center = new CenterContainer();
+        center.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         AddChild(center);
 
         var panel = new PanelContainer();
@@ -31,6 +32,7 @@ public partial class PauseMenuOverlay : CanvasLayer
             ContentMarginRight = 10,
             ContentMarginTop = 10,
             ContentMarginBottom = 10,
+            AntiAliasing = false,
         });
         center.AddChild(panel);
 
@@ -46,14 +48,5 @@ public partial class PauseMenuOverlay : CanvasLayer
     {
         // The pause menu needs to stay active when the game is paused.
         ProcessMode = ProcessModeEnum.Always;
-
-        var viewport = GetViewport();
-        viewport?.SizeChanged += () =>
-        {
-            var size = viewport.GetVisibleRect().Size;
-            var scale = Math.Min(size.X / Constants.Resolution.X, size.Y / Constants.Resolution.Y);
-            GD.Print($"New scale = {scale}");
-            Scale = new Vector2(scale, scale);
-        };
     }
 }
