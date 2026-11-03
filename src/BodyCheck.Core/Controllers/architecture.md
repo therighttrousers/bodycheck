@@ -1,0 +1,36 @@
+# Controllers
+
+Relevant decision records:
+- [015: The phase ability](../../../docs/decision-records/015-phase.md)
+- [022: Actions at the end of a tick](../../../docs/decision-records/022-end-of-tick-actions.md)
+- [035: One shape for actions](../../../docs/decision-records/035-one-shape-for-actions.md)
+
+## What it is
+
+What decides an entity's actions each tick: the player's input turned into movement, and the behaviour of each NPC. A controller acts on a body only through what the body offers, and is given whatever else it needs: the player's controller its source of input, a robot's a function that returns its target.
+
+## What it is not for
+
+New capabilities of a body, such as a motor: those belong to the entity. Reading the keyboard or a gamepad: a controller is given its input. Choosing which controller an entity gets, or where its entity is in a room.
+
+## Controllers
+
+The player's, the robots' and the platforms' controllers. Each is built with its entity, as the kind of body it needs.
+
+## Actions
+
+What a controller makes its entity do, which another controller could make its own do, is an action: an object built with its entity and whatever fixed things it works with, which keeps its own state, and which the controller calls on each tick it applies. Phasing, running, jumping, spawning, corner correction and the laser have this shape.
+
+- An action takes intent, such as whether phase is held and the direction, never the player's input, and returns an outcome, an enum, such as whether a phase was made or cancelled.
+- How actions interact is each controller's: which takes precedence on a tick, and what one's outcome does to another, through a verb the other offers rather than its timers. A phase ends a jump with `JumpAction.Interrupt`.
+- An action is built with its tuning, a record of functions with no arguments, each of which reads a feature from `Features.Current` when called, so that each controller tunes it with its own features: the player's phasing is tuned by `PhaseTuning.Player` (`035 §3.1`). A robot's running is tuned to have no drive in the air, where the player's has its own forces, which it also uses for a moment after leaving the ground.
+- A behaviour, such as a robot's `PatrolBehaviour`, is shaped the same way, but decides intent for the controller rather than acting: it only reads its entity (`035 §10.1`, `§10.3`).
+- The player's coyote time and buffered press stay in its controller: they are leniency for its fingers, and coyote time also says when it runs with its forces for the ground.
+
+## Phasing
+
+The player's controller phases with a `PhaseAction`, using its entity's moves and queries: the action chooses the target, and its `PhaseAim` holds a phase being aimed, with its rules for the grab, the placement and the impulses, and defers the move until after the entity steps (`015 §4.1`, `§5.20`, `§5.21`, `022 §2.2`). While a phase is aimed, the player's controller asks for the game to pause. See [movement.md](../../../docs/designs/movement.md) and [progression.md](../../../docs/designs/progression.md) for what phasing does.
+
+## The robot's laser
+
+A robot's controller is given a function that returns the player, its target, and sets the robot's laser each tick from its `LaserAction`, which steps the laser through its timeline. The action is given the beam's origin and the way the robot faces on each tick, and finds the beam's end, and whether it can see the player, with a ray cast on a plain entity, so that another kind of body, such as a turret, can fire one (`035 §6.1`).

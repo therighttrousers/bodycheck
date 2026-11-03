@@ -2,7 +2,7 @@
 
 The `docs/designs` directory describes the **current** design. When a design doc and a decision record disagree, the design doc wins; the record is history.
 
-Start with [high-level-design.md](high-level-design.md). It has the vision, principles, an architecture overview and a map of the other design docs; [architecture.md](architecture.md) has the code's structure.
+Start with [high-level-design.md](high-level-design.md). It has the vision, principles, an architecture overview and a map of the other design docs; [architecture.md](architecture.md) is the top of the architecture docs, a tree of `architecture.md` files beside the code they describe, which are design docs too.
 
 ## Design doc format
 

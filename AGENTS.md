@@ -13,25 +13,31 @@ Design docs and decision records are in [`docs/`](docs/AGENTS.md). Read that bef
 
 - **Don't cite decision records in code.** A record is permanent, but a later one can supersede it, and a comment that cites it then goes stale. Where a comment needs the design behind the code, link the design doc that states it, which is kept current; otherwise explain in the comment itself.
 
+## Architecture docs
+
+The architecture is described by a tree of `architecture.md` files, one in each directory with parts of its own, starting at [`docs/designs/architecture.md`](docs/designs/architecture.md). Before changing code, read the docs from the root down to the directory you're changing.
+
+Each is a design doc, in the format [`docs/designs/AGENTS.md`](docs/designs/AGENTS.md) gives, with these sections first:
+
+- **What it is:** what the directory holds and what it is for, at a high level.
+- **What it is not for:** what someone might be tempted to put here that belongs elsewhere, described by role, without naming where.
+
+Then:
+
+- **Its parts and how they relate:** a very short summary of each part, a sentence at most, linking the part's own doc; a Mermaid graph of which parts use which; and a line for each arrow saying what the use is for.
+- **What belongs to this level itself:** the code at this level that isn't in a part, and anything that spans its parts, such as how they work together.
+
+A doc doesn't describe how its directory relates to its siblings: that is its parent's job. Say each thing once, at the level it belongs to. Repeat it only as a more abstract summary at a higher level. Change a doc in the same change as the code it describes, and add one when a directory gains parts of its own.
+
 ## Subsystems in `BodyCheck.Core`
 
-Core is split into subsystems, one per subdirectory of `src/BodyCheck.Core/`, each in a namespace that matches its directory (decision record 012). Each has an `intent.md`; so does the root. Read the relevant ones before adding code to Core.
+Core is split into subsystems, one per subdirectory of `src/BodyCheck.Core/`, each in a namespace that matches its directory (decision record 012). Read [Core's architecture doc](src/BodyCheck.Core/architecture.md) and the relevant subsystems' before adding code to Core.
 
 - **No cycles.** If subsystem A uses B, B must not use A, directly or through others. The root uses no subsystem; every subsystem may use the root.
-- **Keep references light.** A subsystem uses another through a few types, not throughout. Every reference is a `using` directive, so a new `using BodyCheck.Core.X;` in a subsystem is a new dependency: check it against the rules above and the `intent.md` files. Doc comments count too: a `<see cref>` into another subsystem is a reference.
+- **Keep references light.** A subsystem uses another through a few types, not throughout. Every reference is a `using` directive, so a new `using BodyCheck.Core.X;` in a subsystem is a new dependency: check it against the rules above and Core's dependency graph, and update the graph. Doc comments count too: a `<see cref>` into another subsystem is a reference.
 - **The root is for shared things only:** utilities and constants that more than one subsystem, or the game, needs. Constants go in `Constants`.
-- **Put code where its `intent.md` says it belongs.** If nowhere fits, or the code would need a dependency the rules forbid, stop and raise it with the user: the answer may be to change a boundary, move a type, or add a subsystem.
-- **No empty subsystems.** Add a subsystem when there is code for it, with its `intent.md`, and update `docs/designs/architecture.md`.
-
-### Writing an `intent.md`
-
-Three short sections, each a sentence or two:
-
-- **What it is:** what the subsystem holds and what it is for, at a high level.
-- **How it relates to the rest:** what it depends on and what depends on it, described by role ("the entities it controls"), without naming other subsystems' types.
-- **What it is not for:** what someone might be tempted to put here that belongs elsewhere.
-
-Describe intent, not inventory: don't list the subsystem's types, which the directory already shows. Change an `intent.md` when a subsystem's purpose or boundaries change, in the same change.
+- **Put code where its subsystem's `architecture.md` says it belongs.** If nowhere fits, or the code would need a dependency the rules forbid, stop and raise it with the user: the answer may be to change a boundary, move a type, or add a subsystem.
+- **No empty subsystems.** Add a subsystem when there is code for it, with its `architecture.md`, and add it to Core's.
 
 ## Git
 
