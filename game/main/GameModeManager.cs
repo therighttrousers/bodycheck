@@ -42,15 +42,16 @@ public partial class GameModeManager : Node
     /// </summary>
     public const double SlowestSlowdownFactor = 0.05;
 
-    private Tween? _slowdown;
+    private GameModeState? _savedModeState;
+    private GameModeState _modeState = GameModeState.Playing;
 
-    public GameMode GameMode { get; private set; } = GameMode.Playing;
+    public GameMode GameMode => _modeState.Mode;
 
     /// <summary>
     /// How far the slowdown for a phase has slowed the game: from 1, not at all, to <see cref="SlowestSlowdownFactor"/>.
     /// 1 in every mode but <see cref="GameMode.SlowingForPhase"/>.
     /// </summary>
-    public double SlowdownFactor { get; private set; } = 1;
+    public double SlowdownFactor => _modeState.SlowdownFactor;
 
     /// <summary>The world being played, whose controllers may ask for a pause.</summary>
     public WorldNode? World { get; set; }
@@ -68,47 +69,39 @@ public partial class GameModeManager : Node
 
     public override void _UnhandledInput(InputEvent @event)
     {
-        GameMode? newGameMode = null;
-
         if (@event.IsActionPressed("menu"))
         {
             GetViewport().SetInputAsHandled();
-            newGameMode = GameMode switch
+            SetGameModeState(GameMode switch
             {
-                GameMode.Playing => GameMode.Menu,
-                GameMode.Menu => GameMode.Playing,
-                GameMode.Map => GameMode.Menu,
-                GameMode.EndingMap => GameMode.Menu,
-                GameMode.SlowingForPhase => GameMode.Menu,
-                GameMode.Phasing => GameMode.Menu,
-            };
+                GameMode.Playing => GameModeState.Menu,
+                GameMode.Menu => null,
+                GameMode.Map => GameModeState.Menu,
+                GameMode.EndingMap => GameModeState.Menu,
+                GameMode.SlowingForPhase => GameModeState.Menu,
+                GameMode.Phasing => GameModeState.Menu,
+            });
         }
         else if (@event.IsActionPressed("map"))
         {
             GetViewport().SetInputAsHandled();
-            newGameMode = GameMode switch
+            SetGameModeState(GameMode switch
             {
-                GameMode.Playing => GameMode.Map,
-                GameMode.Menu => GameMode.Map,
-                GameMode.Map => GameMode.EndingMap,
-                GameMode.EndingMap => GameMode.Map,
-                GameMode.SlowingForPhase => GameMode.Map,
-                GameMode.Phasing => GameMode.Map,
-            };
-        }
-
-        if (newGameMode is not null)
-        {
-            SetGameMode(newGameMode.Value);
+                GameMode.Playing => GameModeState.Map,
+                GameMode.Menu => GameModeState.Map,
+                GameMode.Map => GameModeState.EndingMap,
+                GameMode.EndingMap => GameModeState.Map,
+                GameMode.SlowingForPhase => GameModeState.Map,
+                GameMode.Phasing => GameModeState.Map,
+            });
         }
     }
 
     public void NotLookingAtMap()
     {
-        GD.Print($"NotLookingAtMap: {GameMode}");
         if (GameMode == GameMode.EndingMap)
         {
-            SetGameMode(World is not null && World.PauseRequested ? GameMode.Phasing : GameMode.Playing);
+            SetGameModeState(null);
         }
     }
 
@@ -120,38 +113,91 @@ public partial class GameModeManager : Node
             {
                 World.StepPaused();
             }
+            else if (_modeState is GameModeState.SlowingForPhase slowing &&
+                slowing.Step(1f / Engine.GetPhysicsTicksPerSecond()))
+            {
+                SetGameModeState(GameModeState.Phasing);
+            }
 
             if (GameMode is GameMode.SlowingForPhase or GameMode.Phasing && !World.PauseRequested)
             {
-                SetGameMode(GameMode.Playing);
+                SetGameModeState(GameModeState.Playing);
             }
             else if (GameMode == GameMode.Playing && World.PauseRequested)
             {
-                SetGameMode(GameMode.SlowingForPhase);
+                SetGameModeState(new GameModeState.SlowingForPhase());
             }
         }
 
         Engine.TimeScale = SlowdownFactor * Features.Current.GameplaySpeed;
     }
 
-    private void SetGameMode(GameMode gameMode)
+    private void SetGameModeState(GameModeState? newModeState)
     {
-        // Leaving the slowdown, by any way, goes back to full speed.
-        _slowdown?.Kill();
-        _slowdown = null;
-        SlowdownFactor = 1;
-
-        GD.Print($"SetGameMode: {GameMode} -> {gameMode}");
-
-        GameMode = gameMode;
-        GetTree().Paused = GameMode is not (GameMode.Playing or GameMode.SlowingForPhase);
-        if (GameMode == GameMode.SlowingForPhase)
+        if (newModeState is null)
         {
-            // In real time, since the tween would otherwise slow itself down.
-            _slowdown = CreateTween().SetIgnoreTimeScale();
-            _slowdown.TweenMethod(Callable.From<double>(factor => SlowdownFactor = factor), 1.0, SlowestSlowdownFactor, SlowdownTime);
-            _slowdown.TweenCallback(Callable.From(() => SetGameMode(GameMode.Phasing)));
+            _modeState = _savedModeState ?? GameModeState.Playing;
+            _savedModeState = null;
         }
+        else if (!_modeState.UiPause && newModeState.UiPause)
+        {
+            _savedModeState = _modeState;
+            _modeState = newModeState;
+        }
+        else
+        {
+            _modeState = newModeState;
+        }
+
+        Notify();
+    }
+
+    private void Notify()
+    {
+        GetTree().Paused = _modeState.Pause;
         GameModeChanged?.Invoke(GameMode);
+    }
+
+    private abstract class GameModeState
+    {
+        public static readonly GameModeState Playing = new Simple(mode: GameMode.Playing, uiPause: false, pause: false);
+        public static readonly GameModeState Menu = new Simple(mode: GameMode.Menu, uiPause: true, pause: true);
+        public static readonly GameModeState Map = new Simple(mode: GameMode.Map, uiPause: true, pause: true);
+        public static readonly GameModeState EndingMap = new Simple(mode: GameMode.EndingMap, uiPause: true, pause: true);
+        public static readonly GameModeState Phasing = new Simple(mode: GameMode.Phasing, uiPause: false, pause: true);
+
+        private GameModeState() { }
+
+        public abstract GameMode Mode { get; }
+        public abstract bool UiPause { get; }
+        public abstract bool Pause { get; }
+        public virtual double SlowdownFactor => 1;
+
+        private sealed class Simple(GameMode mode, bool uiPause, bool pause) : GameModeState
+        {
+            public override GameMode Mode { get; } = mode;
+            public override bool UiPause { get; } = uiPause;
+            public override bool Pause { get; } = pause;
+        }
+
+        public sealed class SlowingForPhase : GameModeState
+        {
+            private double _slowdown;
+
+            public override GameMode Mode => GameMode.SlowingForPhase;
+            public override bool UiPause => false;
+            public override bool Pause => false;
+            public override double SlowdownFactor => (1 - _slowdown) * (1 - SlowestSlowdownFactor) + SlowestSlowdownFactor;
+
+            public bool Step(double realDt)
+            {
+                if (_slowdown >= 1)
+                {
+                    return false;
+                }
+                _slowdown = Math.Min(1, _slowdown + realDt / SlowdownTime);
+                return _slowdown >= 1;
+            }
+        }
     }
 }
