@@ -123,9 +123,9 @@ public partial class CameraRig : Node3D
     /// <summary>Switches to the map camera in <see cref="GameMode.Map"/>, and back to the player's otherwise.</summary>
     private void OnGameModeChanged(GameMode gameMode)
     {
-        // The host tweens to a camera over that camera's duration, in game time. Out of the slowdown for a phase, which
-        // a change of mode ends, game time runs at the gameplay speed, so this keeps the move quick however slow the
-        // game is.
+        // The host tweens to a camera over that camera's duration, in game time. In the map, and on the way back from
+        // it, game time runs at the gameplay speed, whatever mode the map was opened from, so this keeps the move quick
+        // however slow the game is.
         float duration = MapMoveTime * Features.Current.GameplaySpeed;
         _phantomCamera.TweenDuration = duration;
         _mapPhantomCamera.TweenDuration = duration;
