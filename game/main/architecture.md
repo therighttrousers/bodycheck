@@ -18,6 +18,7 @@ Relevant decision records:
 - [031: Tests in the game's project](../../docs/decision-records/031-tests-in-the-game-project.md)
 - [035: One shape for actions](../../docs/decision-records/035-one-shape-for-actions.md)
 - [039: Pausing for the menu and the map](../../docs/decision-records/039-modes-kept-across-pauses.md)
+- [042: The camera clamped by tiles](../../docs/decision-records/042-camera-clamped-by-tiles.md)
 
 ## What it is
 
@@ -39,7 +40,7 @@ With `--probe=` and a name, `Main` runs that probe instead of playing; its code 
 
 `CameraRig` is the camera: a `Camera3D` with a Phantom Camera host, which puts it where the phantom camera of highest priority is, and two phantom cameras, the player's and the map's. Phantom Camera's nodes are GDScript classes; C# reaches them through the wrappers it ships, which can't create them, so the rig creates them from their scripts.
 
-- The player's phantom camera follows a target, which the rig moves each frame, above the player, up or down by where the player looks, and clamped to the world's tile grid, its rooms' bounding box (`010 §1.3`, `§2.1`, `011 §4.1`).
+- The player's phantom camera follows a target, which the rig moves each frame, above the player, up or down by where the player looks, and moved by `CameraFraming`, which weighs how much the view would show of what the player shouldn't see against how far it is from that framing (`010 §1.3`, `042 §4.6`). See [rendering.md](../../docs/designs/rendering.md) for how.
 - The rig reads the look from the world's `PlayerInput`, which the player's controller reads too, so that function must have no side effects. It looks only while `PlayerInput.CanLook`, after a hold, easing a look amount with a `Tween` that it kills when the look stops (`014`). Looking up or down is the player's hands, so its delay and pan run on real time (`030 §3.1`).
 - The camera's follow damping, a smoothing time of 0.15 seconds, runs on game time, so that the camera lags a moving player by the same distance at any speed. It isn't scaled while the player looks, since following a look and snapping back from it barely differ at reasonable speeds (`030 §4.4`).
 - The rig processes while the tree is paused, so that the camera can move, and the player doesn't look up or down then.

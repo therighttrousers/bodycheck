@@ -15,6 +15,7 @@ Relevant decision records:
 - [038: Vertices on a grid, for the jitter of mid-1990s 3D](../decision-records/038-vertex-grid.md)
 - [039: Pausing for the menu and the map](../decision-records/039-modes-kept-across-pauses.md)
 - [040: No vertex snap](../decision-records/040-no-vertex-snap.md)
+- [042: The camera clamped by tiles](../decision-records/042-camera-clamped-by-tiles.md)
 
 The image is Mode X with modern lighting: 320x240 and 256 colours, as on a VGA card in the mid-1990s, drawn with shadows, ambient occlusion, reflections and bloom. Star Fox, Quake and Descent are the references for the geometry, and Mode X for the image (`003`).
 
@@ -38,7 +39,15 @@ A tile's face is 16x16 pixels at 320x240, so a screen is 20x15 tiles. LDtk level
 
 The camera is at the distance where a tile's front face is 16 pixels, whatever the size of the room (`009 §5.2`). At the window's own resolution, which a switch gives, the view is the same 15 tiles high, so it shows the same framing.
 
-The camera follows the player with a lag, and its view is centred 3 tiles above the player, which puts the player 70% of the way down the screen (`010 §1`). Up and down, on the same inputs as moving, look up or down, but only while they are the only input: no moving, no jumping and no phase held (`010 §1.3`, `014 §1.1`, `015 §5.15`). After a hold of 0.5 seconds the view eases over 1 second to where the player's centre is 5.625 tiles from the view's, on the 1/8 or 7/8 line, partway for the left stick partway pushed; when any other input starts, it goes straight back, as fast as damping allows (`014 §1.2`, `§1.3`). Since this measures from the player and not from the 3-tile lift, looking up does little for now. It shows only the room: the view's centre is clamped so that the view at the tiles' front faces stays inside the room, and is centred on the room where the room is smaller than the view (`010 §2.1`, `§2.2`). A 20x15 room fills the view, so the camera doesn't move in it.
+The camera follows the player with a lag, and its view is centred 3 tiles above the player, which puts the player 70% of the way down the screen (`010 §1`). Up and down, on the same inputs as moving, look up or down, but only while they are the only input: no moving, no jumping and no phase held (`010 §1.3`, `014 §1.1`, `015 §5.15`). After a hold of 0.5 seconds the view eases over 1 second to where the player's centre is 5.625 tiles from the view's, on the 1/8 or 7/8 line, partway for the left stick partway pushed; when any other input starts, it goes straight back, as fast as damping allows (`014 §1.2`, `§1.3`). Since this measures from the player and not from the 3-tile lift, looking up does little for now.
+
+`CameraFraming` keeps the view from showing much that the player shouldn't see, and otherwise as near the wanted framing as it can be (`042 §4.6`, `§4.7`). Each frame:
+
+- **How hidden each tile is,** from 0 to 1, by its detour: how much longer the shortest path to it from the player, through empty tiles, is than a straight line. A detour under 4 tiles hides nothing, and one over 14 hides fully. Open space has no detour, the space beyond a nearby hole or gap has a small one, and the space beyond a wall has a large one, or none at all. Paths go into solid tiles but not out of them, and each step from one solid tile to the next counts 6 tiles, so rock behind a face is hidden after a tile or two. A solid tile next to an empty one is no more hidden than its least hidden empty neighbour. Outside the rooms is fully hidden.
+- **The cost of a candidate centre:** the hidden area its view would show at the tiles' front faces, from a summed-area table, plus 0.5 times the square of its distance from the wanted framing, in tiles.
+- **The centre:** a soft minimum of candidates 0.5 tiles apart, up to 8 tiles from the wanted framing: their average, each weighted by `exp(-cost)`. So the centre moves smoothly as the player does, a feature counts only by how much of it would show, and looking up or down shows more wherever there is more to see.
+
+A room lower or narrower than the view still shows past its walls. In a room of 20x15 tiles with walls one tile thick, the camera barely moves. There are no rooms for the camera to pan between.
 
 ## Textures
 
@@ -93,8 +102,8 @@ Other ways of choosing colours were tried and set aside: quantising in HSV, a la
 - What the aim of a phase looks like. Leaning (Claude): part of the game's image, as Ori's bash arrow is part of its world, whether as a 3D model, a billboard or 2D sprites (`015 §5.7`, `039 §2.3`).
 - Framing by area: centring underwater and in platforming challenges, the player to one side on ledges in front of challenges, and camera distances that suit the geometry. Phantom Camera's way: a phantom camera per area, made active by trigger areas. Put off until there are areas (`010 §3.1`).
 - Looking when up and down mean something else too, such as doors, climbing or aiming. Any input that controls the player has to stop a look (`014 §1.1`).
+- Hiding what the player can't see when drawing, such as by darkening hidden tiles, so that a room lower or narrower than the view doesn't show its neighbours. The same detours could give the map's shroud over what the player hasn't seen (`042 §4.6`).
 - Looking with the left stick. Each axis has its own dead zone of 0.2, so a stick pushed fully up still looks up to about 11.5° either side of vertical; past that, the player moves and the look stops. Many games give up a wedge of ±22.5°. Not judged on a gamepad (`014 §1.1`).
-- What the camera keeps inside in the seamless world. For now, the world's bounding box (`011 §4.1`). Leaning: the LDtk level the player is in (`010 §2.3`).
 - When should the camera leave the 16-pixel distance? Leaning: zooming out for cinematics, or to show something important that is hard to see at the usual distance. Contextual zoom may turn out better after trying both (`009 §5.2`).
 - On a 16:9 monitor the image has black bars at the sides. Whether to fill them, and with what, is undecided.
 - The palette as an asset. It is generated at startup until it is final; then it becomes a file, and the code that generates it becomes the first part of an asset pipeline (`004 §2.6`).

@@ -1,0 +1,65 @@
+# 042: The camera clamped by tiles
+
+## Context
+
+Inciting event (2026-11-03): deliberating foreground visuals (`041 §1.1`). The camera is clamped to the world's bounding box, and the leaning answer was to clamp it to the player's LDtk level (`010 §2.3`). Neil prefers a camera clamped by the static tiles: then there are no rooms for the camera to pan between.
+
+Goals:
+- A small movement of the player moves the camera's target only a little.
+- The player can't see far past a wall, floor or ceiling, into the area beyond, unless there's an opening.
+- Both axes are treated alike. The framing that the clamp starts from is a fixed offset above the player today, but it may later have offsets of either axis from areas laid out in LDtk, and the clamp shouldn't care where the framing comes from.
+
+Tensions:
+- Space narrower than the view: a corridor 4 tiles high shows about 5 tiles past its floor and its ceiling, whatever the clamp does.
+
+## 1. The algorithm
+
+- [x] 1.1 What is solid, for the camera. Options:
+  - (a) The tiles as they are. A one-tile hole in a ceiling lets the view through.
+  - (b) Blurred and thresholded (Neil): each tile's value is a weighted average of its neighbourhood, rounded to solid or empty with a bias, and stored as a grid of booleans.
+  - (c) A density (Neil): each tile's centre is a kernel of finite support, and the density at a point is the sum of nearby kernels, so it varies smoothly between tiles.
+  - (d) A morphological closing (Claude): dilation and then erosion, which fills holes and gaps up to a chosen size without moving the edges of large shapes. Blurring and thresholding does much the same, but a bias moves the edges and rounds corners.
+- [x] 1.2 What limits the view. Options:
+  - (a) March from the player toward the intended target and stop where it's solid (Neil, with 1.1 b or c). This limits the view's centre, not its edges: with a ceiling 5 tiles above and the target 3 tiles up, nothing stops the march, and the view's top edge, 7.5 tiles above its centre, is 5.5 tiles past the ceiling. It works if the march tests the view's edges, not its centre.
+  - (b) Bounds on each edge (Claude): from each empty tile, a line up, down, left and right to the first solid tile, and each edge of the view may reach at most a margin past it, such as one tile, so that the wall's face shows. The target is the intended framing clamped to the bounds on each axis, and centred between them where they are closer together than the view.
+- [x] 1.3 Smoothness. Options:
+  - (a) None of its own: the camera's damping smooths the target in time. With a binary grid, the point where a march stops can jump by a tile when the player moves a pixel, and flicker when the player stands at the boundary.
+  - (b) A density (1.1 c): the stopping point moves smoothly most of the time, but still jumps where a march just grazes a bump in the density. A fixed step of 0.5 tiles quantises it, unless the crossing is found between the last two samples.
+  - (c) A Lipschitz envelope of the bounds (Claude), computed once when the world loads: each upper bound becomes `min over y of (bound(y) + k d(x, y))`, the largest function under the bound that changes by at most `k` per tile, and lower bounds the reverse. `d` is the distance through empty tiles, so that two sides of a thin floor don't affect each other: one pass like Dijkstra's. The target can't change faster than `k` times the player's movement, the view never passes the raw bounds, and the camera starts to rise before the player is under a shaft.
+- [x] 1.4 Combining. Claude: the options for 1.1 and 1.3 aren't exclusive. A closing or a blur decides what counts as solid, edge bounds limit what is seen, and an envelope makes them smooth. Comparing them in play could use a switch that cycles between variants. Decision (Neil): a closing (1.1 d), edge bounds (1.2 b) and an envelope (1.3 c), with no switch. As built, in `CameraBounds`:
+  - Outside the world's rooms is solid too, so the view stays out of the space between rooms as well as outside the world.
+  - The closing's radius is 1 tile, which fills gaps up to 2 tiles wide. The margin is 1 tile, and the slope `k` is 1, so where a bound limits it, the view moves no faster than the player. All three are to be tuned in play.
+  - The bounds are sampled by bilinear interpolation between tiles' centres, so that the target moves smoothly within a tile too. Solid tiles next to empty ones get values from their empty neighbours, for interpolation near walls.
+  - Where the closing has filled the player's tile, in a passage up to 2 tiles wide, the walls are the tile's own edges, so the view is centred on the player there.
+  - Found while testing (Claude): the envelope by itself already limits what a hole shows. A hole `w` tiles wide lets the view up by at most about `k w / 2` tiles, so the closing adds less than expected: one tile, for a hole one tile wide.
+
+## 2. Foreground
+
+- [ ] 2.1 With bounds a margin `m` past walls, the view `f` tiles in front of the tiles' front faces stops `7.5 f / 16.1 - m` tiles short of the wall's surface vertically, wherever the clamp holds. With `m = 1`, foreground more than about 2.2 tiles in front is never seen over rock, from either side, so its ends can run into walls. Exceptions: the bounds come from lines straight from the player, so rock in the corners of an L-shaped cave can be in view, and space narrower than the view shows past its walls.
+
+## 3. Where it lives
+
+- [x] 3.1 The rig's clamp is in `CameraRig`, in the game. The precomputed field needs only the world's tile grid. It isn't simulation. Options: the game, beside the rig; or a new Core subsystem, if tests need it there. Decision (Neil): the game, beside the rig. The game's tests can reach it.
+
+## 4. Playtesting the first version
+
+Neil, from play (2026-11-03), with Claude's diagnosis of each from the code:
+
+- 4.1 Nowhere to look up or down and see more. The look moves the wanted framing, but the same bounds clamp it, and most places have a floor or ceiling within reach of the view.
+- 4.2 Gaps should open the view, not close it. Near a hole in a ceiling, the player should see the other side, and over a floor with repeated one-tile gaps, the player should be able to look down to see below them.
+- 4.3 Walking right, the camera moves up and down a lot with variations in the floor and ceiling. Each vertical bound comes from the one column straight above or below the player, so each step in the floor or ceiling moves it, and the envelope lets it move a tile for each tile walked.
+- 4.4 The view reaches through rooms' walls. Outside the rooms was already solid for the camera. Causes found: a solid tile next to an empty one gets its neighbour's value plus `k`, which loosens the bound by up to a tile near walls, so the view can reach 2 tiles past a wall; and a room lower than the view, such as `Clot`, 12 tiles high, has to show past its floor and ceiling.
+- 4.5 Distant features move the camera too much. Standing 4 tiles from an overhang and jumping shifts the camera almost a tile away from it, and so does standing 15 tiles away, where the overhang can't be seen. The envelope carries a low bound across empty space at a slope of 1, so an overhang 15 tiles away still caps the bound 15 tiles higher than it, whether or not it would show.
+
+- [x] 4.6 What next. Options:
+  - (a) Patch the first version: an opening of the empty space in place of the closing, the fix of 4.4, a gentler slope and a cap on how far the envelope reaches, and a looser bound while looking. Claude: 4.3 and 4.5 come from bounds taken from single lines and spread by the envelope, so patches only make them smaller.
+  - (b) What the view shows (Claude). Each frame, find which tiles near the player it can see: empty tiles in a line of sight from the player, through empty tiles, and the solid tiles next to them, which are wall faces. Everything else is hidden, including outside the rooms. Then choose the view's centre to trade the hidden area it would show against its distance from the wanted framing: `hidden(c) + λ |c - wanted|²`. The hidden area in a rectangle is exact and cheap from a summed-area table of the hidden tiles, interpolated bilinearly. A soft minimum over candidate centres, the average weighted by `exp(-cost / T)`, moves smoothly as its inputs change. Nothing to precompute. How it answers each point: looking moves the wanted framing, or raises `λ`, and the view follows as far as it shows little that's hidden (4.1); a hole or gaps let the line of sight through when the player is near them, so what's beyond them isn't hidden (4.2); a step in the ceiling changes the hidden area by one column out of 20, so it moves the view a little (4.3); the view avoids showing what's behind walls, though a room lower than the view still shows past them (4.4); features count only by how much of them would be in view, so an overhang that wouldn't show has no effect (4.5). Costs: no hard limit on what the view shows, and two new constants, `λ` and `T`, to tune.
+  - (c) Hide what the player can't see when drawing, such as by darkening hidden tiles, in addition to (b). The only option that stops a room lower than the view from showing its neighbours (4.4).
+  - Decision (Neil): (b), with (c) as a follow-up if (b) works out. Computing (c) could also give the shroud over the parts of the map the player hasn't seen yet. Supersedes 1.1, 1.2, 1.3 and 1.4: `CameraFraming` replaces `CameraBounds`.
+- [x] 4.7 How hidden a tile is. Built (Claude): not by line of sight, but by detour: how much longer the shortest path to the tile from the player, through empty tiles, is than a straight line. A hole one tile wide shows only a narrow cone by line of sight, so the view, which can only show whole rows, would hardly rise under it. By detour, the space beyond a nearby hole or gap is little hidden, and the space beyond a wall, reached only the long way round or not at all, is fully hidden. Details as built:
+  - Paths go into solid tiles but not out of them, and each step from one solid tile to the next counts 6 tiles, so rock behind a face is hidden after a tile or two. A solid tile next to an empty one is a face of that space, and no more hidden than the least hidden of its empty neighbours, so the far side of a ceiling shows when the space above it does.
+  - Outside the rooms is fully hidden, and no path goes through it.
+  - Paths start from the empty tiles around the player, each at its straight-line distance, and use the grid's straight and diagonal steps, so distances change smoothly as the player moves, and open space has no detour.
+  - A detour under 4 tiles hides nothing, and one over 14 hides fully, linearly between. `λ` is 0.5 and `T` is 1. Candidate centres are 0.5 tiles apart, up to 8 tiles from the wanted framing. All are to be tuned in play.
+  - Measured in a 40x40 room split by a ceiling two tiles thick with a hole one tile wide, looking up with the wanted centre at 15: under the hole, the view's centre reaches 14.8, through to the room above; 4 tiles from it, 12.5; 8 tiles, 12.2; 20 tiles, 12.1, with the top of the view just past the ceiling's face. About 0.76 ms a frame in Debug.
+  - Tests check the goals of 4.2, 4.3 and 4.5, and that the view doesn't go far past a ceiling with no opening: over a bumpy floor under a bumpy ceiling, the view moves up and down less than a quarter of a tile.
