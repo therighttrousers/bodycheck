@@ -133,6 +133,19 @@ Where these appear in the progression is undecided.
 - While a phase's grab holds it, it has no weight to cancel, but still drives along its line and holds itself to it, with the same caps (`024 §1.1`, `025 §2.6`).
 - Puzzle material: lower a platform for a while by dropping a heavy object on it, or by adding a rider or two.
 
+## Ideas
+
+Possibilities:
+- Upgrade: allow phasing through certain static tiles.
+- Upgrade: allow phasing through closed doors.
+- Late-game upgrade: allow phasing through all static tiles, but only about 1 tile distance, and not if the player would end up inside a static tile. This could be an optional upgrade that unlocks other collectibles and makes the final escape sequence easier. Levels would have to be designed with this in mind from the beginning.
+- Upgrades: max-health increases.
+- Ability: downward thrust. Input: new button/key or down+jump. Uses: jump lower, walk underwater, push platforms down, slow down robots who are carrying the player, push heavy buttons, fall faster, impact harder.
+- Collectibles: story-related doodads.
+- Collectibles: NPCs to rescue. NPCs could be your size but allow you to rescue their main circuit boards.
+- Collectibles: reskinning options. It would be awesome if one or some of these were gameplay-relevant. Reflective skin to bounce lasers? One that makes you heavier?
+- Collectible: a fedora to wear.
+
 ## Open questions
 
 Phase:
