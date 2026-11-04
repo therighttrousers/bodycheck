@@ -15,6 +15,7 @@ Relevant decision records:
 - [038: Vertices on a grid, for the jitter of mid-1990s 3D](../decision-records/038-vertex-grid.md)
 - [039: Pausing for the menu and the map](../decision-records/039-modes-kept-across-pauses.md)
 - [040: No vertex snap](../decision-records/040-no-vertex-snap.md)
+- [042: The camera clamped by tiles](../decision-records/042-camera-clamped-by-tiles.md)
 
 The image is Mode X with modern lighting: 320x240 and 256 colours, as on a VGA card in the mid-1990s, drawn with shadows, ambient occlusion, reflections and bloom. Star Fox, Quake and Descent are the references for the geometry, and Mode X for the image (`003`).
 
@@ -94,7 +95,7 @@ Other ways of choosing colours were tried and set aside: quantising in HSV, a la
 - Framing by area: centring underwater and in platforming challenges, the player to one side on ledges in front of challenges, and camera distances that suit the geometry. Phantom Camera's way: a phantom camera per area, made active by trigger areas. Put off until there are areas (`010 §3.1`).
 - Looking when up and down mean something else too, such as doors, climbing or aiming. Any input that controls the player has to stop a look (`014 §1.1`).
 - Looking with the left stick. Each axis has its own dead zone of 0.2, so a stick pushed fully up still looks up to about 11.5° either side of vertical; past that, the player moves and the look stops. Many games give up a wedge of ±22.5°. Not judged on a gamepad (`014 §1.1`).
-- What the camera keeps inside in the seamless world. For now, the world's bounding box (`011 §4.1`). Leaning: the LDtk level the player is in (`010 §2.3`).
+- What the camera keeps inside in the seamless world. For now, the world's bounding box (`011 §4.1`). Tried and parked: clamps by the static tiles, the last by how hidden each tile is from the player. Next to try: outside tiles that designers paint in LDtk, which the view avoids showing (`042 §5.3`).
 - When should the camera leave the 16-pixel distance? Leaning: zooming out for cinematics, or to show something important that is hard to see at the usual distance. Contextual zoom may turn out better after trying both (`009 §5.2`).
 - On a 16:9 monitor the image has black bars at the sides. Whether to fill them, and with what, is undecided.
 - The palette as an asset. It is generated at startup until it is final; then it becomes a file, and the code that generates it becomes the first part of an asset pipeline (`004 §2.6`).
