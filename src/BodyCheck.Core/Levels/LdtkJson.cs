@@ -129,6 +129,15 @@ internal sealed record LdtkPoint
     public required int Cy { get; init; }
 }
 
+/// <summary>
+/// The value of an EntityRef field: the entity it refers to, by its <see cref="LdtkEntityInstance.Iid"/>. LDtk also
+/// writes the ids of its layer, level and world, which aren't read: an id is unique in the project.
+/// </summary>
+internal sealed record LdtkEntityRef
+{
+    public required string EntityIid { get; init; }
+}
+
 [JsonConverter(typeof(StrictEnumConverter<LdtkLayerType>))]
 internal enum LdtkLayerType
 {
@@ -142,9 +151,9 @@ internal enum LdtkLayerType
 [JsonConverter(typeof(StrictEnumConverter<LdtkLayerName>))]
 internal enum LdtkLayerName
 {
+    Control,
+    Entities,
     SolidGeometry,
-    Characters,
-    ControlEntities,
 }
 
 /// <summary>The entities defined in this project.</summary>
@@ -155,14 +164,31 @@ internal enum LdtkEntityName
     RobotBasic,
     Platform,
     Block,
+    VerticalDoor,
     Respawn,
+    Trigger,
+    Sequence,
+    Fanout,
+    Dialogue,
+    Script,
 }
 
-/// <summary>The code that reads the records, which System.Text.Json's source generator writes at compile time.</summary>
+/// <summary>
+/// The code that reads the records, which System.Text.Json's source generator writes at compile time. The types after
+/// the project and the level are those of the values of entities' fields.
+/// </summary>
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
-    RespectNullableAnnotations = true)]
+    RespectNullableAnnotations = true,
+    Converters = [typeof(StrictEnumConverter<TriggerAction>)])]
 [JsonSerializable(typeof(LdtkProject))]
 [JsonSerializable(typeof(LdtkLevel))]
 [JsonSerializable(typeof(LdtkPoint))]
+[JsonSerializable(typeof(LdtkEntityRef))]
+[JsonSerializable(typeof(LdtkEntityRef[]))]
+[JsonSerializable(typeof(TriggerAction))]
+[JsonSerializable(typeof(TriggerAction[]))]
+[JsonSerializable(typeof(bool))]
+[JsonSerializable(typeof(float))]
+[JsonSerializable(typeof(string))]
 internal sealed partial class LdtkJsonContext : JsonSerializerContext;

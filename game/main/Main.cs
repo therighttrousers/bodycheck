@@ -331,8 +331,8 @@ public partial class Main : Node
     /// </summary>
     private void CycleRespawn(int step)
     {
-        IReadOnlyList<EntityConfig.Respawn> respawns = _world.World.Respawns;
-        if (respawns.Count == 0)
+        EntityConfig.Respawn[] respawns = [.. _world.World.Controls.OfType<EntityConfig.Respawn>()];
+        if (respawns.Length == 0)
         {
             return;
         }
@@ -341,7 +341,7 @@ public partial class Main : Node
         {
             current = 0;
         }
-        _respawnIds[_world.World.Name] = respawns[Mathf.PosMod(current + step, respawns.Count)].Id;
+        _respawnIds[_world.World.Name] = respawns[Mathf.PosMod(current + step, respawns.Length)].Id;
         LoadWorld(_worldIndex);
     }
 
@@ -358,9 +358,9 @@ public partial class Main : Node
     /// <summary>Which of the world's respawns is the current one, for the title, if any is.</summary>
     private string RespawnTitle()
     {
-        IReadOnlyList<EntityConfig.Respawn> respawns = _world.World.Respawns;
+        EntityConfig.Respawn[] respawns = [.. _world.World.Controls.OfType<EntityConfig.Respawn>()];
         int current = IndexOf(respawns.Select(respawn => respawn.Id), _world.CurrentRespawn?.Id ?? "");
-        return current < 0 ? "" : $" at respawn {current + 1} of {respawns.Count}";
+        return current < 0 ? "" : $" at respawn {current + 1} of {respawns.Length}";
     }
 
     /// <summary>Adds the lights, the colour pass, and the switches that turn parts of the pipeline on and off.</summary>

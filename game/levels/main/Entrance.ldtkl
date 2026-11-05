@@ -179,7 +179,7 @@
 			"entityInstances": [
 				{
 					"__identifier": "VerticalDoor",
-					"__grid": [0,4],
+					"__grid": [0,5],
 					"__pivot": [0,0],
 					"__tags": ["Character"],
 					"__tile": null,
@@ -188,10 +188,10 @@
 					"width": 16,
 					"height": 48,
 					"defUid": 232,
-					"px": [0,64],
+					"px": [0,80],
 					"fieldInstances": [],
 					"__worldX": 0,
-					"__worldY": 64
+					"__worldY": 80
 				}
 			]
 		},

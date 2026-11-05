@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
+using BodyCheck.Core;
 using BodyCheck.Core.Levels;
 using BodyCheck.Core.WorldData;
 
@@ -45,7 +46,7 @@ public class LdtkReaderTest
     /// <param name="pxWid">The level's width in pixels, if it isn't its layers' width.</param>
     private static string Level(
         int worldX, int worldY, string entities = "", int[]? solid = null, int width = 20, int height = 15,
-        int? pxWid = null, int worldDepth = 0, string identifier = "Test", string controlEntities = "")
+        int? pxWid = null, int worldDepth = 0, string identifier = "Test", string control = "")
     {
         int[] values = new int[width * height];
         foreach (int i in solid ?? [])
@@ -58,12 +59,12 @@ public class LdtkReaderTest
                 { "__identifier": "SolidGeometry", "__type": "IntGrid", "__cWid": {{width}}, "__cHei": {{height}}, "__gridSize": 16,
                   "__pxTotalOffsetX": 0, "__pxTotalOffsetY": 0,
                   "intGridCsv": [{{string.Join(", ", values)}}], "entityInstances": [] },
-                { "__identifier": "Characters", "__type": "Entities", "__cWid": {{width}}, "__cHei": {{height}}, "__gridSize": 16,
+                { "__identifier": "Entities", "__type": "Entities", "__cWid": {{width}}, "__cHei": {{height}}, "__gridSize": 16,
                   "__pxTotalOffsetX": 0, "__pxTotalOffsetY": 0,
                   "intGridCsv": [], "entityInstances": [ {{entities}} ] },
-                { "__identifier": "ControlEntities", "__type": "Entities", "__cWid": {{width}}, "__cHei": {{height}}, "__gridSize": 16,
+                { "__identifier": "Control", "__type": "Entities", "__cWid": {{width}}, "__cHei": {{height}}, "__gridSize": 16,
                   "__pxTotalOffsetX": 0, "__pxTotalOffsetY": 0,
-                  "intGridCsv": [], "entityInstances": [ {{controlEntities}} ] } ] }
+                  "intGridCsv": [], "entityInstances": [ {{control}} ] } ] }
             """;
     }
 
@@ -136,9 +137,9 @@ public class LdtkReaderTest
             { "__identifier": "Respawn", "__pivot": [0.5, 1], "px": [40, 240], "width": 16, "height": 32,
               "__smartColor": "#4399D7", "iid": "a1b2", "fieldInstances": [] }
             """;
-        World world = ReadOne(Project(Level(0, 0, PlayerStart, controlEntities: respawn)));
+        World world = ReadOne(Project(Level(0, 0, PlayerStart, control: respawn)));
 
-        EntityConfig.Respawn read = world.Respawns.Single();
+        var read = (EntityConfig.Respawn)world.Controls.Single();
         AssertThat((read.Id, read.MapOrigin, read.MapSize)).IsEqual(("a1b2", new Vector2I(2, 0), new Vector2I(1, 2)));
     }
 
@@ -178,10 +179,71 @@ public class LdtkReaderTest
     [TestCase(16, 40, 16)] // Not a whole number of tiles wide
     [TestCase(16, 48, 8)] // Not a whole number of tiles high
     [TestCase(16, 48, 32)] // Not one tile high
+    [TestCase(16, 0, 16)] // Of no width
     public void Rejects_a_platform_with_a_box_it_cant_have(int x, int width, int height)
     {
         string platform = Platform(RangeA + ", " + RangeB, x, width, height);
         var e = Thrown<InvalidDataException>(() => ReadOne(Project(Level(0, 0, PlayerStart + ", " + platform))));
+        AssertThat(e.Message).StartsWith("test.ldtk: ");
+    }
+
+    /// <summary>A control entity in the level's top left tile, with this name, iid and fields.</summary>
+    private static string Control(string name, string iid, string fields) => $$"""
+        { "__identifier": "{{name}}", "__pivot": [0, 0], "px": [0, 0], "width": 16, "height": 16,
+          "__smartColor": "#FFFFFF", "iid": "{{iid}}", "fieldInstances": [ {{fields}} ] }
+        """;
+
+    /// <summary>An EntityRef field's value, referring to the entity with this iid.</summary>
+    private static string Ref(string iid) =>
+        $$"""{ "entityIid": "{{iid}}", "layerIid": "l", "levelIid": "v", "worldIid": "w" }""";
+
+    private static readonly string Dialogue = Control("Dialogue", "dialogue", """
+        { "__identifier": "DialogueFile", "__value": "File" }, { "__identifier": "DialogueTitle", "__value": "Title" },
+        { "__identifier": "Garble", "__value": 0.5 }
+        """);
+
+    private const string Door =
+        """{ "__identifier": "VerticalDoor", "__pivot": [0, 0], "px": [32, 0], "width": 16, "height": 48, "__smartColor": "#FFFFFF", "iid": "door", "fieldInstances": [] }""";
+
+    /// <summary>A sequence with these Targets and Actions, as the insides of their arrays.</summary>
+    private static string Sequence(string targets, string actions) => Control("Sequence", "sequence", $$"""
+        { "__identifier": "Targets", "__value": [ {{targets}} ] }, { "__identifier": "Actions", "__value": [ {{actions}} ] },
+        { "__identifier": "Once", "__value": false }
+        """);
+
+    [TestCase]
+    public void Reads_routes_as_steps_that_name_their_targets_by_iid()
+    {
+        string trigger = Control("Trigger", "trigger", $$"""
+            { "__identifier": "Target", "__value": {{Ref("sequence")}} }, { "__identifier": "Action", "__value": "Default" },
+            { "__identifier": "Once", "__value": true }
+            """);
+        string sequence = Sequence($"{Ref("dialogue")}, {Ref("door")}", "\"Default\", \"Close\"");
+        World world = ReadOne(Project(Level(0, 0, PlayerStart + ", " + Door, control: $"{trigger}, {sequence}, {Dialogue}")));
+
+        var readTrigger = (EntityConfig.Trigger)world.ConfigsById["trigger"];
+        AssertThat((readTrigger.Step, readTrigger.Once)).IsEqual((new Step("sequence", TriggerAction.Default), true));
+        AssertArray(((EntityConfig.Sequence)world.ConfigsById["sequence"]).Steps).ContainsExactly(
+            new Step("dialogue", TriggerAction.Default), new Step("door", TriggerAction.Close));
+        var readDialogue = (EntityConfig.Dialogue)world.ConfigsById["dialogue"];
+        AssertThat((readDialogue.File, readDialogue.Title, readDialogue.Garble)).IsEqual(("File", "Title", 0.5f));
+    }
+
+    public static IEnumerable<string> BadControlEntities =>
+    [
+        Sequence(Ref("dialogue"), "\"Default\", \"Default\""), // More actions than targets
+        Sequence(Ref("dialogue"), "\"Shout\""), // Not an action
+        Sequence("null", "\"Default\""), // A target with no value
+        Sequence(Ref("door"), "\"Default\""), // An action the door doesn't respond to
+        Control("Script", "script", """{ "__identifier": "FullyQualifiedClassName", "__value": "A.B" }"""),
+    ];
+
+    [TestCase]
+    [DataPoint(nameof(BadControlEntities))]
+    public void Rejects_control_entity(string entity)
+    {
+        var e = Thrown<InvalidDataException>(
+            () => ReadOne(Project(Level(0, 0, PlayerStart + ", " + Door, control: $"{entity}, {Dialogue}"))));
         AssertThat(e.Message).StartsWith("test.ldtk: ");
     }
 
