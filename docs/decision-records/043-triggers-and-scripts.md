@@ -34,6 +34,8 @@ Anti-goals:
 - [x] 1.8 `Once` is a field of each kind that runs others. One that has run doesn't run again. Saving it needs the game state; until then it is in memory.
 - [x] 1.9 State that an action changes, such as what a toggle toggles, belongs to the controller that responds to it, which also makes sure it is saved (Neil). The router holds none, so persisted state isn't spread between them.
 - [~] 1.10 Policies for re-entry (Neil): an easy way for a controller, or a runner, to say for each action what happens when it is asked again while running, test-driven with the `Trigger`'s `Default`. The policies so far (Claude's names): run alongside, as `Sequence`, `Fanout` and `Script` do; join, which runs nothing and finishes when the run in progress does, as `Trigger` does; ignore, which runs nothing and finishes at once; and queue, which runs again once the run in progress finishes. A sketch (Claude): one small type per action, holding the `ActionTask` of the run in progress, given the policy and a function that starts a run, so that a controller's response to an action is one line. Which of these are needed, and their names, are open.
+- [~] 1.11 `Impulse` (Neil): a control entity that responds to `Default` by giving a body an impulse, for the player's push at the spawn in `Outside`. Its fields are to be decided.
+- [ ] 1.12 Actions every tick (Neil). A later `Force` control entity, such as for wind, would act on every tick that a body is in a trigger, not once per touch. Not designed now.
 
 ## 2. Running actions
 
