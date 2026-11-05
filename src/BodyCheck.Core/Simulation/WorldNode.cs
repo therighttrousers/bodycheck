@@ -40,6 +40,8 @@ public partial class WorldNode : Node3D
 
     private readonly Defer _defer = new();
 
+    private readonly ActionTaskQueue _actionTasks = new();
+
     /// <param name="assets">What to draw for each entity and for tiles.</param>
     /// <param name="respawnId">
     /// The respawn the player starts at, which is then the current one. The player starts where the world says if this is
@@ -250,7 +252,16 @@ public partial class WorldNode : Node3D
     /// <summary>Supplies the player's input, once per tick. The player stands idle if this is null.</summary>
     public Func<PlayerInput>? PlayerInput { get; set; }
 
-    /// <summary>Whether the controllers run. With this off, entities only coast, under drag and gravity.</summary>
+    /// <summary>
+    /// The world's tick, for the actions run in it: what awaits it resumes in each played tick, once every entity has
+    /// stepped and the actions they deferred have run, before the engine's step.
+    /// </summary>
+    public ITick Tick => _actionTasks;
+
+    /// <summary>
+    /// Whether the controllers run, and the actions that await the world's <see cref="Tick"/>. With this off, entities
+    /// only coast, under drag and gravity, and no game time passes for what waits on the tick.
+    /// </summary>
     public bool ControllersEnabled { get; set; } = true;
 
     /// <summary>
@@ -319,6 +330,12 @@ public partial class WorldNode : Node3D
         }
         // Run this tick's post-entity-steps deferred actions.
         _defer.DrainAfterEntityStepsActions();
+
+        // Resume what waits on actions, now that every controller has run and its deferred actions too.
+        if (ControllersEnabled)
+        {
+            _actionTasks.Run((float)delta);
+        }
 
         UpdateCurrentRespawn();
     }
