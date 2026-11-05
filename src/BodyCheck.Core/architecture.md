@@ -16,7 +16,9 @@ Relevant decision records:
 - [029: Tunable bodies](../../docs/decision-records/029-tunable-bodies.md)
 - [030: Gameplay speed](../../docs/decision-records/030-gameplay-speed.md)
 - [036: Telemetry keeps the values reported to it](../../docs/decision-records/036-telemetry-keeps-original-values.md)
+- [043: Triggers, actions and scripts](../../docs/decision-records/043-triggers-and-scripts.md)
 - [045: Control entities in the world](../../docs/decision-records/045-control-entities-in-the-world.md)
+- [046: Actions as async methods](../../docs/decision-records/046-async-actions.md)
 
 ## What it is
 
@@ -37,6 +39,7 @@ Core is split into subsystems, each a subdirectory and a namespace (`012`). The 
 - [**`WorldData`**](WorldData/architecture.md): the world and its rooms, as data. Nothing that runs.
 - [**`Levels`**](Levels/architecture.md): reading LDtk levels into the world's data. Not what a room means once read.
 - [**`Simulation`**](Simulation/architecture.md): the world brought to life, with its entities stepped each tick. Not presentation.
+- [**`Tasks`**](Tasks/architecture.md): tasks that resume only on a tick, and their scheduler. Not what runs on them, or when in a tick.
 
 ```mermaid
 graph BT
@@ -45,6 +48,7 @@ graph BT
     Simulation --> WorldData
     Simulation --> Entities
     Simulation --> Controllers
+    Simulation --> Tasks
 ```
 
 An arrow points from a subsystem to one it uses. Every subsystem may use the root, which uses none of them, so the root is at the bottom of every chain; those arrows aren't drawn. There are no cycles.
@@ -52,6 +56,7 @@ An arrow points from a subsystem to one it uses. Every subsystem may use the roo
 - **Controllers use entities** through what a body offers: forces, impulses, motors and queries. Entities know nothing of controllers beyond the interface they define for them, so a controller doesn't know where its entity is in a room or how it got there.
 - **Levels produce the world's data.** The world's data knows nothing of where it came from.
 - **Simulation joins the rest.** It builds each entity from the world's data, gives it its controller, and steps it; none of the subsystems it uses know about it.
+- **Simulation runs the world's tasks** on a scheduler of its own, at its point in the tick.
 
 ## How a tick runs
 
@@ -61,6 +66,8 @@ The order of a tick is in [the conventions](../../docs/designs/architecture.md#c
 - **Controllers can defer actions to later in the tick.** A controller hands an action to its `IDefer` for one of two points. `RunAfterEntitySteps` is for an action that changes the world at once, such as moving a body, so that no controller sees it in the same tick: `WorldNode` runs these once it has stepped every entity, on either path, before the engine's step. `RunAfterPhysicsStep` is for an action whose effect controllers this tick must not see even in the engine's step, such as a change of gravity they reckoned with: `WorldNode` runs these at the start of the next tick, played or paused, before it steps any entity. `IDefer` has only those two, so a controller can't run the actions itself. If a tick's entity steps fail partway, `WorldNode` drops that tick's actions, so they never run against a later tick's world (`022 §2.1`).
 - **A controller can ask for the game to pause**, to decide something with everything else standing still: the player's does while a phase is aimed. While the game is paused for that, controllers run on a second path beside the normal one: the game calls `WorldNode.StepPaused`, which calls each `Entity.StepPaused`, which calls the controller's `ApplyPaused`. A controller asks through `RequestsPause`, which its entity passes on, and `WorldNode.PauseRequested` says whether any does. Both are default interface members that do nothing, so only controllers that pause have them. Nothing moves on this path but what controllers defer until after the entity steps: the engine doesn't step (`015 §5.10`). The game decides whether a tick is played or paused.
 - **Controllers get game time and real time.** `Apply` takes each tick's length on both clocks: game time, which the engine's time scale shortens, and real time, a physics tick's length whatever the scale. `ApplyPaused` takes real time only, since no game time passes. A timer that governs the world runs on game time, and one about the player's fingers on real time (`018 §1.1`, `§1.2`). A feature that is a duration on game time is given in game seconds, and one on real time in ticks at `Features.TuningTicksPerSecond`, converted by `Features.TicksToTime`, so that its unit tells its clock (`030 §2.6`).
+- **The world's tick runs tasks.** Running an action is awaitable, so that whatever ran it can wait until it finishes: a `TickTask`, which `WorldNode` resumes once in each played tick, after the entity steps and their deferred actions, before the engine's step, with waits on game time (`046 §1.2`). It is ours rather than .NET's `Task` or Godot's `ToSignal`, whose continuations run outside the world's tick: there the engine's queries fail, some changes to bodies are refused, forces would be applied as often as frames come, what runs while the tree is paused would move actions on behind the menu, and an exception wouldn't fail the tick (`043 §2.4`). A failed task fails the tick, as a failed entity step does.
+- **Actions that take several ticks are async methods.** A controller's response to an action may be an `async` method that returns a `TickTask`, given the world's `ITick` to wait on, such as a door's `Close`, which slams the door, waits until it has settled, and freezes it. It runs where the world resumes tasks, after the entity steps and their deferred actions, so it changes bodies at once, with no `IDefer`. What a controller does every tick stays in `Apply` (`046 §1.1`, `§1.2`).
 - **Cues.** A controller says that something happened to its entity by raising a cue on it, which the entity passes on as an event. Logic knows no sounds or effects: whatever draws the entity reacts to cues. A cue names what happened, not the reaction, so that particles, one-shot animations and the like can react to the same cues later (`021 §1.3`).
 
 ## The root
@@ -90,5 +97,8 @@ Game code pushes measurements to `Telemetry`, by `Metric`, an enum. Each metric 
 `PhysicsLayer` names the engine's physics layers, as flags: static tiles, liquids, triggers, props such as blocks, and characters, which include platforms. The game's project settings name the same layers, and a test checks that the two agree. An entity's layer is part of its tuning, and its mask is every layer that has a collider: tiles and both kinds of entity. Queries should try to use layers instead of filtering what they find.
 
 ## Open questions
+
+- Whether `IDefer`'s two points become points of `ITick` to await, if a second async action needs one. `NextTick` from `Apply` already resumes after this tick's entity steps, after all of their deferred actions, though only on played ticks. `RunAfterPhysicsStep` has no counterpart: the world never runs its tasks before the entity steps (`046 §1.7`).
+- Guidance on the implicit concurrency of async actions and scripts: what can change while one waits, and how to guard against it. To be written once the routing, the door and scripts have used them (`046 §1.9`).
 
 - Can the Godot editor attach a script to a scene only when the script is in the Godot project itself? Believed so. Core's node classes are created in code, which doesn't need it (`005 §3.2`).

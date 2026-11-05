@@ -13,6 +13,7 @@ Relevant decision records:
 - [027: Engine friction for walkers and carrying](../decision-records/027-engine-friction.md)
 - [031: Tests in the game's project](../decision-records/031-tests-in-the-game-project.md)
 - [032: Player-only situational friction](../decision-records/032-player-only-situational-friction.md)
+- [046: Actions as async methods](../decision-records/046-async-actions.md)
 
 This is the top of the architecture docs. Each directory with parts of its own has an `architecture.md`, which describes it and how its parts relate, and links theirs. Follow the links down as far as the level you want to work at.
 
@@ -48,8 +49,9 @@ The game builds on Core's rules, putting them on screen and in the player's hand
   2. The world runs the actions queued with `IDefer.RunAfterPhysicsStep` during the tick before: "after the engine's step".
   3. The world steps every entity (`Entity.Step`), which runs its controller. Controllers read the world as of the last step.
   4. The world runs the actions queued with `IDefer.RunAfterEntitySteps` this tick, once every entity has been stepped: "after the entity steps".
-  5. The engine steps: "this tick's step". Forces, impulses, motors and friction set during the tick act in it. On a paused tick it doesn't.
-  6. Between ticks, Godot may draw frames, which call `_Process`. A frame may come after several ticks, or none, so nothing that the simulation depends on waits for one.
+  5. On a played tick, the world runs its `TickScheduler`, which resumes the tasks, such as async actions, whose waits are over (`046 §1.2`).
+  6. The engine steps: "this tick's step". Forces, impulses, motors and friction set during the tick act in it. On a paused tick it doesn't.
+  7. Between ticks, Godot may draw frames, which call `_Process`. A frame may come after several ticks, or none, so nothing that the simulation depends on waits for one.
 
   "Next step" is ambiguous here, so code says "this tick's step" for the one about to run, and "the last step" for the one whose results it reads. Godot runs `CallDeferred` calls made during the physics process before the engine's step, along with other deferred work, so the game queues its own actions on `IDefer` instead, in a known order (`022 §2`).
 - **Timing in names.** A method that changes state changes it when it is called; the engine then acts on it in this tick's step. A name says when, if not: `AfterEntitySteps` for a change made after the entity steps, and `AfterPhysicsStep` for one made after the engine's step.
