@@ -39,3 +39,8 @@ Goals and requirements (Neil):
 
 - [ ] 4.1 Fonts with good coverage at 320x240. Pixel fonts exist for CJK at 10 to 16 pixels, such as Ark Pixel, and Unifont covers the Basic Multilingual Plane at 16. Licences and quality to be checked.
 - [~] 4.2 The text box lays out lines from the font's metrics, never in fixed pixels, so that a locale's font sets its line height (Claude, agreed by Neil). How many lines a box holds in each locale is open.
+
+## 5. Dialogue files
+
+- [x] 5.1 Dialogue files are organized by story beat, not by level (Neil, Claude): a beat outlives the levels it spans, and maps to a slice, which gives translators a file's context. Lines shared everywhere, such as the "Sleep" option, go in a common file that others import. A long-running character may get a file of its own.
+- [~] 5.2 A `Dialogue` entity in LDtk names its file and title as strings. The reader checks, when the world loads, that the file exists and holds the title, and a test that loads every world makes a wrong name a failure in CI. Enums in LDtk would have to be kept in step with the files by hand.
