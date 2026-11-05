@@ -4,6 +4,7 @@ Relevant decision records:
 - [015: The phase ability](../../../docs/decision-records/015-phase.md)
 - [022: Actions at the end of a tick](../../../docs/decision-records/022-end-of-tick-actions.md)
 - [035: One shape for actions](../../../docs/decision-records/035-one-shape-for-actions.md)
+- [046: Actions as async methods](../../../docs/decision-records/046-async-actions.md)
 
 ## What it is
 
@@ -26,6 +27,14 @@ What a controller makes its entity do, which another controller could make its o
 - An action is built with its tuning, a record of functions with no arguments, each of which reads a feature from `Features.Current` when called, so that each controller tunes it with its own features: the player's phasing is tuned by `PhaseTuning.Player` (`035 §3.1`). A robot's running is tuned to have no drive in the air, where the player's has its own forces, which it also uses for a moment after leaving the ground.
 - A behaviour, such as a robot's `PatrolBehaviour`, is shaped the same way, but decides intent for the controller rather than acting: it only reads its entity (`035 §10.1`, `§10.3`).
 - The player's coyote time and buffered press stay in its controller: they are leniency for its fingers, and coyote time also says when it runs with its forces for the ground.
+
+## Responding to a route's actions
+
+A controller can respond to the actions a route asks of its entity, such as a door's `Close`, in one of two ways, each a way of running something that takes several ticks. Which to use depends on who changes the entity's state over time (`046 §1.8`).
+
+- **A controller whose `Apply` drives its entity records the action and returns at once,** as the player's, the robots' and the platforms' would. `Apply` acts on it at its next step, in order with everything else it does, so all of the entity's state stays in the controller and its actions, where the interactions between them can be seen. It is also the only way for something that runs on paused ticks, since the world doesn't resume async actions then. Letting what ran the action wait for it to end is harder, and not obvious.
+- **A controller with nothing to do between actions may respond with an `async` method** that holds the whole action, given the world's `ITick` to wait on: a door's `Close` slams the door, waits until it has settled, and freezes it. Its `Apply` does nothing, or only what it does while idle, and changes nothing the method changes.
+- **The two don't mix on one entity.** An async method that drives a body that its `Apply` also drives splits the body's state between them, and hides how they interact. An action that takes time on such an entity is another of the controller's actions, stepped from `Apply`.
 
 ## Phasing
 

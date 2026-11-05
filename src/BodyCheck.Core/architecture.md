@@ -107,5 +107,6 @@ Running an action is awaitable, so that whatever ran it can wait until it finish
 
 - Whether `IDefer`'s two points become points of `ITick` to await, if a second async action needs one. `NextTick` from `Apply` already resumes after this tick's entity steps, after all of their deferred actions, though only on played ticks. `RunAfterPhysicsStep` has no counterpart: the queue never runs before the entity steps (`046 §1.7`).
 - How the game finishes an `ActionTask` from outside the tick, such as when a dialogue ends: for the dialogue interface (`046 §1.4`).
+- Guidance on the implicit concurrency of async actions and scripts: what can change while one waits, and how to guard against it. To be written once the routing, the door and scripts have used them (`046 §1.9`).
 
 - Can the Godot editor attach a script to a scene only when the script is in the Godot project itself? Believed so. Core's node classes are created in code, which doesn't need it (`005 §3.2`).
