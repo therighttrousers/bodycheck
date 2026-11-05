@@ -1,3 +1,4 @@
+using BodyCheck.Core.Entities;
 using BodyCheck.Core.Tasks;
 
 namespace BodyCheck.Core.Scripts;
@@ -7,13 +8,9 @@ namespace BodyCheck.Core.Scripts;
 /// Every <c>Default</c> runs the steps, alongside any run in progress.
 /// </summary>
 /// <param name="steps">The steps, at least one.</param>
-public sealed class FanoutRunner(IReadOnlyList<Call> steps) : DefaultRunner
+public sealed class FanoutRunner(IReadOnlyList<Call> steps) : IActionTarget
 {
-    private readonly ReentrantTask _steps = new(Reentry.Alongside, tick => RunSteps(steps, tick));
-
-    protected override TickTask RunDefault(ITick tick) => _steps.Run(tick);
-
-    private static async TickTask RunSteps(IReadOnlyList<Call> steps, ITick tick)
+    public async TickTask Default(ITick tick)
     {
         // Start every step before awaiting any.
         TickTask[] runs = [.. steps.Select(step => step.Run(tick))];

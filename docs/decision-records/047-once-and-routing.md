@@ -9,7 +9,7 @@ Goals:
 - One rule for what an entity does when asked again, whatever asks.
 - Persisted state in as few kinds as possible (`043 §1.9`).
 
-Closed on 2026-11-05. Outcomes are in the architecture docs of `WorldData`, `Tasks`, `Scripts` and `Simulation`.
+Closed on 2026-11-05. Outcomes are in the architecture docs of `Entities`, `WorldData`, `Tasks`, `Scripts` and `Simulation`.
 
 ## 1. `Once`
 
@@ -22,7 +22,8 @@ Closed on 2026-11-05. Outcomes are in the architecture docs of `WorldData`, `Tas
 
 ## 2. Routing
 
-- [x] 2.1 Re-entry policies (`043 §1.10`) are in `Tasks`, since nothing in them is about actions (Neil). Only those something uses (Neil): alongside, for `Sequence` and `Fanout`; join, for a touched `Trigger`, which nothing awaits, so that joining and ignoring are the same; and once, for `Once`, which is join for ever. Ignore and queue wait for something that needs them.
-- [x] 2.2 The interface for running an action is in `Entities`, beside `IController`, which extends it with a default member that responds to nothing (`043 §3.2`). `Entities` then uses `Tasks`, a new dependency, with no cycle (Claude).
+- [x] 2.1 Re-entry policies (`043 §1.10`) are in `Tasks`, since nothing in them is about actions (Neil). Join, for a touched `Trigger`, which nothing awaits, so that joining and ignoring are the same; once, for `Once`, which is join for ever; and queue, which nothing uses yet, but will, and is small (Neil). Alongside, for `Sequence` and `Fanout`, is not a policy: it is the same as starting a run, and nothing chooses a policy at run time, now that `Once` has no policy field (item 1.3) (Neil). Ignore waits for something that needs it. A `ReentrantTask` is given what starts a run with each request, not once, so that one can serve several actions (Neil); actions that share one count as runs of the same work, so with join, a door's `Close` asked while its `Open` runs would get the `Open`'s run (Claude).
+- [x] 2.2 The interface for running an action is in `Entities`, beside `IController`, which extends it (`043 §3.2`). `Entities` then uses `Tasks`, a new dependency, with no cycle (Claude). It has a method for each action, each a default member that throws, rather than one method that takes the action, so that a target implements an action as a method of its own, such as `async TickTask Close(ITick tick)`, with no dispatch of its own; the one dispatch from `TriggerAction` to method is in `Scripts`, where a step runs (Neil). Since the actions are now method names, `On` and `Off` are renamed `TurnOn` and `TurnOff`, as verbs (Neil).
 - [x] 2.3 `Scripts` uses `Entities` and `Tasks`, not `WorldData`: `Simulation` builds each runner from its configuration, with its steps resolved to what runs them, so that a runner holds no ids (Claude, agreed by Neil). Since there are no cycles, it builds each runner after its targets.
 - [x] 2.4 Targets that can't run their action yet finish at once, so that the levels load and play (Claude, agreed by Neil): a `Dialogue`, until its runner (issue #166); a `VerticalDoor`, until its controller (issue #163); and a `Respawn`, which becomes current by reach until respawns are made current by triggers (`043 §4.4`).
+- [ ] 2.5 Cancelling a run in progress, such as a door's `Close` when asked to `Open` (Neil asked). .NET's pattern is a `CancellationToken` the method checks; ours needs designing first (Claude): whether the run stops by checking a flag after each `await`, or by its `await` throwing, so that `finally` can clean up; what whatever awaits it sees, since a failed task fails the tick (`046 §1.6`) and .NET's cancelled tasks cancel what awaits them, which would stop a `Sequence` waiting on the door; and what puts right what the run left half done. To be designed with the first action that needs it.

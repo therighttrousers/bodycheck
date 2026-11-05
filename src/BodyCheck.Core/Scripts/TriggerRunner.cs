@@ -8,9 +8,9 @@ namespace BodyCheck.Core.Scripts;
 /// </summary>
 public sealed class TriggerRunner(Call step)
 {
-    private readonly ReentrantTask _step = new(Reentry.Join, step.Run);
+    private readonly ReentrantTask _step = new(Reentry.Join);
 
     /// <summary>Runs the step, unless it is running already.</summary>
     /// <returns>The step's run, which finishes when the step does.</returns>
-    public TickTask Touch(ITick tick) => _step.Run(tick);
+    public TickTask Touch(ITick tick) => _step.Run(() => step.Run(tick));
 }

@@ -1,5 +1,3 @@
-using BodyCheck.Core.Tasks;
-
 namespace BodyCheck.Core.Entities;
 
 /// <summary>
@@ -37,8 +35,4 @@ public interface IController<out TEntity> : IActionTarget where TEntity : Entity
     public void ApplyPaused(float realDt, IDefer defer)
     {
     }
-
-    /// <summary>Responds to no action, unless the controller says otherwise.</summary>
-    TickTask IActionTarget.Run(TriggerAction action, ITick tick) =>
-        throw new ArgumentOutOfRangeException(nameof(action), action, "The controller responds to no action.");
 }

@@ -1,3 +1,4 @@
+using BodyCheck.Core.Entities;
 using BodyCheck.Core.Tasks;
 
 namespace BodyCheck.Core.Scripts;
@@ -7,9 +8,9 @@ namespace BodyCheck.Core.Scripts;
 /// one made while it runs finishes when it does, and one made after finishes at once. What it remembers lasts as long
 /// as it does.
 /// </summary>
-public sealed class OnceRunner(Call step) : DefaultRunner
+public sealed class OnceRunner(Call step) : IActionTarget
 {
-    private readonly ReentrantTask _step = new(Reentry.Once, step.Run);
+    private readonly ReentrantTask _step = new(Reentry.Once);
 
-    protected override TickTask RunDefault(ITick tick) => _step.Run(tick);
+    public TickTask Default(ITick tick) => _step.Run(() => step.Run(tick));
 }

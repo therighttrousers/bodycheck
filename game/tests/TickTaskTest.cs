@@ -145,4 +145,31 @@ public class TickTaskTest
         var e = Thrown<InvalidOperationException>(() => { _ = AwaitsATask(); });
         AssertThat(e.Message).StartsWith("An async method that returns a TickTask can await only TickTasks");
     }
+
+    [TestCase]
+    public void A_queued_request_runs_once_the_last_asked_for_has_finished()
+    {
+        var scheduler = new TickScheduler();
+        var log = new List<string>();
+        var queue = new ReentrantTask(Reentry.Queue);
+
+        async TickTask Work(string name)
+        {
+            log.Add($"{name} starts");
+            await scheduler.NextTick();
+            log.Add($"{name} ends");
+        }
+
+        _ = queue.Run(() => Work("a"));
+        _ = queue.Run(() => Work("b"));
+        TickTask c = queue.Run(() => Work("c"));
+        AssertThat(log).ContainsExactly("a starts");
+
+        scheduler.Run(Dt);
+        AssertThat(log).ContainsExactly("a starts", "a ends", "b starts");
+        scheduler.Run(Dt);
+        scheduler.Run(Dt);
+        AssertThat(log).ContainsExactly("a starts", "a ends", "b starts", "b ends", "c starts", "c ends");
+        AssertThat(c.IsFinished).IsTrue();
+    }
 }

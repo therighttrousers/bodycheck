@@ -32,7 +32,7 @@ public class RoutingTest
     /// <summary>A target that logs when its action starts and ends, which takes some ticks.</summary>
     private sealed class Target(string name, int ticks, List<string> log) : IActionTarget
     {
-        public async TickTask Run(TriggerAction action, ITick tick)
+        public async TickTask Default(ITick tick)
         {
             log.Add($"{name} starts");
             await tick.Wait(ticks * Dt);
@@ -55,7 +55,7 @@ public class RoutingTest
     {
         var sequence = new SequenceRunner([CallOf("a", 2), CallOf("b", 1)]);
 
-        TickTask run = sequence.Run(TriggerAction.Default, _scheduler);
+        TickTask run = sequence.Default(_scheduler);
         AssertThat(_log).ContainsExactly("a starts");
 
         RunTicks(2);
@@ -72,9 +72,9 @@ public class RoutingTest
     {
         var sequence = new SequenceRunner([CallOf("a", 2)]);
 
-        sequence.Run(TriggerAction.Default, _scheduler);
+        sequence.Default(_scheduler);
         RunTicks(1);
-        sequence.Run(TriggerAction.Default, _scheduler);
+        sequence.Default(_scheduler);
         AssertThat(_log).ContainsExactly("a starts", "a starts");
     }
 
@@ -83,7 +83,7 @@ public class RoutingTest
     {
         var fanout = new FanoutRunner([CallOf("a", 2), CallOf("b", 1)]);
 
-        TickTask run = fanout.Run(TriggerAction.Default, _scheduler);
+        TickTask run = fanout.Default(_scheduler);
         AssertThat(_log).ContainsExactly("a starts", "b starts");
 
         RunTicks(1);
@@ -114,14 +114,14 @@ public class RoutingTest
     {
         var once = new OnceRunner(CallOf("a", 2));
 
-        TickTask first = once.Run(TriggerAction.Default, _scheduler);
+        TickTask first = once.Default(_scheduler);
         RunTicks(1);
         // Asked while it runs, it finishes when the first run does.
-        AssertThat(once.Run(TriggerAction.Default, _scheduler)).IsSame(first);
+        AssertThat(once.Default(_scheduler)).IsSame(first);
 
         RunTicks(1);
         // Asked after, it finishes at once, and runs nothing.
-        TickTask after = once.Run(TriggerAction.Default, _scheduler);
+        TickTask after = once.Default(_scheduler);
         AssertThat(after.IsFinished).IsTrue();
         AssertThat(_log).ContainsExactly("a starts", "a ends");
     }

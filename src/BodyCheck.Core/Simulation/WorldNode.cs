@@ -197,7 +197,8 @@ public partial class WorldNode : Node3D
     {
         public static FinishesAtOnce Instance { get; } = new();
 
-        public TickTask Run(TriggerAction action, ITick tick) => TickTask.Finished;
+        public TickTask Default(ITick tick) => TickTask.Finished;
+        public TickTask Close(ITick tick) => TickTask.Finished;
     }
 
     /// <summary>

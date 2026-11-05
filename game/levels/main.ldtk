@@ -1947,8 +1947,8 @@
 		], "iconTilesetUid": 2, "externalRelPath": null, "externalFileChecksum": null, "tags": [] },
 		{ "identifier": "TriggerAction", "uid": 238, "values": [
 			{ "id": "ToggleOnOff", "tileRect": null, "color": 14120515 },
-			{ "id": "On", "tileRect": null, "color": 15389866 },
-			{ "id": "Off", "tileRect": null, "color": 14984818 },
+			{ "id": "TurnOn", "tileRect": null, "color": 15389866 },
+			{ "id": "TurnOff", "tileRect": null, "color": 14984818 },
 			{ "id": "ToggleOpenClose", "tileRect": null, "color": 7552569 },
 			{ "id": "Open", "tileRect": null, "color": 4073265 },
 			{ "id": "Close", "tileRect": null, "color": 16690740 },
