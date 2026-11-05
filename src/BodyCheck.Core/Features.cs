@@ -425,6 +425,11 @@ public sealed record Features
     /// </summary>
     public float BlockEngineFriction { get; init; } = 0.5f;
     #endregion
+
+    #region Doors
+    /// <summary>The mass of each tile of a door's box, horizontal or vertical.</summary>
+    public float DoorMassPerTile { get; init; } = 7;
+    #endregion
 }
 
 /// <summary>The code that reads configurations, which System.Text.Json's source generator writes at compile time.</summary>

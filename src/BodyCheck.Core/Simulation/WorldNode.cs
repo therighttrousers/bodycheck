@@ -52,7 +52,7 @@ public partial class WorldNode : Node3D
         string? respawnId = null)
     {
         World = world;
-        CurrentRespawn = world.Respawns.FirstOrDefault(respawn => respawn.Id == respawnId);
+        CurrentRespawn = respawnId is null ? null : world.ConfigsById.GetValueOrDefault(respawnId) as EntityConfig.Respawn;
         ProcessPhysicsPriority = PhysicsPriority;
 
         _tiles = new StaticBody3D
@@ -85,9 +85,9 @@ public partial class WorldNode : Node3D
             Visible = false,
         };
 
-        foreach (EntityConfig config in world.EntityConfigs)
+        foreach (EntityConfig config in world.Bodies)
         {
-            Entity? entity = config.Kind switch
+            Entity entity = config.Kind switch
             {
                 EntityKind.Player => Player = CreatePlayer(
                     (EntityConfig.Player)config,
@@ -97,18 +97,20 @@ public partial class WorldNode : Node3D
                 EntityKind.Robot => CreateRobot((EntityConfig.Robot)config, assets.GetEntityVisual(config)),
                 EntityKind.Platform => CreatePlatform((EntityConfig.Platform)config, assets.GetEntityVisual(config)),
                 EntityKind.Block => CreateBlock((EntityConfig.Block)config, assets.GetEntityVisual(config)),
+                EntityKind.VerticalDoor => CreateVerticalDoor((EntityConfig.VerticalDoor)config, assets.GetEntityVisual(config)),
 
-                EntityKind.Respawn => null,
+                EntityKind.Respawn or EntityKind.Trigger or EntityKind.Sequence or EntityKind.Fanout or EntityKind.Dialogue
+                    => throw new UnreachableException($"A {config.Kind} has no body."),
             };
 
-            if (entity is not null)
-            {
-                EntityConfig startBox = config.Kind == EntityKind.Player && CurrentRespawn is not null ? CurrentRespawn : config;
-                entity.Position = StartPosition(entity, startBox);
-                AddChild(entity);
-                _entities.Add(entity);
-            }
+            EntityConfig startBox = config.Kind == EntityKind.Player && CurrentRespawn is not null ? CurrentRespawn : config;
+            entity.Position = StartPosition(entity, startBox);
+            AddChild(entity);
+            _entities.Add(entity);
+        }
 
+        foreach (EntityConfig config in world.Bodies.Concat(world.Controls))
+        {
             var marker = assets.GetDebugBoxVisual(config.MapSize, config.MapColor);
             marker.Position = config.MapCenter.ToVector3();
             MapMarkers.AddChild(marker);
@@ -161,6 +163,12 @@ public partial class WorldNode : Node3D
     private static Entity CreateBlock(EntityConfig.Block config, Node3D? visual)
     {
         return new Entity(BodyTuning.Block, visual, axisLockAngularZ: false);
+    }
+
+    /// <summary>A door, which for now has no controller and is frozen where it starts, open.</summary>
+    private static Entity CreateVerticalDoor(EntityConfig.VerticalDoor config, Node3D? visual)
+    {
+        return new Entity(BodyTuning.VerticalDoor(config.MapSize), visual) { Freeze = true };
     }
 
     /// <summary>
@@ -220,15 +228,15 @@ public partial class WorldNode : Node3D
     public PlayerController PlayerController { get; } = null!;
 
     /// <summary>
-    /// Every entity in the world, in the order they are stepped: those the world's <see cref="World.EntityConfigs"/>
-    /// build, in their order, so that <c>Entities[i]</c> was built from <c>World.EntityConfigs[i]</c>, then
+    /// Every entity in the world, in the order they are stepped: those the world's <see cref="World.Bodies"/> build, in
+    /// their order, so that <c>Entities[i]</c> was built from <c>World.Bodies[i]</c>, then
     /// <see cref="PlayerBlock"/>, which no configuration builds.
     /// </summary>
     public IReadOnlyList<Entity> Entities => _entities;
 
     /// <summary>The entities of one kind that the world's configurations build, in the order they are stepped.</summary>
     public IEnumerable<Entity> EntitiesOf(EntityKind kind) =>
-        _entities.Where((entity, i) => i < World.EntityConfigs.Count && World.EntityConfigs[i].Kind == kind);
+        _entities.Where((entity, i) => i < World.Bodies.Count && World.Bodies[i].Kind == kind);
 
     /// <summary>
     /// The respawn the player came within reach of last, or started at: where the player would start from if the world
@@ -360,7 +368,7 @@ public partial class WorldNode : Node3D
         var center = new Vector2(Player.Position.X, Player.Position.Y);
         EntityConfig.Respawn? nearest = null;
         float nearestGap = 0;
-        foreach (EntityConfig.Respawn respawn in World.Respawns)
+        foreach (EntityConfig.Respawn respawn in World.Controls.OfType<EntityConfig.Respawn>())
         {
             // How far apart the boxes are along each axis, or 0 where they overlap along it.
             Vector2 apart = (center - respawn.MapCenter).Abs() - Player.HalfSize - (Vector2)respawn.MapSize / 2f;

@@ -8,7 +8,7 @@
 		"appVersion": "1.5.3",
 		"url": "https://ldtk.io"
 	},
-	"identifier": "Drop_2",
+	"identifier": "TestingGaps",
 	"iid": "4aa45f20-bde0-11f1-9446-ef36bac1f552",
 	"uid": 231,
 	"worldX": -496,
@@ -29,7 +29,7 @@
 	"fieldInstances": [],
 	"layerInstances": [
 		{
-			"__identifier": "ControlEntities",
+			"__identifier": "Control",
 			"__type": "Entities",
 			"__cWid": 51,
 			"__cHei": 13,
@@ -56,7 +56,7 @@
 					"__identifier": "Respawn",
 					"__grid": [48,6],
 					"__pivot": [0,0],
-					"__tags": [],
+					"__tags": ["Control"],
 					"__tile": null,
 					"__smartColor": "#4399D7",
 					"iid": "672e47a0-bde0-11f1-9446-1f3936f6cb0e",
@@ -71,7 +71,7 @@
 			]
 		},
 		{
-			"__identifier": "Characters",
+			"__identifier": "Entities",
 			"__type": "Entities",
 			"__cWid": 51,
 			"__cHei": 13,
@@ -98,7 +98,7 @@
 					"__identifier": "Block",
 					"__grid": [48,4],
 					"__pivot": [0,0],
-					"__tags": [],
+					"__tags": ["Prop"],
 					"__tile": null,
 					"__smartColor": "#BE4A2F",
 					"iid": "58360e10-bde0-11f1-91df-5f91362e1a8b",
@@ -114,7 +114,7 @@
 					"__identifier": "Block",
 					"__grid": [48,3],
 					"__pivot": [0,0],
-					"__tags": [],
+					"__tags": ["Prop"],
 					"__tile": null,
 					"__smartColor": "#BE4A2F",
 					"iid": "3d3276d0-bde0-11f1-91df-69d0fbb45cdc",
@@ -130,7 +130,7 @@
 					"__identifier": "Block",
 					"__grid": [48,2],
 					"__pivot": [0,0],
-					"__tags": [],
+					"__tags": ["Prop"],
 					"__tile": null,
 					"__smartColor": "#BE4A2F",
 					"iid": "3d9fdea0-bde0-11f1-91df-a99699129240",
@@ -394,5 +394,5 @@
 			"entityInstances": []
 		}
 	],
-	"__neighbours": [ { "levelIid": "3aec9f20-bde0-11f1-a778-cd4d7eac5ccb", "dir": "n" }, { "levelIid": "a19fed30-bde0-11f1-9446-a12c3e5c9621", "dir": "e" } ]
+	"__neighbours": [ { "levelIid": "a19fed30-bde0-11f1-9446-a12c3e5c9621", "dir": "e" }, { "levelIid": "3aec9f20-bde0-11f1-a778-cd4d7eac5ccb", "dir": "n" } ]
 }

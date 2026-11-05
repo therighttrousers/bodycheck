@@ -305,6 +305,7 @@ public class BodiesTest
         ];
         var platform = new EntityConfig.Platform
         {
+            Id = "platform",
             MapOrigin = new Vector2I(5, 2),
             MapSize = new Vector2I(3, 1),
             MapColor = Colors.Green,

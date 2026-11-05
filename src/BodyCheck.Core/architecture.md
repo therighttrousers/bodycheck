@@ -16,6 +16,7 @@ Relevant decision records:
 - [029: Tunable bodies](../../docs/decision-records/029-tunable-bodies.md)
 - [030: Gameplay speed](../../docs/decision-records/030-gameplay-speed.md)
 - [036: Telemetry keeps the values reported to it](../../docs/decision-records/036-telemetry-keeps-original-values.md)
+- [045: Control entities in the world](../../docs/decision-records/045-control-entities-in-the-world.md)
 
 ## What it is
 
@@ -64,7 +65,7 @@ The order of a tick is in [the conventions](../../docs/designs/architecture.md#c
 
 ## The root
 
-The root holds only what several subsystems, or the game, share: telemetry, `Constants`, `Features`, `PhysicsLayer`, extension members on Godot's vector types, and a JSON converter that reads enums by name only. It is not for anything that belongs to one subsystem, even if it is small, except a feature: a value that shapes gameplay belongs in the features, even if only one subsystem reads it. Nor is it for anything derived from a feature or cached from one, or for settings that belong to a machine rather than to gameplay, such as graphics.
+The root holds only what several subsystems, or the game, share: telemetry, `Constants`, `Features`, `PhysicsLayer`, `TriggerAction`, the actions a route can ask of an entity (`045 §4.3`), extension members on Godot's vector types, and a JSON converter that reads enums by name only. It is not for anything that belongs to one subsystem, even if it is small, except a feature: a value that shapes gameplay belongs in the features, even if only one subsystem reads it. Nor is it for anything derived from a feature or cached from one, or for settings that belong to a machine rather than to gameplay, such as graphics.
 
 ### Telemetry
 
@@ -76,7 +77,7 @@ Game code pushes measurements to `Telemetry`, by `Metric`, an enum. Each metric 
 
 ### Features
 
-`Features` is a record of the values that shape gameplay: the tuning of the player's running, jumping, phasing, carrying and spawning, which includes the choices of `PhaseThrow` and `SpawnMotion`, of the robots' and platforms' controllers, of the walkers' friction, and each kind of body's mass and engine friction (`029 §1.1`). Every name is prefixed with what it tunes: `Player`, `Robot`, `Platform`, `PlayerBlock` or `Block` (`016 §3.6`).
+`Features` is a record of the values that shape gameplay: the tuning of the player's running, jumping, phasing, carrying and spawning, which includes the choices of `PhaseThrow` and `SpawnMotion`, of the robots' and platforms' controllers, of the walkers' friction, and each kind of body's mass and engine friction (`029 §1.1`). Every name is prefixed with what it tunes: `Player`, `Robot`, `Platform`, `PlayerBlock`, `Block` or `Door` (`016 §3.6`).
 
 - `Features.Current` is the only source of each: what uses a feature reads it there, when it uses it. `Features.Set` replaces it and raises `Features.Changed`, and `Features.Reset` puts back the defaults, which are the properties' initializers; tests that change features reset them. `Features.Read` reads a configuration (`017 §2`).
 - A feature is a simple value that nothing derives from or caches, except an action in progress, such as a jump or a phase being aimed, which goes on with the values it started with, so a change takes effect at the next one: changes are eventually consistent, with that bound (`016 §3.1`).

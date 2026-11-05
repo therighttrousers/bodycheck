@@ -113,6 +113,19 @@ public sealed record BodyTuning
         CollisionLayer = PhysicsLayer.Prop
     };
 
+    /// <summary>
+    /// A door that slides down to close, whose body is its whole box in the map. Nothing carries it, so that the player
+    /// can't carry a door.
+    /// </summary>
+    public static BodyTuning VerticalDoor(Vector2I mapSize) => new()
+    {
+        HalfSize = (Vector2)mapSize / 2f,
+        Anchor = Vector2.Zero,
+        Mass = () => mapSize.X * mapSize.Y * Features.Current.DoorMassPerTile,
+        CollisionLayer = PhysicsLayer.Character,
+        CanBeCarried = false,
+    };
+
     /// <summary>A block, which has no controller: it is only pushed, carried and stood on.</summary>
     public static BodyTuning Block { get; } = new()
     {

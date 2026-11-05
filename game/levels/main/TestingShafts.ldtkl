@@ -8,7 +8,7 @@
 		"appVersion": "1.5.3",
 		"url": "https://ldtk.io"
 	},
-	"identifier": "Shafts",
+	"identifier": "TestingShafts",
 	"iid": "3aec9f20-bde0-11f1-a778-cd4d7eac5ccb",
 	"uid": 217,
 	"worldX": 0,
@@ -29,7 +29,7 @@
 	"fieldInstances": [],
 	"layerInstances": [
 		{
-			"__identifier": "ControlEntities",
+			"__identifier": "Control",
 			"__type": "Entities",
 			"__cWid": 20,
 			"__cHei": 15,
@@ -56,7 +56,7 @@
 					"__identifier": "Respawn",
 					"__grid": [18,6],
 					"__pivot": [0,0],
-					"__tags": [],
+					"__tags": ["Control"],
 					"__tile": null,
 					"__smartColor": "#4399D7",
 					"iid": "ca500370-bde0-11f1-9446-3739cdbfbd9d",
@@ -71,7 +71,7 @@
 			]
 		},
 		{
-			"__identifier": "Characters",
+			"__identifier": "Entities",
 			"__type": "Entities",
 			"__cWid": 20,
 			"__cHei": 15,

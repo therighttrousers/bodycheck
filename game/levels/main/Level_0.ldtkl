@@ -29,7 +29,7 @@
 	"fieldInstances": [],
 	"layerInstances": [
 		{
-			"__identifier": "ControlEntities",
+			"__identifier": "Control",
 			"__type": "Entities",
 			"__cWid": 20,
 			"__cHei": 15,
@@ -54,7 +54,7 @@
 			"entityInstances": []
 		},
 		{
-			"__identifier": "Characters",
+			"__identifier": "Entities",
 			"__type": "Entities",
 			"__cWid": 20,
 			"__cHei": 15,
@@ -81,7 +81,7 @@
 					"__identifier": "RobotBasic",
 					"__grid": [8,12],
 					"__pivot": [0,0],
-					"__tags": [],
+					"__tags": ["Character"],
 					"__tile": null,
 					"__smartColor": "#FEAE34",
 					"iid": "a77921c0-bde0-11f1-9940-af1fcbeb8ee2",
@@ -97,7 +97,7 @@
 					"__identifier": "PlayerStart",
 					"__grid": [14,12],
 					"__pivot": [0,0],
-					"__tags": [],
+					"__tags": ["Character"],
 					"__tile": null,
 					"__smartColor": "#2CE8F5",
 					"iid": "aa063540-bde0-11f1-9940-77551af9208c",

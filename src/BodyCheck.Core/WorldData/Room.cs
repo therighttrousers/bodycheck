@@ -14,8 +14,11 @@ public sealed class Room : IOffsetTileGrid
     /// <param name="origin">Where the room's bottom left tile is in the world, in tiles.</param>
     /// <param name="tiles">The room's tiles. The room keeps it, so the caller must not change it afterwards.</param>
     /// <param name="entityConfigs">
-    /// Each entity's configuration, including where its box is, in the room's coordinates.
+    /// Each entity's configuration, including where its box is, in the room's coordinates. Every box has a positive
+    /// size, but may be outside the room. A platform is one tile high, with two different ends; a sequence and a fanout
+    /// have at least one step; and a dialogue's garble is from 0 to 1.
     /// </param>
+    /// <exception cref="ArgumentException">When a configuration isn't what the room can hold.</exception>
     public Room(string name, Vector2I origin, TileGrid tiles, IEnumerable<EntityConfig> entityConfigs)
     {
         Name = name;
@@ -23,7 +26,25 @@ public sealed class Room : IOffsetTileGrid
         Origin = origin;
         Size = tiles.Size;
         EntityConfigs = [.. entityConfigs];
+        foreach (EntityConfig config in EntityConfigs)
+        {
+            if (Problem(config) is string problem)
+            {
+                throw new ArgumentException($"In room '{name}', a {config.Kind} {problem}.", nameof(entityConfigs));
+            }
+        }
     }
+
+    /// <summary>What is wrong with a configuration, as the end of a sentence about it, or null if nothing is.</summary>
+    private static string? Problem(EntityConfig config) => config switch
+    {
+        { MapSize.X: <= 0 } or { MapSize.Y: <= 0 } => "has a box that isn't of a positive size",
+        EntityConfig.Platform { MapSize.Y: not 1 } => "isn't 1 tile high",
+        EntityConfig.Platform platform when platform.RangeA == platform.RangeB => "has its two ends in the same cell",
+        EntityConfig.Sequence { Steps.Count: 0 } or EntityConfig.Fanout { Steps.Count: 0 } => "has no steps",
+        EntityConfig.Dialogue { Garble: < 0 or > 1 or float.NaN } => "has a garble that isn't from 0 to 1",
+        _ => null,
+    };
 
     /// <summary>
     /// A room described as text, top row first:
@@ -33,9 +54,10 @@ public sealed class Room : IOffsetTileGrid
     /// <item>'R' is where a robot starts</item>
     /// <item>'H' is where a platform starts, 3 tiles wide, which moves between the walls on either side of it</item>
     /// <item>'B' is where a block starts</item>
-    /// <item>'S' is a respawn, identified by the room's name and its place in the room</item>
+    /// <item>'S' is a respawn</item>
     /// </list>
-    /// An entity's box has its bottom left tile at its letter, except a platform's, which has its middle tile there.
+    /// An entity's box has its bottom left tile at its letter, except a platform's, which has its middle tile there. An
+    /// entity's id is the room's name and its letter's column and row, from the top left.
     /// </summary>
     public static Room FromText(string name, string text, Vector2I origin = default)
     {
@@ -47,6 +69,7 @@ public sealed class Room : IOffsetTileGrid
             for (int x = 0; x < rows[row].Length; x++)
             {
                 Vector2I mapOrigin = new(x, rows.Length - 1 - row);
+                string id = $"{name} {x},{row}";
                 EntityConfig? config = rows[row][x] switch
                 {
                     // These colors and sizes should match the colors and sizes of entities in LDtk.
@@ -54,27 +77,30 @@ public sealed class Room : IOffsetTileGrid
                     {
                         MapOrigin = mapOrigin,
                         MapSize = new Vector2I(1, 2),
-                        MapColor = new Color("#2CE8F5")
+                        MapColor = new Color("#2CE8F5"),
+                        Id = id,
                     },
                     'R' => new EntityConfig.Robot()
                     {
                         MapOrigin = mapOrigin,
                         MapSize = new Vector2I(1, 2),
-                        MapColor = new Color("#FEAE34")
+                        MapColor = new Color("#FEAE34"),
+                        Id = id,
                     },
-                    'H' => PlatformBetweenWalls(rows[row], x, mapOrigin),
+                    'H' => PlatformBetweenWalls(rows[row], x, mapOrigin, id),
                     'B' => new EntityConfig.Block()
                     {
                         MapOrigin = mapOrigin,
                         MapSize = new Vector2I(1, 1),
-                        MapColor = new Color("#BE4A2F")
+                        MapColor = new Color("#BE4A2F"),
+                        Id = id,
                     },
                     'S' => new EntityConfig.Respawn()
                     {
                         MapOrigin = mapOrigin,
                         MapSize = new Vector2I(1, 2),
                         MapColor = new Color("#4399D7"),
-                        Id = $"{name} {x},{row}"
+                        Id = id,
                     },
                     _ => null,
                 };
@@ -92,7 +118,7 @@ public sealed class Room : IOffsetTileGrid
     /// A platform whose box is centered on column <paramref name="x"/> of <paramref name="row"/>, and which moves
     /// between the nearest walls on either side of it in that row, or the room's edges.
     /// </summary>
-    private static EntityConfig.Platform PlatformBetweenWalls(string row, int x, Vector2I middleTile)
+    private static EntityConfig.Platform PlatformBetweenWalls(string row, int x, Vector2I middleTile, string id)
     {
         var mapSize = new Vector2I(3, 1);
         int leftWall = row.LastIndexOf('#', x);
@@ -102,6 +128,7 @@ public sealed class Room : IOffsetTileGrid
             MapOrigin = middleTile - new Vector2I(mapSize.X / 2, 0),
             MapSize = mapSize,
             MapColor = new Color("#63C74D"),
+            Id = id,
             RangeA = new Vector2I(leftWall + 2, middleTile.Y),
             RangeB = new Vector2I(rightWall - 2, middleTile.Y),
         };

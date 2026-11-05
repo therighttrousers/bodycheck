@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 
+using BodyCheck.Core;
 using BodyCheck.Core.WorldData;
 
 using GdUnit4;
@@ -59,7 +60,7 @@ public class WorldTest
         AssertThat(world.IsSolid(3, 1)).IsFalse(); // Between the rooms
         AssertThat(world.IsSolid(0, 2)).IsFalse(); // Above the left room
 
-        AssertArray(world.EntityConfigs.Select(config => (config.Kind, config.MapOrigin))).ContainsExactly(
+        AssertArray(world.Bodies.Select(config => (config.Kind, config.MapOrigin))).ContainsExactly(
             (EntityKind.Player, new Vector2I(1, 0)), (EntityKind.Block, new Vector2I(4, 1)));
     }
 
@@ -70,7 +71,101 @@ public class WorldTest
         Room platformRoom = Room.FromText("Platform", "#...H...#", new Vector2I(3, 1));
         var world = new World("Test", [Room.FromText("Player", "P.."), platformRoom]);
 
-        var platform = world.EntityConfigs.OfType<EntityConfig.Platform>().Single();
+        var platform = world.Bodies.OfType<EntityConfig.Platform>().Single();
         AssertThat((platform.RangeA, platform.RangeB)).IsEqual((new Vector2I(5, 1), new Vector2I(9, 1)));
     }
+
+    private static EntityConfig.Player Player => new()
+    {
+        Id = "player",
+        MapOrigin = Vector2I.Zero,
+        MapSize = new Vector2I(1, 2),
+        MapColor = Colors.White,
+    };
+
+    private static EntityConfig.VerticalDoor Door => new()
+    {
+        Id = "door",
+        MapOrigin = new Vector2I(2, 0),
+        MapSize = new Vector2I(1, 3),
+        MapColor = Colors.White,
+    };
+
+    private static EntityConfig.Dialogue Dialogue => new()
+    {
+        Id = "dialogue",
+        MapOrigin = new Vector2I(1, 0),
+        MapSize = Vector2I.One,
+        MapColor = Colors.White,
+        File = "File",
+        Title = "Title",
+        Garble = 0,
+    };
+
+    private static EntityConfig.Trigger Trigger(string target, TriggerAction action = TriggerAction.Default) => new()
+    {
+        Id = "trigger",
+        MapOrigin = new Vector2I(1, 0),
+        MapSize = Vector2I.One,
+        MapColor = Colors.White,
+        Step = new Step(target, action),
+        Once = true,
+    };
+
+    private static EntityConfig.Sequence Sequence(params Step[] steps) => new()
+    {
+        Id = "sequence",
+        MapOrigin = new Vector2I(1, 0),
+        MapSize = Vector2I.One,
+        MapColor = Colors.White,
+        Steps = steps,
+        Once = false,
+    };
+
+    private static World WorldOf(params EntityConfig[] configs) =>
+        new("Test", [new Room("Test", default, new TileGrid(3, 3), configs)]);
+
+    [TestCase]
+    public void Keeps_bodies_apart_from_control_entities_and_finds_each_by_id()
+    {
+        World world = WorldOf(
+            Trigger("sequence"),
+            Player,
+            Sequence(new Step("dialogue", TriggerAction.Default), new Step("door", TriggerAction.Close)),
+            Door,
+            Dialogue);
+
+        AssertArray(world.Bodies.Select(config => config.Kind)).ContainsExactly(EntityKind.Player, EntityKind.VerticalDoor);
+        AssertArray(world.Controls.Select(config => config.Kind)).ContainsExactly(
+            EntityKind.Trigger, EntityKind.Sequence, EntityKind.Dialogue);
+        AssertThat(world.ConfigsById["door"].Kind).IsEqual(EntityKind.VerticalDoor);
+    }
+
+    [TestCase("missing", TriggerAction.Default)] // Not in the world
+    [TestCase("door", TriggerAction.Default)] // Responds to Close only
+    [TestCase("dialogue", TriggerAction.Close)] // Responds to Default only
+    [TestCase("sequence", TriggerAction.Default)] // Back to the trigger, through the sequence
+    public void Refuses_a_route_that_its_target_cant_run(string target, TriggerAction action) =>
+        AssertThrown(() => WorldOf(Player, Door, Dialogue, Trigger(target, action), Sequence(new Step("trigger", TriggerAction.Default))))
+            .IsInstanceOf<ArgumentException>();
+
+    [TestCase]
+    public void Refuses_two_entities_with_one_id() =>
+        AssertThrown(() => WorldOf(Player, Dialogue, Dialogue)).IsInstanceOf<ArgumentException>();
+
+    [TestCase]
+    public void Has_kinds_that_respond_to_Default_only_or_not_at_all()
+    {
+        foreach (EntityKind kind in Enum.GetValues<EntityKind>())
+        {
+            bool defaultOnly = kind.Responses.SequenceEqual([TriggerAction.Default]);
+            AssertThat(defaultOnly || !kind.Responses.Contains(TriggerAction.Default))
+                .OverrideFailureMessage($"{kind} responds to Default and to others.")
+                .IsTrue();
+        }
+    }
+
+    [TestCase]
+    public void Refuses_an_entity_with_an_empty_box() =>
+        AssertThrown(() => WorldOf(Player with { MapSize = new Vector2I(1, 0) })).IsInstanceOf<ArgumentException>();
 }
