@@ -49,7 +49,7 @@ The game builds on Core's rules, putting them on screen and in the player's hand
   2. The world runs the actions queued with `IDefer.RunAfterPhysicsStep` during the tick before: "after the engine's step".
   3. The world steps every entity (`Entity.Step`), which runs its controller. Controllers read the world as of the last step.
   4. The world runs the actions queued with `IDefer.RunAfterEntitySteps` this tick, once every entity has been stepped: "after the entity steps".
-  5. On a played tick, the world resumes the async actions whose waits are over, from its `ActionTaskQueue` (`046 §1.2`).
+  5. On a played tick, the world runs its `TickScheduler`, which resumes the tasks, such as async actions, whose waits are over (`046 §1.2`).
   6. The engine steps: "this tick's step". Forces, impulses, motors and friction set during the tick act in it. On a paused tick it doesn't.
   7. Between ticks, Godot may draw frames, which call `_Process`. A frame may come after several ticks, or none, so nothing that the simulation depends on waits for one.
 

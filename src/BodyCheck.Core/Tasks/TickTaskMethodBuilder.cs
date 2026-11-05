@@ -1,26 +1,26 @@
 using System.Runtime.CompilerServices;
 
-namespace BodyCheck.Core;
+namespace BodyCheck.Core.Tasks;
 
 /// <summary>
-/// What the C# compiler uses to build an <see cref="ActionTask"/> for an <c>async</c> method that returns one. The
+/// What the C# compiler uses to build a <see cref="TickTask"/> for an <c>async</c> method that returns one. The
 /// compiler turns the method into a state machine, and calls these methods from it: code shouldn't call them.
 /// <para>
 /// The method runs at once, up to its first <c>await</c> of a task that hasn't finished. Its task then takes that
-/// task's queue, and the method resumes when that queue runs. Awaiting anything but an <see cref="ActionTask"/> fails
-/// the method's task.
+/// task's scheduler, and the method resumes when that scheduler runs. Awaiting anything but a <see cref="TickTask"/>
+/// fails the method's task.
 /// </para>
 /// </summary>
-public struct ActionTaskMethodBuilder
+public struct TickTaskMethodBuilder
 {
-    private ActionTask? _task;
+    private TickTask? _task;
 
     // The state machine, boxed on its first await, if it is a struct, so that every resumption runs the same copy.
     private IAsyncStateMachine? _stateMachine;
 
-    public static ActionTaskMethodBuilder Create() => default;
+    public static TickTaskMethodBuilder Create() => default;
 
-    public ActionTask Task => _task ??= ActionTask.ForAsyncMethod();
+    public TickTask Task => _task ??= TickTask.ForAsyncMethod();
 
     public readonly void Start<TStateMachine>(ref TStateMachine stateMachine)
         where TStateMachine : IAsyncStateMachine =>
@@ -37,17 +37,17 @@ public struct ActionTaskMethodBuilder
         where TAwaiter : INotifyCompletion
         where TStateMachine : IAsyncStateMachine
     {
-        if (awaiter is not ActionTask.Awaiter actionAwaiter)
+        if (awaiter is not TickTask.Awaiter tickAwaiter)
         {
             // The compiler calls this inside the method's try, so the exception fails the method's task.
             throw new InvalidOperationException(
-                $"An async method that returns an ActionTask can await only ActionTasks, not {typeof(TAwaiter)}, " +
-                "which would resume it outside the world's tick.");
+                $"An async method that returns a TickTask can await only TickTasks, not {typeof(TAwaiter)}, " +
+                "which would resume it off the tick.");
         }
 
         // Before boxing, so that the box's builder and this one share the task, which the method's caller gets from
         // this one.
-        Task.TakeQueue(actionAwaiter.Task.Queue);
+        Task.TakeScheduler(tickAwaiter.Task.Scheduler);
 
         if (_stateMachine is null)
         {
@@ -56,7 +56,7 @@ public struct ActionTaskMethodBuilder
             box.SetStateMachine(box);
             _stateMachine = box;
         }
-        actionAwaiter.OnCompleted(_stateMachine.MoveNext);
+        tickAwaiter.OnCompleted(_stateMachine.MoveNext);
     }
 
     public void AwaitUnsafeOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine)

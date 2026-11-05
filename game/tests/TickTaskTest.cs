@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-using BodyCheck.Core;
+using BodyCheck.Core.Tasks;
 
 using GdUnit4;
 
@@ -12,29 +12,29 @@ using static GdUnit4.Assertions;
 namespace BodyCheck.Tests;
 
 [TestSuite]
-public class ActionTaskTest
+public class TickTaskTest
 {
     private const float Dt = 1f / 60;
 
     [TestCase]
-    public void Resumes_only_when_the_queue_runs()
+    public void Resumes_only_when_the_scheduler_runs()
     {
-        var queue = new ActionTaskQueue();
+        var scheduler = new TickScheduler();
         var log = new List<string>();
 
-        async ActionTask Steps(ITick tick)
+        async TickTask Steps(ITick tick)
         {
             log.Add("start");
-            await ActionTask.Finished;
+            await TickTask.Finished;
             log.Add("finished");
             await tick.NextTick();
             log.Add("next tick");
         }
 
-        ActionTask steps = Steps(queue);
+        TickTask steps = Steps(scheduler);
         AssertThat(log).ContainsExactly("start", "finished");
 
-        queue.Run(Dt);
+        scheduler.Run(Dt);
         AssertThat(log).ContainsExactly("start", "finished", "next tick");
         AssertThat(steps.IsFinished).IsTrue();
     }
@@ -42,30 +42,30 @@ public class ActionTaskTest
     [TestCase]
     public void Runs_a_chain_that_finishes_at_once_in_one_tick()
     {
-        var queue = new ActionTaskQueue();
+        var scheduler = new TickScheduler();
         var log = new List<string>();
-        ActionTask? inner = null;
+        TickTask? inner = null;
 
-        async ActionTask Outer(ITick tick)
+        async TickTask Outer(ITick tick)
         {
             await tick.NextTick();
             log.Add("outer");
-            // The inner task hasn't finished yet: it finishes later in the same run of the queue.
+            // The inner task hasn't finished yet: it finishes later in the same run of the scheduler.
             await inner!;
             log.Add("after inner");
         }
 
-        async ActionTask Inner(ITick tick)
+        async TickTask Inner(ITick tick)
         {
             await tick.NextTick();
             log.Add("inner");
         }
 
         // The outer method's wait is made first, so it resumes first.
-        ActionTask outer = Outer(queue);
-        inner = Inner(queue);
+        TickTask outer = Outer(scheduler);
+        inner = Inner(scheduler);
 
-        queue.Run(Dt);
+        scheduler.Run(Dt);
         AssertThat(log).ContainsExactly("outer", "inner", "after inner");
         AssertThat(outer.IsFinished).IsTrue();
     }
@@ -73,10 +73,10 @@ public class ActionTaskTest
     [TestCase]
     public void Waiting_for_no_time_finishes_in_the_next_tick()
     {
-        var queue = new ActionTaskQueue();
+        var scheduler = new TickScheduler();
         int ticks = 0;
 
-        async ActionTask Count(ITick tick)
+        async TickTask Count(ITick tick)
         {
             while (true)
             {
@@ -84,23 +84,23 @@ public class ActionTaskTest
                 ticks++;
             }
         }
-        _ = Count(queue);
+        _ = Count(scheduler);
 
-        queue.Run(Dt);
-        queue.Run(Dt);
-        queue.Run(Dt);
+        scheduler.Run(Dt);
+        scheduler.Run(Dt);
+        scheduler.Run(Dt);
         AssertThat(ticks).IsEqual(3);
     }
 
     [TestCase]
-    public void A_wait_made_before_the_queue_runs_finishes_in_that_run()
+    public void A_wait_made_before_the_scheduler_runs_finishes_in_that_run()
     {
-        var queue = new ActionTaskQueue();
-        queue.Run(Dt);
+        var scheduler = new TickScheduler();
+        scheduler.Run(Dt);
 
-        // As in a controller's Apply, before the world runs the queue in the same tick.
-        ActionTask wait = queue.NextTick();
-        queue.Run(Dt);
+        // As in a controller's Apply, before the world runs the scheduler in the same tick.
+        TickTask wait = scheduler.NextTick();
+        scheduler.Run(Dt);
         AssertThat(wait.IsFinished).IsTrue();
     }
 
@@ -109,40 +109,40 @@ public class ActionTaskTest
     [TestCase(0.1f, 1f / 60, 6)]
     public void Waits_on_game_time_counted_in_played_ticks(float seconds, float gameDt, int ticks)
     {
-        var queue = new ActionTaskQueue();
-        ActionTask wait = queue.Wait(seconds);
+        var scheduler = new TickScheduler();
+        TickTask wait = scheduler.Wait(seconds);
 
         for (int i = 1; i < ticks; i++)
         {
-            queue.Run(gameDt);
+            scheduler.Run(gameDt);
         }
         AssertThat(wait.IsFinished).IsFalse();
-        queue.Run(gameDt);
+        scheduler.Run(gameDt);
         AssertThat(wait.IsFinished).IsTrue();
     }
 
     [TestCase]
     public void An_exception_fails_the_tick_even_if_nothing_awaits_it()
     {
-        var queue = new ActionTaskQueue();
+        var scheduler = new TickScheduler();
 
-        static async ActionTask Throws(ITick tick)
+        static async TickTask Throws(ITick tick)
         {
             await tick.NextTick();
             throw new InvalidOperationException("broken");
         }
-        _ = Throws(queue);
+        _ = Throws(scheduler);
 
-        var e = Thrown<InvalidOperationException>(() => queue.Run(Dt));
+        var e = Thrown<InvalidOperationException>(() => scheduler.Run(Dt));
         AssertThat(e.Message).IsEqual("broken");
     }
 
     [TestCase]
     public void Awaiting_anything_else_fails()
     {
-        static async ActionTask AwaitsATask() => await Task.Yield();
+        static async TickTask AwaitsATask() => await Task.Yield();
 
         var e = Thrown<InvalidOperationException>(() => { _ = AwaitsATask(); });
-        AssertThat(e.Message).StartsWith("An async method that returns an ActionTask can await only ActionTasks");
+        AssertThat(e.Message).StartsWith("An async method that returns a TickTask can await only TickTasks");
     }
 }

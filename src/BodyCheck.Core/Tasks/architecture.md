@@ -1,0 +1,29 @@
+# Tasks
+
+Relevant decision records:
+- [043: Triggers, actions and scripts](../../../docs/decision-records/043-triggers-and-scripts.md)
+- [046: Actions as async methods](../../../docs/decision-records/046-async-actions.md)
+
+## What it is
+
+Tasks that resume only on a tick: work in progress that can be awaited, and `async` methods that return it, run by a scheduler that its owner runs once a tick. It knows nothing of games, worlds or engines: what a tick is, when it runs, and what clock its waits count are its owner's.
+
+## What it is not for
+
+What runs on it, such as actions, routing or scripts, and when in a tick it runs. Work on other threads, or that resumes whenever something completes: that is .NET's `Task`.
+
+## How it works
+
+- **`TickTask`** is work in progress, which finishes once, or fails with an exception. It has no result yet (`046 §1.5`). An `async` method can return one, through `TickTaskMethodBuilder`. `TickTask.Finished` is one that has already finished, for work that finishes at once.
+- **`TickScheduler`** runs them. Its owner calls `Run` once a tick, with the tick's length on whatever clock the waits are to count. Dropping it drops everything waiting on it.
+- **`ITick`** is what a task sees of its scheduler: what to await to let ticks pass. Whatever starts a task passes it the `ITick` to run on, so which scheduler a task belongs to is never hidden state (`046 §1.3`).
+- **Nothing that awaits a task runs when it finishes.** What comes after each `await` goes to the task's scheduler, and runs when the scheduler next runs, until nothing is left, so that a chain of tasks that finish at once runs to its end in one tick. Finishing a task between ticks only queues what waits for it.
+- **An `async` method that returns a `TickTask` awaits only `TickTask`s.** Awaiting anything else would resume it off the tick, so it fails the method's task. The method runs at once up to its first `await` of a task that hasn't finished, and takes that task's scheduler; one scheduler runs all of a chain.
+- **Only the scheduler and the method builder make and finish tasks:** the scheduler's waits, and async methods' tasks (`046 §1.4`).
+- **Waiting.** `ITick.Wait` finishes once that much time has passed on the scheduler's clock, which counts the ticks it runs from the end of the last one: in the run whose tick ends nearest, so that rounding never adds a tick, but never in the run it is made in, so that a loop that waits can't spin within a tick. `NextTick` waits for no time, so it finishes in the scheduler's next run: for a task the scheduler resumed, the next tick's; for a wait made before this tick's run, this tick's.
+- **Failing a task fails the tick.** The scheduler throws the exception when it next runs, whether or not anything awaits the task, so that it is never lost, and forgets everything queued (`046 §1.6`).
+- Tasks and their scheduler are for one thread.
+
+## Open questions
+
+- How something off the tick finishes a task, such as a Godot signal when a dialogue ends: for the first that needs it, the dialogue interface (`046 §1.4`).

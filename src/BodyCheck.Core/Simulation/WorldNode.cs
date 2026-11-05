@@ -2,6 +2,7 @@ using System.Diagnostics;
 
 using BodyCheck.Core.Controllers;
 using BodyCheck.Core.Entities;
+using BodyCheck.Core.Tasks;
 using BodyCheck.Core.WorldData;
 
 using Godot;
@@ -40,7 +41,7 @@ public partial class WorldNode : Node3D
 
     private readonly Defer _defer = new();
 
-    private readonly ActionTaskQueue _actionTasks = new();
+    private readonly TickScheduler _scheduler = new();
 
     /// <param name="assets">What to draw for each entity and for tiles.</param>
     /// <param name="respawnId">
@@ -253,13 +254,14 @@ public partial class WorldNode : Node3D
     public Func<PlayerInput>? PlayerInput { get; set; }
 
     /// <summary>
-    /// The world's tick, for the actions run in it: what awaits it resumes in each played tick, once every entity has
-    /// stepped and the actions they deferred have run, before the engine's step.
+    /// The world's tick, for the tasks of what runs in it, such as actions: what awaits it resumes in each played tick,
+    /// once every entity has stepped and the actions they deferred have run, before the engine's step, and its waits
+    /// count game time.
     /// </summary>
-    public ITick Tick => _actionTasks;
+    public ITick Tick => _scheduler;
 
     /// <summary>
-    /// Whether the controllers run, and the actions that await the world's <see cref="Tick"/>. With this off, entities
+    /// Whether the controllers run, and the tasks that await the world's <see cref="Tick"/>. With this off, entities
     /// only coast, under drag and gravity, and no game time passes for what waits on the tick.
     /// </summary>
     public bool ControllersEnabled { get; set; } = true;
@@ -331,10 +333,10 @@ public partial class WorldNode : Node3D
         // Run this tick's post-entity-steps deferred actions.
         _defer.DrainAfterEntityStepsActions();
 
-        // Resume what waits on actions, now that every controller has run and its deferred actions too.
+        // Resume what waits on the world's tick, now that every controller has run, and its deferred actions too.
         if (ControllersEnabled)
         {
-            _actionTasks.Run((float)delta);
+            _scheduler.Run((float)delta);
         }
 
         UpdateCurrentRespawn();
