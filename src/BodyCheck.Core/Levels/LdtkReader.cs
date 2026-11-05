@@ -239,7 +239,6 @@ public static class LdtkReader
                 Step = new Step(
                     fields.Read("Target", LdtkJsonContext.Default.LdtkEntityRef).EntityIid,
                     fields.Read("Action", LdtkJsonContext.Default.TriggerAction)),
-                Once = fields.Read("Once", LdtkJsonContext.Default.Boolean),
             },
             LdtkEntityName.Sequence => new EntityConfig.Sequence()
             {
@@ -248,7 +247,6 @@ public static class LdtkReader
                 MapSize = size,
                 MapColor = color,
                 Steps = fields.Steps(),
-                Once = fields.Read("Once", LdtkJsonContext.Default.Boolean),
             },
             LdtkEntityName.Fanout => new EntityConfig.Fanout()
             {
@@ -257,7 +255,16 @@ public static class LdtkReader
                 MapSize = size,
                 MapColor = color,
                 Steps = fields.Steps(),
-                Once = fields.Read("Once", LdtkJsonContext.Default.Boolean),
+            },
+            LdtkEntityName.Once => new EntityConfig.Once()
+            {
+                Id = id,
+                MapOrigin = origin,
+                MapSize = size,
+                MapColor = color,
+                Step = new Step(
+                    fields.Read("Target", LdtkJsonContext.Default.LdtkEntityRef).EntityIid,
+                    fields.Read("Action", LdtkJsonContext.Default.TriggerAction)),
             },
             LdtkEntityName.Dialogue => new EntityConfig.Dialogue()
             {

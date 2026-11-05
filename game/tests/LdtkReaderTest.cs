@@ -207,22 +207,23 @@ public class LdtkReaderTest
 
     /// <summary>A sequence with these Targets and Actions, as the insides of their arrays.</summary>
     private static string Sequence(string targets, string actions) => Control("Sequence", "sequence", $$"""
-        { "__identifier": "Targets", "__value": [ {{targets}} ] }, { "__identifier": "Actions", "__value": [ {{actions}} ] },
-        { "__identifier": "Once", "__value": false }
+        { "__identifier": "Targets", "__value": [ {{targets}} ] }, { "__identifier": "Actions", "__value": [ {{actions}} ] }
         """);
 
     [TestCase]
     public void Reads_routes_as_steps_that_name_their_targets_by_iid()
     {
         string trigger = Control("Trigger", "trigger", $$"""
-            { "__identifier": "Target", "__value": {{Ref("sequence")}} }, { "__identifier": "Action", "__value": "Default" },
-            { "__identifier": "Once", "__value": true }
+            { "__identifier": "Target", "__value": {{Ref("once")}} }, { "__identifier": "Action", "__value": "Default" }
+            """);
+        string once = Control("Once", "once", $$"""
+            { "__identifier": "Target", "__value": {{Ref("sequence")}} }, { "__identifier": "Action", "__value": "Default" }
             """);
         string sequence = Sequence($"{Ref("dialogue")}, {Ref("door")}", "\"Default\", \"Close\"");
-        World world = ReadOne(Project(Level(0, 0, PlayerStart + ", " + Door, control: $"{trigger}, {sequence}, {Dialogue}")));
+        World world = ReadOne(Project(Level(0, 0, PlayerStart + ", " + Door, control: $"{trigger}, {once}, {sequence}, {Dialogue}")));
 
-        var readTrigger = (EntityConfig.Trigger)world.ConfigsById["trigger"];
-        AssertThat((readTrigger.Step, readTrigger.Once)).IsEqual((new Step("sequence", TriggerAction.Default), true));
+        AssertThat(((EntityConfig.Trigger)world.ConfigsById["trigger"]).Step).IsEqual(new Step("once", TriggerAction.Default));
+        AssertThat(((EntityConfig.Once)world.ConfigsById["once"]).Step).IsEqual(new Step("sequence", TriggerAction.Default));
         AssertArray(((EntityConfig.Sequence)world.ConfigsById["sequence"]).Steps).ContainsExactly(
             new Step("dialogue", TriggerAction.Default), new Step("door", TriggerAction.Close));
         var readDialogue = (EntityConfig.Dialogue)world.ConfigsById["dialogue"];

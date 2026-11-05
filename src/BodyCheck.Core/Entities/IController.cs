@@ -8,7 +8,7 @@ namespace BodyCheck.Core.Entities;
 /// A controller is built with the entity it controls, as the kind of body it needs, and controls only that one.
 /// </para>
 /// </summary>
-public interface IController<out TEntity> where TEntity : Entity
+public interface IController<out TEntity> : IActionTarget where TEntity : Entity
 {
     /// <summary>The entity the controller controls.</summary>
     public TEntity Entity { get; }

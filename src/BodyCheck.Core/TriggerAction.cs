@@ -7,8 +7,8 @@ namespace BodyCheck.Core;
 public enum TriggerAction
 {
     ToggleOnOff,
-    On,
-    Off,
+    TurnOn,
+    TurnOff,
     ToggleOpenClose,
     Open,
     Close,
