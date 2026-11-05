@@ -92,6 +92,18 @@ public class ActionTaskTest
         AssertThat(ticks).IsEqual(3);
     }
 
+    [TestCase]
+    public void A_wait_made_before_the_queue_runs_finishes_in_that_run()
+    {
+        var queue = new ActionTaskQueue();
+        queue.Run(Dt);
+
+        // As in a controller's Apply, before the world runs the queue in the same tick.
+        ActionTask wait = queue.NextTick();
+        queue.Run(Dt);
+        AssertThat(wait.IsFinished).IsTrue();
+    }
+
     [TestCase(1f, 1f / 60, 60)]
     [TestCase(1f, 0.5f / 60, 120)]
     [TestCase(0.1f, 1f / 60, 6)]

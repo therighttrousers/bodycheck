@@ -11,13 +11,17 @@ namespace BodyCheck.Core;
 /// </summary>
 public interface ITick
 {
-    /// <summary>A task that finishes in the next played tick.</summary>
+    /// <summary>
+    /// A task that finishes when the queue next runs: in this tick's run if made before it, such as in a controller's
+    /// <c>Apply</c>, and in the next played tick's if made while the queue runs, such as by an async action.
+    /// </summary>
     ActionTask NextTick();
 
     /// <summary>
-    /// A task that finishes once <paramref name="gameSeconds"/> of game time have passed, counted in played ticks: in the
-    /// tick whose end comes nearest, so that rounding never adds a tick, but never in the one it is made in, so that
-    /// waiting for no time finishes in the next and a loop that waits can't spin within a tick.
+    /// A task that finishes once <paramref name="gameSeconds"/> of game time have passed, counted in played ticks from the
+    /// end of the last one the queue ran: in the run whose tick ends nearest, so that rounding never adds a tick, but
+    /// never in the run it is made in. So waiting for no time finishes in the queue's next run, which for an async
+    /// action is the next played tick, and a loop that waits can't spin within a tick.
     /// </summary>
     ActionTask Wait(float gameSeconds);
 }

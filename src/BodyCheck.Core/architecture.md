@@ -95,7 +95,7 @@ Running an action is awaitable, so that whatever ran it can wait until it finish
 - **Nothing that awaits a task runs when it finishes.** What comes after each `await` goes to the task's `ActionTaskQueue`, which the world runs once in each played tick, after the entity steps and their deferred actions, until nothing is left in it, so that a chain of actions that finish at once runs to its end in one tick (`043 §2.6`). Finishing a task from outside the tick, such as from a Godot signal, only queues what waits for it.
 - **An `async` method that returns an `ActionTask` awaits only `ActionTask`s.** Awaiting anything else would resume it outside the tick, so it fails the method's task. The method runs at once up to its first `await` of a task that hasn't finished, and takes that task's queue.
 - **Only Core makes and finishes tasks:** an async method's, and the waits of an `ITick`, the world's tick as an action sees it, which the queue implements. Whatever runs an action passes it the world's `ITick`, so which world a task belongs to is never hidden state (`046 §1.3`, `§1.4`).
-- **Waiting on game time** is a task from `ITick.Wait`, or `NextTick` for one tick, which finishes once that much game time has passed, counted in the ticks the queue runs: in the tick whose end comes nearest, so that rounding never adds a tick, but never in the one it is made in, so that waiting for no time finishes in the next and a loop can't spin within a tick.
+- **Waiting on game time** is a task from `ITick.Wait`, which finishes once that much game time has passed, counted in played ticks from the end of the last one the queue ran: in the run whose tick ends nearest, so that rounding never adds a tick, but never in the run it is made in, so that a loop that waits can't spin within a tick. `NextTick` waits for no time, so it finishes in the queue's next run: for an async action, which runs in the queue, the next played tick's; for a wait made before this tick's run, such as in a controller's `Apply`, this tick's.
 - **Failing a task fails the tick.** The queue throws the exception when it next runs, whether or not anything awaits the task, and forgets everything queued, as the world forgets a failed tick's deferred actions (`046 §1.6`).
 - A world has one queue, and rebuilding the world drops it, with everything in progress. Tasks are used on Godot's main thread only.
 
@@ -105,7 +105,7 @@ Running an action is awaitable, so that whatever ran it can wait until it finish
 
 ## Open questions
 
-- Whether `IDefer`'s two points become points of `ITick` to await, if a second async action needs one. `RunAfterPhysicsStep` has no counterpart now: `NextTick` resumes after the next tick's entity steps (`046 §1.7`).
+- Whether `IDefer`'s two points become points of `ITick` to await, if a second async action needs one. `NextTick` from `Apply` already resumes after this tick's entity steps, after all of their deferred actions, though only on played ticks. `RunAfterPhysicsStep` has no counterpart: the queue never runs before the entity steps (`046 §1.7`).
 - How the game finishes an `ActionTask` from outside the tick, such as when a dialogue ends: for the dialogue interface (`046 §1.4`).
 
 - Can the Godot editor attach a script to a scene only when the script is in the Godot project itself? Believed so. Core's node classes are created in code, which doesn't need it (`005 §3.2`).
