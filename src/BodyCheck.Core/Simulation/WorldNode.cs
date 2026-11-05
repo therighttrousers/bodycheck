@@ -44,6 +44,9 @@ public partial class WorldNode : Node3D
 
     private readonly TickScheduler _scheduler = new();
 
+    // Each trigger's area, in the order of the world's controls.
+    private readonly List<TouchTrigger> _touchTriggers = [];
+
     /// <param name="assets">What to draw for each entity and for tiles.</param>
     /// <param name="respawnId">
     /// The respawn the player starts at, which is then the current one. The player starts where the world says if this is
@@ -134,6 +137,23 @@ public partial class WorldNode : Node3D
 
         // Last, since a body's controller runs the actions routed to it.
         Triggers = BuildRoutes();
+
+        // In the order of the world's controls, so that triggers touched in the same tick are set off in a known order.
+        foreach (EntityConfig.Trigger trigger in world.Controls.OfType<EntityConfig.Trigger>())
+        {
+            var area = new Area3D
+            {
+                Position = trigger.MapCenter.ToVector3(),
+                CollisionLayer = (uint)PhysicsLayer.Trigger,
+                // Only the player sets a trigger off, for now, and it is a character.
+                CollisionMask = (uint)PhysicsLayer.Character,
+                Monitorable = false,
+            };
+            var size = new Vector3(trigger.MapSize.X, trigger.MapSize.Y, Depth);
+            area.AddChild(new CollisionShape3D { Shape = new BoxShape3D { Size = size } });
+            AddChild(area);
+            _touchTriggers.Add(new TouchTrigger(trigger, area, Triggers[trigger.Id]));
+        }
     }
 
     /// <summary>
@@ -325,6 +345,12 @@ public partial class WorldNode : Node3D
     /// </summary>
     public IReadOnlyDictionary<string, TriggerRunner> Triggers { get; }
 
+    /// <summary>
+    /// Raised on the tick of play when the player comes into a trigger's area, which sets it off, whether or not that
+    /// starts a run.
+    /// </summary>
+    public event Action<EntityConfig.Trigger>? TriggerTouched;
+
     /// <summary>Supplies the player's input, once per tick. The player stands idle if this is null.</summary>
     public Func<PlayerInput>? PlayerInput { get; set; }
 
@@ -408,9 +434,11 @@ public partial class WorldNode : Node3D
         // Run this tick's post-entity-steps deferred actions.
         _defer.DrainAfterEntityStepsActions();
 
-        // Resume what waits on the world's tick, now that every controller has run, and its deferred actions too.
+        // Set off the triggers touched, then resume what waits on the world's tick, now that every controller has run,
+        // and its deferred actions too. Touches go first, so that what they start runs on in this tick's run.
         if (ControllersEnabled)
         {
+            TouchTriggers();
             _scheduler.Run((float)delta);
         }
 
@@ -451,6 +479,38 @@ public partial class WorldNode : Node3D
         {
             entity.UpdateFromFeatures();
         }
+    }
+
+    /// <summary>
+    /// Sets off each trigger that holds the player, as of the engine's last step, and didn't when it was last asked,
+    /// in the order of the world's controls. A trigger has held nothing before it is first asked, so a player that
+    /// starts in one sets it off.
+    /// <para>
+    /// An area finds what is in it at the end of each step, with no continuous detection, so a body that crosses it
+    /// within one step is missed: a trigger and the body together must be as wide as the body moves in a tick.
+    /// </para>
+    /// </summary>
+    private void TouchTriggers()
+    {
+        foreach (TouchTrigger trigger in _touchTriggers)
+        {
+            bool held = trigger.Area.OverlapsBody(Player);
+            if (held && !trigger.HeldPlayer)
+            {
+                trigger.Runner.Touch(_scheduler);
+                TriggerTouched?.Invoke(trigger.Config);
+            }
+            trigger.HeldPlayer = held;
+        }
+    }
+
+    /// <summary>A trigger's area, what runs it, and whether the area held the player when it was last asked.</summary>
+    private sealed class TouchTrigger(EntityConfig.Trigger config, Area3D area, TriggerRunner runner)
+    {
+        public EntityConfig.Trigger Config { get; } = config;
+        public Area3D Area { get; } = area;
+        public TriggerRunner Runner { get; } = runner;
+        public bool HeldPlayer { get; set; }
     }
 
     /// <summary>
