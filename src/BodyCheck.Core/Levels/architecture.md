@@ -12,6 +12,7 @@ Relevant decision records:
 - [043: Triggers, actions and scripts](../../../docs/decision-records/043-triggers-and-scripts.md)
 - [044: Dialogue](../../../docs/decision-records/044-dialogue.md)
 - [045: Control entities in the world](../../../docs/decision-records/045-control-entities-in-the-world.md)
+- [047: `Once`, and routing actions](../../../docs/decision-records/047-once-and-routing.md)
 
 ## What it is
 
@@ -30,6 +31,6 @@ The game's maps are the worlds of one LDtk project, `levels/main.ldtk` in the ga
 - Every non-zero value of the `SolidGeometry` layer is a solid tile, and what LDtk writes for auto-layering is ignored.
 - Entities are in two layers, `Entities` for those with bodies and `Control` for the control entities, which LDtk keeps apart by their tags. The layers only help the editor show them: the reader reads both alike, and an entity's kind says whether it has a body (`045 §2.3`). LDtk lets the control entities but `Respawn` lie outside their level, to be placed out of the way.
 - Each entity keeps its `iid` as its id, and the place, size and colour of its box in LDtk, which must be whole tiles (`045 §1.1`). The game starts a body with its anchor at the same spot on that box ([models.md](../../../docs/designs/models.md#how-the-game-places-a-model)), and draws the box on the map markers.
-- The fields read are a platform's range (`025 §1.1`); a `Trigger`'s `Target`, `Action` and `Once`; a `Sequence`'s and a `Fanout`'s `Targets`, `Actions` and `Once`; and a `Dialogue`'s `DialogueFile`, `DialogueTitle` and `Garble` (`043 §1.1`). An `EntityRef` is read as the `iid` it refers to, and a `TriggerAction` by name. The reader pairs `Targets` with `Actions` as steps, and rejects them if they aren't the same length (`043 §1.5`, `045 §3.1`). A `Script` is rejected as not yet supported.
+- The fields read are a platform's range (`025 §1.1`); a `Trigger`'s and a `Once`'s `Target` and `Action`; a `Sequence`'s and a `Fanout`'s `Targets` and `Actions`; and a `Dialogue`'s `DialogueFile`, `DialogueTitle` and `Garble` (`043 §1.1`). An `EntityRef` is read as the `iid` it refers to, and a `TriggerAction` by name. The reader pairs `Targets` with `Actions` as steps, and rejects them if they aren't the same length (`043 §1.5`, `045 §3.1`). A `Script` is rejected as not yet supported.
 - What doesn't depend on LDtk is checked by the world's data, which the reader reports as an error in the file: a box's size, a platform's shape, and the routes (`045 §4`).
 - The reader is given a function that reads files, so the game reads through Godot's `FileAccess` and tests through `System.IO`.

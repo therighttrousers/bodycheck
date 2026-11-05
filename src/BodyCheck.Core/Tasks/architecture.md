@@ -3,6 +3,7 @@
 Relevant decision records:
 - [043: Triggers, actions and scripts](../../../docs/decision-records/043-triggers-and-scripts.md)
 - [046: Actions as async methods](../../../docs/decision-records/046-async-actions.md)
+- [047: `Once`, and routing actions](../../../docs/decision-records/047-once-and-routing.md)
 
 ## What it is
 
@@ -22,9 +23,12 @@ What runs on it, such as actions, routing or scripts, and when in a tick it runs
 - **Only the scheduler and the method builder make and finish tasks:** the scheduler's waits, and async methods' tasks (`046 §1.4`).
 - **Waiting.** `ITick.Wait` finishes once that much time has passed on the scheduler's clock, which counts the ticks it runs from the end of the last one: in the run whose tick ends nearest, so that rounding never adds a tick, but never in the run it is made in, so that a loop that waits can't spin within a tick. `NextTick` waits for no time, so it finishes in the scheduler's next run: for a task the scheduler resumed, the next tick's; for a wait made before this tick's run, this tick's.
 - **Failing a task fails the tick.** The scheduler throws the exception when it next runs, whether or not anything awaits the task, so that it is never lost, and forgets everything queued (`046 §1.6`).
+- **Re-entry.** A `ReentrantTask` is work that may be asked to run while a run of it is in progress, which starts runs of it as its `Reentry` says, so that what responds to requests says in one line what a second one does: `Alongside`, which starts a run for every request; `Join`, which gives a request made during a run that run, and starts nothing; and `Once`, which starts only the first run, and gives that run to every request, so that one made after it finishes at once (`043 §1.10`, `047 §2.1`).
 - Tasks and their scheduler are for one thread.
 
 ## Open questions
+
+- More re-entry policies, when something needs them: ignore, which finishes at once while a run is in progress, and queue, which runs again once the run in progress finishes (`043 §1.10`).
 
 - How something off the tick finishes a task, such as a Godot signal when a dialogue ends: for the first that needs it, the dialogue interface (`046 §1.4`). Leaning: a completion source from `ITick`, such as `NewCompletion()`, returning a `TickTask` with `Finish` and `Fail` to call from the callback, as .NET's `TaskCompletionSource` does. The scheduler still makes the task, finishing it only queues what waits for it, and Godot emits signals on the main thread. A loop that polls a flag the callback sets also works, with no more delay, since nothing resumes before the scheduler's next run, but it has to be written at every such edge.
 - What to do with a .NET `Task`, if something hands us one. Leaning: keep the rule that an async method awaits only `TickTask`s, and adapt at the edge, such as with an `ITick` method that polls the `Task` each tick, so that no other thread touches the scheduler. Accepting any awaiter in the method builder would need the method's scheduler before its first `TickTask` await, and a scheduler safe to add to from other threads. `Task.Delay` is no substitute for `Wait`: it counts real time on a timer, so it runs on through pauses, ignores the game's speed, resumes in whichever tick its thread's timing gives, and outlives a dropped world.

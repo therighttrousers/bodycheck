@@ -11,6 +11,9 @@ Relevant decision records:
 - [032: Player-only situational friction](../../../docs/decision-records/032-player-only-situational-friction.md)
 - [034: A controller is built with its entity](../../../docs/decision-records/034-controller-built-with-its-entity.md)
 - [035: One shape for actions](../../../docs/decision-records/035-one-shape-for-actions.md)
+- [043: Triggers, actions and scripts](../../../docs/decision-records/043-triggers-and-scripts.md)
+- [046: Actions as async methods](../../../docs/decision-records/046-async-actions.md)
+- [047: `Once`, and routing actions](../../../docs/decision-records/047-once-and-routing.md)
 
 ## What it is
 
@@ -40,6 +43,7 @@ Every entity can move through other entities, but not through tiles, at once, or
 - Any entity may have a controller, which moves it with forces, impulses and, for a walker, traction; a block has none (`005 §3.6`, `034 §1.3`). The player and the NPCs use the same interface, `IController<TEntity>`.
 - A controller is built with its entity, as the kind of body it needs, so the wrong controller for a body doesn't compile, and it controls only that one: `Entity.Controller` throws if given a controller built for another entity (`034 §1.1`, `§1.4`). `TEntity` is covariant, the kind of body the controller's `Entity` is, so `Entity.Controller`, an `IController<Entity>`, takes a controller of any kind (`034 §1.6`). The interface names only `Entity`, so entities don't depend on any controller (`034 §1.5`).
 - The interface's `Apply` and `ApplyPaused`, `IDefer`, and the pause request are described in [how a tick runs](../architecture.md#how-a-tick-runs).
+- **Actions.** `IActionTarget` is what a route can run an action on: `Run` takes a `TriggerAction` and the world's `ITick`, and returns a `TickTask` that finishes when the action does. A body's controller is the target of the actions routed to its entity, since behaviour is a controller's, so `IController` extends `IActionTarget`, with a default member that responds to no action; a controller that responds implements `Run` (`043 §2.1`, `§3.2`). The world checks every route when it is built, so `Run` is never given an action its target doesn't respond to.
 
 ## The robot's laser
 

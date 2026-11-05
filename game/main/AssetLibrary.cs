@@ -32,7 +32,8 @@ public class AssetLibrary : IAssetLibrary
         EntityKind.Platform => InstantiatePlatform(2 * BodyTuning.Platform(config.MapSize).HalfSize.X),
         EntityKind.Block => InstantiateModel(BlockPath),
         EntityKind.VerticalDoor => GetDebugBoxVisual(config.MapSize, config.MapColor, alpha: 1),
-        EntityKind.Respawn or EntityKind.Trigger or EntityKind.Sequence or EntityKind.Fanout or EntityKind.Dialogue => null,
+        EntityKind.Respawn or EntityKind.Trigger or EntityKind.Sequence or EntityKind.Fanout or EntityKind.Once
+            or EntityKind.Dialogue => null,
     };
 
     public Node3D GetPlayerBlockVisual(Vector2 halfSize)

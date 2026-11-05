@@ -10,6 +10,7 @@ Relevant decision records:
 - [043: Triggers, actions and scripts](../../../docs/decision-records/043-triggers-and-scripts.md)
 - [045: Control entities in the world](../../../docs/decision-records/045-control-entities-in-the-world.md)
 - [046: Actions as async methods](../../../docs/decision-records/046-async-actions.md)
+- [047: `Once`, and routing actions](../../../docs/decision-records/047-once-and-routing.md)
 
 ## What it is
 
@@ -24,8 +25,9 @@ Presentation: the camera, the scene's lighting, overlays, the rendering pipeline
 `WorldNode` is one world, simulated: tiles and entities, with no camera, lights or input of its own.
 
 - It builds the colliders from the world's grid, as one static body (`020 §3.1`), and a `RoomNode` for each room, which draws the room's tiles as a few multimeshes (`020 §2.1`).
-- It builds an entity from each of the world's `Bodies`, gives each its looks and its controller, and steps every one each physics tick, in that order, so that `EntitiesOf` finds them by their configurations. A vertical door is frozen where it starts, with no controller yet. Control entities have no body, and nothing runs them yet (`043 §6`). It runs the actions controllers defer, at the points [Core's doc](../architecture.md#how-a-tick-runs) describes (`022 §2.1`).
+- It builds an entity from each of the world's `Bodies`, gives each its looks and its controller, and steps every one each physics tick, in that order, so that `EntitiesOf` finds them by their configurations. A vertical door is frozen where it starts, with no controller yet (`043 §6`). It runs the actions controllers defer, at the points [Core's doc](../architecture.md#how-a-tick-runs) describes (`022 §2.1`).
 - It has a `TickScheduler`, which it gives as its `Tick` to what runs in it, and runs once in each played tick, after the entity steps' deferred actions, while controllers are enabled, with the tick's game time, so that waits count game time; paused ticks don't run it (`046 §1.2`).
+- **Routes.** Once every entity has its controller, it builds a runner for each control entity that runs others or responds to actions, from its configuration, with each step resolved to what runs it: a control entity's runner, or a body's controller. Each runner is built after its targets, which the world's having no cycles allows. `Triggers` holds the triggers' runners by id; the others are reached through their routes (`045 §3.3`, `047 §2.3`). A target that can't run its action yet finishes at once, so that the levels load and play: a `Dialogue`, a `Respawn`, which becomes current by reach, and a vertical door, which has no controller (`047 §2.4`). Nothing touches the triggers yet.
 - It also builds the block the player spawns, which no configuration describes, disabled and hidden, with its own look from the asset library, and gives it to the player's controller, which enables and shows it to spawn it; it is the last of the world's entities, so `EntitiesOf` leaves it out (`023 §1.1`, `§1.4`).
 - It skips an entity that can't process, so that a controller stops with whatever pauses or disables its body: the tree's pause, or the `ProcessMode` of the entity or an ancestor (`013 §1.2`).
 - It is given an `IAssetLibrary`, which makes each kind of entity's visual and gives the tile's mesh, so Core doesn't know the game's assets (`012 §3.1`, `020 §2.2`).

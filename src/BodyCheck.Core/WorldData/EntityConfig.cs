@@ -14,6 +14,7 @@ public enum EntityKind
     Trigger,
     Sequence,
     Fanout,
+    Once,
     Dialogue,
 }
 
@@ -34,8 +35,8 @@ public static class EntityKinds
         {
             EntityKind.Player or EntityKind.Robot or EntityKind.Platform or EntityKind.Block or EntityKind.VerticalDoor
                 => true,
-            EntityKind.Respawn or EntityKind.Trigger or EntityKind.Sequence or EntityKind.Fanout or EntityKind.Dialogue
-                => false,
+            EntityKind.Respawn or EntityKind.Trigger or EntityKind.Sequence or EntityKind.Fanout or EntityKind.Once
+                or EntityKind.Dialogue => false,
         };
 
         /// <summary>
@@ -45,9 +46,10 @@ public static class EntityKinds
         /// </summary>
         public IReadOnlyList<TriggerAction> Responses => kind switch
         {
-            EntityKind.Player or EntityKind.Robot or EntityKind.Platform or EntityKind.Block => None,
+            EntityKind.Player or EntityKind.Robot or EntityKind.Platform or EntityKind.Block or EntityKind.Trigger
+                => None,
             EntityKind.VerticalDoor => Close,
-            EntityKind.Respawn or EntityKind.Trigger or EntityKind.Sequence or EntityKind.Fanout or EntityKind.Dialogue
+            EntityKind.Respawn or EntityKind.Sequence or EntityKind.Fanout or EntityKind.Once or EntityKind.Dialogue
                 => Default,
         };
     }
@@ -121,13 +123,11 @@ public abstract record EntityConfig
         public override EntityKind Kind => EntityKind.Respawn;
     }
 
-    /// <summary>An area that, when touched, runs its step.</summary>
+    /// <summary>An area that, when touched, runs its step. It responds to no action.</summary>
     public sealed record Trigger : EntityConfig
     {
         public override EntityKind Kind => EntityKind.Trigger;
         public required Step Step { get; init; }
-        /// <summary>Whether it runs only once.</summary>
-        public required bool Once { get; init; }
     }
 
     /// <summary>Runs its steps in turn, each when the one before has finished.</summary>
@@ -136,8 +136,6 @@ public abstract record EntityConfig
         public override EntityKind Kind => EntityKind.Sequence;
         /// <summary>The steps, at least one.</summary>
         public required IReadOnlyList<Step> Steps { get; init; }
-        /// <summary>Whether it runs only once.</summary>
-        public required bool Once { get; init; }
     }
 
     /// <summary>Runs its steps all at once.</summary>
@@ -146,8 +144,16 @@ public abstract record EntityConfig
         public override EntityKind Kind => EntityKind.Fanout;
         /// <summary>The steps, at least one.</summary>
         public required IReadOnlyList<Step> Steps { get; init; }
-        /// <summary>Whether it runs only once.</summary>
-        public required bool Once { get; init; }
+    }
+
+    /// <summary>
+    /// Runs its step the first time it is asked, and gives every later request that first run: one made while it runs
+    /// finishes when it does, and one made after finishes at once.
+    /// </summary>
+    public sealed record Once : EntityConfig
+    {
+        public override EntityKind Kind => EntityKind.Once;
+        public required Step Step { get; init; }
     }
 
     /// <summary>Presents a title of a dialogue file.</summary>

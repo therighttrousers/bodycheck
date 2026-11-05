@@ -169,6 +169,7 @@ internal enum LdtkEntityName
     Trigger,
     Sequence,
     Fanout,
+    Once,
     Dialogue,
     Script,
 }

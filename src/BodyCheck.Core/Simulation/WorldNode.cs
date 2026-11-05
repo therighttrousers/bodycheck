@@ -2,6 +2,7 @@ using System.Diagnostics;
 
 using BodyCheck.Core.Controllers;
 using BodyCheck.Core.Entities;
+using BodyCheck.Core.Scripts;
 using BodyCheck.Core.Tasks;
 using BodyCheck.Core.WorldData;
 
@@ -102,8 +103,8 @@ public partial class WorldNode : Node3D
                 EntityKind.Block => CreateBlock((EntityConfig.Block)config, assets.GetEntityVisual(config)),
                 EntityKind.VerticalDoor => CreateVerticalDoor((EntityConfig.VerticalDoor)config, assets.GetEntityVisual(config)),
 
-                EntityKind.Respawn or EntityKind.Trigger or EntityKind.Sequence or EntityKind.Fanout or EntityKind.Dialogue
-                    => throw new UnreachableException($"A {config.Kind} has no body."),
+                EntityKind.Respawn or EntityKind.Trigger or EntityKind.Sequence or EntityKind.Fanout or EntityKind.Once
+                    or EntityKind.Dialogue => throw new UnreachableException($"A {config.Kind} has no body."),
             };
 
             EntityConfig startBox = config.Kind == EntityKind.Player && CurrentRespawn is not null ? CurrentRespawn : config;
@@ -130,6 +131,73 @@ public partial class WorldNode : Node3D
         // Here and not in CreatePlayer, since only the constructor can set PlayerController.
         PlayerController = new PlayerController(Player, Input, PlayerBlock);
         Player.Controller = PlayerController;
+
+        // Last, since a body's controller runs the actions routed to it.
+        Triggers = BuildRoutes();
+    }
+
+    /// <summary>
+    /// Builds what runs each control entity, with each step resolved to what runs its action, and returns the triggers'
+    /// runners, by id. The world has checked that every route's target responds to its action, and that no route leads
+    /// back to where it started, so each runner is built after its targets.
+    /// </summary>
+    private Dictionary<string, TriggerRunner> BuildRoutes()
+    {
+        var bodies = new Dictionary<string, Entity>();
+        for (int i = 0; i < World.Bodies.Count; i++)
+        {
+            bodies[World.Bodies[i].Id] = _entities[i];
+        }
+
+        var targets = new Dictionary<string, IActionTarget>();
+
+        Call CallOf(Step step) => new(TargetOf(World.ConfigsById[step.TargetId]), step.Action);
+        Call[] CallsOf(IReadOnlyList<Step> steps) => [.. steps.Select(CallOf)];
+
+        IActionTarget TargetOf(EntityConfig config)
+        {
+            if (targets.TryGetValue(config.Id, out IActionTarget? target))
+            {
+                return target;
+            }
+            target = config switch
+            {
+                EntityConfig.Sequence sequence => new SequenceRunner(CallsOf(sequence.Steps)),
+                EntityConfig.Fanout fanout => new FanoutRunner(CallsOf(fanout.Steps)),
+                EntityConfig.Once once => new OnceRunner(CallOf(once.Step)),
+                // Not yet run: a dialogue has no runner, and a respawn becomes current by reach.
+                EntityConfig.Dialogue or EntityConfig.Respawn => FinishesAtOnce.Instance,
+                // Not yet run: a door has no controller.
+                EntityConfig.VerticalDoor when bodies[config.Id].Controller is null => FinishesAtOnce.Instance,
+                _ when config.Kind.HasBody => bodies[config.Id].Controller
+                    ?? throw new UnreachableException($"A {config.Kind} with no controller responds to an action."),
+                _ => throw new UnreachableException($"A {config.Kind} responds to no action."),
+            };
+            targets[config.Id] = target;
+            return target;
+        }
+
+        var triggers = new Dictionary<string, TriggerRunner>();
+        foreach (EntityConfig config in World.Controls)
+        {
+            if (config is EntityConfig.Trigger trigger)
+            {
+                triggers[trigger.Id] = new TriggerRunner(CallOf(trigger.Step));
+            }
+            else if (config.Kind.Responses.Count > 0)
+            {
+                TargetOf(config);
+            }
+        }
+        return triggers;
+    }
+
+    /// <summary>What runs an action that does nothing yet, which finishes at once.</summary>
+    private sealed class FinishesAtOnce : IActionTarget
+    {
+        public static FinishesAtOnce Instance { get; } = new();
+
+        public TickTask Run(TriggerAction action, ITick tick) => TickTask.Finished;
     }
 
     /// <summary>
@@ -249,6 +317,12 @@ public partial class WorldNode : Node3D
 
     /// <summary>Raised on the tick of play when the player comes within reach of a respawn that isn't the current one.</summary>
     public event Action<EntityConfig.Respawn>? CurrentRespawnChanged;
+
+    /// <summary>
+    /// What runs each trigger, by its id. The runners of the other control entities are reached through the triggers'
+    /// routes.
+    /// </summary>
+    public IReadOnlyDictionary<string, TriggerRunner> Triggers { get; }
 
     /// <summary>Supplies the player's input, once per tick. The player stands idle if this is null.</summary>
     public Func<PlayerInput>? PlayerInput { get; set; }

@@ -19,6 +19,7 @@ Relevant decision records:
 - [043: Triggers, actions and scripts](../../docs/decision-records/043-triggers-and-scripts.md)
 - [045: Control entities in the world](../../docs/decision-records/045-control-entities-in-the-world.md)
 - [046: Actions as async methods](../../docs/decision-records/046-async-actions.md)
+- [047: `Once`, and routing actions](../../docs/decision-records/047-once-and-routing.md)
 
 ## What it is
 
@@ -40,23 +41,31 @@ Core is split into subsystems, each a subdirectory and a namespace (`012`). The 
 - [**`Levels`**](Levels/architecture.md): reading LDtk levels into the world's data. Not what a room means once read.
 - [**`Simulation`**](Simulation/architecture.md): the world brought to life, with its entities stepped each tick. Not presentation.
 - [**`Tasks`**](Tasks/architecture.md): tasks that resume only on a tick, and their scheduler. Not what runs on them, or when in a tick.
+- [**`Scripts`**](Scripts/architecture.md): what runs the control entities, which route actions to their targets. Not what a body does when an action reaches it.
 
 ```mermaid
 graph BT
     Controllers --> Entities
+    Entities --> Tasks
     Levels --> WorldData
+    Scripts --> Entities
+    Scripts --> Tasks
     Simulation --> WorldData
     Simulation --> Entities
     Simulation --> Controllers
+    Simulation --> Scripts
     Simulation --> Tasks
 ```
 
 An arrow points from a subsystem to one it uses. Every subsystem may use the root, which uses none of them, so the root is at the bottom of every chain; those arrows aren't drawn. There are no cycles.
 
 - **Controllers use entities** through what a body offers: forces, impulses, motors and queries. Entities know nothing of controllers beyond the interface they define for them, so a controller doesn't know where its entity is in a room or how it got there.
+- **Entities use tasks** for running an action: the interface that a route's target implements returns a `TickTask`, and is given the `ITick` to run on (`047 §2.2`).
+- **Scripts use entities and tasks** to run actions on their targets, through that interface alone, so a runner can't reach past it to a controller or a body (`043 §3.2`).
 - **Levels produce the world's data.** The world's data knows nothing of where it came from.
 - **Simulation joins the rest.** It builds each entity from the world's data, gives it its controller, and steps it; none of the subsystems it uses know about it.
 - **Simulation runs the world's tasks** on a scheduler of its own, at its point in the tick.
+- **Simulation builds the routes.** It builds a runner for each control entity from its configuration, and resolves each step to its target's runner or its body's controller, so that Scripts knows nothing of the world's data (`047 §2.3`).
 
 ## How a tick runs
 

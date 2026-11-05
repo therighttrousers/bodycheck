@@ -109,7 +109,15 @@ public class WorldTest
         MapSize = Vector2I.One,
         MapColor = Colors.White,
         Step = new Step(target, action),
-        Once = true,
+    };
+
+    private static EntityConfig.Once Once(string target, TriggerAction action = TriggerAction.Default) => new()
+    {
+        Id = "once",
+        MapOrigin = new Vector2I(1, 0),
+        MapSize = Vector2I.One,
+        MapColor = Colors.White,
+        Step = new Step(target, action),
     };
 
     private static EntityConfig.Sequence Sequence(params Step[] steps) => new()
@@ -119,7 +127,6 @@ public class WorldTest
         MapSize = Vector2I.One,
         MapColor = Colors.White,
         Steps = steps,
-        Once = false,
     };
 
     private static World WorldOf(params EntityConfig[] configs) =>
@@ -144,9 +151,12 @@ public class WorldTest
     [TestCase("missing", TriggerAction.Default)] // Not in the world
     [TestCase("door", TriggerAction.Default)] // Responds to Close only
     [TestCase("dialogue", TriggerAction.Close)] // Responds to Default only
-    [TestCase("sequence", TriggerAction.Default)] // Back to the trigger, through the sequence
+    [TestCase("trigger", TriggerAction.Default)] // Responds to no action
+    [TestCase("sequence", TriggerAction.Default)] // Back to the once, through the sequence
     public void Refuses_a_route_that_its_target_cant_run(string target, TriggerAction action) =>
-        AssertThrown(() => WorldOf(Player, Door, Dialogue, Trigger(target, action), Sequence(new Step("trigger", TriggerAction.Default))))
+        AssertThrown(() => WorldOf(
+                Player, Door, Dialogue, Trigger("dialogue"), Once(target, action),
+                Sequence(new Step("once", TriggerAction.Default))))
             .IsInstanceOf<ArgumentException>();
 
     [TestCase]

@@ -119,6 +119,7 @@ public sealed class World
         EntityConfig.Trigger trigger => [trigger.Step],
         EntityConfig.Sequence sequence => sequence.Steps,
         EntityConfig.Fanout fanout => fanout.Steps,
+        EntityConfig.Once once => [once.Step],
         _ => [],
     };
 
