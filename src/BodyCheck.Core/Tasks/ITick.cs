@@ -21,6 +21,12 @@ public interface ITick
     TickTask Wait(float seconds);
 
     /// <summary>
+    /// A task that finishes when something off the tick says, such as a callback from the engine, through the
+    /// completion returned. What waits for it resumes when the scheduler next runs after that.
+    /// </summary>
+    TickCompletion NewCompletion();
+
+    /// <summary>
     /// The length of the tick being run, or of the last one run, on the clock that waits count.
     /// </summary>
     float Dt { get; }

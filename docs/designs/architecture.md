@@ -13,6 +13,7 @@ Relevant decision records:
 - [027: Engine friction for walkers and carrying](../decision-records/027-engine-friction.md)
 - [031: Tests in the game's project](../decision-records/031-tests-in-the-game-project.md)
 - [032: Player-only situational friction](../decision-records/032-player-only-situational-friction.md)
+- [044: Dialogue](../decision-records/044-dialogue.md)
 - [046: Actions as async methods](../decision-records/046-async-actions.md)
 - [048: Triggers set off by touch](../decision-records/048-touch.md)
 
@@ -25,6 +26,7 @@ This is the top of the architecture docs. Each directory with parts of its own h
 - **Physics:** Godot's 3D physics engine, Jolt, with gameplay locked to the XY plane. The engine detects collisions, resolves contacts and moves bodies. Our rules push bodies with the engine's forces and impulses. Friction is the engine's, at each body's own coefficient, except the player's, which our rules set each tick. A walker's traction and the player's steadying of what it carries are motors inside the engine, which our rules also set each tick (`005`, `019`, `027`, `032`). Drag is ours. Positions are in single precision, as in Godot's standard builds; both play and drawing hold up to 1e5 tiles from the origin, far beyond any world's size (`013 §6.1`). See [movement.md](movement.md#physics-engine).
 - **Levels:** authored in 2D in LDtk, in `game/levels/`, and turned into 3D at load. The LDtk JSON is read at runtime, and is to be moved to an asset pipeline only if the loading code proves too slow, too complex or too fragile (`000 §1.2`).
 - **Camera:** Phantom Camera 0.11.0.3, an addon. Out-of-the-box tools are preferred.
+- **Dialogue:** Dialogue Manager 4.2.0, an addon, provisionally: its files and its C# API, with our own text box (`044 §1.3`, `§1.4`). The project must be imported in full before the tests run, which `scripts/dev-setup.ps1` does.
 - **Modelling:** Blender.
 
 ## Layout

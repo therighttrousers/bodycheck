@@ -138,6 +138,28 @@ public class TickTaskTest
     }
 
     [TestCase]
+    public void A_completion_finished_off_the_tick_resumes_what_waits_when_the_scheduler_next_runs()
+    {
+        var scheduler = new TickScheduler();
+        TickCompletion completion = scheduler.NewCompletion();
+        bool resumed = false;
+
+        async TickTask Waits()
+        {
+            await completion.Task;
+            resumed = true;
+        }
+        _ = Waits();
+
+        scheduler.Run(Dt);
+        AssertThat(resumed).IsFalse();
+        completion.Finish();
+        AssertThat(resumed).IsFalse();
+        scheduler.Run(Dt);
+        AssertThat(resumed).IsTrue();
+    }
+
+    [TestCase]
     public void Awaiting_anything_else_fails()
     {
         static async TickTask AwaitsATask() => await Task.Yield();

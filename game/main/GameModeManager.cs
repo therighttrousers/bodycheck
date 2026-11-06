@@ -8,10 +8,10 @@ using Godot;
 namespace BodyCheck;
 
 /// <summary>
-/// What the game is doing: playing, or paused for the menu, the map, or the player aiming a phase. Before the pause
-/// for a phase, it slows down to it.
+/// What the game is doing: playing, or paused for the menu, the map, the player aiming a phase, or dialogue. Before the
+/// pause for a phase, it slows down to it.
 /// </summary>
-public enum GameMode { Playing, Menu, Map, EndingMap, SlowingForPhase, Phasing }
+public enum GameMode { Playing, Menu, Map, EndingMap, SlowingForPhase, Phasing, Dialogue }
 
 /// <summary>
 /// Holds the <see cref="GameMode"/>, and switches it on the "menu" and "map" actions. The tree is paused in every mode
@@ -31,6 +31,11 @@ public enum GameMode { Playing, Menu, Map, EndingMap, SlowingForPhase, Phasing }
 /// world's place. The factor stays at the slowest, so that what runs on game time while the tree is paused, such as the
 /// camera's damping, goes on at the same pace. When the world stops asking, play resumes at full speed at once, even
 /// partway through the slowdown.
+/// </para>
+/// <para>
+/// When a dialogue waits in the <see cref="Dialogue"/> box, from playing or slowing for a phase, the mode is
+/// <see cref="GameMode.Dialogue"/>, at once and with no slowdown, and this starts each waiting dialogue in turn. When
+/// none is left, play resumes, and a phase still being aimed slows down to its pause again from the start.
 /// </para>
 /// <para>
 /// The engine's time scale is the factor times <see cref="Features.GameplaySpeed"/>, set each physics tick, so that a
@@ -63,6 +68,9 @@ public partial class GameModeManager : Node
     /// <summary>The world being played, whose controllers may ask for a pause.</summary>
     public WorldNode? World { get; set; }
 
+    /// <summary>What presents dialogue, which the game pauses for.</summary>
+    public DialogueBox? Dialogue { get; set; }
+
     /// <summary>Raised after the mode changes and the tree is paused or unpaused to match.</summary>
     public event Action<GameMode>? GameModeChanged;
 
@@ -87,6 +95,7 @@ public partial class GameModeManager : Node
                 GameMode.EndingMap => GameModeState.Menu,
                 GameMode.SlowingForPhase => GameModeState.Menu,
                 GameMode.Phasing => GameModeState.Menu,
+                GameMode.Dialogue => GameModeState.Menu,
             });
         }
         else if (@event.IsActionPressed("map"))
@@ -100,6 +109,7 @@ public partial class GameModeManager : Node
                 GameMode.EndingMap => GameModeState.Map,
                 GameMode.SlowingForPhase => GameModeState.Map,
                 GameMode.Phasing => GameModeState.Map,
+                GameMode.Dialogue => GameModeState.Map,
             });
         }
     }
@@ -114,6 +124,26 @@ public partial class GameModeManager : Node
 
     public override void _PhysicsProcess(double delta)
     {
+        // Before the phase, so that a dialogue asked for while slowing for one stops the slowdown.
+        if (Dialogue is not null)
+        {
+            if (GameMode is GameMode.Playing or GameMode.SlowingForPhase && Dialogue.HasWaiting)
+            {
+                SetGameModeState(GameModeState.Dialogue);
+            }
+            if (GameMode == GameMode.Dialogue && !Dialogue.IsPresenting)
+            {
+                if (Dialogue.HasWaiting)
+                {
+                    Dialogue.StartNext();
+                }
+                else
+                {
+                    SetGameModeState(GameModeState.Playing);
+                }
+            }
+        }
+
         if (World is not null)
         {
             if (GameMode == GameMode.Phasing)
@@ -168,6 +198,7 @@ public partial class GameModeManager : Node
         public static readonly GameModeState EndingMap = new Simple(mode: GameMode.EndingMap, uiPause: true, pause: true);
         public static readonly GameModeState Phasing = new Simple(
             mode: GameMode.Phasing, uiPause: false, pause: true, slowdownFactor: SlowestSlowdownFactor);
+        public static readonly GameModeState Dialogue = new Simple(mode: GameMode.Dialogue, uiPause: false, pause: true);
 
         private GameModeState() { }
 

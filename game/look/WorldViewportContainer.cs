@@ -12,6 +12,11 @@ namespace BodyCheck.Look;
 /// the window's own viewport, is at the window's full resolution. As a container of a viewport, it passes
 /// the window's input on to it, with the mouse's position scaled to match.
 /// </para>
+/// <para>
+/// It processes always, since a container passes input on only while it processes, and nodes in the game's viewport,
+/// such as the dialogue box, need input while the game is paused. So does everything in the viewport that inherits its
+/// process mode: what must stop while the game is paused, such as the world, says so itself.
+/// </para>
 /// </summary>
 public partial class WorldViewportContainer : SubViewportContainer
 {
@@ -23,6 +28,9 @@ public partial class WorldViewportContainer : SubViewportContainer
         Stretch = false;
         TextureFilter = TextureFilterEnum.Nearest;
         AddChild(World);
+
+        // Passes input on to the game's viewport while the game is paused. Everything in it inherits this.
+        ProcessMode = ProcessModeEnum.Always;
 
         // Enable CPU/GPU rendering measurement.
         var rid = World.GetViewportRid();

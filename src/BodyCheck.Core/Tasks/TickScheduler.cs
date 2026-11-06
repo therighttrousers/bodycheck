@@ -33,6 +33,9 @@ public sealed class TickScheduler : ITick
         return task;
     }
 
+    /// <inheritdoc/>
+    public TickCompletion NewCompletion() => new(this);
+
     public float Dt => _dt;
 
     /// <summary>

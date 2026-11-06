@@ -1,0 +1,12 @@
+~ start
+
+Voice: ...can you... hear me?
+Voice: Please. We need your help. This line wraps, to show more than one.
+- Who is this?
+	Voice: No time to explain.
+- I'm listening.
+	Voice: Good.
+Voice: Bring us batteries. Five of them.
+Robot: Got it.
+
+=> END

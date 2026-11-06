@@ -69,3 +69,8 @@ finally {
 Invoke-Native { dotnet restore }
 Invoke-Native { dotnet tool restore }
 Invoke-Native { dotnet husky install }
+
+# Imports the game's assets and scans its scripts' classes. gdUnit4Net imports a project it finds unimported by
+# running the editor for 100 frames, which is too short with Dialogue Manager's editor plugin.
+Write-Host "Importing the game's assets..."
+Invoke-Native { & "${godotInstallPath}\Godot_console.exe" --headless --path game --import }
