@@ -97,7 +97,6 @@ public partial class Main : Node
         _pauseMenuOverlay.Visible = false;
         _worldView.World.AddChild(_pauseMenuOverlay);
         _worldView.World.AddChild(_dialogueBox);
-        _gameModeManager.Dialogue = _dialogueBox;
         _gameModeManager.GameModeChanged += gameMode =>
         {
             _pauseMenuOverlay.Visible = gameMode == GameMode.Menu;

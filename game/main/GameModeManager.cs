@@ -27,11 +27,10 @@ namespace BodyCheck;
 /// partway through the slowdown.
 /// </para>
 /// <para>
-/// When a dialogue waits in the <see cref="Dialogue"/> box, or the <see cref="World"/> asks for a cutscene, such as for a
-/// script, from playing or slowing for a phase, the mode is <see cref="GameMode.Cutscene"/>, at once and at full speed,
-/// and this starts each waiting dialogue in turn. The world runs, and the player's controller acts on no input but a
-/// script's, so the player comes to rest unless a script drives it. When no dialogue is left and the world no longer
-/// asks, play resumes.
+/// When the <see cref="World"/> asks for a cutscene, such as for a script or a dialogue, from playing or slowing for a
+/// phase, the mode is <see cref="GameMode.Cutscene"/>, at once and at full speed. The world runs, and the player's
+/// controller acts on no input but a script's, so the player comes to rest unless a script drives it. When the world no
+/// longer asks, play resumes.
 /// </para>
 /// <para>
 /// The engine's time scale is the factor times <see cref="Features.GameplaySpeed"/>, set each physics tick, so that a
@@ -63,9 +62,6 @@ public partial class GameModeManager : Node
 
     /// <summary>The world being played, whose controllers may ask for a pause.</summary>
     public WorldNode? World { get; set; }
-
-    /// <summary>What presents dialogue, which the game plays a cutscene for.</summary>
-    public DialogueBox? Dialogue { get; set; }
 
     /// <summary>Raised after the mode changes and the tree is paused or unpaused to match.</summary>
     public event Action<GameMode>? GameModeChanged;
@@ -122,21 +118,13 @@ public partial class GameModeManager : Node
     {
         // Before the phase, so that a cutscene asked for while slowing for one stops the slowdown.
         bool cutsceneRequested = World?.CutsceneRequested ?? false;
-        bool dialogueWaiting = Dialogue?.HasWaiting ?? false;
-        if (GameMode is GameMode.Playing or GameMode.SlowingForPhase && (dialogueWaiting || cutsceneRequested))
+        if (GameMode is GameMode.Playing or GameMode.SlowingForPhase && cutsceneRequested)
         {
             SetGameModeState(GameModeState.Cutscene);
         }
-        if (GameMode == GameMode.Cutscene && !(Dialogue?.IsPresenting ?? false))
+        else if (GameMode == GameMode.Cutscene && !cutsceneRequested)
         {
-            if (dialogueWaiting)
-            {
-                Dialogue!.StartNext();
-            }
-            else if (!cutsceneRequested)
-            {
-                SetGameModeState(GameModeState.Playing);
-            }
+            SetGameModeState(GameModeState.Playing);
         }
 
         if (World is not null)

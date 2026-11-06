@@ -24,7 +24,7 @@ A runner is given its steps already resolved, as `Call`s, each an action and the
 - **`SequenceRunner`**: on `Default`, runs each step in turn, each when the one before has finished, and finishes when the last does.
 - **`FanoutRunner`**: on `Default`, starts every step, in order, and finishes when all have.
 - **`OnceRunner`**: on the first `Default`, runs its step, and every `Default` gets that first run, so one asked while it runs finishes when it does, and one asked after finishes at once (`047 §1.2`). It remembers this in memory, for as long as its world lasts, until the game state saves it.
-- **`DialogueRunner`**: on `Default`, presents its title of its dialogue file, and finishes when the dialogue ends (`043 §2.3`, `050 §1.4`). Every `Default` presents it again, after any dialogue already waiting.
+- **`DialogueRunner`**: on `Default`, presents its title of its dialogue file, holding a cutscene while it does, as a script would, and finishes when the dialogue ends (`043 §2.3`, `050 §1.4`, `051 §3.5`). Every `Default` presents it again, after any dialogue already waiting.
 - **`ScriptRunner`**: on `Default`, runs a new instance of its script, and finishes when the script does. Every `Default` runs one, alongside any run in progress (`043 §1.7`).
 
 A `Sequence`, a `Fanout` or a `Script` runs every `Default`, alongside any run in progress, since what it runs comes down to controllers, which decide for themselves what a second request does (`043 §1.7`). A runner that does something else when asked again says so with a `ReentrantTask`, in one line: a `Trigger` joins, and a `Once` runs once. The runners that respond to `Default` implement only `IActionTarget.Default`.
@@ -33,7 +33,7 @@ What a runner holds is only what its kind needs to decide whether to run: what a
 
 ## Dialogue
 
-`IDialoguePresenter` is what presents dialogue, which the game implements with its dialogue backend, so that Core knows nothing of either (`043 §3.3`): given a tick, a dialogue file by name and a title in it, it returns a task that finishes when the dialogue ends. The game plays a cutscene for it, starting at its own point in the tick. It also says whether a file exists and holds a title, so that a world can check its dialogues when it is built, not when they are presented (`044 §5.2`).
+`IDialoguePresenter` is what presents dialogue, which the game implements with its dialogue backend, so that Core knows nothing of either (`043 §3.3`): given a tick, a dialogue file by name and a title in it, it returns a task that finishes when the dialogue ends. It plays no cutscene of its own: what presents a dialogue holds one if it wants one, so that the game's modes know nothing of dialogue, and a dialogue that plays without a cutscene, such as a callout, could be presented the same way (`051 §3.5`). It also says whether a file exists and holds a title, so that a world can check its dialogues when it is built, not when they are presented (`044 §5.2`).
 
 ## Scripts
 
