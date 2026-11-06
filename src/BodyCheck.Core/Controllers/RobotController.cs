@@ -3,9 +3,11 @@ using BodyCheck.Core.Entities;
 namespace BodyCheck.Core.Controllers;
 
 /// <param name="entity">The robot, which the controller controls.</param>
-/// <param name="target">What the robot aims its laser at, or null for nothing.</param>
-public sealed class RobotController(RobotEntity entity, Func<Entity?> target) : IController<RobotEntity>
+public sealed class RobotController(RobotEntity entity) : IController<RobotEntity>
 {
+    // The world, whose player the robot aims its laser at.
+    private IWorldView _world = null!;
+
     // The way the robot faces: -1 or 1, or 0, toward the camera, while it is in the air or overheated, when it looks both
     // ways.
     private float _facing = 1;
@@ -15,9 +17,11 @@ public sealed class RobotController(RobotEntity entity, Func<Entity?> target) : 
 
     public RobotEntity Entity => entity;
 
+    public void Ready(IWorldView world) => _world = world;
+
     public void Apply(float gameDt, float realDt, IDefer defer)
     {
-        entity.Laser = _laser.Apply(entity.LaserOrigin(_facing), _facing, target(), gameDt);
+        entity.Laser = _laser.Apply(entity.LaserOrigin(_facing), _facing, _world.Player, gameDt);
         bool shooting = _laser.Stage != LaserStage.Off;
 
         // Patrol, unless the target can be seen, or the robot is shooting: then stand still.

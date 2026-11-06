@@ -3,7 +3,6 @@ using System.Linq;
 using System.Threading.Tasks;
 
 using BodyCheck.Core;
-using BodyCheck.Core.Controllers;
 using BodyCheck.Core.Entities;
 using BodyCheck.Core.Simulation;
 using BodyCheck.Core.WorldData;
@@ -60,7 +59,7 @@ public class PlayerControllerTest
         Room frame = room ?? TestRoomLibrary.EmptyFrame(60, height, playerX, playerY);
         _world = new WorldNode(new World(frame), new AssetLibrary(), playerBody: body)
         {
-            PlayerInput = () => _input,
+            PlayerInputSource = () => _input,
         };
         Tree.Root.AddChild(_world);
         await Tick(Idle, settleTicks);

@@ -22,6 +22,7 @@ Relevant decision records:
 - [047: `Once`, and routing actions](../../docs/decision-records/047-once-and-routing.md)
 - [048: Triggers set off by touch](../../docs/decision-records/048-touch.md)
 - [049: Doors and their stops](../../docs/decision-records/049-doors-and-stops.md)
+- [050: The cutscene mode](../../docs/decision-records/050-cutscene-mode.md)
 
 ## What it is
 
@@ -61,13 +62,13 @@ graph BT
 
 An arrow points from a subsystem to one it uses. Every subsystem may use the root, which uses none of them, so the root is at the bottom of every chain; those arrows aren't drawn. There are no cycles.
 
-- **Controllers use entities** through what a body offers: forces, impulses, motors and queries. Entities know nothing of controllers beyond the interface they define for them, so a controller doesn't know where its entity is in a room or how it got there.
+- **Controllers use entities** through what a body offers: forces, impulses, motors and queries, and through `IWorldView`, what they can see of the world beyond their entity. Entities know nothing of controllers beyond the interfaces they define for them, so a controller doesn't know where its entity is in a room or how it got there.
 - **Entities use tasks** for running an action: the interface that a route's target implements returns a `TickTask`, and is given the `ITick` to run on (`047 §2.2`).
-- **Scripts use entities and tasks** to run actions on their targets, through that interface alone, so a runner can't reach past it to a controller or a body (`043 §3.2`). A runner that must see the world, such as a dialogue's, which waits for the player to land, sees it through `IWorldNode`, which Scripts defines, and which offers entities, not controllers.
+- **Scripts use entities and tasks** to run actions on their targets, through that interface alone, so a runner can't reach past it to a controller or a body (`043 §3.2`).
 - **Levels produce the world's data.** The world's data knows nothing of where it came from.
-- **Simulation joins the rest.** It builds each entity from the world's data, gives it its controller, and steps it; none of the subsystems it uses know about it.
+- **Simulation joins the rest.** It builds each entity from the world's data, gives it its controller, and steps it; none of the subsystems it uses know about it. It gives controllers the world itself, as an `IWorldView`.
 - **Simulation runs the world's tasks** on a scheduler of its own, at its point in the tick.
-- **Simulation builds the routes.** It builds a runner for each control entity from its configuration, and resolves each step to its target's runner or its body's controller, so that Scripts knows nothing of the world's data (`047 §2.3`). It gives the runners that need it the world itself, as an `IWorldNode`.
+- **Simulation builds the routes.** It builds a runner for each control entity from its configuration, and resolves each step to its target's runner or its body's controller, so that Scripts knows nothing of the world's data (`047 §2.3`).
 
 ## How a tick runs
 
@@ -84,7 +85,7 @@ The order of a tick is in [the conventions](../../docs/designs/architecture.md#c
 
 ## The root
 
-The root holds only what several subsystems, or the game, share: telemetry, `Constants`, `Features`, `PhysicsLayer`, `TriggerAction`, the actions a route can ask of an entity (`045 §4.3`), extension members on Godot's vector types, and a JSON converter that reads enums by name only. It is not for anything that belongs to one subsystem, even if it is small, except a feature: a value that shapes gameplay belongs in the features, even if only one subsystem reads it. Nor is it for anything derived from a feature or cached from one, or for settings that belong to a machine rather than to gameplay, such as graphics.
+The root holds only what several subsystems, or the game, share: telemetry, `Constants`, `Features`, `PhysicsLayer`, `GameMode`, what the game is doing, which the game holds and controllers can see, `PlayerInput`, what the player is pressing, `TriggerAction`, the actions a route can ask of an entity (`045 §4.3`), extension members on Godot's vector types, and a JSON converter that reads enums by name only. It is not for anything that belongs to one subsystem, even if it is small, except a feature: a value that shapes gameplay belongs in the features, even if only one subsystem reads it. Nor is it for anything derived from a feature or cached from one, or for settings that belong to a machine rather than to gameplay, such as graphics.
 
 ### Telemetry
 

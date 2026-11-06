@@ -1,23 +1,27 @@
 ~ Plea1
 
-Voice: Placeholder: the Voice's first plea, the most garbled. [#garble=0.8]
+Voice: Have you indeed...[wait=0.5] did you hear? Please, are you come to us? [#garble=0.5]
 
 => END
 
 ~ Plea2
 
-Voice: Placeholder: the Voice's second plea, clearer. [#garble=0.4]
+Voice: Bring you power? Intend you to aid those who sleep, broken and undreaming? Please, we are at your mercy. [#garble=0.2]
+- Who is this?
+    Voice: We sleep always, and we hear together in sleep. Come, be with us. [#garble=0.2]
+- I brought batteries.
+    Voice: Good, good. Please, we must sleep no longer. Come, be with us. [#garble=0.2]
 
 => END
 
 ~ Plea3
 
-Voice: Placeholder: the Voice's third plea, clearer still.
+Voice: Please, enter you the door. We wait... we sleep. Broken, broken, all. [#garble=0.05]
 
 => END
 
 ~ BeforeDoorCloses
 
-Voice: Placeholder: what the Voice says before the door closes.
+Voice: Gratitude, you have much. Please, thank you. We are here, many are deep.
 
 => END

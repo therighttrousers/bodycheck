@@ -5,6 +5,7 @@ Relevant decision records:
 - [044: Dialogue](../../../docs/decision-records/044-dialogue.md)
 - [046: Actions as async methods](../../../docs/decision-records/046-async-actions.md)
 - [047: `Once`, and routing actions](../../../docs/decision-records/047-once-and-routing.md)
+- [050: The cutscene mode](../../../docs/decision-records/050-cutscene-mode.md)
 
 ## What it is
 
@@ -22,7 +23,7 @@ A runner is given its steps already resolved, as `Call`s, each an action and the
 - **`SequenceRunner`**: on `Default`, runs each step in turn, each when the one before has finished, and finishes when the last does.
 - **`FanoutRunner`**: on `Default`, starts every step, in order, and finishes when all have.
 - **`OnceRunner`**: on the first `Default`, runs its step, and every `Default` gets that first run, so one asked while it runs finishes when it does, and one asked after finishes at once (`047 §1.2`). It remembers this in memory, for as long as its world lasts, until the game state saves it.
-- **`DialogueRunner`**: on `Default`, waits for the player to be on the ground, for up to 2 seconds of game time, so that the game doesn't pause with the player in the air, then presents its title of its dialogue file, and finishes when the dialogue ends (`043 §2.3`). Every `Default` presents it again, after any dialogue already waiting. It sees the player through `IWorldNode`: what the runners can see of the world they run in, which the simulation implements.
+- **`DialogueRunner`**: on `Default`, presents its title of its dialogue file, and finishes when the dialogue ends (`043 §2.3`, `050 §1.4`). Every `Default` presents it again, after any dialogue already waiting.
 
 A `Sequence` or a `Fanout` runs every `Default`, alongside any run in progress, since what it runs comes down to controllers, which decide for themselves what a second request does (`043 §1.7`). A runner that does something else when asked again says so with a `ReentrantTask`, in one line: a `Trigger` joins, and a `Once` runs once. The runners that respond to `Default` implement only `IActionTarget.Default`.
 
@@ -30,7 +31,7 @@ What a runner holds is only what its kind needs to decide whether to run: what a
 
 ## Dialogue
 
-`IDialoguePresenter` is what presents dialogue, which the game implements with its dialogue backend, so that Core knows nothing of either (`043 §3.3`): given a tick, a dialogue file by name and a title in it, it returns a task that finishes when the dialogue ends. The game pauses for it at its own point in the tick. It also says whether a file exists and holds a title, so that a world can check its dialogues when it is built, not when they are presented (`044 §5.2`).
+`IDialoguePresenter` is what presents dialogue, which the game implements with its dialogue backend, so that Core knows nothing of either (`043 §3.3`): given a tick, a dialogue file by name and a title in it, it returns a task that finishes when the dialogue ends. The game plays a cutscene for it, starting at its own point in the tick. It also says whether a file exists and holds a title, so that a world can check its dialogues when it is built, not when they are presented (`044 §5.2`).
 
 ## Open questions
 

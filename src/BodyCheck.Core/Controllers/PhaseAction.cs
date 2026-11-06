@@ -32,7 +32,6 @@ public sealed record PhaseTuning
     public required Func<float> Gap { get; init; }
     public required Func<float> Speed { get; init; }
     public required Func<PhaseThrow> Throw { get; init; }
-    public required Func<int> ReleaseTicks { get; init; }
     public required Func<float> ThrowCooldownTime { get; init; }
     public required Func<float> CancelCooldownTime { get; init; }
 
@@ -43,7 +42,6 @@ public sealed record PhaseTuning
         Gap = () => Features.Current.PlayerPhaseGap,
         Speed = () => Features.Current.PlayerPhaseSpeed,
         Throw = () => Features.Current.PlayerPhaseThrow,
-        ReleaseTicks = () => Features.Current.PlayerPhaseReleaseTicks,
         ThrowCooldownTime = () => Features.Current.PlayerPhaseThrowCooldownTime,
         CancelCooldownTime = () => Features.Current.PlayerPhaseCancelCooldownTime,
     };
@@ -59,8 +57,6 @@ public sealed class PhaseAction(WalkerEntity entity, PhaseTuning tuning)
 {
     // In game time: how long until a phase can be aimed again.
     private float _cooldownLeft;
-    // In real time: how much longer the last direction held while a phase is aimed still counts, once let go of.
-    private float _directionTimeLeft;
 
     /// <summary>
     /// The phase being aimed, from when phase is held with a target in reach, after the cooldown, until it is released.
@@ -70,19 +66,19 @@ public sealed class PhaseAction(WalkerEntity entity, PhaseTuning tuning)
     /// <summary>Begins, holds, aims and releases a phase.</summary>
     /// <param name="held">Whether phase is held.</param>
     /// <param name="direction">
-    /// The direction held: one of the eight directions, as a unit vector in the plane of play, or zero if none.
+    /// The direction the controller means: one of the eight directions, as a unit vector in the plane of play, or zero
+    /// if none. It may be one let go of just now: the leniency for the player's fingers is the controller's.
     /// </param>
     /// <param name="gameDt">The tick's length in game time: 0 while the game is paused.</param>
-    /// <param name="realDt">The tick's length in real time.</param>
     /// <param name="defer">An object that allows running actions later in the tick.</param>
-    public PhaseOutcome Apply(bool held, Vector3 direction, float gameDt, float realDt, IDefer defer)
+    public PhaseOutcome Apply(bool held, Vector3 direction, float gameDt, IDefer defer)
     {
-        PhaseOutcome outcome = Step(held, direction, gameDt, realDt, defer);
+        PhaseOutcome outcome = Step(held, direction, gameDt, defer);
         _cooldownLeft = Math.Max(0, _cooldownLeft - gameDt);
         return outcome;
     }
 
-    private PhaseOutcome Step(bool held, Vector3 direction, float gameDt, float realDt, IDefer defer)
+    private PhaseOutcome Step(bool held, Vector3 direction, float gameDt, IDefer defer)
     {
         if (Aim is null && held && _cooldownLeft <= 0 && TargetedEntity(direction) is Entity target)
         {
@@ -94,7 +90,6 @@ public sealed class PhaseAction(WalkerEntity entity, PhaseTuning tuning)
                 speed: tuning.Speed(),
                 defer: defer);
 
-            _directionTimeLeft = 0;
             entity.RaiseCue(EntityCue.PhaseBegan);
         }
 
@@ -103,21 +98,7 @@ public sealed class PhaseAction(WalkerEntity entity, PhaseTuning tuning)
             return PhaseOutcome.Idle;
         }
 
-        // The direction held, or the last one held if it was let go of only just now, so that letting go of it just
-        // before phase, or with it, still phases.
-        if (direction != Vector3.Zero)
-        {
-            Aim.Direction = direction;
-            _directionTimeLeft = Features.TicksToTime(tuning.ReleaseTicks() + 1); // +1 to include this tick
-        }
-        else
-        {
-            _directionTimeLeft = Math.Max(0, _directionTimeLeft - realDt);
-            if (_directionTimeLeft == 0)
-            {
-                Aim.Direction = Vector3.Zero;
-            }
-        }
+        Aim.Direction = direction;
 
         if (held)
         {

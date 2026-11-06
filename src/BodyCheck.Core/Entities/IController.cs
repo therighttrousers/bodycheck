@@ -5,13 +5,36 @@ namespace BodyCheck.Core.Entities;
 /// with forces, impulses and the motors that the entity's kind of body has, and with actions it defers to the end of
 /// the tick.
 /// <para>
-/// A controller is built with the entity it controls, as the kind of body it needs, and controls only that one.
+/// A controller is built with the entity it controls, as the kind of body it needs, and controls only that one. It
+/// gets the world it runs in through <see cref="Ready"/>, once the world is built.
 /// </para>
 /// </summary>
 public interface IController<out TEntity> : IActionTarget where TEntity : Entity
 {
     /// <summary>The entity the controller controls.</summary>
     public TEntity Entity { get; }
+
+    /// <summary>
+    /// Called once, when the world the controller runs in has been built, or at once for an entity added to a built
+    /// world, before any <see cref="Apply"/>, <see cref="ApplyPaused"/> or action. A controller that sees the world
+    /// keeps <paramref name="world"/> here, and reads it each time it needs it, so that what it sees is current.
+    /// </summary>
+    public void Ready(IWorldView world)
+    {
+    }
+
+    /// <summary>
+    /// Called on the tick, before the controller steps, when the game's mode differs from the one the world last stepped
+    /// its controllers in: where a controller changes state that would mean something else in the new mode, such as
+    /// input it remembers. A trip to the menu or the map and back is no change, since no controller runs meanwhile. It
+    /// is called for every change, the slowdown and the pause for a phase included, so a controller tests for the
+    /// modes it cares about.
+    /// </summary>
+    /// <param name="from">The mode the world last stepped its controllers in.</param>
+    /// <param name="to">The mode now.</param>
+    public void GameModeChanged(GameMode from, GameMode to)
+    {
+    }
 
     /// <summary>Called once per physics tick, before the engine's step.</summary>
     /// <param name="gameDt">The tick's length in game time, which the engine's time scale shortens.</param>

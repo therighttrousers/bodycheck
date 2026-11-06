@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 
 using BodyCheck.Core;
-using BodyCheck.Core.Controllers;
 using BodyCheck.Core.Levels;
 using BodyCheck.Core.Simulation;
 using BodyCheck.Core.Tasks;
@@ -101,7 +100,7 @@ public partial class Main : Node
         _gameModeManager.GameModeChanged += gameMode =>
         {
             _pauseMenuOverlay.Visible = gameMode == GameMode.Menu;
-            _dialogueBox.Visible = gameMode == GameMode.Dialogue;
+            _dialogueBox.Visible = gameMode == GameMode.Cutscene;
         };
 
         string? worldName = null;
@@ -154,7 +153,7 @@ public partial class Main : Node
         }
 
         LoadWorld(Math.Max(IndexOf(_worlds.Select(world => world.Name), worldName), 0));
-        _world.PlayerInput = () => new PlayerInput(
+        _world.PlayerInputSource = () => new PlayerInput(
             Input.GetAxis("move_left", "move_right"),
             Input.GetAxis("move_down", "move_up"),
             Input.IsActionPressed("jump"),
@@ -317,9 +316,9 @@ public partial class Main : Node
 
     private void LoadWorld(int index)
     {
-        Func<PlayerInput>? input = _world?.PlayerInput;
+        Func<PlayerInput>? input = _world?.PlayerInputSource;
         _worldIndex = Mathf.PosMod(index, _worlds.Count);
-        LoadWorld(_worlds[_worldIndex]).PlayerInput = input;
+        LoadWorld(_worlds[_worldIndex]).PlayerInputSource = input;
     }
 
     /// <summary>Replaces the current world, if there is one, and has the camera follow the new one's player.</summary>
@@ -333,8 +332,7 @@ public partial class Main : Node
             respawnId: _respawnIds.GetValueOrDefault(world.Name),
             dialogue: _dialogueBox)
         {
-            // The game's viewport processes always, so that its UI gets input while paused: the world must stop.
-            ProcessMode = ProcessModeEnum.Pausable,
+            GameModeSource = () => _gameModeManager.GameMode,
         };
         _world.MapMarkers.Visible = _showMapMarkers;
         _world.CurrentRespawnChanged += respawn =>

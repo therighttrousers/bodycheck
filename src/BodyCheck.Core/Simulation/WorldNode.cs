@@ -21,7 +21,7 @@ namespace BodyCheck.Core.Simulation;
 /// at the seams between shapes of one body, but not between bodies.
 /// </para>
 /// </summary>
-public partial class WorldNode : Node3D, IWorldNode
+public partial class WorldNode : Node3D, IWorldView
 {
     /// <summary>
     /// The world's physics priority. What must step before the world in a tick or after it, such as whatever pauses it,
@@ -43,6 +43,9 @@ public partial class WorldNode : Node3D, IWorldNode
     private readonly Defer _defer = new();
 
     private readonly TickScheduler _scheduler = new();
+
+    // The game's mode on the last tick the controllers stepped, played or paused, or null before the first.
+    private GameMode? _steppedGameMode;
 
     // Each trigger's area, in the order of the world's controls.
     private readonly List<TouchTrigger> _touchTriggers = [];
@@ -100,8 +103,6 @@ public partial class WorldNode : Node3D, IWorldNode
             AddChild(new RoomNode(room, assets));
         }
 
-        PlayerInput Input() => PlayerInput?.Invoke() ?? default;
-
         // Out of the world until the player spawns it: a disabled body is out of the engine's space, and isn't stepped.
         PlayerBlock = new Entity(
             BodyTuning.PlayerBlock,
@@ -152,7 +153,7 @@ public partial class WorldNode : Node3D, IWorldNode
         Debug.Assert(Player is not null);
 
         // Here and not in CreatePlayer, since only the constructor can set PlayerController.
-        PlayerController = new PlayerController(Player, Input, PlayerBlock);
+        PlayerController = new PlayerController(Player);
         Player.Controller = PlayerController;
 
         // Last, since a body's controller runs the actions routed to it.
@@ -173,6 +174,13 @@ public partial class WorldNode : Node3D, IWorldNode
             area.AddChild(new CollisionShape3D { Shape = new BoxShape3D { Size = size } });
             AddChild(area);
             _touchTriggers.Add(new TouchTrigger(trigger, area, Triggers[trigger.Id]));
+        }
+
+        // Last, once the world is built, so that no controller sees it half built. An entity added later is to be given
+        // the world as soon as it is built.
+        foreach (Entity entity in _entities)
+        {
+            entity.Controller?.Ready(this);
         }
     }
 
@@ -206,7 +214,7 @@ public partial class WorldNode : Node3D, IWorldNode
                 EntityConfig.Sequence sequence => new SequenceRunner(CallsOf(sequence.Steps)),
                 EntityConfig.Fanout fanout => new FanoutRunner(CallsOf(fanout.Steps)),
                 EntityConfig.Once once => new OnceRunner(CallOf(once.Step)),
-                EntityConfig.Dialogue lines => new DialogueRunner(dialogue!, this, lines.File, lines.Title),
+                EntityConfig.Dialogue lines => new DialogueRunner(dialogue!, lines.File, lines.Title),
                 // Not yet run: a respawn becomes current by reach.
                 EntityConfig.Respawn => FinishesAtOnce.Instance,
                 _ when config.Kind.HasBody => bodies[config.Id].Controller
@@ -280,9 +288,8 @@ public partial class WorldNode : Node3D, IWorldNode
 
     private RobotEntity CreateRobot(EntityConfig.Robot config, Node3D? visual)
     {
-        // The player may be built after the robot, so the controller asks for it when it aims.
         var robot = new RobotEntity(BodyTuning.Robot, visual);
-        robot.Controller = new RobotController(robot, () => Player);
+        robot.Controller = new RobotController(robot);
         return robot;
     }
 
@@ -401,7 +408,18 @@ public partial class WorldNode : Node3D, IWorldNode
     public event Action<EntityConfig.Trigger>? TriggerTouched;
 
     /// <summary>Supplies the player's input, once per tick. The player stands idle if this is null.</summary>
-    public Func<PlayerInput>? PlayerInput { get; set; }
+    public Func<PlayerInput>? PlayerInputSource { get; set; }
+
+    /// <summary>Supplies the game's mode. The game is always playing if this is null, as in tests and probes.</summary>
+    public Func<GameMode>? GameModeSource { get; set; }
+
+    /// <inheritdoc/>
+    public GameMode GameMode => GameModeSource?.Invoke() ?? GameMode.Playing;
+
+    /// <summary>
+    /// The player's input this tick, from <see cref="PlayerInputSource"/>, or none if there is no source.
+    /// </summary>
+    public PlayerInput PlayerInput => PlayerInputSource?.Invoke() ?? default;
 
     /// <summary>
     /// The world's tick, for the tasks of what runs in it, such as actions: what awaits it resumes in each played tick,
@@ -441,6 +459,7 @@ public partial class WorldNode : Node3D, IWorldNode
         _defer.Clear();
         try
         {
+            NoteGameMode();
             foreach (Entity entity in _entities)
             {
                 entity.StepPaused(RealDt, _defer);
@@ -466,6 +485,10 @@ public partial class WorldNode : Node3D, IWorldNode
         _defer.Clear();
         try
         {
+            if (ControllersEnabled)
+            {
+                NoteGameMode();
+            }
             foreach (Entity entity in _entities)
             {
                 if (entity.CanProcess())
@@ -492,6 +515,22 @@ public partial class WorldNode : Node3D, IWorldNode
         }
 
         UpdateCurrentRespawn();
+    }
+
+    /// <summary>
+    /// Tells every controller when the game's mode differs from the one they last stepped in, before they step.
+    /// </summary>
+    private void NoteGameMode()
+    {
+        GameMode mode = GameMode;
+        if (_steppedGameMode is GameMode from && from != mode)
+        {
+            foreach (Entity entity in _entities)
+            {
+                entity.Controller?.GameModeChanged(from, mode);
+            }
+        }
+        _steppedGameMode = mode;
     }
 
     // Listens for changes to the features only while in the tree, so that the event doesn't keep the world alive: Godot

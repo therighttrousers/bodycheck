@@ -2,7 +2,6 @@ using System.Linq;
 using System.Threading.Tasks;
 
 using BodyCheck.Core;
-using BodyCheck.Core.Controllers;
 using BodyCheck.Core.Entities;
 using BodyCheck.Core.Simulation;
 using BodyCheck.Core.WorldData;
@@ -37,7 +36,7 @@ public class RidingTest
     private async Task Start()
     {
         _input = Idle;
-        _world = new WorldNode(new World(TestRoomLibrary.RobotRiding), new AssetLibrary()) { PlayerInput = () => _input };
+        _world = new WorldNode(new World(TestRoomLibrary.RobotRiding), new AssetLibrary()) { PlayerInputSource = () => _input };
         Tree.Root.AddChild(_world);
         await Tick(Idle, 120);
     }

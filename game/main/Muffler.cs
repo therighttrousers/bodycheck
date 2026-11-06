@@ -1,3 +1,5 @@
+using BodyCheck.Core;
+
 using Godot;
 
 namespace BodyCheck;
@@ -5,7 +7,7 @@ namespace BodyCheck;
 /// <summary>
 /// Muffles every sound while the game slows down for a phase and while it is paused, with the first low-pass filter on
 /// the master bus. Each frame, it sets the filter's cutoff from the <see cref="GameMode"/> and the
-/// <see cref="GameModeManager.SlowdownFactor"/>: open while playing; falling in octaves with the slowdown factor while
+/// <see cref="GameModeManager.SlowdownFactor"/>: open while playing and in a cutscene; falling in octaves with the slowdown factor while
 /// slowing for a phase, most of the way early on; closed in every mode
 /// that pauses. It keeps no state of its own, so it can't drift from the slowdown.
 /// <para>
@@ -63,7 +65,7 @@ public partial class Muffler : Node
         // How far muffled, from 0, open, to 1, closed.
         float muffling = _gameModeManager.GameMode switch
         {
-            GameMode.Playing => 0,
+            GameMode.Playing or GameMode.Cutscene => 0,
             GameMode.SlowingForPhase => Mathf.Pow((float)Mathf.Clamp(
                 (1 - _gameModeManager.SlowdownFactor) / (1 - GameModeManager.SlowestSlowdownFactor), 0, 1), SlowdownCurve),
             _ => 1,

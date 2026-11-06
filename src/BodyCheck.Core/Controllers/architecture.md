@@ -6,10 +6,11 @@ Relevant decision records:
 - [035: One shape for actions](../../../docs/decision-records/035-one-shape-for-actions.md)
 - [046: Actions as async methods](../../../docs/decision-records/046-async-actions.md)
 - [049: Doors and their stops](../../../docs/decision-records/049-doors-and-stops.md)
+- [050: The cutscene mode](../../../docs/decision-records/050-cutscene-mode.md)
 
 ## What it is
 
-What decides an entity's actions each tick: the player's input turned into movement, and the behaviour of each NPC. A controller acts on a body only through what the body offers, and is given whatever else it needs: the player's controller its source of input, a robot's a function that returns its target.
+What decides an entity's actions each tick: the player's input turned into movement, and the behaviour of each NPC. A controller acts on a body only through what the body offers, and sees the rest of the world through the `IWorldView` it is given in `Ready`: the player's controller reads its input and its block there, and a robot's its target, the player.
 
 ## What it is not for
 
@@ -27,7 +28,8 @@ What a controller makes its entity do, which another controller could make its o
 - How actions interact is each controller's: which takes precedence on a tick, and what one's outcome does to another, through a verb the other offers rather than its timers. A phase ends a jump with `JumpAction.Interrupt`.
 - An action is built with its tuning, a record of functions with no arguments, each of which reads a feature from `Features.Current` when called, so that each controller tunes it with its own features: the player's phasing is tuned by `PhaseTuning.Player` (`035 §3.1`). A robot's running is tuned to have no drive in the air, where the player's has its own forces, which it also uses for a moment after leaving the ground.
 - A behaviour, such as a robot's `PatrolBehaviour`, is shaped the same way, but decides intent for the controller rather than acting: it only reads its entity (`035 §10.1`, `§10.3`).
-- The player's coyote time and buffered press stay in its controller: they are leniency for its fingers, and coyote time also says when it runs with its forces for the ground.
+- The player's coyote time, buffered press and buffered direction for phasing stay in its controller: they are leniency for its fingers, and coyote time also says when it runs with its forces for the ground. An action is given what the controller means, such as the direction to phase in, which may be one let go of just now (`050 §1.5`).
+- In a cutscene, the player's controller acts on no input (`050 §1.2`). At the cutscene's edges, in `GameModeChanged`, it makes what it remembers of the input fit: entering one, it clears its leniency timers and buffered presses, so that nothing pressed before the cutscene acts during it; leaving one, a button already held isn't a new press, so the jump that ends a dialogue doesn't jump. Only at the edges, so that a script that runs and jumps the player keeps its own (`050 §1.5`, `§4.3`). Actions don't know the game's mode, so that scripts can drive them in cutscenes.
 
 ## Responding to a route's actions
 
@@ -43,7 +45,7 @@ The player's controller phases with a `PhaseAction`, using its entity's moves an
 
 ## The robot's laser
 
-A robot's controller is given a function that returns the player, its target, and sets the robot's laser each tick from its `LaserAction`, which steps the laser through its timeline. The action is given the beam's origin and the way the robot faces on each tick, and finds the beam's end, and whether it can see the player, with a ray cast on a plain entity, so that another kind of body, such as a turret, can fire one (`035 §6.1`).
+A robot's controller targets the world's player, and sets the robot's laser each tick from its `LaserAction`, which steps the laser through its timeline. The action is given the beam's origin and the way the robot faces on each tick, and finds the beam's end, and whether it can see the player, with a ray cast on a plain entity, so that another kind of body, such as a turret, can fire one (`035 §6.1`).
 
 ## Open questions
 

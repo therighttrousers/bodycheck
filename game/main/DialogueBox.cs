@@ -19,15 +19,15 @@ namespace BodyCheck;
 /// have one in <see cref="AvatarDirectory"/>. The box itself is still a placeholder.
 /// <para>
 /// <see cref="Present"/> only queues the dialogue: <see cref="GameModeManager"/> starts each with
-/// <see cref="StartNext"/> at its own point in the tick, once it has paused the game for it, and goes back to playing
+/// <see cref="StartNext"/> at its own point in the tick, in a cutscene, and goes back to playing
 /// once <see cref="IsPresenting"/> is false and nothing waits. Each line types out, and its responses show once it
 /// has. Jump skips the typing, or once a line has typed out, goes on to the next, and up and down choose a response.
-/// When a dialogue ends, its task finishes, and what waits for it resumes in the next played tick.
+/// When a dialogue ends, its task finishes, and what waits for it resumes in the world's next tick.
 /// </para>
 /// <para>
 /// Dialogue Manager runs on Godot's frames and .NET's <c>Task</c>s, not on the world's tick: it fetches each line a
-/// frame or more after it is asked. That is fine for the box, which only draws, while the world is paused; only the
-/// end of a dialogue reaches the world, through a <see cref="TickCompletion"/>.
+/// frame or more after it is asked. That is fine for the box, which only draws; only the end of a dialogue reaches the
+/// world, through a <see cref="TickCompletion"/>.
 /// </para>
 /// </summary>
 public partial class DialogueBox : CanvasLayer, IDialoguePresenter
@@ -124,8 +124,6 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
 
     /// <summary>Whether a dialogue has started and not yet ended.</summary>
     public bool IsPresenting => _current is not null;
-
-    public override void _Ready() => ProcessMode = ProcessModeEnum.Always;
 
     /// <inheritdoc/>
     public TickTask Present(ITick tick, string file, string title)

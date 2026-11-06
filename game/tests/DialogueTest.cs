@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 
+using BodyCheck.Core;
 using BodyCheck.Core.Simulation;
 using BodyCheck.Core.Tasks;
 using BodyCheck.Core.WorldData;
@@ -15,7 +16,7 @@ using static GdUnit4.Assertions;
 namespace BodyCheck.Tests;
 
 /// <summary>
-/// Dialogue through Dialogue Manager, the <see cref="DialogueBox"/> and the dialogue mode of the
+/// Dialogue through Dialogue Manager, the <see cref="DialogueBox"/> and the cutscene mode of the
 /// <see cref="GameModeManager"/>, with the game's debug dialogue.
 /// </summary>
 [TestSuite]
@@ -53,7 +54,7 @@ public class DialogueTest
     }
 
     [TestCase]
-    public async Task A_dialogue_pauses_the_game_until_it_ends_and_what_waits_resumes_in_the_next_played_tick()
+    public async Task A_dialogue_plays_a_cutscene_until_it_ends_and_what_waits_resumes_in_the_next_tick()
     {
         _run = new RoomRun(RoomRun.RoomOf(
             "#####",
@@ -75,8 +76,8 @@ public class DialogueTest
         _ = Waits(_run.Node.Tick);
 
         await _run.Tick(RoomRun.Idle);
-        AssertThat(_manager.GameMode).IsEqual(GameMode.Dialogue);
-        AssertThat(Tree.Paused).IsTrue();
+        AssertThat(_manager.GameMode).IsEqual(GameMode.Cutscene);
+        AssertThat(Tree.Paused).IsFalse();
 
         // Dialogue Manager fetches each line a frame or more after it is asked, so go on whenever one is shown.
         for (int i = 0; i < 300 && _box.IsPresenting; i++)
@@ -86,15 +87,53 @@ public class DialogueTest
         }
         AssertThat(_box.IsPresenting).IsFalse();
 
-        // The tick after it ends, the world is still paused, and the game goes back to playing after its turn.
-        await _run.Tick(RoomRun.Idle);
-        AssertThat(_manager.GameMode).IsEqual(GameMode.Playing);
-        AssertThat(Tree.Paused).IsFalse();
-        AssertThat(resumed).IsFalse();
-
-        // The next tick is played, and what waits for the dialogue resumes in it.
+        // In the world's next tick, what waits for the dialogue resumes, and after the world's turn, the game goes back
+        // to playing.
         await _run.Tick(RoomRun.Idle);
         AssertThat(resumed).IsTrue();
+        AssertThat(_manager.GameMode).IsEqual(GameMode.Playing);
+    }
+
+    [TestCase]
+    public async Task In_a_cutscene_the_player_gets_no_input()
+    {
+        _run = new RoomRun(RoomRun.RoomOf(
+            "#######",
+            "#..P..#",
+            "#######"));
+        _run.Node.GameModeSource = () => GameMode.Cutscene;
+        float start = _run.Node.Player.Position.X;
+
+        await _run.Tick(RoomRun.Right, 30);
+
+        AssertThat(Mathf.Abs(_run.Node.Player.Position.X - start)).IsLess(0.01f);
+    }
+
+    [TestCase]
+    public async Task A_jump_held_as_a_cutscene_ends_jumps_only_when_pressed_again()
+    {
+        _run = new RoomRun(RoomRun.RoomOf(
+            "#######",
+            "#.....#",
+            "#.....#",
+            "#.....#",
+            "#.....#",
+            "#..P..#",
+            "#######"));
+        GameMode mode = GameMode.Cutscene;
+        _run.Node.GameModeSource = () => mode;
+        await _run.Tick(RoomRun.Idle, 10);
+        float ground = _run.Node.Player.Position.Y;
+
+        // Jump is pressed in the cutscene, as to end a dialogue, and still held when play resumes.
+        await _run.Tick(RoomRun.Jump, 5);
+        mode = GameMode.Playing;
+        await _run.Tick(RoomRun.Jump, 10);
+        AssertThat(_run.Node.Player.Position.Y - ground).IsLess(0.01f);
+
+        await _run.Tick(RoomRun.Idle);
+        await _run.Tick(RoomRun.Jump, 10);
+        AssertThat(_run.Node.Player.Position.Y - ground).IsGreater(0.5f);
     }
 
     [TestCase("debug", "start", true)]
