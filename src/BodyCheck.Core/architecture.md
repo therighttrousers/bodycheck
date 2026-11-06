@@ -21,6 +21,7 @@ Relevant decision records:
 - [046: Actions as async methods](../../docs/decision-records/046-async-actions.md)
 - [047: `Once`, and routing actions](../../docs/decision-records/047-once-and-routing.md)
 - [048: Triggers set off by touch](../../docs/decision-records/048-touch.md)
+- [049: Doors and their stops](../../docs/decision-records/049-doors-and-stops.md)
 
 ## What it is
 
@@ -78,7 +79,7 @@ The order of a tick is in [the conventions](../../docs/designs/architecture.md#c
 - **Controllers get game time and real time.** `Apply` takes each tick's length on both clocks: game time, which the engine's time scale shortens, and real time, a physics tick's length whatever the scale. `ApplyPaused` takes real time only, since no game time passes. A timer that governs the world runs on game time, and one about the player's fingers on real time (`018 §1.1`, `§1.2`). A feature that is a duration on game time is given in game seconds, and one on real time in ticks at `Features.TuningTicksPerSecond`, converted by `Features.TicksToTime`, so that its unit tells its clock (`030 §2.6`).
 - **The world's tick runs tasks.** Running an action is awaitable, so that whatever ran it can wait until it finishes: a `TickTask`, which `WorldNode` resumes once in each played tick, after the entity steps and their deferred actions, before the engine's step, with waits on game time (`046 §1.2`). It is ours rather than .NET's `Task` or Godot's `ToSignal`, whose continuations run outside the world's tick: there the engine's queries fail, some changes to bodies are refused, forces would be applied as often as frames come, what runs while the tree is paused would move actions on behind the menu, and an exception wouldn't fail the tick (`043 §2.4`). A failed task fails the tick, as a failed entity step does.
 - **Touches set off triggers just before the tasks run**, so that what a touch starts runs on in the same tick (`048 §1.4`).
-- **Actions that take several ticks are async methods.** A controller's response to an action may be an `async` method that returns a `TickTask`, given the world's `ITick` to wait on, such as a door's `Close`, which slams the door, waits until it has settled, and freezes it. It runs where the world resumes tasks, after the entity steps and their deferred actions, so it changes bodies at once, with no `IDefer`. What a controller does every tick stays in `Apply` (`046 §1.1`, `§1.2`).
+- **Actions that take several ticks are async methods.** A controller's response to an action may be an `async` method that returns a `TickTask`, given the world's `ITick` to wait on, such as a door's `Close`, which thrusts the door down until it stops, and freezes it. It runs where the world resumes tasks, after the entity steps and their deferred actions, so it changes bodies at once, with no `IDefer`. What a controller does every tick stays in `Apply` (`046 §1.1`, `§1.2`).
 - **Cues.** A controller says that something happened to its entity by raising a cue on it, which the entity passes on as an event. Logic knows no sounds or effects: whatever draws the entity reacts to cues. A cue names what happened, not the reaction, so that particles, one-shot animations and the like can react to the same cues later (`021 §1.3`).
 
 ## The root
@@ -105,7 +106,7 @@ Game code pushes measurements to `Telemetry`, by `Metric`, an enum. Each metric 
 
 ### Physics layers
 
-`PhysicsLayer` names the engine's physics layers, as flags: static tiles, liquids, triggers, props such as blocks, and characters, which include platforms. The game's project settings name the same layers, and a test checks that the two agree. An entity's layer is part of its tuning, and its mask is every layer that has a collider: tiles and both kinds of entity. Queries should try to use layers instead of filtering what they find.
+`PhysicsLayer` names the engine's physics layers, as flags: static tiles, liquids, triggers, props such as blocks, characters, which include platforms and doors, and door stops, which only doors collide with. The game's project settings name the same layers, and a test checks that the two agree. An entity's layer and mask are part of its tuning. Its mask is by default every layer that has a collider but door stops: tiles and both kinds of entity. A door's leaves out tiles, so that it can hide in them, and takes in door stops (`049 §1.1`). Queries should try to use layers instead of filtering what they find.
 
 ## Open questions
 

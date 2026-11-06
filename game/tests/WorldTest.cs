@@ -86,9 +86,11 @@ public class WorldTest
     private static EntityConfig.VerticalDoor Door => new()
     {
         Id = "door",
-        MapOrigin = new Vector2I(2, 0),
+        MapOrigin = new Vector2I(2, 1),
         MapSize = new Vector2I(1, 3),
         MapColor = Colors.White,
+        OpenStop = new Vector2I(2, 4),
+        CloseStop = new Vector2I(2, -1),
     };
 
     private static EntityConfig.Dialogue Dialogue => new()

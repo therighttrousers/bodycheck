@@ -13,6 +13,9 @@ public sealed class TickScheduler : ITick
     // The time that has passed in the ticks this scheduler has run.
     private double _time;
 
+    // The dt passed to the last call to Run.
+    private float _dt;
+
     private bool _running;
 
     /// <summary>Adds what waits for a task that has finished, to run when the scheduler next runs.</summary>
@@ -29,6 +32,8 @@ public sealed class TickScheduler : ITick
         _waits.Add((task, _time + seconds));
         return task;
     }
+
+    public float Dt => _dt;
 
     /// <summary>
     /// Runs one tick: finishes the waits that are due, then runs what waits for every task that has finished, until
@@ -47,6 +52,7 @@ public sealed class TickScheduler : ITick
         _running = true;
         try
         {
+            _dt = dt;
             _time += dt;
             FinishDueWaits(dt);
             while (_queue.TryDequeue(out Action? continuation))

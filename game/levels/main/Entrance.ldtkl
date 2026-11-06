@@ -54,7 +54,7 @@
 			"entityInstances": [
 				{
 					"__identifier": "Trigger",
-					"__grid": [2,7],
+					"__grid": [3,7],
 					"__pivot": [0,0],
 					"__tags": ["Control"],
 					"__tile": null,
@@ -63,7 +63,7 @@
 					"width": 32,
 					"height": 48,
 					"defUid": 237,
-					"px": [32,112],
+					"px": [48,112],
 					"fieldInstances": [
 						{ "__identifier": "Target", "__type": "EntityRef", "__value": {
 							"entityIid": "b1b142e0-bde0-11f1-addb-296a62addbff",
@@ -79,12 +79,12 @@
 							"params": ["Default"]
 						}] }
 					],
-					"__worldX": 32,
+					"__worldX": 48,
 					"__worldY": 112
 				},
 				{
 					"__identifier": "Dialogue",
-					"__grid": [1,3],
+					"__grid": [1,1],
 					"__pivot": [0,0],
 					"__tags": ["Control"],
 					"__tile": null,
@@ -93,7 +93,7 @@
 					"width": 16,
 					"height": 16,
 					"defUid": 244,
-					"px": [16,48],
+					"px": [16,16],
 					"fieldInstances": [
 						{ "__identifier": "DialogueFile", "__type": "String", "__value": "Prologue", "__tile": null, "defUid": 246, "realEditorValues": [{
 							"id": "V_String",
@@ -106,7 +106,7 @@
 						{ "__identifier": "Garble", "__type": "Float", "__value": 0, "__tile": null, "defUid": 248, "realEditorValues": [] }
 					],
 					"__worldX": 16,
-					"__worldY": 48
+					"__worldY": 16
 				},
 				{
 					"__identifier": "Sequence",
@@ -201,19 +201,28 @@
 			"entityInstances": [
 				{
 					"__identifier": "VerticalDoor",
-					"__grid": [0,5],
+					"__grid": [0,4],
 					"__pivot": [0,0],
 					"__tags": ["Character"],
 					"__tile": null,
 					"__smartColor": "#699BA5",
 					"iid": "ebf94b30-bde0-11f1-a170-874c6cf5f409",
 					"width": 16,
-					"height": 48,
+					"height": 64,
 					"defUid": 232,
-					"px": [0,80],
-					"fieldInstances": [],
+					"px": [0,64],
+					"fieldInstances": [
+						{ "__identifier": "OpenStop", "__type": "Point", "__value": { "cx": 0, "cy": 2 }, "__tile": null, "defUid": 267, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["0,2"]
+						}] },
+						{ "__identifier": "CloseStop", "__type": "Point", "__value": { "cx": 0, "cy": 10 }, "__tile": null, "defUid": 268, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["0,10"]
+						}] }
+					],
 					"__worldX": 0,
-					"__worldY": 80
+					"__worldY": 64
 				}
 			]
 		},

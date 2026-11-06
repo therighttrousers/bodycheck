@@ -428,7 +428,11 @@ public sealed record Features
 
     #region Doors
     /// <summary>The mass of each tile of a door's box, horizontal or vertical.</summary>
-    public float DoorMassPerTile { get; init; } = 7;
+    public float DoorMassPerTile { get; init; } = 2;
+    /// <summary>The amount of thrust a door uses to open and close, as a fraction of its weight. Should be >1 so doors can open.</summary>
+    public float DoorThrustFrac { get; init; } = 1.1f;
+    /// <summary>The maximum amount of time it should take to open or close a door. Avoids an infinite loop in the controller.</summary>
+    public float DoorMaxOpenOrCloseTime { get; init; } = 2;
     #endregion
 }
 

@@ -38,6 +38,12 @@ public enum EntityCue
 
     /// <summary>The player pressed spawn where its block doesn't fit, or where there is no room to rise onto it.</summary>
     SpawnCancelled,
+
+    /// <summary>The door finished opening.</summary>
+    DoorOpened,
+
+    /// <summary>The door finished closing.</summary>
+    DoorClosed,
 }
 
 /// <summary>
@@ -118,6 +124,7 @@ public partial class Entity : RigidBody3D
         Tuning = tuning;
         Mass = tuning.Mass();
 
+        AxisLockLinearX = tuning.LockedOnX;
         AxisLockLinearZ = true;
         AxisLockAngularX = true;
         AxisLockAngularY = true;
@@ -129,7 +136,7 @@ public partial class Entity : RigidBody3D
         LinearDamp = 0;
         CanSleep = false;
         CollisionLayer = (uint)tuning.CollisionLayer;
-        CollisionMask = (uint)PhysicsLayer.DefaultCollisionMask;
+        CollisionMask = (uint)tuning.CollisionMask;
         ContactMonitor = true;
         MaxContactsReported = MaxContacts;
         // No continuous collision detection: it stops a fast body pressed against what it touches.

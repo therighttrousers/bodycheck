@@ -75,6 +75,15 @@ public partial class WorldNode : Node3D
         }
         AddChild(_tiles);
 
+        // What doors stop against, since they pass through tiles to hide in them. Nothing else collides with it.
+        var doorStops = new StaticBody3D { CollisionLayer = (uint)PhysicsLayer.DoorStop };
+        foreach (Vector2I cell in DoorStopCells(World))
+        {
+            var position = new Vector3(cell.X + 0.5f, cell.Y + 0.5f, 0);
+            doorStops.AddChild(new CollisionShape3D { Shape = new BoxShape3D { Size = new Vector3(1, 1, Depth) }, Position = position });
+        }
+        AddChild(doorStops);
+
         foreach (var room in world.Rooms)
         {
             AddChild(new RoomNode(room, assets));
@@ -187,8 +196,6 @@ public partial class WorldNode : Node3D
                 EntityConfig.Once once => new OnceRunner(CallOf(once.Step)),
                 // Not yet run: a dialogue has no runner, and a respawn becomes current by reach.
                 EntityConfig.Dialogue or EntityConfig.Respawn => FinishesAtOnce.Instance,
-                // Not yet run: a door has no controller.
-                EntityConfig.VerticalDoor when bodies[config.Id].Controller is null => FinishesAtOnce.Instance,
                 _ when config.Kind.HasBody => bodies[config.Id].Controller
                     ?? throw new UnreachableException($"A {config.Kind} with no controller responds to an action."),
                 _ => throw new UnreachableException($"A {config.Kind} responds to no action."),
@@ -218,7 +225,6 @@ public partial class WorldNode : Node3D
         public static FinishesAtOnce Instance { get; } = new();
 
         public TickTask Default(ITick tick) => TickTask.Finished;
-        public TickTask Close(ITick tick) => TickTask.Finished;
     }
 
     /// <summary>
@@ -257,11 +263,17 @@ public partial class WorldNode : Node3D
         return new Entity(BodyTuning.Block, visual, axisLockAngularZ: false);
     }
 
-    /// <summary>A door, which for now has no controller and is frozen where it starts, open.</summary>
+    /// <summary>A door, frozen where it starts, open or closed, with its controller.</summary>
     private static Entity CreateVerticalDoor(EntityConfig.VerticalDoor config, Node3D? visual)
     {
-        return new Entity(BodyTuning.VerticalDoor(config.MapSize), visual) { Freeze = true };
+        var door = new Entity(BodyTuning.VerticalDoor(config.MapSize), visual) { Freeze = true };
+        door.Controller = new VerticalDoorController(door, config.StartsClosed);
+        return door;
     }
+
+    /// <summary>The cells of every door's stops, where it opens and where it closes, in tile coordinates.</summary>
+    private static IEnumerable<Vector2I> DoorStopCells(World world) =>
+        world.Bodies.OfType<EntityConfig.VerticalDoor>().SelectMany(door => new[] { door.OpenStop, door.CloseStop });
 
     /// <summary>
     /// The solid tiles as boxes, in tile coordinates. Merging joins each horizontal run of tiles into one

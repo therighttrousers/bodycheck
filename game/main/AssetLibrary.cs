@@ -31,7 +31,7 @@ public class AssetLibrary : IAssetLibrary
         EntityKind.Robot => InstantiateModel("res://assets/bob_the_robot/robot.tscn"),
         EntityKind.Platform => InstantiatePlatform(2 * BodyTuning.Platform(config.MapSize).HalfSize.X),
         EntityKind.Block => InstantiateModel(BlockPath),
-        EntityKind.VerticalDoor => GetDebugBoxVisual(config.MapSize, config.MapColor, alpha: 1),
+        EntityKind.VerticalDoor => InstantiateDoor(config),
         EntityKind.Respawn or EntityKind.Trigger or EntityKind.Sequence or EntityKind.Fanout or EntityKind.Once
             or EntityKind.Dialogue => null,
     };
@@ -74,6 +74,26 @@ public class AssetLibrary : IAssetLibrary
             },
         };
     }
+
+    /// <summary>A door: a box the size of its body, and its sounds, which are placeholders.</summary>
+    private Node3D InstantiateDoor(EntityConfig config)
+    {
+        var door = new Node3D();
+        door.AddChild(GetDebugBoxVisual(config.MapSize, config.MapColor, alpha: 1));
+        var sounds = new CueSounds();
+        sounds.AddChild(CueSound(EntityCue.DoorOpened, "res://assets/player_sounds/844890__dan2008__critical-error.wav"));
+        sounds.AddChild(CueSound(EntityCue.DoorClosed, "res://assets/weapon_sounds/341666__jeremysykes__electricity00.wav"));
+        door.AddChild(sounds);
+        return door;
+    }
+
+    /// <summary>What plays a sound for a cue, under a <see cref="CueSounds"/>.</summary>
+    private static AudioStreamPlayer3D CueSound(EntityCue cue, string path) => new()
+    {
+        Name = cue.ToString(),
+        Stream = GD.Load<AudioStream>(path),
+        Bus = "Sfx",
+    };
 
     private static Node3D InstantiateModel(string path)
     {

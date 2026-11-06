@@ -58,6 +58,7 @@ scene={
 3d_physics/layer_3="Trigger"
 3d_physics/layer_4="Prop"
 3d_physics/layer_5="Character"
+3d_physics/layer_6="DoorStop"
 
 [physics]
 
