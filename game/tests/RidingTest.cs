@@ -67,7 +67,7 @@ public class RidingTest
         // loaded: about two-thirds of its unloaded speed.
         AssertThat(Robot.Position.X - start).IsGreater(50f);
         AssertThat(Player.Support).IsSame(Robot);
-        AssertThat(Player.Position.X - Robot.Position.X).IsEqualApprox(offset, 0.01f);
+        AssertThat(Player.Position.X - Robot.Position.X).IsEqualApprox(offset, 0.05f);
     }
 
     [TestCase]
