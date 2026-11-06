@@ -21,7 +21,7 @@ namespace BodyCheck.Core.Simulation;
 /// at the seams between shapes of one body, but not between bodies.
 /// </para>
 /// </summary>
-public partial class WorldNode : Node3D
+public partial class WorldNode : Node3D, IWorldNode
 {
     /// <summary>
     /// The world's physics priority. What must step before the world in a tick or after it, such as whatever pauses it,
@@ -206,7 +206,7 @@ public partial class WorldNode : Node3D
                 EntityConfig.Sequence sequence => new SequenceRunner(CallsOf(sequence.Steps)),
                 EntityConfig.Fanout fanout => new FanoutRunner(CallsOf(fanout.Steps)),
                 EntityConfig.Once once => new OnceRunner(CallOf(once.Step)),
-                EntityConfig.Dialogue lines => new DialogueRunner(dialogue!, lines.File, lines.Title),
+                EntityConfig.Dialogue lines => new DialogueRunner(dialogue!, this, lines.File, lines.Title),
                 // Not yet run: a respawn becomes current by reach.
                 EntityConfig.Respawn => FinishesAtOnce.Instance,
                 _ when config.Kind.HasBody => bodies[config.Id].Controller
