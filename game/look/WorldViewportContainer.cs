@@ -13,9 +13,9 @@ namespace BodyCheck.Look;
 /// the window's input on to it, with the mouse's position scaled to match.
 /// </para>
 /// <para>
-/// It processes always, since a container passes input on only while it processes, and nodes in the game's viewport,
-/// such as the dialogue box, need input while the game is paused. So does everything in the viewport that inherits its
-/// process mode: what must stop while the game is paused, such as the world, says so itself.
+/// It pauses with the game, as does everything in the game's viewport that inherits its process mode, and a container
+/// passes input on only while it processes, so nothing in the game's viewport gets input while the game is paused.
+/// What must run while paused, such as the camera, says so itself.
 /// </para>
 /// </summary>
 public partial class WorldViewportContainer : SubViewportContainer
@@ -28,9 +28,6 @@ public partial class WorldViewportContainer : SubViewportContainer
         Stretch = false;
         TextureFilter = TextureFilterEnum.Nearest;
         AddChild(World);
-
-        // Passes input on to the game's viewport while the game is paused. Everything in it inherits this.
-        ProcessMode = ProcessModeEnum.Always;
 
         // Enable CPU/GPU rendering measurement.
         var rid = World.GetViewportRid();

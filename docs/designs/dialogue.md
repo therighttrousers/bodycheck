@@ -3,6 +3,7 @@
 Relevant decision records:
 - [043: Triggers, actions and scripts](../decision-records/043-triggers-and-scripts.md)
 - [044: Dialogue](../decision-records/044-dialogue.md)
+- [050: The cutscene mode](../decision-records/050-cutscene-mode.md)
 
 How dialogue is written, shown and translated. What the characters say is in [story.md](story.md#dialogue); how the code is put together is in [`game/main/`](../../game/main/architecture.md#the-games-modes).
 
@@ -16,7 +17,7 @@ A level presents dialogue with a `Dialogue` control entity, which names a file, 
 
 ## The game while dialogue plays
 
-Dialogue pauses the game, in a mode of its own; the menu and the map can be opened from it (`044 §2.1`). So that the game doesn't pause with the player in the air, a dialogue waits for the player to be on the ground, for up to 2 seconds, before it is presented. Dialogue that plays without pausing, a callout, is a separate feature, for when one is needed (`044 §2.2`).
+Dialogue plays in a cutscene, a mode of its own, which doesn't pause the game: the world runs, so the camera, animations and shaders keep going, and the player's controller gets no input, so the player lands, comes to rest and stands. The world goes on independently of the player's story, so a dialogue is placed where nothing in the world can harm the player. Sound isn't muffled, so that music could cue a dialogue. The menu and the map can be opened from it (`044 §2.1`, `050 §1.2`, `§1.3`, `§3.3`). A dialogue is presented at once: the player may land under the box (`050 §1.4`). Dialogue that plays without pausing, a callout, is a separate feature, for when one is needed (`044 §2.2`).
 
 ## The text box
 
@@ -45,6 +46,5 @@ The Voice's broken lines are garbled when they are shown, not as written: writer
 - Fonts for other locales: Fusion Pixel's other versions, or others such as Ark Pixel or Unifont; licences and quality to be checked (`044 §4.1`). How many lines a box holds in each locale.
 - Translation keys: static IDs as keys, with an English translation file, or English text as keys (`044 §5.3`). Speaker names are extracted for translation, but the box doesn't yet translate them (`044 §1.4`).
 - Garble tags are checked only when their line is shown. A test could check every dialogue file's tags, as it could check translation keys.
-- What dialogue pauses (Neil, 2026-11-06). Pausing the scene tree, as the dialogue mode does now, is probably wrong: the controllers should pause, or be taken over, but exactly what must pause is open. The player should stand up for a dialogue once it has landed, since being frozen mid-fall, in the falling animation, looks wrong.
 - `TheCall`, which the levels present, is a placeholder until the first slice's writing.
 - Inline mutations run as the line types out, but no dialogue has one yet, so it is untested in the game.

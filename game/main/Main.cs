@@ -101,7 +101,7 @@ public partial class Main : Node
         _gameModeManager.GameModeChanged += gameMode =>
         {
             _pauseMenuOverlay.Visible = gameMode == GameMode.Menu;
-            _dialogueBox.Visible = gameMode == GameMode.Dialogue;
+            _dialogueBox.Visible = gameMode == GameMode.Cutscene;
         };
 
         string? worldName = null;
@@ -154,7 +154,8 @@ public partial class Main : Node
         }
 
         LoadWorld(Math.Max(IndexOf(_worlds.Select(world => world.Name), worldName), 0));
-        _world.PlayerInput = () => new PlayerInput(
+        // In a cutscene, the player's controller gets no input, so that the player comes to rest while the world runs.
+        _world.PlayerInput = () => _gameModeManager.GameMode == GameMode.Cutscene ? default : new PlayerInput(
             Input.GetAxis("move_left", "move_right"),
             Input.GetAxis("move_down", "move_up"),
             Input.IsActionPressed("jump"),
@@ -331,11 +332,7 @@ public partial class Main : Node
             world,
             _assets,
             respawnId: _respawnIds.GetValueOrDefault(world.Name),
-            dialogue: _dialogueBox)
-        {
-            // The game's viewport processes always, so that its UI gets input while paused: the world must stop.
-            ProcessMode = ProcessModeEnum.Pausable,
-        };
+            dialogue: _dialogueBox);
         _world.MapMarkers.Visible = _showMapMarkers;
         _world.CurrentRespawnChanged += respawn =>
         {

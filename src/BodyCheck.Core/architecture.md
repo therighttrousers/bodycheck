@@ -22,6 +22,7 @@ Relevant decision records:
 - [047: `Once`, and routing actions](../../docs/decision-records/047-once-and-routing.md)
 - [048: Triggers set off by touch](../../docs/decision-records/048-touch.md)
 - [049: Doors and their stops](../../docs/decision-records/049-doors-and-stops.md)
+- [050: The cutscene mode](../../docs/decision-records/050-cutscene-mode.md)
 
 ## What it is
 
@@ -63,11 +64,11 @@ An arrow points from a subsystem to one it uses. Every subsystem may use the roo
 
 - **Controllers use entities** through what a body offers: forces, impulses, motors and queries. Entities know nothing of controllers beyond the interface they define for them, so a controller doesn't know where its entity is in a room or how it got there.
 - **Entities use tasks** for running an action: the interface that a route's target implements returns a `TickTask`, and is given the `ITick` to run on (`047 §2.2`).
-- **Scripts use entities and tasks** to run actions on their targets, through that interface alone, so a runner can't reach past it to a controller or a body (`043 §3.2`). A runner that must see the world, such as a dialogue's, which waits for the player to land, sees it through `IWorldNode`, which Scripts defines, and which offers entities, not controllers.
+- **Scripts use entities and tasks** to run actions on their targets, through that interface alone, so a runner can't reach past it to a controller or a body (`043 §3.2`).
 - **Levels produce the world's data.** The world's data knows nothing of where it came from.
 - **Simulation joins the rest.** It builds each entity from the world's data, gives it its controller, and steps it; none of the subsystems it uses know about it.
 - **Simulation runs the world's tasks** on a scheduler of its own, at its point in the tick.
-- **Simulation builds the routes.** It builds a runner for each control entity from its configuration, and resolves each step to its target's runner or its body's controller, so that Scripts knows nothing of the world's data (`047 §2.3`). It gives the runners that need it the world itself, as an `IWorldNode`.
+- **Simulation builds the routes.** It builds a runner for each control entity from its configuration, and resolves each step to its target's runner or its body's controller, so that Scripts knows nothing of the world's data (`047 §2.3`).
 
 ## How a tick runs
 
@@ -111,6 +112,7 @@ Game code pushes measurements to `Telemetry`, by `Metric`, an enum. Each metric 
 ## Open questions
 
 - Whether `IDefer`'s two points become points of `ITick` to await, if a second async action needs one. `NextTick` from `Apply` already resumes after this tick's entity steps, after all of their deferred actions, though only on played ticks. `RunAfterPhysicsStep` has no counterpart: the world never runs its tasks before the entity steps (`046 §1.7`).
+- How the game's mode reaches controllers and other parts of `Simulation` and `Entities`, which will need to know of cutscenes, for example to turn off kinetic damage. The mode is the game's, which Core can't see, so Core needs a type of its own for it that fits the subsystems' dependency rules (`050 §2.2`, `§2.3`).
 - Guidance on the implicit concurrency of async actions and scripts: what can change while one waits, and how to guard against it. To be written once the routing, the door and scripts have used them (`046 §1.9`).
 
 - Can the Godot editor attach a script to a scene only when the script is in the Godot project itself? Believed so. Core's node classes are created in code, which doesn't need it (`005 §3.2`).

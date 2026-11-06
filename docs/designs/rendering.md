@@ -15,6 +15,7 @@ Relevant decision records:
 - [038: Vertices on a grid, for the jitter of mid-1990s 3D](../decision-records/038-vertex-grid.md)
 - [039: Pausing for the menu and the map](../decision-records/039-modes-kept-across-pauses.md)
 - [044: Dialogue](../decision-records/044-dialogue.md)
+- [050: The cutscene mode](../decision-records/050-cutscene-mode.md)
 - [040: No vertex snap](../decision-records/040-no-vertex-snap.md)
 - [042: The camera clamped by tiles](../decision-records/042-camera-clamped-by-tiles.md)
 
@@ -33,7 +34,7 @@ Besides the world, the game's viewport draws three placeholders, which are scale
 - `PauseMenuOverlay`, the menu, is a canvas layer above the colour pass, so the dither leaves it alone, and above the aim marker. It is laid out at the viewport's size and centred, so with low resolution off it is small but still centred.
 - `DialogueBox`, the text box, is a canvas layer above the colour pass, along the bottom edge of the viewport, in a pixel font at 10 pixels, aliased, laid out from the font's metrics (see [dialogue.md](dialogue.md#the-text-box)).
 
-`WorldViewportContainer` processes always, so that it passes input on to the game's viewport while the game is paused, which the dialogue box needs. Everything in the viewport that inherits its process mode processes always too, so what must stop while paused, such as the world, is made pausable ([`game/main/`](../../game/main/architecture.md#the-games-modes)).
+`WorldViewportContainer` pauses with the game, and so does everything in the game's viewport that inherits its process mode; what must run while paused, such as the camera, says so itself ([`game/main/`](../../game/main/architecture.md#the-games-modes)).
 
 The colour pass reads tone-mapped sRGB values, and its output reaches the screen unconverted. This holds while the project's HDR 2D setting is off, which is the default (`003 §3.3`).
 
@@ -102,6 +103,7 @@ Other ways of choosing colours were tried and set aside: quantising in HSV, a la
 - What the camera keeps inside in the seamless world. For now, the world's bounding box (`011 §4.1`). Tried and parked: clamps by the static tiles, the last by how hidden each tile is from the player. Next to try: outside tiles that designers paint in LDtk, which the view avoids showing (`042 §5.3`).
 - When should the camera leave the 16-pixel distance? Leaning: zooming out for cinematics, or to show something important that is hard to see at the usual distance. Contextual zoom may turn out better after trying both (`009 §5.2`).
 - On a 16:9 monitor the image has black bars at the sides. Whether to fill them, and with what, is undecided.
+- Shader time. A shader's `TIME` follows the engine's time scale but not the tree's pause, so the slowdown before a phase would slow shader animations, and the release would snap them back. The first animated shader gets a time uniform the game advances itself; which clock it runs on is open (`050 §3.1`, `§3.2`).
 - The palette as an asset. It is generated at startup until it is final; then it becomes a file, and the code that generates it becomes the first part of an asset pipeline (`004 §2.6`).
 - A smaller palette (Neil, 2026-10-13, thinking aloud). It would suit pixel art drawn by hand: 256 colours is a lot to draw with. A palette of 128, with 8 grays and 4 values to a ramp, was tried: it saves about 0.4 ms a frame and costs nearly three times the lightness error (`004 §4.3`, `§4.4`). Alternatives: a reduced palette for pixel art only, or high-fidelity drawings scaled down, with interpolation, before the colour pass.
 - The cost of the search. A frame of the "Look" room takes about 2.0 ms of GPU time at 320x240 with it, about 0.4 ms of which is the search, and the work grows with the number of pixels, so it is about 16 times as much with low resolution off. Untried: a coarse texture that lists the few colours that can be nearest in each part of the colour cube, with the exact search over those.
