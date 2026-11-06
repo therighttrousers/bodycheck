@@ -17,6 +17,8 @@ Anti-goals:
 - Redesigning input across the game's modes. That is issue #174; this record settles only what the player's controller sees during a cutscene.
 - The impulse on the player at the spawn, from #168, which waits for scripted control of the player.
 
+Closed on 2026-11-06. Outcomes are in `dialogue.md`, `progression.md` and `rendering.md`, and in the architecture docs of Core, `Entities`, `Controllers`, `Simulation`, `Scripts` and `game/main`. Item 3.2, the clock of the shader time uniform, is open in `rendering.md`.
+
 ## 1. What dialogue stops
 
 - [x] 1.1 What could pause, and what pausing would mean for each (Claude):
