@@ -20,7 +20,7 @@ Dialogue pauses the game, in a mode of its own; the menu and the map can be open
 
 The box is along the bottom of the game's viewport, at 320x240, above the colour pass. It shows the speaker's avatar, the speaker, the line, and the line's responses.
 
-- **Avatars** are 48 by 48 pixels, beside the speaker's name and the line. Each is a PNG in `game/assets/avatars/`, named for the speaker as the dialogue files name them, before translation, such as `Voice.png`; a speaker without one has none, and the line takes the box's width. The Voice's is a big question mark, a placeholder (`044 §2.3`).
+- **Avatars** are 48 by 48 pixels, in a light border on a dark background, beside the speaker's name and the line. Each is a PNG in `game/assets/avatars/`, named for the speaker as the dialogue files name them, before translation, such as `Voice.png`; a speaker without one has none, and the line takes the box's width. The player is `B-CON` in the dialogue files. The Voice's avatar is a big question mark, a placeholder (`044 §2.3`).
 - **Typing.** Each line types out, pausing at punctuation, with Dialogue Manager's `DialogueLabel`, which handles its inline tags, such as waits and speed changes, and runs its inline mutations as it reaches them. Jump skips the typing, running the inline mutations left, and once the line has typed out, goes on. The responses show once it has (`044 §1.5`).
 - **The font** is Fusion Pixel at 10 pixels, proportional, in its Latin version, imported without antialiasing, hinting, subpixel positioning or system fallback (`044 §4.1`). Its family covers Latin, Greek, Cyrillic, kana, Hangul and CJK. Its licence, the SIL Open Font License, is beside it in `game/assets/fonts/fusion_pixel/`.
 - **Fake choices** are writing, not code: responses whose branches meet again, as in the debug dialogue (`044 §5.4`).
@@ -39,7 +39,7 @@ The Voice's broken lines are garbled when they are shown, not as written: writer
 
 ## Open questions
 
-- The Voice's real avatar, if it gets one, and the player's.
+- The Voice's real avatar, if it gets one.
 - Fonts for other locales: Fusion Pixel's other versions, or others such as Ark Pixel or Unifont; licences and quality to be checked (`044 §4.1`). How many lines a box holds in each locale.
 - Translation keys: static IDs as keys, with an English translation file, or English text as keys (`044 §5.3`). Speaker names are extracted for translation, but the box doesn't yet translate them (`044 §1.4`).
 - Garble tags are checked only when their line is shown. A test could check every dialogue file's tags, as it could check translation keys.

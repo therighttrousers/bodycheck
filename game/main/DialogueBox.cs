@@ -51,7 +51,14 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
     private DialogueLine? _line;
     private int _response;
 
-    private readonly TextureRect _avatar = new() { SizeFlagsVertical = Control.SizeFlags.ShrinkBegin };
+    private readonly TextureRect _avatar = new();
+    // The avatar's border and background, shown only while the speaker has an avatar.
+    private readonly PanelContainer _avatarBackground = new()
+    {
+        CustomMinimumSize = new Vector2I(50, 50),
+        CustomMaximumSize = new Vector2I(50, 50),
+        SizeFlagsVertical = Control.SizeFlags.ShrinkBegin,
+    };
     private readonly Label _character = new();
     private readonly GarbledDialogueLabel _text = new();
     private readonly VBoxContainer _responses = new();
@@ -87,10 +94,23 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
         var row = new HBoxContainer();
         row.AddThemeConstantOverride("separation", 6);
         panel.AddChild(row);
-        row.AddChild(_avatar);
+
+        _avatarBackground.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+        {
+            BgColor = new Color(0, 0, 0, 0.5f),
+            BorderColor = new Color(1, 1, 1, 0.5f),
+            BorderWidthTop = 1,
+            BorderWidthRight = 1,
+            BorderWidthBottom = 1,
+            BorderWidthLeft = 1,
+        });
+        _avatarBackground.AddChild(_avatar);
+        row.AddChild(_avatarBackground);
+
         var lines = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         lines.AddThemeConstantOverride("separation", 0);
         row.AddChild(lines);
+
         _character.Modulate = new Color(1, 0.85f, 0.4f);
         lines.AddChild(_character);
         lines.AddChild(_text);
@@ -180,7 +200,7 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
         _character.Visible = _line.Character != "";
         string avatar = $"{AvatarDirectory}/{_line.Character}.png";
         _avatar.Texture = _line.Character != "" && ResourceLoader.Exists(avatar) ? GD.Load<Texture2D>(avatar) : null;
-        _avatar.Visible = _avatar.Texture is not null;
+        _avatarBackground.Visible = _avatar.Texture is not null;
         _text.DialogueLine = _line;
         ClearResponses();
         _text.TypeOut();
