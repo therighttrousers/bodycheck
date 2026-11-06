@@ -327,7 +327,11 @@ public partial class Main : Node
     {
         _world?.QueueFree();
         Telemetry.Reset();
-        _world = new WorldNode(world, _assets, respawnId: _respawnIds.GetValueOrDefault(world.Name))
+        _world = new WorldNode(
+            world,
+            _assets,
+            respawnId: _respawnIds.GetValueOrDefault(world.Name),
+            dialogue: _dialogueBox)
         {
             // The game's viewport processes always, so that its UI gets input while paused: the world must stop.
             ProcessMode = ProcessModeEnum.Pausable,

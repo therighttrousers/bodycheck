@@ -21,7 +21,7 @@ namespace BodyCheck.Core.Simulation;
 /// at the seams between shapes of one body, but not between bodies.
 /// </para>
 /// </summary>
-public partial class WorldNode : Node3D
+public partial class WorldNode : Node3D, IWorldNode
 {
     /// <summary>
     /// The world's physics priority. What must step before the world in a tick or after it, such as whatever pauses it,
@@ -52,12 +52,23 @@ public partial class WorldNode : Node3D
     /// The respawn the player starts at, which is then the current one. The player starts where the world says if this is
     /// null, or names none of the world's respawns.
     /// </param>
+    /// <param name="dialogue">
+    /// What presents the world's dialogues, which needs one only if it has any.
+    /// </param>
+    /// <exception cref="ArgumentException">
+    /// The world has a dialogue, and there is no <paramref name="dialogue"/>, or its file doesn't exist or doesn't hold
+    /// its title.
+    /// </exception>
     public WorldNode(
         World world,
         IAssetLibrary assets,
         BodyTuning? playerBody = null,
-        string? respawnId = null)
+        string? respawnId = null,
+        IDialoguePresenter? dialogue = null)
     {
+        // First, so that a world that fails builds no nodes.
+        CheckDialogues(world, dialogue);
+
         World = world;
         CurrentRespawn = respawnId is null ? null : world.ConfigsById.GetValueOrDefault(respawnId) as EntityConfig.Respawn;
         ProcessPhysicsPriority = PhysicsPriority;
@@ -145,7 +156,7 @@ public partial class WorldNode : Node3D
         Player.Controller = PlayerController;
 
         // Last, since a body's controller runs the actions routed to it.
-        Triggers = BuildRoutes();
+        Triggers = BuildRoutes(dialogue);
 
         // In the order of the world's controls, so that triggers touched in the same tick are set off in a known order.
         foreach (EntityConfig.Trigger trigger in world.Controls.OfType<EntityConfig.Trigger>())
@@ -168,9 +179,10 @@ public partial class WorldNode : Node3D
     /// <summary>
     /// Builds what runs each control entity, with each step resolved to what runs its action, and returns the triggers'
     /// runners, by id. The world has checked that every route's target responds to its action, and that no route leads
-    /// back to where it started, so each runner is built after its targets.
+    /// back to where it started, so each runner is built after its targets. The constructor has checked the world's
+    /// dialogues against <paramref name="dialogue"/>.
     /// </summary>
-    private Dictionary<string, TriggerRunner> BuildRoutes()
+    private Dictionary<string, TriggerRunner> BuildRoutes(IDialoguePresenter? dialogue)
     {
         var bodies = new Dictionary<string, Entity>();
         for (int i = 0; i < World.Bodies.Count; i++)
@@ -194,8 +206,9 @@ public partial class WorldNode : Node3D
                 EntityConfig.Sequence sequence => new SequenceRunner(CallsOf(sequence.Steps)),
                 EntityConfig.Fanout fanout => new FanoutRunner(CallsOf(fanout.Steps)),
                 EntityConfig.Once once => new OnceRunner(CallOf(once.Step)),
-                // Not yet run: a dialogue has no runner, and a respawn becomes current by reach.
-                EntityConfig.Dialogue or EntityConfig.Respawn => FinishesAtOnce.Instance,
+                EntityConfig.Dialogue lines => new DialogueRunner(dialogue!, this, lines.File, lines.Title),
+                // Not yet run: a respawn becomes current by reach.
+                EntityConfig.Respawn => FinishesAtOnce.Instance,
                 _ when config.Kind.HasBody => bodies[config.Id].Controller
                     ?? throw new UnreachableException($"A {config.Kind} with no controller responds to an action."),
                 _ => throw new UnreachableException($"A {config.Kind} responds to no action."),
@@ -217,6 +230,30 @@ public partial class WorldNode : Node3D
             }
         }
         return triggers;
+    }
+
+    /// <summary>
+    /// Checks that each of the world's dialogues names a title that its file holds, so that a wrong name fails when the
+    /// world is built, not when the dialogue is presented.
+    /// </summary>
+    private static void CheckDialogues(World world, IDialoguePresenter? dialogue)
+    {
+        foreach (EntityConfig.Dialogue config in world.Controls.OfType<EntityConfig.Dialogue>())
+        {
+            if (dialogue is null)
+            {
+                throw new ArgumentException(
+                    $"The world {world.Name} has a dialogue, {config.Id}, and nothing to present it.",
+                    nameof(dialogue));
+            }
+            if (!dialogue.Holds(config.File, config.Title))
+            {
+                throw new ArgumentException(
+                    $"The dialogue {config.Id} in the world {world.Name} presents the title {config.Title} of the "
+                        + $"dialogue file {config.File}, which doesn't exist or doesn't hold it.",
+                    nameof(world));
+            }
+        }
     }
 
     /// <summary>What runs an action that does nothing yet, which finishes at once.</summary>

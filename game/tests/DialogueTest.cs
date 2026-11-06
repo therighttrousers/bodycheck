@@ -1,7 +1,10 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 
+using BodyCheck.Core.Simulation;
 using BodyCheck.Core.Tasks;
+using BodyCheck.Core.WorldData;
 
 using GdUnit4;
 
@@ -92,5 +95,40 @@ public class DialogueTest
         // The next tick is played, and what waits for the dialogue resumes in it.
         await _run.Tick(RoomRun.Idle);
         AssertThat(resumed).IsTrue();
+    }
+
+    [TestCase("debug", "start", true)]
+    [TestCase("debug", "missing", false)]
+    [TestCase("missing", "start", false)]
+    public void A_world_builds_only_if_each_dialogue_names_a_title_its_file_holds(string file, string title, bool builds)
+    {
+        var player = new EntityConfig.Player
+        {
+            Id = "player",
+            MapOrigin = Vector2I.Zero,
+            MapSize = new Vector2I(1, 2),
+            MapColor = Colors.White,
+        };
+        var dialogue = new EntityConfig.Dialogue
+        {
+            Id = "dialogue",
+            MapOrigin = new Vector2I(1, 0),
+            MapSize = Vector2I.One,
+            MapColor = Colors.White,
+            File = file,
+            Title = title,
+        };
+        var world = new World("Test", [new Room("Test", default, new TileGrid(3, 3), [player, dialogue])]);
+        _box = new DialogueBox();
+        Tree.Root.AddChild(_box);
+
+        if (builds)
+        {
+            RoomRun.FreeAndFinalize(new WorldNode(world, new AssetLibrary(), dialogue: _box));
+        }
+        else
+        {
+            AssertThrown(() => new WorldNode(world, new AssetLibrary(), dialogue: _box)).IsInstanceOf<ArgumentException>();
+        }
     }
 }

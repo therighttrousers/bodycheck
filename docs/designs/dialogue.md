@@ -12,9 +12,11 @@ Dialogue is written in Dialogue Manager's files, in `game/dialogue/`, and fetche
 
 Files are organized by story beat, not by level. Lines shared everywhere, such as "Sleep", go in a common file that others import (`044 §5.1`).
 
+A level presents dialogue with a `Dialogue` control entity, which names a file, without its directory or extension, and a title in it, as strings. Each time it is asked, it presents that title, after any dialogue already waiting, and finishes when the dialogue ends. A world checks, when it is built, that each of its dialogues' files exists and holds its title, and fails to build if not; a test builds every world, so a wrong name fails in CI, not in play (`044 §5.2`).
+
 ## The game while dialogue plays
 
-Dialogue pauses the game, in a mode of its own; the menu and the map can be opened from it (`044 §2.1`). Dialogue that plays without pausing, a callout, is a separate feature, for when one is needed (`044 §2.2`).
+Dialogue pauses the game, in a mode of its own; the menu and the map can be opened from it (`044 §2.1`). So that the game doesn't pause with the player in the air, a dialogue waits for the player to be on the ground, for up to 2 seconds, before it is presented. Dialogue that plays without pausing, a callout, is a separate feature, for when one is needed (`044 §2.2`).
 
 ## The text box
 
@@ -43,4 +45,6 @@ The Voice's broken lines are garbled when they are shown, not as written: writer
 - Fonts for other locales: Fusion Pixel's other versions, or others such as Ark Pixel or Unifont; licences and quality to be checked (`044 §4.1`). How many lines a box holds in each locale.
 - Translation keys: static IDs as keys, with an English translation file, or English text as keys (`044 §5.3`). Speaker names are extracted for translation, but the box doesn't yet translate them (`044 §1.4`).
 - Garble tags are checked only when their line is shown. A test could check every dialogue file's tags, as it could check translation keys.
+- What dialogue pauses (Neil, 2026-11-06). Pausing the scene tree, as the dialogue mode does now, is probably wrong: the controllers should pause, or be taken over, but exactly what must pause is open. The player should stand up for a dialogue once it has landed, since being frozen mid-fall, in the falling animation, looks wrong.
+- `TheCall`, which the levels present, is a placeholder until the first slice's writing.
 - Inline mutations run as the line types out, but no dialogue has one yet, so it is untested in the game.
