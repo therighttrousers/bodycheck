@@ -8,13 +8,6 @@ using Godot;
 namespace BodyCheck;
 
 /// <summary>
-/// What the game is doing: playing; paused for the menu, the map or the player aiming a phase; or playing a cutscene,
-/// such as a dialogue, with the world running and the player's controller given no input. Before the pause for a
-/// phase, it slows down to it.
-/// </summary>
-public enum GameMode { Playing, Menu, Map, EndingMap, SlowingForPhase, Phasing, Cutscene }
-
-/// <summary>
 /// Holds the <see cref="GameMode"/>, and switches it on the "menu" and "map" actions. The tree is paused in every mode
 /// but <see cref="GameMode.Playing"/>, <see cref="GameMode.SlowingForPhase"/> and <see cref="GameMode.Cutscene"/>, so
 /// this node processes while it's paused. "menu" opens or closes the menu, and "map" the map; either opens its own from the other. Closing the map

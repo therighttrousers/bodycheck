@@ -4,18 +4,6 @@ using Godot;
 
 namespace BodyCheck.Core.Controllers;
 
-/// <param name="XAxis">Horizontal input, from -1 (left) to 1 (right).</param>
-/// <param name="YAxis">Vertical input, from -1 (down) to 1 (up).</param>
-public readonly record struct PlayerInput(
-    float XAxis,
-    float YAxis,
-    bool JumpHeld,
-    bool PhaseHeld = false,
-    bool SpawnHeld = false)
-{
-    public bool CanLook => YAxis != 0 && XAxis == 0 && !JumpHeld && !PhaseHeld && !SpawnHeld;
-}
-
 /// <summary>
 /// Turns player input into forces, impulses and traction on the entity it controls.
 /// </summary>
@@ -25,7 +13,7 @@ public sealed class PlayerController : IController<PlayerEntity>
     private const float DirectionDeadZone = 0.5f;
 
     private readonly PlayerEntity _entity;
-    private readonly Func<PlayerInput> _input;
+    private IWorldView _world = null!;
     private readonly PhaseAction _phase;
     private readonly RunAction _run;
     private readonly JumpAction _jump;
@@ -48,22 +36,20 @@ public sealed class PlayerController : IController<PlayerEntity>
     private float _airTime;
 
     /// <param name="entity">The player, which the controller controls.</param>
-    /// <param name="input">Supplies the player's input, once per tick.</param>
-    /// <param name="block">
-    /// The player's block, which it spawns. Until then it is disabled and hidden, so that it is out of the world.
-    /// </param>
-    public PlayerController(PlayerEntity entity, Func<PlayerInput> input, Entity block)
+    public PlayerController(PlayerEntity entity)
     {
         _entity = entity;
-        _input = input;
         _phase = new PhaseAction(entity, PhaseTuning.Player);
         _run = new RunAction(entity, RunTuning.Player);
         _jump = new JumpAction(entity, JumpTuning.Player);
-        _spawn = new SpawnAction(entity, block, SpawnTuning.Player);
+        _spawn = new SpawnAction(entity, SpawnTuning.Player);
         _cornerCorrection = new CornerCorrectionAction(entity, CornerCorrectionTuning.Player);
     }
 
     public PlayerEntity Entity => _entity;
+
+    /// <summary>Keeps the world, which gives the player's input, and the block the player spawns.</summary>
+    public void Ready(IWorldView world) => _world = world;
 
     /// <summary>The phase being aimed, if any: see <see cref="PhaseAction.Aim"/>.</summary>
     public PhaseAction.PhaseAim? Phase => _phase.Aim;
@@ -77,7 +63,7 @@ public sealed class PlayerController : IController<PlayerEntity>
     /// </summary>
     public void ApplyPaused(float realDt, IDefer defer)
     {
-        PlayerInput input = _input();
+        PlayerInput input = _world.PlayerInput;
         ApplyPhase(input, 0, realDt, defer);
         _jumpWasHeld = input.JumpHeld;
         _spawnWasHeld = input.SpawnHeld;
@@ -85,7 +71,7 @@ public sealed class PlayerController : IController<PlayerEntity>
 
     public void Apply(float gameDt, float realDt, IDefer defer)
     {
-        PlayerInput input = _input();
+        PlayerInput input = _world.PlayerInput;
         float move = Math.Clamp(input.XAxis, -1, 1);
 
         if (_entity.OnGround)
@@ -100,7 +86,7 @@ public sealed class PlayerController : IController<PlayerEntity>
 
         if (ApplyPhase(input, gameDt, realDt, defer) is PhaseOutcome.Idle or PhaseOutcome.Cancelled)
         {
-            _spawn.Apply(input.SpawnHeld && !_spawnWasHeld, gameDt, defer);
+            _spawn.Apply(_world.PlayerBlock, input.SpawnHeld && !_spawnWasHeld, gameDt, defer);
 
             // A press buffered in the air jumps on landing even if jump has been let go of since, as a tap.
             bool jumps = _jumpBufferLeft > 0 && _groundTimeLeft > 0 && !_jump.Thrusting;

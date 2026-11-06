@@ -6,10 +6,11 @@ Relevant decision records:
 - [035: One shape for actions](../../../docs/decision-records/035-one-shape-for-actions.md)
 - [046: Actions as async methods](../../../docs/decision-records/046-async-actions.md)
 - [049: Doors and their stops](../../../docs/decision-records/049-doors-and-stops.md)
+- [050: The cutscene mode](../../../docs/decision-records/050-cutscene-mode.md)
 
 ## What it is
 
-What decides an entity's actions each tick: the player's input turned into movement, and the behaviour of each NPC. A controller acts on a body only through what the body offers, and is given whatever else it needs: the player's controller its source of input, a robot's a function that returns its target.
+What decides an entity's actions each tick: the player's input turned into movement, and the behaviour of each NPC. A controller acts on a body only through what the body offers, and sees the rest of the world through the `IWorldView` it is given in `Ready`: the player's controller reads its input and its block there, and a robot's its target, the player.
 
 ## What it is not for
 
@@ -43,7 +44,7 @@ The player's controller phases with a `PhaseAction`, using its entity's moves an
 
 ## The robot's laser
 
-A robot's controller is given a function that returns the player, its target, and sets the robot's laser each tick from its `LaserAction`, which steps the laser through its timeline. The action is given the beam's origin and the way the robot faces on each tick, and finds the beam's end, and whether it can see the player, with a ray cast on a plain entity, so that another kind of body, such as a turret, can fire one (`035 §6.1`).
+A robot's controller targets the world's player, and sets the robot's laser each tick from its `LaserAction`, which steps the laser through its timeline. The action is given the beam's origin and the way the robot faces on each tick, and finds the beam's end, and whether it can see the player, with a ray cast on a plain entity, so that another kind of body, such as a turret, can fire one (`035 §6.1`).
 
 ## Open questions
 

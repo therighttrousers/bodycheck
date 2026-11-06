@@ -1,3 +1,5 @@
+using BodyCheck.Core;
+
 using Godot;
 
 namespace BodyCheck;

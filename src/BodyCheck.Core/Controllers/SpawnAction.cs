@@ -25,11 +25,8 @@ public sealed record SpawnTuning
 
 /// <summary>Spawning a block under an entity, to stand on: the player's block.</summary>
 /// <param name="entity">The entity that spawns the block.</param>
-/// <param name="block">
-/// The block, which the entity spawns. Until then it is disabled and hidden, so that it is out of the world.
-/// </param>
 /// <param name="tuning">How the action is tuned.</param>
-public sealed class SpawnAction(Entity entity, Entity block, SpawnTuning tuning)
+public sealed class SpawnAction(Entity entity, SpawnTuning tuning)
 {
     // In game time: how long until the block can be spawned again.
     private float _cooldownLeft;
@@ -42,23 +39,26 @@ public sealed class SpawnAction(Entity entity, Entity block, SpawnTuning tuning)
     /// Where the block doesn't fit, or the entity has no room to rise onto it, the spawn is cancelled. There is only one block, so spawning it
     /// takes it from wherever it was. The moves wait until after the entity steps, like a phase's.
     /// </summary>
+    /// <param name="block">
+    /// The block, which the entity spawns. Until then it is disabled and hidden, so that it is out of the world.
+    /// </param>
     /// <param name="spawns">Whether the entity spawns its block on this tick.</param>
     /// <param name="gameDt">The tick's length in game time.</param>
     /// <param name="defer">An object that allows running actions later in the tick.</param>
-    public void Apply(bool spawns, float gameDt, IDefer defer)
+    public void Apply(Entity block, bool spawns, float gameDt, IDefer defer)
     {
-        Step(spawns, defer);
+        Step(block, spawns, defer);
         _cooldownLeft = Math.Max(0, _cooldownLeft - gameDt);
     }
 
-    private void Step(bool spawns, IDefer defer)
+    private void Step(Entity block, bool spawns, IDefer defer)
     {
         if (!spawns || _cooldownLeft > 0)
         {
             return;
         }
 
-        if (SpawnPlace() is not (Vector3 place, float rise))
+        if (SpawnPlace(block) is not (Vector3 place, float rise))
         {
             _cooldownLeft = tuning.CancelCooldownTime();
             entity.RaiseCue(EntityCue.SpawnCancelled);
@@ -90,7 +90,7 @@ public sealed class SpawnAction(Entity entity, Entity block, SpawnTuning tuning)
     /// entity has no room to rise onto it. Found by casting boxes against tiles, as of the engine's last step, each
     /// from where it is clear of them, so that no move starts inside a tile.
     /// </summary>
-    private (Vector3 Place, float Rise)? SpawnPlace()
+    private (Vector3 Place, float Rise)? SpawnPlace(Entity block)
     {
         Vector2 entityHalf = entity.HalfSize;
         Vector2 blockHalf = block.HalfSize;

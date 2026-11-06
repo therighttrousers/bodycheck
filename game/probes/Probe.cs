@@ -2,7 +2,6 @@ using System;
 using System.Linq;
 
 using BodyCheck.Core;
-using BodyCheck.Core.Controllers;
 using BodyCheck.Core.Entities;
 using BodyCheck.Core.Simulation;
 using BodyCheck.Core.WorldData;
@@ -134,7 +133,7 @@ public static class Probe
                 throw new ArgumentException($"There is no probe named '{name}'.");
         }
 
-        world.PlayerInput = () => probe.Input;
+        world.PlayerInputSource = () => probe.Input;
         return probe;
     }
 }

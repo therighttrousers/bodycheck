@@ -21,7 +21,7 @@ namespace BodyCheck.Core.Simulation;
 /// at the seams between shapes of one body, but not between bodies.
 /// </para>
 /// </summary>
-public partial class WorldNode : Node3D
+public partial class WorldNode : Node3D, IWorldView
 {
     /// <summary>
     /// The world's physics priority. What must step before the world in a tick or after it, such as whatever pauses it,
@@ -100,8 +100,6 @@ public partial class WorldNode : Node3D
             AddChild(new RoomNode(room, assets));
         }
 
-        PlayerInput Input() => PlayerInput?.Invoke() ?? default;
-
         // Out of the world until the player spawns it: a disabled body is out of the engine's space, and isn't stepped.
         PlayerBlock = new Entity(
             BodyTuning.PlayerBlock,
@@ -152,7 +150,7 @@ public partial class WorldNode : Node3D
         Debug.Assert(Player is not null);
 
         // Here and not in CreatePlayer, since only the constructor can set PlayerController.
-        PlayerController = new PlayerController(Player, Input, PlayerBlock);
+        PlayerController = new PlayerController(Player);
         Player.Controller = PlayerController;
 
         // Last, since a body's controller runs the actions routed to it.
@@ -173,6 +171,13 @@ public partial class WorldNode : Node3D
             area.AddChild(new CollisionShape3D { Shape = new BoxShape3D { Size = size } });
             AddChild(area);
             _touchTriggers.Add(new TouchTrigger(trigger, area, Triggers[trigger.Id]));
+        }
+
+        // Last, once the world is built, so that no controller sees it half built. An entity added later is to be given
+        // the world as soon as it is built.
+        foreach (Entity entity in _entities)
+        {
+            entity.Controller?.Ready(this);
         }
     }
 
@@ -280,9 +285,8 @@ public partial class WorldNode : Node3D
 
     private RobotEntity CreateRobot(EntityConfig.Robot config, Node3D? visual)
     {
-        // The player may be built after the robot, so the controller asks for it when it aims.
         var robot = new RobotEntity(BodyTuning.Robot, visual);
-        robot.Controller = new RobotController(robot, () => Player);
+        robot.Controller = new RobotController(robot);
         return robot;
     }
 
@@ -401,7 +405,20 @@ public partial class WorldNode : Node3D
     public event Action<EntityConfig.Trigger>? TriggerTouched;
 
     /// <summary>Supplies the player's input, once per tick. The player stands idle if this is null.</summary>
-    public Func<PlayerInput>? PlayerInput { get; set; }
+    public Func<PlayerInput>? PlayerInputSource { get; set; }
+
+    /// <summary>Supplies the game's mode. The game is always playing if this is null, as in tests and probes.</summary>
+    public Func<GameMode>? GameModeSource { get; set; }
+
+    /// <inheritdoc/>
+    public GameMode GameMode => GameModeSource?.Invoke() ?? GameMode.Playing;
+
+    /// <summary>
+    /// The player's input this tick, from <see cref="PlayerInputSource"/>, or none in a cutscene, so that the player
+    /// comes to rest while the world runs.
+    /// </summary>
+    public PlayerInput PlayerInput =>
+        GameMode == GameMode.Cutscene ? default : PlayerInputSource?.Invoke() ?? default;
 
     /// <summary>
     /// The world's tick, for the tasks of what runs in it, such as actions: what awaits it resumes in each played tick,

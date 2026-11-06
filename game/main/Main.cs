@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 
 using BodyCheck.Core;
-using BodyCheck.Core.Controllers;
 using BodyCheck.Core.Levels;
 using BodyCheck.Core.Simulation;
 using BodyCheck.Core.Tasks;
@@ -154,8 +153,7 @@ public partial class Main : Node
         }
 
         LoadWorld(Math.Max(IndexOf(_worlds.Select(world => world.Name), worldName), 0));
-        // In a cutscene, the player's controller gets no input, so that the player comes to rest while the world runs.
-        _world.PlayerInput = () => _gameModeManager.GameMode == GameMode.Cutscene ? default : new PlayerInput(
+        _world.PlayerInputSource = () => new PlayerInput(
             Input.GetAxis("move_left", "move_right"),
             Input.GetAxis("move_down", "move_up"),
             Input.IsActionPressed("jump"),
@@ -318,9 +316,9 @@ public partial class Main : Node
 
     private void LoadWorld(int index)
     {
-        Func<PlayerInput>? input = _world?.PlayerInput;
+        Func<PlayerInput>? input = _world?.PlayerInputSource;
         _worldIndex = Mathf.PosMod(index, _worlds.Count);
-        LoadWorld(_worlds[_worldIndex]).PlayerInput = input;
+        LoadWorld(_worlds[_worldIndex]).PlayerInputSource = input;
     }
 
     /// <summary>Replaces the current world, if there is one, and has the camera follow the new one's player.</summary>
@@ -332,7 +330,10 @@ public partial class Main : Node
             world,
             _assets,
             respawnId: _respawnIds.GetValueOrDefault(world.Name),
-            dialogue: _dialogueBox);
+            dialogue: _dialogueBox)
+        {
+            GameModeSource = () => _gameModeManager.GameMode,
+        };
         _world.MapMarkers.Visible = _showMapMarkers;
         _world.CurrentRespawnChanged += respawn =>
         {

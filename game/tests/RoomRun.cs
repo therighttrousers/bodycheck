@@ -1,7 +1,7 @@
 using System;
 using System.Threading.Tasks;
 
-using BodyCheck.Core.Controllers;
+using BodyCheck.Core;
 using BodyCheck.Core.Entities;
 using BodyCheck.Core.Simulation;
 using BodyCheck.Core.WorldData;
@@ -28,7 +28,7 @@ public sealed class RoomRun
     {
         Node = new WorldNode(new World(room), new AssetLibrary(), respawnId: respawnId)
         {
-            PlayerInput = () => _input,
+            PlayerInputSource = () => _input,
             ControllersEnabled = controllersEnabled,
         };
         Tree.Root.AddChild(Node);

@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 
+using BodyCheck.Core;
 using BodyCheck.Core.Simulation;
 using BodyCheck.Core.Tasks;
 using BodyCheck.Core.WorldData;
@@ -91,6 +92,21 @@ public class DialogueTest
         await _run.Tick(RoomRun.Idle);
         AssertThat(resumed).IsTrue();
         AssertThat(_manager.GameMode).IsEqual(GameMode.Playing);
+    }
+
+    [TestCase]
+    public async Task In_a_cutscene_the_player_gets_no_input()
+    {
+        _run = new RoomRun(RoomRun.RoomOf(
+            "#######",
+            "#..P..#",
+            "#######"));
+        _run.Node.GameModeSource = () => GameMode.Cutscene;
+        float start = _run.Node.Player.Position.X;
+
+        await _run.Tick(RoomRun.Right, 30);
+
+        AssertThat(Mathf.Abs(_run.Node.Player.Position.X - start)).IsLess(0.01f);
     }
 
     [TestCase("debug", "start", true)]

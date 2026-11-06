@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 
 using BodyCheck.Core;
-using BodyCheck.Core.Controllers;
 using BodyCheck.Core.Simulation;
 
 using Godot;
@@ -190,8 +189,8 @@ public partial class CameraRig : Node3D
         }
 
         float lookOffset;
-        PlayerInput? input = _world.PlayerInput?.Invoke();
-        if (!GetTree().Paused && input is not null && input.Value.CanLook)
+        PlayerInput input = _world.PlayerInput;
+        if (!GetTree().Paused && input.CanLook)
         {
             // Delay for a bit, then slowly pan.
             if (_lookTween is null)
@@ -203,7 +202,7 @@ public partial class CameraRig : Node3D
                     .SetTrans(Tween.TransitionType.Quad)
                     .SetEase(Tween.EaseType.In);
             }
-            lookOffset = Mathf.Lerp(Lift, LookOffset * input.Value.YAxis, _lookAmount);
+            lookOffset = Mathf.Lerp(Lift, LookOffset * input.YAxis, _lookAmount);
         }
         else
         {
