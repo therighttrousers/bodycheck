@@ -81,8 +81,8 @@ public class AssetLibrary : IAssetLibrary
         var door = new Node3D();
         door.AddChild(GetDebugBoxVisual(config.MapSize, config.MapColor, alpha: 1));
         var sounds = new CueSounds();
-        sounds.AddChild(CueSound(EntityCue.DoorOpened, "res://assets/player_sounds/844890__dan2008__critical-error.wav"));
-        sounds.AddChild(CueSound(EntityCue.DoorClosed, "res://assets/weapon_sounds/341666__jeremysykes__electricity00.wav"));
+        sounds.AddChild(CueSound(EntityCue.DoorOpened, "res://assets/entity_sfx/door/door_open.wav"));
+        sounds.AddChild(CueSound(EntityCue.DoorClosed, "res://assets/entity_sfx/door/door_close.wav"));
         door.AddChild(sounds);
         return door;
     }

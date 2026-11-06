@@ -267,7 +267,7 @@ public partial class WorldNode : Node3D
     private static Entity CreateVerticalDoor(EntityConfig.VerticalDoor config, Node3D? visual)
     {
         var door = new Entity(BodyTuning.VerticalDoor(config.MapSize), visual) { Freeze = true };
-        door.Controller = new VerticalDoorController(door, config.StartsClosed);
+        door.Controller = new VerticalDoorController(door, config.StartsClosed());
         return door;
     }
 

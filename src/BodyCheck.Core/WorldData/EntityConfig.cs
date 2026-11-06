@@ -129,11 +129,13 @@ public abstract record EntityConfig
         public override EntityConfig MovedBy(Vector2I offset) =>
             this with { MapOrigin = MapOrigin + offset, OpenStop = OpenStop + offset, CloseStop = CloseStop + offset };
 
-        /// <summary>
-        /// Whether the door starts closed: whether its box starts touching its close stop. Anywhere else it starts
-        /// open, so that it closes when asked.
-        /// </summary>
-        public bool StartsClosed => CloseStop.Y == MapOrigin.Y - 1;
+        /// <summary>Whether the door starts closed: whether its center is closer to the close stop than the open stop.</summary>
+        public bool StartsClosed()
+        {
+            var half = new Vector2(0.5f, 0.5f);
+            var center = MapOrigin + (Vector2)MapSize / 2;
+            return (CloseStop + half - center).LengthSquared() < (OpenStop + half - center).LengthSquared();
+        }
     }
 
     /// <summary>A place the player can start from, such as after a reload.</summary>
