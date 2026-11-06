@@ -20,7 +20,7 @@ The game's rules: those are Core's, which the game builds on and which knows not
 - **`look/`**: the low-resolution view, the colour pass and the tools for judging the rendering. See [rendering.md](../docs/designs/rendering.md).
 - [**`probes/`**](probes/architecture.md): scripted measurements, run headless.
 - [**`tests/`**](tests/architecture.md): the tests.
-- **`assets/`**: models, sounds and music. A model is a wrapper scene around an imported glTF file, with its origin at its base. See [models.md](../docs/designs/models.md).
+- **`assets/`**: models, sounds, music and fonts. The dialogue's font, its theme and the tofu font are in `assets/fonts/`, each font with its licence; see [dialogue.md](../docs/designs/dialogue.md). A model is a wrapper scene around an imported glTF file, with its origin at its base. See [models.md](../docs/designs/models.md).
 - **`dialogue/`**: Dialogue Manager's dialogue files, which a dialogue names without the directory or the extension. For now, only `debug`, which the debug key 2 presents. Dialogue Manager's editor plugin lists each in `project.godot` as a translation template, which is committed with the file.
 - **`levels/`**: the LDtk project whose worlds are the game's maps. Core's [`Levels`](../src/BodyCheck.Core/Levels/architecture.md) says what it must hold.
 - **`configurations/`**: the playtester's configurations, which [`main/`](main/architecture.md#playtesting) describes.

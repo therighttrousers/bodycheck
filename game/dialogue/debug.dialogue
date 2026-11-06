@@ -1,7 +1,7 @@
 ~ start
 
-Voice: ...can you... hear me?
-Voice: Please. We need your help. This line wraps, to show more than one.
+Voice: ...can you...[wait=0.5] hear me? [#garble=0.5]
+Voice: [speed=0.5]Please.[/speed] We need your help. This line wraps, to show more than one. [#garble=0.25]
 - Who is this?
 	Voice: No time to explain.
 - I'm listening.

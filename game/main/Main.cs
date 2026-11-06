@@ -222,7 +222,7 @@ public partial class Main : Node
     /// </summary>
     private async TickTask PresentDebugDialogue(ITick tick)
     {
-        await _dialogueBox.Present(tick, "debug", "start", garble: 0);
+        await _dialogueBox.Present(tick, "debug", "start");
         GD.Print("The debug dialogue has ended.");
     }
 

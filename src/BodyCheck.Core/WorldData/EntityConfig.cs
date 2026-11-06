@@ -185,7 +185,5 @@ public abstract record EntityConfig
         public required string File { get; init; }
         /// <summary>The title in the file to present.</summary>
         public required string Title { get; init; }
-        /// <summary>The fraction of the glyphs shown garbled, from 0 to 1.</summary>
-        public required float Garble { get; init; }
     }
 }

@@ -29,7 +29,7 @@ What a runner holds is only what its kind needs to decide whether to run: what a
 
 ## Dialogue
 
-`IDialoguePresenter` is what presents dialogue, which the game implements with its dialogue backend, so that Core knows nothing of either (`043 §3.3`): given a tick, a dialogue file by name, a title in it and a garble, it returns a task that finishes when the dialogue ends. The game pauses for it at its own point in the tick. Nothing in Core presents dialogue yet: the `Dialogue` control entity's runner will.
+`IDialoguePresenter` is what presents dialogue, which the game implements with its dialogue backend, so that Core knows nothing of either (`043 §3.3`): given a tick, a dialogue file by name and a title in it, it returns a task that finishes when the dialogue ends. The game pauses for it at its own point in the tick. Nothing in Core presents dialogue yet: the `Dialogue` control entity's runner will.
 
 ## Open questions
 

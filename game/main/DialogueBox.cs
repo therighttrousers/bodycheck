@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 
+using BodyCheck.Core;
 using BodyCheck.Core.Scripts;
 using BodyCheck.Core.Tasks;
 
@@ -11,25 +12,31 @@ using Godot;
 namespace BodyCheck;
 
 /// <summary>
-/// The game's <see cref="IDialoguePresenter"/>, and a placeholder text box that shows the dialogue, in Godot's default
-/// font, from Dialogue Manager's files in <see cref="DialogueDirectory"/>. It belongs in the game's viewport, on a layer
-/// above the colour pass, along its bottom edge.
+/// The game's <see cref="IDialoguePresenter"/>, and the text box that shows the dialogue, from Dialogue Manager's files
+/// in <see cref="DialogueDirectory"/>, in the font and size of <see cref="ThemePath"/>. It belongs in the game's
+/// viewport, on a layer above the colour pass, along its bottom edge. The box itself is still a placeholder.
 /// <para>
 /// <see cref="Present"/> only queues the dialogue: <see cref="GameModeManager"/> starts each with
 /// <see cref="StartNext"/> at its own point in the tick, once it has paused the game for it, and goes back to playing
-/// once <see cref="IsPresenting"/> is false and nothing waits. Jump goes on to the next line, and up and down choose a
-/// response. When a dialogue ends, its task finishes, and what waits for it resumes in the next played tick.
+/// once <see cref="IsPresenting"/> is false and nothing waits. Each line types out, and its responses show once it
+/// has. Jump skips the typing, or once a line has typed out, goes on to the next, and up and down choose a response.
+/// When a dialogue ends, its task finishes, and what waits for it resumes in the next played tick.
 /// </para>
 /// <para>
 /// Dialogue Manager runs on Godot's frames and .NET's <c>Task</c>s, not on the world's tick: it fetches each line a
 /// frame or more after it is asked. That is fine for the box, which only draws, while the world is paused; only the
-/// end of a dialogue reaches the world, through a <see cref="TickCompletion"/>. The garble isn't drawn yet.
+/// end of a dialogue reaches the world, through a <see cref="TickCompletion"/>.
 /// </para>
 /// </summary>
 public partial class DialogueBox : CanvasLayer, IDialoguePresenter
 {
     private const string DialogueDirectory = "res://dialogue";
     private const string DialogueExtension = ".dialogue";
+    /// <summary>
+    /// The theme, whose default font and size the box's text is in. The font falls back to the tofu font for
+    /// <see cref="Garble.Tofu"/>. A locale with a font of its own would remap the theme.
+    /// </summary>
+    private const string ThemePath = "res://assets/fonts/dialogue_theme.tres";
 
     private readonly Queue<Request> _waiting = new();
     private Request? _current;
@@ -39,7 +46,7 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
     private int _response;
 
     private readonly Label _character = new();
-    private readonly Label _text = new() { AutowrapMode = TextServer.AutowrapMode.WordSmart };
+    private readonly GarbledDialogueLabel _text = new();
     private readonly VBoxContainer _responses = new();
 
     public DialogueBox()
@@ -50,6 +57,8 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
         var margin = new MarginContainer();
         margin.SetAnchorsPreset(Control.LayoutPreset.BottomWide);
         margin.GrowVertical = Control.GrowDirection.Begin;
+        // Every line's height comes from the theme's font, so that a locale's font sets it.
+        margin.Theme = GD.Load<Theme>(ThemePath);
         foreach (string side in new[] { "left", "right", "bottom" })
         {
             margin.AddThemeConstantOverride($"margin_{side}", 4);
@@ -75,6 +84,7 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
         lines.AddChild(_character);
         lines.AddChild(_text);
         lines.AddChild(_responses);
+        _text.FinishedTyping += ShowResponses;
     }
 
     /// <summary>Whether a dialogue waits for <see cref="StartNext"/>.</summary>
@@ -86,7 +96,7 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
     public override void _Ready() => ProcessMode = ProcessModeEnum.Always;
 
     /// <inheritdoc/>
-    public TickTask Present(ITick tick, string file, string title, float garble)
+    public TickTask Present(ITick tick, string file, string title)
     {
         TickCompletion completion = tick.NewCompletion();
         _waiting.Enqueue(new Request(file, title, completion));
@@ -111,7 +121,10 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
         Fetch(_current.Title);
     }
 
-    /// <summary>Fetches the line <paramref name="key"/> names, and shows it, or ends the dialogue if there is none.</summary>
+    /// <summary>
+    /// Fetches the line <paramref name="key"/> names, and shows it, garbled as its tag says, or ends the dialogue if
+    /// there is none. A garble tag that isn't valid fails the dialogue.
+    /// </summary>
     private async void Fetch(string key)
     {
         Request request = _current!;
@@ -135,25 +148,57 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
             End(null);
             return;
         }
+        try
+        {
+            _text.GarbleFraction = Garble.FractionOf(line.Tags);
+        }
+        catch (FormatException e)
+        {
+            End(new FormatException($"In the dialogue {request.File}, title {request.Title}: {e.Message}", e));
+            return;
+        }
         _line = line;
         _response = 0;
         ShowLine();
     }
 
+    /// <summary>Shows the line, and starts typing it out. Its responses show once it has.</summary>
     private void ShowLine()
     {
         _character.Text = _line!.Character;
         _character.Visible = _line.Character != "";
-        _text.Text = _line.Text;
+        _text.DialogueLine = _line;
+        ClearResponses();
+        _text.TypeOut();
+    }
+
+    private void ClearResponses()
+    {
         foreach (Node child in _responses.GetChildren())
         {
+            _responses.RemoveChild(child);
             child.QueueFree();
+        }
+    }
+
+    /// <summary>Shows the line's responses, with the chosen one marked.</summary>
+    private void ShowResponses()
+    {
+        ClearResponses();
+        if (_line is null)
+        {
+            return;
         }
         for (int i = 0; i < _line.Responses.Count; i++)
         {
-            _responses.AddChild(new Label
+            _responses.AddChild(new RichTextLabel
             {
-                Text = (i == _response ? "> " : "  ") + _line.Responses[i].Text,
+                FitContent = true,
+                BbcodeEnabled = true,
+                Text =
+                    (i == _response ? "> [u]" : "[color=transparent]>[/color] ") +
+                    _line.Responses[i].Text +
+                    (i == _response ? "[/u]" : ""),
                 Modulate = _line.Responses[i].IsAllowed ? Colors.White : Colors.Gray,
             });
         }
@@ -166,6 +211,8 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
         _current = null;
         _resource = null;
         _line = null;
+        _text.DialogueLine = null;
+        ClearResponses();
         if (failure is null)
         {
             request.Completion.Finish();
@@ -195,8 +242,8 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
     }
 
     /// <summary>
-    /// Goes on from the line shown: to the next line, or the chosen response's, if it is allowed. Does nothing while
-    /// no line is shown.
+    /// Skips the typing of the line shown, running its inline mutations that are left; or once it has typed out, goes
+    /// on from it: to the next line, or the chosen response's, if it is allowed. Does nothing while no line is shown.
     /// </summary>
     public void Advance()
     {
@@ -204,7 +251,11 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
         {
             return;
         }
-        if (_line.Responses.Count == 0)
+        if (_text.IsTyping)
+        {
+            _text.SkipTyping();
+        }
+        else if (_line.Responses.Count == 0)
         {
             Fetch(_line.NextId);
         }
@@ -217,12 +268,12 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
     /// <summary>Chooses the response <paramref name="step"/> after the chosen one, wrapping around.</summary>
     private void ChooseResponse(int step)
     {
-        if (_line is null || _line.Responses.Count == 0)
+        if (_line is null || _line.Responses.Count == 0 || _text.IsTyping)
         {
             return;
         }
         _response = Mathf.PosMod(_response + step, _line.Responses.Count);
-        ShowLine();
+        ShowResponses();
     }
 
     private sealed record Request(string File, string Title, TickCompletion Completion);

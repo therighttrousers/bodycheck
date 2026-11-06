@@ -102,8 +102,7 @@
 						{ "__identifier": "DialogueTitle", "__type": "String", "__value": "BeforeDoorCloses", "__tile": null, "defUid": 247, "realEditorValues": [{
 							"id": "V_String",
 							"params": ["BeforeDoorCloses"]
-						}] },
-						{ "__identifier": "Garble", "__type": "Float", "__value": 0, "__tile": null, "defUid": 248, "realEditorValues": [] }
+						}] }
 					],
 					"__worldX": 16,
 					"__worldY": 48

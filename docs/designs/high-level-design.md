@@ -16,6 +16,7 @@ Relevant decision records:
 - [progression.md](progression.md): abilities, world changes, water, in the order the player meets them.
 - [rendering.md](rendering.md): the low-resolution pipeline, the palette, and the tools for judging them.
 - [models.md](models.md): what a 3D model must be, how the game places it, and the animation interface between code and art.
+- [dialogue.md](dialogue.md): how dialogue is written, shown, garbled and translated.
 - [story.md](story.md): story introduction, themes, tensions, setting, story beats, climax, and dialogue guidance.
 - [characters.md](characters.md): characters that populate the game world.
 

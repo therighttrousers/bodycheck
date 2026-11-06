@@ -101,7 +101,6 @@ public class WorldTest
         MapColor = Colors.White,
         File = "File",
         Title = "Title",
-        Garble = 0,
     };
 
     private static EntityConfig.Trigger Trigger(string target, TriggerAction action = TriggerAction.Default) => new()
