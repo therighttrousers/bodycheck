@@ -45,5 +45,5 @@ The Voice's broken lines are garbled when they are shown, not as written: writer
 - Fonts for other locales: Fusion Pixel's other versions, or others such as Ark Pixel or Unifont; licences and quality to be checked (`044 §4.1`). How many lines a box holds in each locale.
 - Translation keys: static IDs as keys, with an English translation file, or English text as keys (`044 §5.3`). Speaker names are extracted for translation, but the box doesn't yet translate them (`044 §1.4`).
 - Garble tags are checked only when their line is shown. A test could check every dialogue file's tags, as it could check translation keys.
-- `TheCall` and `Prologue`, which the levels present, are placeholders until the first slice's writing.
+- `TheCall`, which the levels present, is a placeholder until the first slice's writing.
 - Inline mutations run as the line types out, but no dialogue has one yet, so it is untested in the game.
