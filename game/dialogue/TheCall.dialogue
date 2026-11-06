@@ -1,0 +1,17 @@
+~ Plea1
+
+Voice: Placeholder: the Voice's first plea, the most garbled. [#garble=0.75]
+
+=> END
+
+~ Plea2
+
+Voice: Placeholder: the Voice's second plea, clearer. [#garble=0.5]
+
+=> END
+
+~ Plea3
+
+Voice: Placeholder: the Voice's third plea, clearer still. [#garble=0.25]
+
+=> END

@@ -1,0 +1,16 @@
+[remap]
+
+importer="dialogue_manager"
+importer_version=18
+type="Resource"
+uid="uid://d2kmed5wkim4n"
+path="res://.godot/imported/TheCall.dialogue-f7e4d61eb1af2438d4a69079f8ff3597.tres"
+
+[deps]
+
+source_file="res://dialogue/TheCall.dialogue"
+dest_files=["res://.godot/imported/TheCall.dialogue-f7e4d61eb1af2438d4a69079f8ff3597.tres"]
+
+[params]
+
+defaults=true

@@ -15,4 +15,11 @@ public interface IDialoguePresenter
     /// <param name="tick">The tick that what waits for the dialogue resumes on.</param>
     /// <param name="file">The dialogue file, by its name, without a directory or an extension.</param>
     TickTask Present(ITick tick, string file, string title);
+
+    /// <summary>
+    /// Whether the dialogue file <paramref name="file"/> exists and holds the title <paramref name="title"/>, so that
+    /// a world can check its dialogues when it is built, not when they are presented.
+    /// </summary>
+    /// <param name="file">The dialogue file, by its name, as <see cref="Present"/> takes it.</param>
+    bool Holds(string file, string title);
 }

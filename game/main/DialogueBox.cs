@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 using BodyCheck.Core;
 using BodyCheck.Core.Scripts;
@@ -142,14 +143,26 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
             throw new InvalidOperationException("A dialogue is already being presented.");
         }
         _current = _waiting.Dequeue();
-        string path = $"{DialogueDirectory}/{_current.File}{DialogueExtension}";
-        _resource = ResourceLoader.Exists(path) ? GD.Load<Resource>(path) : null;
+        _resource = Load(_current.File);
         if (_resource is null)
         {
-            End(new System.IO.FileNotFoundException($"There is no dialogue file {path}."));
+            End(new System.IO.FileNotFoundException($"There is no dialogue file {PathOf(_current.File)}."));
             return;
         }
         Fetch(_current.Title);
+    }
+
+    /// <inheritdoc/>
+    public bool Holds(string file, string title) =>
+        Load(file) is Resource resource && resource.Call("get_cues").AsStringArray().Contains(title);
+
+    private static string PathOf(string file) => $"{DialogueDirectory}/{file}{DialogueExtension}";
+
+    /// <summary>The dialogue file <paramref name="file"/> names, or null if there is none.</summary>
+    private static Resource? Load(string file)
+    {
+        string path = PathOf(file);
+        return ResourceLoader.Exists(path) ? GD.Load<Resource>(path) : null;
     }
 
     /// <summary>
