@@ -288,6 +288,79 @@
 					],
 					"__worldX": -96,
 					"__worldY": 32
+				},
+				{
+					"__identifier": "Trigger",
+					"__grid": [3,5],
+					"__pivot": [0,0],
+					"__tags": ["Control"],
+					"__tile": null,
+					"__smartColor": "#D7CF43",
+					"iid": "0e223010-bde0-11f1-a315-c15e5d279e84",
+					"width": 48,
+					"height": 48,
+					"defUid": 237,
+					"px": [48,80],
+					"fieldInstances": [
+						{ "__identifier": "Target", "__type": "EntityRef", "__value": {
+							"entityIid": "14d19d10-bde0-11f1-a315-65b4c7b7dcb8",
+							"layerIid": "6aa1dfc1-bde0-11f1-a170-2f753f312d69",
+							"levelIid": "6aa1dfc0-bde0-11f1-a170-f914bfc3ae23",
+							"worldIid": "0f349180-bde0-11f1-b046-a5531090d1ba"
+						}, "__tile": null, "defUid": 240, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["14d19d10-bde0-11f1-a315-65b4c7b7dcb8"]
+						}] },
+						{ "__identifier": "Action", "__type": "LocalEnum.TriggerAction", "__value": "Default", "__tile": null, "defUid": 242, "realEditorValues": [] }
+					],
+					"__worldX": -912,
+					"__worldY": 80
+				},
+				{
+					"__identifier": "Once",
+					"__grid": [3,3],
+					"__pivot": [0,0],
+					"__tags": ["Control"],
+					"__tile": null,
+					"__smartColor": "#3E2731",
+					"iid": "14d19d10-bde0-11f1-a315-65b4c7b7dcb8",
+					"width": 16,
+					"height": 16,
+					"defUid": 261,
+					"px": [48,48],
+					"fieldInstances": [
+						{ "__identifier": "Target", "__type": "EntityRef", "__value": {
+							"entityIid": "16f1e500-bde0-11f1-a315-154ba4d4dfb8",
+							"layerIid": "6aa1dfc1-bde0-11f1-a170-2f753f312d69",
+							"levelIid": "6aa1dfc0-bde0-11f1-a170-f914bfc3ae23",
+							"worldIid": "0f349180-bde0-11f1-b046-a5531090d1ba"
+						}, "__tile": null, "defUid": 262, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["16f1e500-bde0-11f1-a315-154ba4d4dfb8"]
+						}] },
+						{ "__identifier": "Action", "__type": "LocalEnum.TriggerAction", "__value": "Default", "__tile": null, "defUid": 263, "realEditorValues": [] }
+					],
+					"__worldX": -912,
+					"__worldY": 48
+				},
+				{
+					"__identifier": "Script",
+					"__grid": [5,3],
+					"__pivot": [0,0],
+					"__tags": ["Control"],
+					"__tile": null,
+					"__smartColor": "#733E39",
+					"iid": "16f1e500-bde0-11f1-a315-154ba4d4dfb8",
+					"width": 16,
+					"height": 16,
+					"defUid": 259,
+					"px": [80,48],
+					"fieldInstances": [{ "__identifier": "ClassName", "__type": "String", "__value": "RunRightOffLedge", "__tile": null, "defUid": 260, "realEditorValues": [{
+						"id": "V_String",
+						"params": ["RunRightOffLedge"]
+					}] }],
+					"__worldX": -880,
+					"__worldY": 48
 				}
 			]
 		},
@@ -317,7 +390,7 @@
 			"entityInstances": [
 				{
 					"__identifier": "PlayerStart",
-					"__grid": [11,7],
+					"__grid": [4,6],
 					"__pivot": [0,0],
 					"__tags": ["Character"],
 					"__tile": null,
@@ -326,10 +399,10 @@
 					"width": 16,
 					"height": 32,
 					"defUid": 202,
-					"px": [176,112],
+					"px": [64,96],
 					"fieldInstances": [],
-					"__worldX": -784,
-					"__worldY": 112
+					"__worldX": -896,
+					"__worldY": 96
 				}
 			]
 		},

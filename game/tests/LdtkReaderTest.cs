@@ -232,13 +232,21 @@ public class LdtkReaderTest
         AssertThat((readDialogue.File, readDialogue.Title)).IsEqual(("File", "Title"));
     }
 
+    [TestCase]
+    public void Reads_a_script_by_its_class_name()
+    {
+        string script = Control("Script", "script", """{ "__identifier": "ClassName", "__value": "RunRight" }""");
+        World world = ReadOne(Project(Level(0, 0, PlayerStart, control: script)));
+
+        AssertThat(((EntityConfig.Script)world.ConfigsById["script"]).ClassName).IsEqual("RunRight");
+    }
+
     public static IEnumerable<string> BadControlEntities =>
     [
         Sequence(Ref("dialogue"), "\"Default\", \"Default\""), // More actions than targets
         Sequence(Ref("dialogue"), "\"Shout\""), // Not an action
         Sequence("null", "\"Default\""), // A target with no value
         Sequence(Ref("door"), "\"Default\""), // An action the door doesn't respond to
-        Control("Script", "script", """{ "__identifier": "FullyQualifiedClassName", "__value": "A.B" }"""),
     ];
 
     [TestCase]

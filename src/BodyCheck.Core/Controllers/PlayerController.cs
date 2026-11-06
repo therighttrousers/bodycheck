@@ -56,6 +56,12 @@ public sealed class PlayerController : IController<PlayerEntity>
     /// <summary>Keeps the world, which gives the player's input, and the block the player spawns.</summary>
     public void Ready(IWorldView world) => _world = world;
 
+    /// <summary>
+    /// What a script presses for the player, which the controller acts on in a cutscene in place of the player's input.
+    /// It goes back to none when a cutscene ends, so that a script can't leave the player running.
+    /// </summary>
+    public PlayerInput ScriptedInput { get; set; }
+
     /// <summary>The phase being aimed, if any: see <see cref="PhaseAction.Aim"/>.</summary>
     public PhaseAction.PhaseAim? Phase => _phase.Aim;
 
@@ -123,18 +129,20 @@ public sealed class PlayerController : IController<PlayerEntity>
     }
 
     /// <summary>
-    /// The player's input this tick: the world's <see cref="IWorldView.PlayerInput"/>, or none in a cutscene, so that the
-    /// player comes to rest while the world runs. Scripted input for cutscenes may come from here later.
+    /// The player's input this tick: the world's <see cref="IWorldView.PlayerInput"/>, or in a cutscene,
+    /// <see cref="ScriptedInput"/>, which is none unless a script sets it, so that the player comes to rest while the
+    /// world runs.
     /// </summary>
     private PlayerInput GetInput() =>
-        _world.GameMode is GameMode.Cutscene ? default : _world.PlayerInput;
+        _world.GameMode is GameMode.Cutscene ? ScriptedInput : _world.PlayerInput;
 
     /// <summary>
     /// At the edges of a cutscene, makes what the controller remembers of the player's input fit the new mode. Entering
     /// one, it forgets every leniency timer and buffered press, so that nothing pressed before it, such as a direction
-    /// held while aiming a phase, acts during it. Leaving one, a button already held is not a new press, so that the
-    /// jump that ends a dialogue doesn't also jump: only presses made after the cutscene count. Only at the edges, so
-    /// that a script that runs and jumps the player during a cutscene keeps its own.
+    /// held while aiming a phase, acts during it, and counts no button as held, so that a script's first press counts.
+    /// Leaving one, a button already held is not a new press, so that the jump that ends a dialogue doesn't also jump:
+    /// only presses made after the cutscene count; and the scripted input goes back to none. Only at the edges, so that
+    /// a script that runs and jumps the player during a cutscene keeps its own.
     /// </summary>
     public void GameModeChanged(GameMode from, GameMode to)
     {
@@ -144,12 +152,15 @@ public sealed class PlayerController : IController<PlayerEntity>
             _directionTimeLeft = 0;
             _groundTimeLeft = 0;
             _jumpBufferLeft = 0;
+            _jumpWasHeld = false;
+            _spawnWasHeld = false;
         }
         else if (from is GameMode.Cutscene && to is not GameMode.Cutscene)
         {
             PlayerInput input = _world.PlayerInput;
             _jumpWasHeld = input.JumpHeld;
             _spawnWasHeld = input.SpawnHeld;
+            ScriptedInput = default;
         }
     }
 

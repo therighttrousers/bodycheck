@@ -27,10 +27,11 @@ namespace BodyCheck;
 /// partway through the slowdown.
 /// </para>
 /// <para>
-/// When a dialogue waits in the <see cref="Dialogue"/> box, from playing or slowing for a phase, the mode is
-/// <see cref="GameMode.Cutscene"/>, at once and at full speed, and this starts each waiting dialogue in turn. The world
-/// runs, and the game gives the player's controller no input, so the player comes to rest. When no dialogue is left,
-/// play resumes.
+/// When a dialogue waits in the <see cref="Dialogue"/> box, or the <see cref="World"/> asks for a cutscene, such as for a
+/// script, from playing or slowing for a phase, the mode is <see cref="GameMode.Cutscene"/>, at once and at full speed,
+/// and this starts each waiting dialogue in turn. The world runs, and the player's controller acts on no input but a
+/// script's, so the player comes to rest unless a script drives it. When no dialogue is left and the world no longer
+/// asks, play resumes.
 /// </para>
 /// <para>
 /// The engine's time scale is the factor times <see cref="Features.GameplaySpeed"/>, set each physics tick, so that a
@@ -119,23 +120,22 @@ public partial class GameModeManager : Node
 
     public override void _PhysicsProcess(double delta)
     {
-        // Before the phase, so that a dialogue asked for while slowing for one stops the slowdown.
-        if (Dialogue is not null)
+        // Before the phase, so that a cutscene asked for while slowing for one stops the slowdown.
+        bool cutsceneRequested = World?.CutsceneRequested ?? false;
+        bool dialogueWaiting = Dialogue?.HasWaiting ?? false;
+        if (GameMode is GameMode.Playing or GameMode.SlowingForPhase && (dialogueWaiting || cutsceneRequested))
         {
-            if (GameMode is GameMode.Playing or GameMode.SlowingForPhase && Dialogue.HasWaiting)
+            SetGameModeState(GameModeState.Cutscene);
+        }
+        if (GameMode == GameMode.Cutscene && !(Dialogue?.IsPresenting ?? false))
+        {
+            if (dialogueWaiting)
             {
-                SetGameModeState(GameModeState.Cutscene);
+                Dialogue!.StartNext();
             }
-            if (GameMode == GameMode.Cutscene && !Dialogue.IsPresenting)
+            else if (!cutsceneRequested)
             {
-                if (Dialogue.HasWaiting)
-                {
-                    Dialogue.StartNext();
-                }
-                else
-                {
-                    SetGameModeState(GameModeState.Playing);
-                }
+                SetGameModeState(GameModeState.Playing);
             }
         }
 

@@ -7,6 +7,7 @@ Relevant decision records:
 - [046: Actions as async methods](../../../docs/decision-records/046-async-actions.md)
 - [049: Doors and their stops](../../../docs/decision-records/049-doors-and-stops.md)
 - [050: The cutscene mode](../../../docs/decision-records/050-cutscene-mode.md)
+- [051: The scripted run at the spawn](../../../docs/decision-records/051-scripted-run-at-the-spawn.md)
 
 ## What it is
 
@@ -29,7 +30,7 @@ What a controller makes its entity do, which another controller could make its o
 - An action is built with its tuning, a record of functions with no arguments, each of which reads a feature from `Features.Current` when called, so that each controller tunes it with its own features: the player's phasing is tuned by `PhaseTuning.Player` (`035 §3.1`). A robot's running is tuned to have no drive in the air, where the player's has its own forces, which it also uses for a moment after leaving the ground.
 - A behaviour, such as a robot's `PatrolBehaviour`, is shaped the same way, but decides intent for the controller rather than acting: it only reads its entity (`035 §10.1`, `§10.3`).
 - The player's coyote time, buffered press and buffered direction for phasing stay in its controller: they are leniency for its fingers, and coyote time also says when it runs with its forces for the ground. An action is given what the controller means, such as the direction to phase in, which may be one let go of just now (`050 §1.5`).
-- In a cutscene, the player's controller acts on no input (`050 §1.2`). At the cutscene's edges, in `GameModeChanged`, it makes what it remembers of the input fit: entering one, it clears its leniency timers and buffered presses, so that nothing pressed before the cutscene acts during it; leaving one, a button already held isn't a new press, so the jump that ends a dialogue doesn't jump. Only at the edges, so that a script that runs and jumps the player keeps its own (`050 §1.5`, `§4.3`). Actions don't know the game's mode, so that scripts can drive them in cutscenes.
+- In a cutscene, the player's controller acts on its `ScriptedInput`, which a script sets, and which is none unless one does, so that the player otherwise comes to rest (`050 §1.2`, `051 §3.3`). At the cutscene's edges, in `GameModeChanged`, it makes what it remembers of the input fit: entering one, it clears its leniency timers and buffered presses, so that nothing pressed before the cutscene acts during it, and counts no button as held, so that a script's first press counts; leaving one, a button already held isn't a new press, so the jump that ends a dialogue doesn't jump, and the scripted input goes back to none, so that a script can't leave the player running. Only at the edges, so that a script that runs and jumps the player keeps its own (`050 §1.5`, `§4.3`). Actions don't know the game's mode, so that scripts can drive them in cutscenes.
 
 ## Responding to a route's actions
 

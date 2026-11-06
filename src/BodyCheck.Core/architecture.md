@@ -23,6 +23,7 @@ Relevant decision records:
 - [048: Triggers set off by touch](../../docs/decision-records/048-touch.md)
 - [049: Doors and their stops](../../docs/decision-records/049-doors-and-stops.md)
 - [050: The cutscene mode](../../docs/decision-records/050-cutscene-mode.md)
+- [051: The scripted run at the spawn](../../docs/decision-records/051-scripted-run-at-the-spawn.md)
 
 ## What it is
 
@@ -44,13 +45,14 @@ Core is split into subsystems, each a subdirectory and a namespace (`012`). The 
 - [**`Levels`**](Levels/architecture.md): reading LDtk levels into the world's data. Not what a room means once read.
 - [**`Simulation`**](Simulation/architecture.md): the world brought to life, with its entities stepped each tick. Not presentation.
 - [**`Tasks`**](Tasks/architecture.md): tasks that resume only on a tick, and their scheduler. Not what runs on them, or when in a tick.
-- [**`Scripts`**](Scripts/architecture.md): what runs the control entities, which route actions to their targets. Not what a body does when an action reaches it.
+- [**`Scripts`**](Scripts/architecture.md): what runs the control entities, which route actions to their targets, and what a script is and sees. Not what a body does when an action reaches it, or the scripts themselves.
 
 ```mermaid
 graph BT
     Controllers --> Entities
     Entities --> Tasks
     Levels --> WorldData
+    Scripts --> Controllers
     Scripts --> Entities
     Scripts --> Tasks
     Simulation --> WorldData
@@ -65,8 +67,9 @@ An arrow points from a subsystem to one it uses. Every subsystem may use the roo
 - **Controllers use entities** through what a body offers: forces, impulses, motors and queries, and through `IWorldView`, what they can see of the world beyond their entity. Entities know nothing of controllers beyond the interfaces they define for them, so a controller doesn't know where its entity is in a room or how it got there.
 - **Entities use tasks** for running an action: the interface that a route's target implements returns a `TickTask`, and is given the `ITick` to run on (`047 §2.2`).
 - **Scripts use entities and tasks** to run actions on their targets, through that interface alone, so a runner can't reach past it to a controller or a body (`043 §3.2`).
+- **Scripts use controllers** for the player's: a script drives the player with input on its controller, in a cutscene, through `IScriptWorld`, what a script sees of the world, which extends what controllers see (`051 §2.4`, `§3.3`).
 - **Levels produce the world's data.** The world's data knows nothing of where it came from.
-- **Simulation joins the rest.** It builds each entity from the world's data, gives it its controller, and steps it; none of the subsystems it uses know about it. It gives controllers the world itself, as an `IWorldView`.
+- **Simulation joins the rest.** It builds each entity from the world's data, gives it its controller, and steps it; none of the subsystems it uses know about it. It gives controllers the world itself, as an `IWorldView`, and scripts as an `IScriptWorld`.
 - **Simulation runs the world's tasks** on a scheduler of its own, at its point in the tick.
 - **Simulation builds the routes.** It builds a runner for each control entity from its configuration, and resolves each step to its target's runner or its body's controller, so that Scripts knows nothing of the world's data (`047 §2.3`).
 
@@ -79,6 +82,7 @@ The order of a tick is in [the conventions](../../docs/designs/architecture.md#c
 - **A controller can ask for the game to pause**, to decide something with everything else standing still: the player's does while a phase is aimed. While the game is paused for that, controllers run on a second path beside the normal one: the game calls `WorldNode.StepPaused`, which calls each `Entity.StepPaused`, which calls the controller's `ApplyPaused`. A controller asks through `RequestsPause`, which its entity passes on, and `WorldNode.PauseRequested` says whether any does. Both are default interface members that do nothing, so only controllers that pause have them. Nothing moves on this path but what controllers defer until after the entity steps: the engine doesn't step (`015 §5.10`). The game decides whether a tick is played or paused.
 - **Controllers get game time and real time.** `Apply` takes each tick's length on both clocks: game time, which the engine's time scale shortens, and real time, a physics tick's length whatever the scale. `ApplyPaused` takes real time only, since no game time passes. A timer that governs the world runs on game time, and one about the player's fingers on real time (`018 §1.1`, `§1.2`). A feature that is a duration on game time is given in game seconds, and one on real time in ticks at `Features.TuningTicksPerSecond`, converted by `Features.TicksToTime`, so that its unit tells its clock (`030 §2.6`).
 - **The world's tick runs tasks.** Running an action is awaitable, so that whatever ran it can wait until it finishes: a `TickTask`, which `WorldNode` resumes once in each played tick, after the entity steps and their deferred actions, before the engine's step, with waits on game time (`046 §1.2`). It is ours rather than .NET's `Task` or Godot's `ToSignal`, whose continuations run outside the world's tick: there the engine's queries fail, some changes to bodies are refused, forces would be applied as often as frames come, what runs while the tree is paused would move actions on behind the menu, and an exception wouldn't fail the tick (`043 §2.4`). A failed task fails the tick, as a failed entity step does.
+- **What runs in the world can ask for a cutscene**, as a controller asks for a pause: a script holds one through `IScriptWorld.HoldCutscene`, and `WorldNode.CutsceneRequested` says whether anything does. The game plays a cutscene while it is true, starting after the tick, so controllers see it from the next (`051 §3.1`, `§3.2`).
 - **Touches set off triggers just before the tasks run**, so that what a touch starts runs on in the same tick (`048 §1.4`).
 - **Actions that take several ticks are async methods.** A controller's response to an action may be an `async` method that returns a `TickTask`, given the world's `ITick` to wait on, such as a door's `Close`, which thrusts the door down until it stops, and freezes it. It runs where the world resumes tasks, after the entity steps and their deferred actions, so it changes bodies at once, with no `IDefer`. What a controller does every tick stays in `Apply` (`046 §1.1`, `§1.2`).
 - **Cues.** A controller says that something happened to its entity by raising a cue on it, which the entity passes on as an event. Logic knows no sounds or effects: whatever draws the entity reacts to cues. A cue names what happened, not the reaction, so that particles, one-shot animations and the like can react to the same cues later (`021 §1.3`).

@@ -277,7 +277,14 @@ public static class LdtkReader
                 File = fields.Read("DialogueFile", LdtkJsonContext.Default.String),
                 Title = fields.Read("DialogueTitle", LdtkJsonContext.Default.String),
             },
-            LdtkEntityName.Script => throw fields.Invalid("isn't supported yet."),
+            LdtkEntityName.Script => new EntityConfig.Script()
+            {
+                Id = id,
+                MapOrigin = origin,
+                MapSize = size,
+                MapColor = color,
+                ClassName = fields.Read("ClassName", LdtkJsonContext.Default.String),
+            },
         };
     }
 

@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using BodyCheck.Core.Levels;
 using BodyCheck.Core.Simulation;
 using BodyCheck.Core.WorldData;
+using BodyCheck.Scripts;
 
 using GdUnit4;
 
@@ -20,7 +21,7 @@ namespace BodyCheck.Tests;
 public class GameWorldsTest
 {
     [TestCase]
-    public async Task Builds_each_world_with_its_dialogues_and_routes_that_its_triggers_can_run()
+    public async Task Builds_each_world_with_its_dialogues_scripts_and_routes_that_its_triggers_can_run()
     {
         var tree = (SceneTree)Engine.GetMainLoop();
         string path = ProjectSettings.GlobalizePath("res://levels/main.ldtk");
@@ -29,8 +30,8 @@ public class GameWorldsTest
         {
             foreach (World world in LdtkReader.ReadWorlds(path, File.ReadAllText))
             {
-                // Building it checks that its dialogues name titles that their files hold.
-                var node = new WorldNode(world, new AssetLibrary(), dialogue: dialogue);
+                // Building it checks that its dialogues name titles that their files hold, and its scripts scripts.
+                var node = new WorldNode(world, new AssetLibrary(), dialogue: dialogue, scripts: new ScriptLibrary());
                 try
                 {
                     AssertArray(node.Triggers.Keys).ContainsExactlyInAnyOrder(

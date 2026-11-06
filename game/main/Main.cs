@@ -10,6 +10,7 @@ using BodyCheck.Core.WorldData;
 using BodyCheck.Look;
 #if TOOLS
 using BodyCheck.Probes;
+using BodyCheck.Scripts;
 #endif
 
 using Godot;
@@ -330,7 +331,8 @@ public partial class Main : Node
             world,
             _assets,
             respawnId: _respawnIds.GetValueOrDefault(world.Name),
-            dialogue: _dialogueBox)
+            dialogue: _dialogueBox,
+            scripts: new ScriptLibrary())
         {
             GameModeSource = () => _gameModeManager.GameMode,
         };
