@@ -414,11 +414,9 @@ public partial class WorldNode : Node3D, IWorldView
     public GameMode GameMode => GameModeSource?.Invoke() ?? GameMode.Playing;
 
     /// <summary>
-    /// The player's input this tick, from <see cref="PlayerInputSource"/>, or none in a cutscene, so that the player
-    /// comes to rest while the world runs.
+    /// The player's input this tick, from <see cref="PlayerInputSource"/>, or none if there is no source.
     /// </summary>
-    public PlayerInput PlayerInput =>
-        GameMode == GameMode.Cutscene ? default : PlayerInputSource?.Invoke() ?? default;
+    public PlayerInput PlayerInput => PlayerInputSource?.Invoke() ?? default;
 
     /// <summary>
     /// The world's tick, for the tasks of what runs in it, such as actions: what awaits it resumes in each played tick,

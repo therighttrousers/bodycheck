@@ -27,6 +27,11 @@ public sealed class PlayerController : IController<PlayerEntity>
     private float _groundTimeLeft;
     // In real time: how much longer the last press of jump counts, so that pressing it just before landing jumps.
     private float _jumpBufferLeft;
+    // The direction for phasing: the one held, or the last one held while _directionTimeLeft > 0.
+    private Vector3 _direction;
+    // In real time: how much longer the last direction held still counts for phasing, once let go of, so that letting go
+    // of it just before releasing phase, or with it, still phases that way.
+    private float _directionTimeLeft;
     private bool _spawnWasHeld;
 
     // The current time in the air, for telemetry: where the feet were on the last tick on the ground.
@@ -63,7 +68,7 @@ public sealed class PlayerController : IController<PlayerEntity>
     /// </summary>
     public void ApplyPaused(float realDt, IDefer defer)
     {
-        PlayerInput input = _world.PlayerInput;
+        PlayerInput input = GetInput();
         ApplyPhase(input, 0, realDt, defer);
         _jumpWasHeld = input.JumpHeld;
         _spawnWasHeld = input.SpawnHeld;
@@ -71,7 +76,7 @@ public sealed class PlayerController : IController<PlayerEntity>
 
     public void Apply(float gameDt, float realDt, IDefer defer)
     {
-        PlayerInput input = _world.PlayerInput;
+        PlayerInput input = GetInput();
         float move = Math.Clamp(input.XAxis, -1, 1);
 
         if (_entity.OnGround)
@@ -115,6 +120,27 @@ public sealed class PlayerController : IController<PlayerEntity>
         _jumpBufferLeft = Math.Max(0, _jumpBufferLeft - realDt);
         _jumpWasHeld = input.JumpHeld;
         _spawnWasHeld = input.SpawnHeld;
+    }
+
+    /// <summary>
+    /// The player's input this tick: the world's <see cref="IWorldView.PlayerInput"/>, or none in a cutscene, so that the
+    /// player comes to rest while the world runs. A cutscene also clears every leniency timer and buffered press, so that
+    /// nothing pressed before it, such as a direction held while aiming a phase, acts during it. Scripted input for
+    /// cutscenes may come from here later.
+    /// </summary>
+    private PlayerInput GetInput()
+    {
+        if (_world.GameMode is not GameMode.Cutscene)
+        {
+            return _world.PlayerInput;
+        }
+        _direction = Vector3.Zero;
+        _directionTimeLeft = 0;
+        _groundTimeLeft = 0;
+        _jumpBufferLeft = 0;
+        _jumpWasHeld = false;
+        _spawnWasHeld = false;
+        return new PlayerInput();
     }
 
     /// <summary>Reports the player's measurements to <see cref="Telemetry"/>, as of the engine's last step.</summary>
@@ -166,7 +192,7 @@ public sealed class PlayerController : IController<PlayerEntity>
     /// <param name="defer">An object that allows running actions later in the tick.</param>
     private PhaseOutcome ApplyPhase(PlayerInput input, float gameDt, float realDt, IDefer defer)
     {
-        PhaseOutcome outcome = _phase.Apply(input.PhaseHeld, DirectionHeld(input), gameDt, realDt, defer);
+        PhaseOutcome outcome = _phase.Apply(input.PhaseHeld, DirectionHeld(input, realDt), gameDt, defer);
         if (outcome is PhaseOutcome.Phased or PhaseOutcome.Cancelled)
         {
             // A phase ends a jump's thrust, coyote time and buffered press, and so does cancelling one: the aim took them.
@@ -177,11 +203,30 @@ public sealed class PlayerController : IController<PlayerEntity>
         return outcome;
     }
 
-    /// <summary>One of the eight directions, from the input, as a unit vector in the plane of play, or zero if none.</summary>
-    private static Vector3 DirectionHeld(PlayerInput input)
+    /// <summary>
+    /// The direction for phasing: one of the eight directions, from the input, as a unit vector in the plane of play,
+    /// or zero if none. Once a direction is let go of, it still counts for
+    /// <see cref="Features.PlayerPhaseDirectionBufferTicks"/>, for choosing a phase's target as well as for its
+    /// release.
+    /// </summary>
+    private Vector3 DirectionHeld(PlayerInput input, float realDt)
     {
         var held = new Vector2(input.XAxis, input.YAxis);
-        return held.Length() >= DirectionDeadZone ? Vector2.EightWay(held).ToVector3() : Vector3.Zero;
+        var direction = held.Length() >= DirectionDeadZone ? Vector2.EightWay(held).ToVector3() : Vector3.Zero;
+        if (direction != Vector3.Zero)
+        {
+            _direction = direction;
+            _directionTimeLeft = Features.TicksToTime(Features.Current.PlayerPhaseDirectionBufferTicks + 1); // +1 to include this tick
+        }
+        else
+        {
+            _directionTimeLeft = Math.Max(0, _directionTimeLeft - realDt);
+            if (_directionTimeLeft == 0)
+            {
+                _direction = Vector3.Zero;
+            }
+        }
+        return _direction;
     }
 
     /// <param name="jumps">Whether the entity jumps on this tick.</param>

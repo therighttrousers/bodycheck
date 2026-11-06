@@ -264,7 +264,7 @@ public class PhaseTest
 
     /// <summary>
     /// Letting go of the direction the given number of ticks before releasing phase, while the game runs or while it is
-    /// paused: within <see cref="Features.PlayerPhaseReleaseTicks"/>, the phase is made in that direction.
+    /// paused: within <see cref="Features.PlayerPhaseDirectionBufferTicks"/>, the phase is made in that direction.
     /// </summary>
     [TestCase(0, false)]
     [TestCase(0, true)]
@@ -278,7 +278,7 @@ public class PhaseTest
             "#..................#",
             "#..PR..............#",
             "####################");
-        AssertInt(ticksBefore).IsLess(Features.Current.PlayerPhaseReleaseTicks);
+        AssertInt(ticksBefore).IsLess(Features.Current.PlayerPhaseDirectionBufferTicks);
 
         await _run!.Tick(AimRight);
         Tree.Paused = paused;
@@ -302,7 +302,7 @@ public class PhaseTest
             "####################");
 
         await _run!.Tick(AimRight);
-        await _run.Tick(AimNowhere, Features.Current.PlayerPhaseReleaseTicks);
+        await _run.Tick(AimNowhere, Features.Current.PlayerPhaseDirectionBufferTicks);
         await _run.Tick(RoomRun.Idle, 2);
 
         AssertFloat(player.Position.X).IsLess(robot.Position.X);

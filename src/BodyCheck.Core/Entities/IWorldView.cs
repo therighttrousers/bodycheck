@@ -15,6 +15,6 @@ public interface IWorldView
     /// <summary>What the game is doing.</summary>
     GameMode GameMode { get; }
 
-    /// <summary>The player's input this tick: none in a cutscene.</summary>
+    /// <summary>What the player is pressing this tick, whatever the game's mode.</summary>
     PlayerInput PlayerInput { get; }
 }

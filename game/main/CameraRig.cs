@@ -18,8 +18,9 @@ namespace BodyCheck;
 /// the world, as far as the world is bigger than the view. The map's is far back, where it shows the whole world, and
 /// takes over in <see cref="GameMode.Map"/>.
 /// <para>
-/// The rig processes while the tree is paused, so that the camera can move to the map and back. The player doesn't
-/// look up or down while it's paused, or when the user is giving any other movement input.
+/// The rig processes while the tree is paused, so that the camera can move to the map and back. The player looks up
+/// or down only while playing, not while paused or in a cutscene, and not when the user is giving any other movement
+/// input.
 /// </para>
 /// </summary>
 public partial class CameraRig : Node3D
@@ -189,8 +190,7 @@ public partial class CameraRig : Node3D
         }
 
         float lookOffset;
-        PlayerInput input = _world.PlayerInput;
-        if (!GetTree().Paused && input.CanLook)
+        if (_world.GameMode == GameMode.Playing && _world.PlayerInput.CanLook)
         {
             // Delay for a bit, then slowly pan.
             if (_lookTween is null)
@@ -202,7 +202,7 @@ public partial class CameraRig : Node3D
                     .SetTrans(Tween.TransitionType.Quad)
                     .SetEase(Tween.EaseType.In);
             }
-            lookOffset = Mathf.Lerp(Lift, LookOffset * input.YAxis, _lookAmount);
+            lookOffset = Mathf.Lerp(Lift, LookOffset * _world.PlayerInput.YAxis, _lookAmount);
         }
         else
         {

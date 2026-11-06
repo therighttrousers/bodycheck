@@ -260,12 +260,13 @@ public sealed record Features
     public float PlayerPhaseCancelCooldownTime { get; init; } = 0.25f;
 
     /// <summary>
-    /// How long the last direction held while aiming a phase still counts once it is let go of, in ticks at
-    /// <see cref="TuningTicksPerSecond"/> of real time, counting the tick it is let go on. Releasing phase within it
-    /// phases in that direction, instead of cancelling. At 1, releasing both on the same tick phases; at 0, the
-    /// direction must still be held.
+    /// How long the last direction held still counts for phasing once it is let go of, in ticks at
+    /// <see cref="TuningTicksPerSecond"/> of real time, counting the tick it is let go on. Within it, the direction
+    /// chooses a phase's target as if it were held, and releasing phase phases in that direction, instead of
+    /// cancelling, whether it was let go of during the aim or just before it. At 1, releasing both on the same tick
+    /// phases; at 0, the direction must still be held.
     /// </summary>
-    public int PlayerPhaseReleaseTicks { get; init; } = 4;
+    public int PlayerPhaseDirectionBufferTicks { get; init; } = 4;
 
     /// <summary>What momentum a phase gives the player and the target. To be chosen by playing.</summary>
     public PhaseThrow PlayerPhaseThrow { get; init; } = PhaseThrow.Fixed;
