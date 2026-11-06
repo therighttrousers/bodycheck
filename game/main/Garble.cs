@@ -8,8 +8,9 @@ namespace BodyCheck;
 
 /// <summary>
 /// The garble of the Voice's broken lines: a fraction of a line's letters and digits replaced with <see cref="Tofu"/>,
-/// chosen from a seed, so that a line garbles the same way every time it is shown. A line is garbled only if its
-/// <see cref="Tag"/> says so.
+/// chosen from a seed and a step, so that a line garbles the same way every time it is shown. A line is garbled only if
+/// its <see cref="Tag"/> says so. A label shifts the garble by showing the line at each step in turn: the fraction
+/// garbled stays the same, but which glyphs are garbled changes, so that the whole line can be pieced together.
 /// </summary>
 public static class Garble
 {
@@ -57,12 +58,12 @@ public static class Garble
 
     /// <summary>
     /// Replaces <paramref name="fraction"/> of the letters and digits in <paramref name="text"/>, rounded to the nearest
-    /// whole glyph, with <see cref="Tofu"/>, chosen by <paramref name="seed"/>. Spaces and punctuation stay, so lines
-    /// wrap and pause as written, and so do BBCode tags. Each glyph is replaced by one codepoint, so a label's character
-    /// indices, by which Dialogue Manager places inline mutations, waits and speed changes, are the same in the garbled
-    /// text.
+    /// whole glyph, with <see cref="Tofu"/>, chosen by <paramref name="seed"/> and <paramref name="step"/>. Spaces and
+    /// punctuation stay, so lines wrap and pause as written, and so do BBCode tags. Each glyph is replaced by one
+    /// codepoint, so a label's character indices, by which Dialogue Manager places inline mutations, waits and speed
+    /// changes, are the same in the garbled text, at every step.
     /// </summary>
-    public static string Apply(string text, float fraction, string seed)
+    public static string Apply(string text, float fraction, string seed, int step)
     {
         Rune[] runes = text.EnumerateRunes().ToArray();
         int[] eligible = Eligible(runes);
@@ -71,10 +72,10 @@ public static class Garble
         {
             return text;
         }
-        // Each glyph gets a rank from the seed and its place, and the lowest ranked are garbled. A more garbled line
-        // garbles the same glyphs as a less garbled one, and more.
-        ulong seedHash = Fnv1a(seed);
-        foreach (int i in eligible.OrderBy(i => Mix(seedHash ^ (ulong)i)).Take(count))
+        // Each glyph gets a rank from the seed, the step and its place, and the lowest ranked are garbled. At each step, a
+        // more garbled line garbles the same glyphs as a less garbled one, and more.
+        ulong stepHash = Mix(Fnv1a(seed) ^ (ulong)step);
+        foreach (int i in eligible.OrderBy(i => Mix(stepHash ^ (ulong)i)).Take(count))
         {
             runes[i] = Tofu;
         }

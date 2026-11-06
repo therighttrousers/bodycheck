@@ -7,6 +7,6 @@ Voice: [speed=0.5]Please.[/speed] We need your help. This line wraps, to show mo
 - I'm listening.
 	Voice: Good.
 Voice: Bring us batteries. Five of them.
-Robot: Got it.
+B-CON: Got it.
 
 => END
