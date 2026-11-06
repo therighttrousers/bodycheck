@@ -33,7 +33,7 @@ public class AssetLibrary : IAssetLibrary
         EntityKind.Block => InstantiateModel(BlockPath),
         EntityKind.VerticalDoor => InstantiateDoor(config),
         EntityKind.Respawn or EntityKind.Trigger or EntityKind.Sequence or EntityKind.Fanout or EntityKind.Once
-            or EntityKind.Dialogue => null,
+            or EntityKind.Dialogue or EntityKind.Script => null,
     };
 
     public Node3D GetPlayerBlockVisual(Vector2 halfSize)

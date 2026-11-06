@@ -21,7 +21,7 @@ namespace BodyCheck.Core.Simulation;
 /// at the seams between shapes of one body, but not between bodies.
 /// </para>
 /// </summary>
-public partial class WorldNode : Node3D, IWorldView
+public partial class WorldNode : Node3D, IScriptWorld
 {
     /// <summary>
     /// The world's physics priority. What must step before the world in a tick or after it, such as whatever pauses it,
@@ -50,6 +50,11 @@ public partial class WorldNode : Node3D, IWorldView
     // Each trigger's area, in the order of the world's controls.
     private readonly List<TouchTrigger> _touchTriggers = [];
 
+    private readonly RunningScripts _runningScripts = new();
+
+    // The cutscene holds held, each once, whatever its request: see HoldCutscene.
+    private readonly HashSet<CutsceneHold> _cutsceneHolds = [];
+
     /// <param name="assets">What to draw for each entity and for tiles.</param>
     /// <param name="respawnId">
     /// The respawn the player starts at, which is then the current one. The player starts where the world says if this is
@@ -58,19 +63,22 @@ public partial class WorldNode : Node3D, IWorldView
     /// <param name="dialogue">
     /// What presents the world's dialogues, which needs one only if it has any.
     /// </param>
+    /// <param name="scripts">The scripts the world's <c>Script</c> entities run, which it needs only if it has any.</param>
     /// <exception cref="ArgumentException">
     /// The world has a dialogue, and there is no <paramref name="dialogue"/>, or its file doesn't exist or doesn't hold
-    /// its title.
+    /// its title; or it has a script, and there is no <paramref name="scripts"/>, or it doesn't hold the script.
     /// </exception>
     public WorldNode(
         World world,
         IAssetLibrary assets,
         BodyTuning? playerBody = null,
         string? respawnId = null,
-        IDialoguePresenter? dialogue = null)
+        IDialoguePresenter? dialogue = null,
+        IScriptLibrary? scripts = null)
     {
         // First, so that a world that fails builds no nodes.
         CheckDialogues(world, dialogue);
+        CheckScripts(world, scripts);
 
         World = world;
         CurrentRespawn = respawnId is null ? null : world.ConfigsById.GetValueOrDefault(respawnId) as EntityConfig.Respawn;
@@ -128,7 +136,7 @@ public partial class WorldNode : Node3D, IWorldView
                 EntityKind.VerticalDoor => CreateVerticalDoor((EntityConfig.VerticalDoor)config, assets.GetEntityVisual(config)),
 
                 EntityKind.Respawn or EntityKind.Trigger or EntityKind.Sequence or EntityKind.Fanout or EntityKind.Once
-                    or EntityKind.Dialogue => throw new UnreachableException($"A {config.Kind} has no body."),
+                    or EntityKind.Dialogue or EntityKind.Script => throw new UnreachableException($"A {config.Kind} has no body."),
             };
 
             EntityConfig startBox = config.Kind == EntityKind.Player && CurrentRespawn is not null ? CurrentRespawn : config;
@@ -157,7 +165,7 @@ public partial class WorldNode : Node3D, IWorldView
         Player.Controller = PlayerController;
 
         // Last, since a body's controller runs the actions routed to it.
-        Triggers = BuildRoutes(dialogue);
+        Triggers = BuildRoutes(dialogue, scripts);
 
         // In the order of the world's controls, so that triggers touched in the same tick are set off in a known order.
         foreach (EntityConfig.Trigger trigger in world.Controls.OfType<EntityConfig.Trigger>())
@@ -188,9 +196,9 @@ public partial class WorldNode : Node3D, IWorldView
     /// Builds what runs each control entity, with each step resolved to what runs its action, and returns the triggers'
     /// runners, by id. The world has checked that every route's target responds to its action, and that no route leads
     /// back to where it started, so each runner is built after its targets. The constructor has checked the world's
-    /// dialogues against <paramref name="dialogue"/>.
+    /// dialogues against <paramref name="dialogue"/>, and its scripts against <paramref name="scripts"/>.
     /// </summary>
-    private Dictionary<string, TriggerRunner> BuildRoutes(IDialoguePresenter? dialogue)
+    private Dictionary<string, TriggerRunner> BuildRoutes(IDialoguePresenter? dialogue, IScriptLibrary? scripts)
     {
         var bodies = new Dictionary<string, Entity>();
         for (int i = 0; i < World.Bodies.Count; i++)
@@ -214,7 +222,8 @@ public partial class WorldNode : Node3D, IWorldView
                 EntityConfig.Sequence sequence => new SequenceRunner(CallsOf(sequence.Steps)),
                 EntityConfig.Fanout fanout => new FanoutRunner(CallsOf(fanout.Steps)),
                 EntityConfig.Once once => new OnceRunner(CallOf(once.Step)),
-                EntityConfig.Dialogue lines => new DialogueRunner(dialogue!, lines.File, lines.Title),
+                EntityConfig.Dialogue lines => new DialogueRunner(dialogue!, this, lines.File, lines.Title),
+                EntityConfig.Script script => new ScriptRunner(scripts!, script.ClassName, this, _runningScripts),
                 // Not yet run: a respawn becomes current by reach.
                 EntityConfig.Respawn => FinishesAtOnce.Instance,
                 _ when config.Kind.HasBody => bodies[config.Id].Controller
@@ -259,6 +268,29 @@ public partial class WorldNode : Node3D, IWorldView
                 throw new ArgumentException(
                     $"The dialogue {config.Id} in the world {world.Name} presents the title {config.Title} of the "
                         + $"dialogue file {config.File}, which doesn't exist or doesn't hold it.",
+                    nameof(world));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Checks that each of the world's scripts names a script that <paramref name="scripts"/> holds, so that a wrong name
+    /// fails when the world is built, not when the script runs.
+    /// </summary>
+    private static void CheckScripts(World world, IScriptLibrary? scripts)
+    {
+        foreach (EntityConfig.Script config in world.Controls.OfType<EntityConfig.Script>())
+        {
+            if (scripts is null)
+            {
+                throw new ArgumentException(
+                    $"The world {world.Name} has a script, {config.Id}, and no script library to run it from.",
+                    nameof(scripts));
+            }
+            if (!scripts.Holds(config.ClassName))
+            {
+                throw new ArgumentException(
+                    $"The script {config.Id} in the world {world.Name} runs {config.ClassName}, which isn't a script.",
                     nameof(world));
             }
         }
@@ -406,6 +438,40 @@ public partial class WorldNode : Node3D, IWorldView
     /// starts a run.
     /// </summary>
     public event Action<EntityConfig.Trigger>? TriggerTouched;
+
+    /// <summary>The scripts the world is running, in the order they started.</summary>
+    public IReadOnlyList<IScript> RunningScripts => _runningScripts.All;
+
+    /// <inheritdoc/>
+    public IDisposable HoldCutscene(CutsceneRequest? request = null)
+    {
+        return new CutsceneHold(this, request ?? new CutsceneRequest());
+    }
+
+    /// <summary>
+    /// What the cutscene that anything running in the world holds, such as a script or a dialogue, asks of the game: the
+    /// join of every hold's request, or null if nothing holds one. The game plays a cutscene while this isn't null, and
+    /// presents it as the request says.
+    /// </summary>
+    public CutsceneRequest? CutsceneRequest =>
+        _cutsceneHolds.Count == 0 ? null : CutsceneRequest.JoinAll(_cutsceneHolds.Select(hold => hold.Request));
+
+    /// <summary>A hold on a cutscene, held from when it is made until it is disposed.</summary>
+    private sealed class CutsceneHold : IDisposable
+    {
+        private readonly WorldNode _world;
+
+        public CutsceneHold(WorldNode world, CutsceneRequest request)
+        {
+            _world = world;
+            Request = request;
+            _world._cutsceneHolds.Add(this);
+        }
+
+        public CutsceneRequest Request { get; }
+
+        public void Dispose() => _world._cutsceneHolds.Remove(this);
+    }
 
     /// <summary>Supplies the player's input, once per tick. The player stands idle if this is null.</summary>
     public Func<PlayerInput>? PlayerInputSource { get; set; }

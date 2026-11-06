@@ -22,7 +22,7 @@
 				"levelIid": "6aa1dfc0-bde0-11f1-a170-f914bfc3ae23",
 				"layerIid": "6aa1dfc2-bde0-11f1-a170-8b44d457842c",
 				"entityIid": "9cb9aa60-bde0-11f1-a170-05b3f2bcfd25"
-			}, "worldX": -784, "worldY": 112, "widPx": 16, "heiPx": 32, "fields" : {} },
+			}, "worldX": -896, "worldY": 96, "widPx": 16, "heiPx": 32, "fields" : {} },
 			{ "iids": {
 				"worldIid": "67b6f530-bde0-11f1-9940-abfb4b03d025",
 				"levelIid": "67b71c40-bde0-11f1-9940-6f80f1c6fca9",
@@ -1745,7 +1745,7 @@
 			"pivotY": 0,
 			"fieldDefs": [
 				{
-					"identifier": "FullyQualifiedClassName",
+					"identifier": "ClassName",
 					"doc": null,
 					"__type": "String",
 					"uid": 260,

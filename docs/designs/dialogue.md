@@ -4,6 +4,7 @@ Relevant decision records:
 - [043: Triggers, actions and scripts](../decision-records/043-triggers-and-scripts.md)
 - [044: Dialogue](../decision-records/044-dialogue.md)
 - [050: The cutscene mode](../decision-records/050-cutscene-mode.md)
+- [051: The scripted run at the spawn](../decision-records/051-scripted-run-at-the-spawn.md)
 
 How dialogue is written, shown and translated. What the characters say is in [story.md](story.md#dialogue); how the code is put together is in [`game/main/`](../../game/main/architecture.md#the-games-modes).
 
@@ -17,7 +18,7 @@ A level presents dialogue with a `Dialogue` control entity, which names a file, 
 
 ## The game while dialogue plays
 
-Dialogue plays in a cutscene, a mode of its own, which doesn't pause the game: the world runs, so the camera, animations and shaders keep going, and the player's controller gets no input, so the player lands, comes to rest and stands. The world goes on independently of the player's story, so a dialogue is placed where nothing in the world can harm the player. Sound isn't muffled, so that music could cue a dialogue. The menu and the map can be opened from it (`044 §2.1`, `050 §1.2`, `§1.3`, `§3.3`). A dialogue is presented at once: the player may land under the box (`050 §1.4`). Dialogue that plays without pausing, a callout, is a separate feature, for when one is needed (`044 §2.2`).
+Dialogue plays in a cutscene, a mode of its own, which doesn't pause the game: the world runs, so the camera, animations and shaders keep going, and the player's controller gets no input but a script's, so the player lands, comes to rest and stands, unless a script drives it (`051 §3.3`). The world goes on independently of the player's story, so a dialogue is placed where nothing in the world can harm the player. Sound isn't muffled, so that music could cue a dialogue. The menu and the map can be opened from it (`044 §2.1`, `050 §1.2`, `§1.3`, `§3.3`). A dialogue is presented at once: the player may land under the box (`050 §1.4`). Dialogue that plays without pausing, a callout, is a separate feature, for when one is needed (`044 §2.2`).
 
 ## The text box
 

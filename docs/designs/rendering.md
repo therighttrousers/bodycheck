@@ -28,9 +28,10 @@ The image is Mode X with modern lighting: 320x240 and 256 colours, as on a VGA c
 3. **Colour pass.** `ColorPass` covers the screen with a rectangle whose shader, `game/look/mode_x.gdshader`, reads what is behind it and writes each pixel back as a colour of the palette, with dither (`003 §3.3`, `004 §2.10`).
 4. **Scaling.** `WorldViewportContainer` scales the image to the window by the largest whole number that fits, with nearest-neighbour sampling, and fills the rest with black bars. The window starts at 1280x960, which is 4x.
 
-Besides the world, the game's viewport draws three placeholders, which are scaled with it (`039 §2.1`, `§2.3`):
+Besides the world, the game's viewport draws these, which are scaled with it, all but the letterbox placeholders (`039 §2.1`, `§2.3`):
 
 - `PhaseAimMarker`, the aim of a phase, is drawn over the world and under the colour pass, so it is dithered as part of the game's image. Its lines are sized in pixels at 320x240.
+- `Letterbox`, black bars across the top and bottom, which say that the player's control is taken away, is a canvas layer under the colour pass, so the bars are part of the game's image, under every overlay, in the palette's darkest colour. Each is 24 pixels high at 320x240, and they slide in or out in whole pixels over a quarter of a second of real time. They show in a cutscene whose holds ask for them, such as a script's that drives the player, and not in a dialogue's (`051 §3.6`).
 - `PauseMenuOverlay`, the menu, is a canvas layer above the colour pass, so the dither leaves it alone, and above the aim marker. It is laid out at the viewport's size and centred, so with low resolution off it is small but still centred.
 - `DialogueBox`, the text box, is a canvas layer above the colour pass, along the bottom edge of the viewport, in a pixel font at 10 pixels, aliased, laid out from the font's metrics (see [dialogue.md](dialogue.md#the-text-box)).
 

@@ -9,9 +9,9 @@ namespace BodyCheck.Core.Scripts;
 public interface IDialoguePresenter
 {
     /// <summary>
-    /// Presents the title <paramref name="title"/> of the dialogue file <paramref name="file"/>. The game plays a
-    /// cutscene for it, starting at its own point in the tick. The task finishes when the dialogue ends, and what waits
-    /// for it resumes in the world's next tick.
+    /// Presents the title <paramref name="title"/> of the dialogue file <paramref name="file"/>, after any dialogue
+    /// already presented or waiting. It plays no cutscene of its own: what presents it holds one, if it wants one. The
+    /// task finishes when the dialogue ends, and what waits for it resumes in the world's next tick.
     /// </summary>
     /// <param name="tick">The tick that what waits for the dialogue resumes on.</param>
     /// <param name="file">The dialogue file, by its name, without a directory or an extension.</param>

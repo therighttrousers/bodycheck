@@ -4,9 +4,9 @@ namespace BodyCheck.Core;
 /// <param name="XAxis">Horizontal input, from -1 (left) to 1 (right).</param>
 /// <param name="YAxis">Vertical input, from -1 (down) to 1 (up).</param>
 public readonly record struct PlayerInput(
-    float XAxis,
-    float YAxis,
-    bool JumpHeld,
+    float XAxis = 0,
+    float YAxis = 0,
+    bool JumpHeld = false,
     bool PhaseHeld = false,
     bool SpawnHeld = false)
 {

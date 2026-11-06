@@ -16,6 +16,7 @@ public enum EntityKind
     Fanout,
     Once,
     Dialogue,
+    Script,
 }
 
 /// <summary>What each kind of entity is: whether it has a body, and which actions it responds to.</summary>
@@ -40,7 +41,7 @@ public static class EntityKinds
             EntityKind.Player or EntityKind.Robot or EntityKind.Platform or EntityKind.Block or EntityKind.VerticalDoor
                 => true,
             EntityKind.Respawn or EntityKind.Trigger or EntityKind.Sequence or EntityKind.Fanout or EntityKind.Once
-                or EntityKind.Dialogue => false,
+                or EntityKind.Dialogue or EntityKind.Script => false,
         };
 
         /// <summary>
@@ -54,7 +55,7 @@ public static class EntityKinds
                 => None,
             EntityKind.VerticalDoor => OpenClose,
             EntityKind.Respawn or EntityKind.Sequence or EntityKind.Fanout or EntityKind.Once or EntityKind.Dialogue
-                => Default,
+                or EntityKind.Script => Default,
         };
     }
 }
@@ -185,5 +186,13 @@ public abstract record EntityConfig
         public required string File { get; init; }
         /// <summary>The title in the file to present.</summary>
         public required string Title { get; init; }
+    }
+
+    /// <summary>Runs a script, a new one for each run.</summary>
+    public sealed record Script : EntityConfig
+    {
+        public override EntityKind Kind => EntityKind.Script;
+        /// <summary>The script's class, by the name the game's script library knows it by.</summary>
+        public required string ClassName { get; init; }
     }
 }

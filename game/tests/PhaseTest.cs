@@ -455,9 +455,9 @@ public class PhaseTest
         AssertThat(_manager.GameMode).IsEqual(GameMode.Phasing);
         // It falls from the gameplay speed to the slowest factor times it, never above it.
         AssertThat(fastest).IsEqual(0.5);
-        AssertThat(slowest).IsBetween(0.5 * GameModeManager.SlowestSlowdownFactor, 0.25);
+        AssertThat(slowest).IsBetween(0.5 * GameModeState.SlowestSlowdownFactor, 0.25);
         await _run.Tick(AimRight);
-        AssertThat(Engine.TimeScale).IsEqual(0.5 * GameModeManager.SlowestSlowdownFactor);
+        AssertThat(Engine.TimeScale).IsEqual(0.5 * GameModeState.SlowestSlowdownFactor);
         await _run.Tick(RoomRun.Idle);
         AssertThat(Engine.TimeScale).IsEqual(0.5);
     }

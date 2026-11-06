@@ -16,11 +16,13 @@ namespace BodyCheck;
 /// The game's <see cref="IDialoguePresenter"/>, and the text box that shows the dialogue, from Dialogue Manager's files
 /// in <see cref="DialogueDirectory"/>, in the font and size of <see cref="ThemePath"/>. It belongs in the game's
 /// viewport, on a layer above the colour pass, along its bottom edge. Beside the line is the speaker's avatar, if they
-/// have one in <see cref="AvatarDirectory"/>. The box itself is still a placeholder.
+/// have one in <see cref="AvatarDirectory"/>. The box itself is still a placeholder. <see cref="Main"/> shows it only in a
+/// cutscene, and within that, it shows only while a dialogue is presented, so that a cutscene with no dialogue
+/// has no box.
 /// <para>
-/// <see cref="Present"/> only queues the dialogue: <see cref="GameModeManager"/> starts each with
-/// <see cref="StartNext"/> at its own point in the tick, in a cutscene, and goes back to playing
-/// once <see cref="IsPresenting"/> is false and nothing waits. Each line types out, and its responses show once it
+/// <see cref="Present"/> starts the dialogue at once if none is presented, and otherwise queues it, to start when the
+/// ones before it have ended. It holds no cutscene: what presents a dialogue holds one, as Core's dialogue runner does,
+/// so that the game's modes know nothing of dialogue. Each line types out, and its responses show once it
 /// has. Jump skips the typing, or once a line has typed out, goes on to the next, and up and down choose a response.
 /// When a dialogue ends, its task finishes, and what waits for it resumes in the world's next tick.
 /// </para>
@@ -63,22 +65,23 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
     private readonly Label _character = new();
     private readonly GarbledDialogueLabel _text = new();
     private readonly VBoxContainer _responses = new();
+    // Everything the box shows, which it shows only while a dialogue is presented.
+    private readonly MarginContainer _shown = new() { Visible = false };
 
     public DialogueBox()
     {
         Layer = 2; // Above the colour pass, so the dither leaves it alone.
         Visible = false;
 
-        var margin = new MarginContainer();
-        margin.SetAnchorsPreset(Control.LayoutPreset.BottomWide);
-        margin.GrowVertical = Control.GrowDirection.Begin;
+        _shown.SetAnchorsPreset(Control.LayoutPreset.BottomWide);
+        _shown.GrowVertical = Control.GrowDirection.Begin;
         // Every line's height comes from the theme's font, so that a locale's font sets it.
-        margin.Theme = GD.Load<Theme>(ThemePath);
+        _shown.Theme = GD.Load<Theme>(ThemePath);
         foreach (string side in new[] { "left", "right", "bottom" })
         {
-            margin.AddThemeConstantOverride($"margin_{side}", 4);
+            _shown.AddThemeConstantOverride($"margin_{side}", 4);
         }
-        AddChild(margin);
+        AddChild(_shown);
 
         var panel = new PanelContainer();
         panel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
@@ -90,7 +93,7 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
             ContentMarginBottom = 4,
             AntiAliasing = false,
         });
-        margin.AddChild(panel);
+        _shown.AddChild(panel);
 
         var row = new HBoxContainer();
         row.AddThemeConstantOverride("separation", 6);
@@ -119,9 +122,6 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
         _text.FinishedTyping += ShowResponses;
     }
 
-    /// <summary>Whether a dialogue waits for <see cref="StartNext"/>.</summary>
-    public bool HasWaiting => _waiting.Count > 0;
-
     /// <summary>Whether a dialogue has started and not yet ended.</summary>
     public bool IsPresenting => _current is not null;
 
@@ -130,17 +130,18 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
     {
         TickCompletion completion = tick.NewCompletion();
         _waiting.Enqueue(new Request(file, title, completion));
+        if (_current is null)
+        {
+            StartNext();
+        }
         return completion.Task;
     }
 
     /// <summary>Starts the dialogue that has waited longest. Only one is presented at a time.</summary>
-    public void StartNext()
+    private void StartNext()
     {
-        if (_current is not null)
-        {
-            throw new InvalidOperationException("A dialogue is already being presented.");
-        }
         _current = _waiting.Dequeue();
+        UpdateShown();
         _resource = Load(_current.File);
         if (_resource is null)
         {
@@ -266,11 +267,25 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
         {
             request.Completion.Fail(failure);
         }
+        if (_waiting.Count > 0)
+        {
+            StartNext();
+        }
+        else
+        {
+            UpdateShown();
+        }
     }
+
+    /// <summary>
+    /// Shows the box's contents while a dialogue is presented, so that a cutscene with no dialogue shows no box. The
+    /// next dialogue starts as the one before ends, so the box stays up between them.
+    /// </summary>
+    private void UpdateShown() => _shown.Visible = IsPresenting;
 
     public override void _UnhandledInput(InputEvent @event)
     {
-        if (!Visible)
+        if (!Visible || !_shown.Visible)
         {
             return;
         }

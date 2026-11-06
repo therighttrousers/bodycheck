@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 
 using BodyCheck.Core;
+using BodyCheck.Core.Scripts;
 using BodyCheck.Core.Simulation;
 using BodyCheck.Core.Tasks;
 using BodyCheck.Core.WorldData;
@@ -63,14 +64,14 @@ public class DialogueTest
         _box = new DialogueBox();
         Tree.Root.AddChild(_box);
         // Added after the world, as the game adds it.
-        _manager = new GameModeManager { World = _run.Node, Dialogue = _box };
+        _manager = new GameModeManager { World = _run.Node };
         Tree.Root.AddChild(_manager);
         await _run.Tick(RoomRun.Idle, 2);
 
         bool resumed = false;
         async TickTask Waits(ITick tick)
         {
-            await _box.Present(tick, "debug", "start");
+            await new DialogueRunner(_box, _run.Node, "debug", "start").Default(tick);
             resumed = true;
         }
         _ = Waits(_run.Node.Tick);
