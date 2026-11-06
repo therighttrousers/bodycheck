@@ -1,0 +1,16 @@
+[remap]
+
+importer="dialogue_manager"
+importer_version=18
+type="Resource"
+uid="uid://by0xuhucl0bnr"
+path="res://.godot/imported/debug.dialogue-49094ea0ef6688d7ffb94700a5eb4359.tres"
+
+[deps]
+
+source_file="res://dialogue/debug.dialogue"
+dest_files=["res://.godot/imported/debug.dialogue-49094ea0ef6688d7ffb94700a5eb4359.tres"]
+
+[params]
+
+defaults=true

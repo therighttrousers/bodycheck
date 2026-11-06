@@ -6,6 +6,7 @@ using BodyCheck.Core;
 using BodyCheck.Core.Controllers;
 using BodyCheck.Core.Levels;
 using BodyCheck.Core.Simulation;
+using BodyCheck.Core.Tasks;
 using BodyCheck.Core.WorldData;
 using BodyCheck.Look;
 #if TOOLS
@@ -42,7 +43,7 @@ namespace BodyCheck;
 /// name; "--probe=" and a probe's name to run that probe and quit, in the editor's build only; "--overlay" to start with the
 /// <see cref="DebugOverlay"/> showing; "--collisions" to start with the <see cref="CollisionDebug"/> showing; "--markers" to start with
 /// the world's <see cref="WorldNode.MapMarkers"/> showing. F2 switches the markers on and off, for every world loaded after, F3 the
-/// overlay, and F4 the collisions.
+/// overlay, and F4 the collisions. 2 presents the debug dialogue, which pauses the game (see <see cref="DialogueBox"/>).
 /// </para>
 /// </summary>
 public partial class Main : Node
@@ -67,6 +68,7 @@ public partial class Main : Node
     private readonly DebugOverlay _debugOverlay = new();
     private readonly ErrorOverlay _errorOverlay = new();
     private readonly PauseMenuOverlay _pauseMenuOverlay = new();
+    private readonly DialogueBox _dialogueBox = new();
     private CollisionDebug _collisions = null!;
     // Whether each world's map markers show, kept as worlds are loaded.
     private bool _showMapMarkers;
@@ -94,7 +96,13 @@ public partial class Main : Node
 
         _pauseMenuOverlay.Visible = false;
         _worldView.World.AddChild(_pauseMenuOverlay);
-        _gameModeManager.GameModeChanged += gameMode => _pauseMenuOverlay.Visible = gameMode == GameMode.Menu;
+        _worldView.World.AddChild(_dialogueBox);
+        _gameModeManager.Dialogue = _dialogueBox;
+        _gameModeManager.GameModeChanged += gameMode =>
+        {
+            _pauseMenuOverlay.Visible = gameMode == GameMode.Menu;
+            _dialogueBox.Visible = gameMode == GameMode.Dialogue;
+        };
 
         string? worldName = null;
         string? configurationName = null;
@@ -202,6 +210,20 @@ public partial class Main : Node
             _showMapMarkers = !_showMapMarkers;
             _world.MapMarkers.Visible = _showMapMarkers;
         }
+        else if (Input.IsActionJustPressed("debug_dialogue"))
+        {
+            _ = PresentDebugDialogue(_world.Tick);
+        }
+    }
+
+    /// <summary>
+    /// Presents the debug dialogue, and says when the world has resumed what waits for it, which is in the first played
+    /// tick after it ends.
+    /// </summary>
+    private async TickTask PresentDebugDialogue(ITick tick)
+    {
+        await _dialogueBox.Present(tick, "debug", "start", garble: 0);
+        GD.Print("The debug dialogue has ended.");
     }
 
     /// <summary>
@@ -305,7 +327,11 @@ public partial class Main : Node
     {
         _world?.QueueFree();
         Telemetry.Reset();
-        _world = new WorldNode(world, _assets, respawnId: _respawnIds.GetValueOrDefault(world.Name));
+        _world = new WorldNode(world, _assets, respawnId: _respawnIds.GetValueOrDefault(world.Name))
+        {
+            // The game's viewport processes always, so that its UI gets input while paused: the world must stop.
+            ProcessMode = ProcessModeEnum.Pausable,
+        };
         _world.MapMarkers.Visible = _showMapMarkers;
         _world.CurrentRespawnChanged += respawn =>
         {
@@ -443,6 +469,7 @@ public partial class Main : Node
             new InputEventKey { PhysicalKeycode = Key.Tab },
             new InputEventJoypadButton { ButtonIndex = JoyButton.Back });
         AddAction("map_markers", new InputEventKey { PhysicalKeycode = Key.F2 });
+        AddAction("debug_dialogue", new InputEventKey { PhysicalKeycode = Key.Key2 });
         AddAction("reload", new InputEventKey { PhysicalKeycode = Key.F5 });
         AddAction("previous_configuration", new InputEventKey { PhysicalKeycode = Key.Bracketleft });
         AddAction("next_configuration", new InputEventKey { PhysicalKeycode = Key.Bracketright });

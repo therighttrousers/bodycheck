@@ -14,6 +14,7 @@ Relevant decision records:
 - [024: Playtesting feedback](../decision-records/024-playtesting-feedback.md)
 - [038: Vertices on a grid, for the jitter of mid-1990s 3D](../decision-records/038-vertex-grid.md)
 - [039: Pausing for the menu and the map](../decision-records/039-modes-kept-across-pauses.md)
+- [044: Dialogue](../decision-records/044-dialogue.md)
 - [040: No vertex snap](../decision-records/040-no-vertex-snap.md)
 - [042: The camera clamped by tiles](../decision-records/042-camera-clamped-by-tiles.md)
 
@@ -26,10 +27,13 @@ The image is Mode X with modern lighting: 320x240 and 256 colours, as on a VGA c
 3. **Colour pass.** `ColorPass` covers the screen with a rectangle whose shader, `game/look/mode_x.gdshader`, reads what is behind it and writes each pixel back as a colour of the palette, with dither (`003 §3.3`, `004 §2.10`).
 4. **Scaling.** `WorldViewportContainer` scales the image to the window by the largest whole number that fits, with nearest-neighbour sampling, and fills the rest with black bars. The window starts at 1280x960, which is 4x.
 
-Besides the world, the game's viewport draws two placeholders, which are scaled with it (`039 §2.1`, `§2.3`):
+Besides the world, the game's viewport draws three placeholders, which are scaled with it (`039 §2.1`, `§2.3`):
 
 - `PhaseAimMarker`, the aim of a phase, is drawn over the world and under the colour pass, so it is dithered as part of the game's image. Its lines are sized in pixels at 320x240.
 - `PauseMenuOverlay`, the menu, is a canvas layer above the colour pass, so the dither leaves it alone, and above the aim marker. It is laid out at the viewport's size and centred, so with low resolution off it is small but still centred.
+- `DialogueBox`, the text box, is a canvas layer above the colour pass, along the bottom edge of the viewport, in Godot's default font (`044`).
+
+`WorldViewportContainer` processes always, so that it passes input on to the game's viewport while the game is paused, which the dialogue box needs. Everything in the viewport that inherits its process mode processes always too, so what must stop while paused, such as the world, is made pausable ([`game/main/`](../../game/main/architecture.md#the-games-modes)).
 
 The colour pass reads tone-mapped sRGB values, and its output reaches the screen unconverted. This holds while the project's HDR 2D setting is off, which is the default (`003 §3.3`).
 

@@ -22,12 +22,21 @@ Goals and requirements (Neil):
   - We can drive it: ask for the next line when our dialogue mode is ready for it, on our clock, rather than it running itself on Godot's timers or signals.
   - Translation through Godot's `TranslationServer`, with stable line IDs.
   - Its presentation can be ours: our text box, our font, and the garble (§3).
+- [~] 1.4 What installing it found (Claude, 2026-11-05, issue #164), with v4.2.0, the latest, vendored whole into `game/addons/`, its editor plugin and its autoload on:
+  - It builds, and the tests pass, but only once the project has been imported in full: gdUnit4Net imports a project it finds unimported by running the editor for 100 frames, and with Dialogue Manager's editor plugin that ends before the import does, so the scripts' classes are missing and the tile's mesh isn't imported. `scripts/dev-setup.ps1` now runs `--import`. On a fresh project, the plugin reports two errors as it imports, an unrecognized UID and a resource saved to an empty path, which change nothing.
+  - Its C# API is a typed wrapper over the GDScript singleton: static methods and events, with `DialogueLine` and `DialogueResponse` as plain C# classes. Thin enough to use directly.
+  - We drive it: we ask for each line, and nothing runs on its own timers. But it answers on Godot's frames, a frame or more after it is asked, with a .NET `Task`, so it can't be called from the tick. The text box, which only draws and runs on frames, calls it while the world is paused, and only the end of a dialogue reaches the tick (§2.4).
+  - Its presentation is ours: we use none of its balloons.
+  - Translation is not yet tried. Its editor plugin adds each dialogue file to the project's translation templates, `locale/translations_pot_files` in `project.godot`, for Godot's "Extract Translatable Strings", so a new file changes `project.godot` once the editor or an import sees it.
 
 ## 2. The game while dialogue plays
 
 - [x] 2.1 Dialogue pauses the game (Neil). A new mode in `GameModeManager`, like phasing: the menu and the map can be opened from it, and closing them goes back to it.
 - [x] 2.2 Dialogue that plays without pausing, such as a rocket's "Yeehaw!" or a human's remarks, is a callout: a separate feature, for when one is needed. What would cancel a dialogue in progress is why it waits (Neil).
 - [x] 2.3 The Voice has no avatar, or a big question mark as a placeholder (Neil).
+- [~] 2.4 How the game finishes the task of a dialogue from off the tick, which `046 §1.4` left to the dialogue interface (Claude, for Neil's review). Built: `ITick.NewCompletion()` returns a `TickCompletion`, whose `Task` the scheduler makes, and whose `Finish` and `Fail` the game calls when the dialogue ends, as with .NET's `TaskCompletionSource`. Finishing it only queues what waits. The alternative, a loop that awaits `NextTick` until a flag is set, needs nothing new in `Tasks` but has to be written at every such edge.
+- [~] 2.5 Requests that come while a dialogue plays (Claude, for Neil's review). The game's presenter queues them, and `GameModeManager` starts each in turn while it stays in the dialogue mode, so that two dialogues asked for in one tick, such as by a `Fanout`, play one after the other, each finishing its own task.
+- [~] 2.6 Dialogue asked for while slowing for a phase (Claude, for Neil's review): the game pauses for it at once, and the slowdown starts again from full speed when it ends, if the phase is still being aimed. Routing runs only on played ticks, so it can't be asked for while phasing.
 
 ## 3. Garbled text
 

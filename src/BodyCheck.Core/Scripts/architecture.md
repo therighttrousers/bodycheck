@@ -2,6 +2,7 @@
 
 Relevant decision records:
 - [043: Triggers, actions and scripts](../../../docs/decision-records/043-triggers-and-scripts.md)
+- [044: Dialogue](../../../docs/decision-records/044-dialogue.md)
 - [046: Actions as async methods](../../../docs/decision-records/046-async-actions.md)
 - [047: `Once`, and routing actions](../../../docs/decision-records/047-once-and-routing.md)
 
@@ -25,6 +26,10 @@ A runner is given its steps already resolved, as `Call`s, each an action and the
 A `Sequence` or a `Fanout` runs every `Default`, alongside any run in progress, since what it runs comes down to controllers, which decide for themselves what a second request does (`043 §1.7`). A runner that does something else when asked again says so with a `ReentrantTask`, in one line: a `Trigger` joins, and a `Once` runs once. The runners that respond to `Default` implement only `IActionTarget.Default`.
 
 What a runner holds is only what its kind needs to decide whether to run: what an action changes belongs to the controller that responds to it (`043 §1.9`).
+
+## Dialogue
+
+`IDialoguePresenter` is what presents dialogue, which the game implements with its dialogue backend, so that Core knows nothing of either (`043 §3.3`): given a tick, a dialogue file by name, a title in it and a garble, it returns a task that finishes when the dialogue ends. The game pauses for it at its own point in the tick. Nothing in Core presents dialogue yet: the `Dialogue` control entity's runner will.
 
 ## Open questions
 
