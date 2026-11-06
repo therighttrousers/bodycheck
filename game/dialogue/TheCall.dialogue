@@ -1,17 +1,23 @@
 ~ Plea1
 
-Voice: Placeholder: the Voice's first plea, the most garbled. [#garble=0.75]
+Voice: Placeholder: the Voice's first plea, the most garbled. [#garble=0.8]
 
 => END
 
 ~ Plea2
 
-Voice: Placeholder: the Voice's second plea, clearer. [#garble=0.5]
+Voice: Placeholder: the Voice's second plea, clearer. [#garble=0.4]
 
 => END
 
 ~ Plea3
 
-Voice: Placeholder: the Voice's third plea, clearer still. [#garble=0.25]
+Voice: Placeholder: the Voice's third plea, clearer still.
+
+=> END
+
+~ BeforeDoorCloses
+
+Voice: Placeholder: what the Voice says before the door closes.
 
 => END
