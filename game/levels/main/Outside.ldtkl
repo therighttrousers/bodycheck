@@ -99,8 +99,7 @@
 						{ "__identifier": "DialogueTitle", "__type": "String", "__value": "Plea1", "__tile": null, "defUid": 247, "realEditorValues": [{
 							"id": "V_String",
 							"params": ["Plea1"]
-						}] },
-						{ "__identifier": "Garble", "__type": "Float", "__value": 0.75, "__tile": null, "defUid": 248, "realEditorValues": [{ "id": "V_Float", "params": [0.75] }] }
+						}] }
 					],
 					"__worldX": -560,
 					"__worldY": 0
@@ -152,8 +151,7 @@
 						{ "__identifier": "DialogueTitle", "__type": "String", "__value": "Plea2", "__tile": null, "defUid": 247, "realEditorValues": [{
 							"id": "V_String",
 							"params": ["Plea2"]
-						}] },
-						{ "__identifier": "Garble", "__type": "Float", "__value": 0.25, "__tile": null, "defUid": 248, "realEditorValues": [{ "id": "V_Float", "params": [0.25] }] }
+						}] }
 					],
 					"__worldX": -256,
 					"__worldY": 0
@@ -205,8 +203,7 @@
 						{ "__identifier": "DialogueTitle", "__type": "String", "__value": "Plea3", "__tile": null, "defUid": 247, "realEditorValues": [{
 							"id": "V_String",
 							"params": ["Plea3"]
-						}] },
-						{ "__identifier": "Garble", "__type": "Float", "__value": 0, "__tile": null, "defUid": 248, "realEditorValues": [] }
+						}] }
 					],
 					"__worldX": -96,
 					"__worldY": 0

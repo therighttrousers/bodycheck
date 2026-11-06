@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Threading.Tasks;
 
 using BodyCheck.Core.Tasks;
@@ -38,6 +39,17 @@ public class DialogueTest
     }
 
     [TestCase]
+    public void The_dialogue_font_draws_the_tofu_only_from_its_fallback()
+    {
+        var font = (FontVariation)GD.Load<Theme>("res://assets/fonts/dialogue_theme.tres").DefaultFont;
+        int tofu = Garble.Tofu.Value;
+
+        // A codepoint the locale's font has a glyph for would never reach the fallback.
+        AssertThat(((FontFile)font.BaseFont).HasChar(tofu)).IsFalse();
+        AssertThat(font.Fallbacks.Any(fallback => fallback.HasChar(tofu))).IsTrue();
+    }
+
+    [TestCase]
     public async Task A_dialogue_pauses_the_game_until_it_ends_and_what_waits_resumes_in_the_next_played_tick()
     {
         _run = new RoomRun(RoomRun.RoomOf(
@@ -54,7 +66,7 @@ public class DialogueTest
         bool resumed = false;
         async TickTask Waits(ITick tick)
         {
-            await _box.Present(tick, "debug", "start", garble: 0);
+            await _box.Present(tick, "debug", "start");
             resumed = true;
         }
         _ = Waits(_run.Node.Tick);

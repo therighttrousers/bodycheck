@@ -276,7 +276,6 @@ public static class LdtkReader
                 MapColor = color,
                 File = fields.Read("DialogueFile", LdtkJsonContext.Default.String),
                 Title = fields.Read("DialogueTitle", LdtkJsonContext.Default.String),
-                Garble = fields.Read("Garble", LdtkJsonContext.Default.Single),
             },
             LdtkEntityName.Script => throw fields.Invalid("isn't supported yet."),
         };
