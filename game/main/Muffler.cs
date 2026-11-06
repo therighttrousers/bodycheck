@@ -67,7 +67,7 @@ public partial class Muffler : Node
         {
             GameMode.Playing or GameMode.Cutscene => 0,
             GameMode.SlowingForPhase => Mathf.Pow((float)Mathf.Clamp(
-                (1 - _gameModeManager.SlowdownFactor) / (1 - GameModeManager.SlowestSlowdownFactor), 0, 1), SlowdownCurve),
+                (1 - _gameModeManager.SlowdownFactor) / (1 - GameModeState.SlowestSlowdownFactor), 0, 1), SlowdownCurve),
             _ => 1,
         };
         AudioServer.SetBusEffectEnabled(MasterBus, _filterIndex, muffling > 0);

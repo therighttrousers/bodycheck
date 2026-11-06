@@ -121,7 +121,7 @@ public partial class CameraRig : Node3D
     }
 
     /// <summary>Switches to the map camera in <see cref="GameMode.Map"/>, and back to the player's otherwise.</summary>
-    private void OnGameModeChanged(GameMode gameMode)
+    private void OnGameModeChanged(GameModeState modeState)
     {
         // The host tweens to a camera over that camera's duration, in game time. In the map, and on the way back from
         // it, game time runs at the gameplay speed, whatever mode the map was opened from, so this keeps the move quick
@@ -129,7 +129,7 @@ public partial class CameraRig : Node3D
         float duration = MapMoveTime * Features.Current.GameplaySpeed;
         _phantomCamera.TweenDuration = duration;
         _mapPhantomCamera.TweenDuration = duration;
-        _mapPhantomCamera.Priority = gameMode == GameMode.Map ? MapCameraPriority : 0;
+        _mapPhantomCamera.Priority = modeState.Mode == GameMode.Map ? MapCameraPriority : 0;
     }
 
     private void OnTweenStarted(PhantomCamera3D camera)

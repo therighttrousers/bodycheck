@@ -24,10 +24,16 @@ public class ScriptTest
     private const int RunTicks = 30;
 
     private RoomRun? _run;
+    private GameModeManager? _manager;
 
     [AfterTest]
     public void TearDown()
     {
+        if (_manager is not null)
+        {
+            RoomRun.FreeAndFinalize(_manager);
+            _manager = null;
+        }
         _run?.Free();
         _run = null;
     }
@@ -91,18 +97,56 @@ public class ScriptTest
     {
         _run = new RoomRun(RoomWithScript(nameof(RunRight)), scripts: new Library());
         WorldNode world = _run.Node;
-        world.GameModeSource = () => world.CutsceneRequested ? GameMode.Cutscene : GameMode.Playing;
+        world.GameModeSource = () => world.CutsceneRequest is null ? GameMode.Playing : GameMode.Cutscene;
         float start = world.Player.Position.X;
 
         await _run.Tick(RoomRun.Idle, RunTicks / 2);
         AssertThat(world.RunningScripts.Count).IsEqual(1);
-        AssertThat(world.CutsceneRequested).IsTrue();
+        AssertThat(world.CutsceneRequest).IsNotNull();
         AssertThat(world.Player.Position.X - start).IsGreater(0.5f);
 
         await _run.Tick(RoomRun.Idle, RunTicks);
         AssertThat(world.RunningScripts.Count).IsEqual(0);
-        AssertThat(world.CutsceneRequested).IsFalse();
+        AssertThat(world.CutsceneRequest).IsNull();
         AssertThat(world.PlayerController.ScriptedInput).IsEqual(default(PlayerInput));
+    }
+
+    [TestCase]
+    public async Task The_game_presents_a_cutscene_as_the_holds_held_ask_as_they_come_and_go()
+    {
+        _run = new RoomRun(RoomRun.RoomOf(
+            "#####",
+            "#.P.#",
+            "#####"));
+        WorldNode world = _run.Node;
+        // Added after the world, as the game adds it.
+        _manager = new GameModeManager { World = world };
+        ((SceneTree)Engine.GetMainLoop()).Root.AddChild(_manager);
+        GameModeState? state = null;
+        _manager.GameModeChanged += changed => state = changed;
+        bool BlackBars() => ((GameModeState.Cutscene)state!).Request.BlackBars;
+        await _run.Tick(RoomRun.Idle, 2);
+
+        IDisposable plain = world.HoldCutscene();
+        await _run.Tick(RoomRun.Idle);
+        AssertThat(BlackBars()).IsFalse();
+
+        // Two holds that share a request each count.
+        var bars = new CutsceneRequest(BlackBars: true);
+        IDisposable first = world.HoldCutscene(bars);
+        IDisposable second = world.HoldCutscene(bars);
+        await _run.Tick(RoomRun.Idle);
+        AssertThat(BlackBars()).IsTrue();
+        first.Dispose();
+        await _run.Tick(RoomRun.Idle);
+        AssertThat(BlackBars()).IsTrue();
+        second.Dispose();
+        await _run.Tick(RoomRun.Idle);
+        AssertThat(BlackBars()).IsFalse();
+
+        plain.Dispose();
+        await _run.Tick(RoomRun.Idle);
+        AssertThat(_manager.GameMode).IsEqual(GameMode.Playing);
     }
 
     [TestCase(true)]

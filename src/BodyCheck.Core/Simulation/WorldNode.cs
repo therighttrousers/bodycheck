@@ -52,8 +52,8 @@ public partial class WorldNode : Node3D, IScriptWorld
 
     private readonly RunningScripts _runningScripts = new();
 
-    // How many cutscene holds are held: see HoldCutscene.
-    private int _cutsceneHolds;
+    // The cutscene holds held, each once, whatever its request: see HoldCutscene.
+    private readonly HashSet<CutsceneHold> _cutsceneHolds = [];
 
     /// <param name="assets">What to draw for each entity and for tiles.</param>
     /// <param name="respawnId">
@@ -443,30 +443,34 @@ public partial class WorldNode : Node3D, IScriptWorld
     public IReadOnlyList<IScript> RunningScripts => _runningScripts.All;
 
     /// <inheritdoc/>
-    public IDisposable HoldCutscene()
+    public IDisposable HoldCutscene(CutsceneRequest? request = null)
     {
-        _cutsceneHolds++;
-        return new CutsceneHold(this);
+        return new CutsceneHold(this, request ?? new CutsceneRequest());
     }
 
     /// <summary>
-    /// Whether anything running in the world, such as a script, holds a cutscene. The game plays one while it is true.
+    /// What the cutscene that anything running in the world holds, such as a script or a dialogue, asks of the game: the
+    /// join of every hold's request, or null if nothing holds one. The game plays a cutscene while this isn't null, and
+    /// presents it as the request says.
     /// </summary>
-    public bool CutsceneRequested => _cutsceneHolds > 0;
+    public CutsceneRequest? CutsceneRequest =>
+        _cutsceneHolds.Count == 0 ? null : CutsceneRequest.JoinAll(_cutsceneHolds.Select(hold => hold.Request));
 
-    /// <summary>A hold on a cutscene, released once, by the first <see cref="Dispose"/>.</summary>
-    private sealed class CutsceneHold(WorldNode world) : IDisposable
+    /// <summary>A hold on a cutscene, held from when it is made until it is disposed.</summary>
+    private sealed class CutsceneHold : IDisposable
     {
-        private bool _released;
+        private readonly WorldNode _world;
 
-        public void Dispose()
+        public CutsceneHold(WorldNode world, CutsceneRequest request)
         {
-            if (!_released)
-            {
-                _released = true;
-                world._cutsceneHolds--;
-            }
+            _world = world;
+            Request = request;
+            _world._cutsceneHolds.Add(this);
         }
+
+        public CutsceneRequest Request { get; }
+
+        public void Dispose() => _world._cutsceneHolds.Remove(this);
     }
 
     /// <summary>Supplies the player's input, once per tick. The player stands idle if this is null.</summary>

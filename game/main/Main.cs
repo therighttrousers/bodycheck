@@ -69,6 +69,7 @@ public partial class Main : Node
     private readonly ErrorOverlay _errorOverlay = new();
     private readonly PauseMenuOverlay _pauseMenuOverlay = new();
     private readonly DialogueBox _dialogueBox = new();
+    private readonly Letterbox _letterbox = new();
     private CollisionDebug _collisions = null!;
     // Whether each world's map markers show, kept as worlds are loaded.
     private bool _showMapMarkers;
@@ -96,11 +97,16 @@ public partial class Main : Node
 
         _pauseMenuOverlay.Visible = false;
         _worldView.World.AddChild(_pauseMenuOverlay);
+        _worldView.World.AddChild(_letterbox);
         _worldView.World.AddChild(_dialogueBox);
-        _gameModeManager.GameModeChanged += gameMode =>
+        _gameModeManager.GameModeChanged += modeState =>
         {
-            _pauseMenuOverlay.Visible = gameMode == GameMode.Menu;
-            _dialogueBox.Visible = gameMode == GameMode.Cutscene;
+            _pauseMenuOverlay.Visible = modeState.Mode == GameMode.Menu;
+            _dialogueBox.Visible = modeState.Mode == GameMode.Cutscene;
+            // When a cutscene's holds ask for them. Left as they are under the menu, since the tree is paused, and
+            // hidden in the map.
+            _letterbox.Shown = modeState is GameModeState.Cutscene state && state.Request.BlackBars;
+            _letterbox.Visible = modeState.Mode is not (GameMode.Map or GameMode.EndingMap);
         };
 
         string? worldName = null;

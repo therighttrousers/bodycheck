@@ -1,6 +1,7 @@
 using System;
 
 using BodyCheck.Core;
+using BodyCheck.Core.Scripts;
 using BodyCheck.Core.Simulation;
 
 using Godot;
@@ -20,7 +21,7 @@ namespace BodyCheck;
 /// <para>
 /// When the <see cref="World"/> asks for a pause, for the player aiming a phase, the game first slows down to it: the
 /// mode is <see cref="GameMode.SlowingForPhase"/>, and the <see cref="SlowdownFactor"/> falls in a straight line from 1
-/// to <see cref="SlowestSlowdownFactor"/> over <see cref="SlowdownTime"/> real seconds, while the world runs and the player
+/// to <see cref="GameModeState.SlowestSlowdownFactor"/> over half a real second, while the world runs and the player
 /// aims. Then the mode is <see cref="GameMode.Phasing"/>, and this steps the world's controllers each physics tick in the
 /// world's place. The factor stays at the slowest, so that what runs on game time while the tree is paused, such as the
 /// camera's damping, goes on at the same pace. When the world stops asking, play resumes at full speed at once, even
@@ -28,9 +29,10 @@ namespace BodyCheck;
 /// </para>
 /// <para>
 /// When the <see cref="World"/> asks for a cutscene, such as for a script or a dialogue, from playing or slowing for a
-/// phase, the mode is <see cref="GameMode.Cutscene"/>, at once and at full speed. The world runs, and the player's
-/// controller acts on no input but a script's, so the player comes to rest unless a script drives it. When the world no
-/// longer asks, play resumes.
+/// phase, the mode is <see cref="GameMode.Cutscene"/>, at once and at full speed, in a
+/// <see cref="GameModeState.Cutscene"/> that carries what the world's holds ask of it, made again whenever that changes,
+/// so that what presents it follows. The world runs, and the player's controller acts on no input but a script's, so the
+/// player comes to rest unless a script drives it. When the world no longer asks, play resumes.
 /// </para>
 /// <para>
 /// The engine's time scale is the factor times <see cref="Features.GameplaySpeed"/>, set each physics tick, so that a
@@ -39,15 +41,6 @@ namespace BodyCheck;
 /// </summary>
 public partial class GameModeManager : Node
 {
-    /// <summary>How long, in real seconds, the game takes to slow down to the pause for a phase.</summary>
-    private const float SlowdownTime = 0.5f;
-
-    /// <summary>
-    /// The <see cref="SlowdownFactor"/> the slowdown for a phase falls to, and stays at while phasing, short of 0 to avoid
-    /// very small steps.
-    /// </summary>
-    public const double SlowestSlowdownFactor = 0.05;
-
     private GameModeState? _savedModeState;
     private GameModeState _modeState = GameModeState.Playing;
 
@@ -64,7 +57,7 @@ public partial class GameModeManager : Node
     public WorldNode? World { get; set; }
 
     /// <summary>Raised after the mode changes and the tree is paused or unpaused to match.</summary>
-    public event Action<GameMode>? GameModeChanged;
+    public event Action<GameModeState>? GameModeChanged;
 
     public override void _Ready()
     {
@@ -117,14 +110,22 @@ public partial class GameModeManager : Node
     public override void _PhysicsProcess(double delta)
     {
         // Before the phase, so that a cutscene asked for while slowing for one stops the slowdown.
-        bool cutsceneRequested = World?.CutsceneRequested ?? false;
-        if (GameMode is GameMode.Playing or GameMode.SlowingForPhase && cutsceneRequested)
+        CutsceneRequest? cutsceneRequest = World?.CutsceneRequest;
+        if (GameMode is GameMode.Playing or GameMode.SlowingForPhase && cutsceneRequest is not null)
         {
-            SetGameModeState(GameModeState.Cutscene);
+            SetGameModeState(new GameModeState.Cutscene(cutsceneRequest));
         }
-        else if (GameMode == GameMode.Cutscene && !cutsceneRequested)
+        else if (_modeState is GameModeState.Cutscene cutscene)
         {
-            SetGameModeState(GameModeState.Playing);
+            if (cutsceneRequest is null)
+            {
+                SetGameModeState(GameModeState.Playing);
+            }
+            // Holds come and go during a cutscene, such as a dialogue's within a script's.
+            else if (cutsceneRequest != cutscene.Request)
+            {
+                SetGameModeState(new GameModeState.Cutscene(cutsceneRequest));
+            }
         }
 
         if (World is not null)
@@ -170,48 +171,6 @@ public partial class GameModeManager : Node
         }
 
         GetTree().Paused = _modeState.Pause;
-        GameModeChanged?.Invoke(GameMode);
-    }
-
-    private abstract class GameModeState
-    {
-        public static readonly GameModeState Playing = new Simple(mode: GameMode.Playing, uiPause: false, pause: false);
-        public static readonly GameModeState Menu = new Simple(mode: GameMode.Menu, uiPause: true, pause: true);
-        public static readonly GameModeState Map = new Simple(mode: GameMode.Map, uiPause: true, pause: true);
-        public static readonly GameModeState EndingMap = new Simple(mode: GameMode.EndingMap, uiPause: true, pause: true);
-        public static readonly GameModeState Phasing = new Simple(
-            mode: GameMode.Phasing, uiPause: false, pause: true, slowdownFactor: SlowestSlowdownFactor);
-        public static readonly GameModeState Cutscene = new Simple(mode: GameMode.Cutscene, uiPause: false, pause: false);
-
-        private GameModeState() { }
-
-        public abstract GameMode Mode { get; }
-        public abstract bool UiPause { get; }
-        public abstract bool Pause { get; }
-        public abstract double SlowdownFactor { get; }
-
-        private sealed class Simple(GameMode mode, bool uiPause, bool pause, double slowdownFactor = 1) : GameModeState
-        {
-            public override GameMode Mode => mode;
-            public override bool UiPause => uiPause;
-            public override bool Pause => pause;
-            public override double SlowdownFactor => slowdownFactor;
-        }
-
-        public sealed class SlowingForPhase : GameModeState
-        {
-            private double _slowdown;
-
-            public override GameMode Mode => GameMode.SlowingForPhase;
-            public override bool UiPause => false;
-            public override bool Pause => false;
-            public override double SlowdownFactor => (1 - _slowdown) * (1 - SlowestSlowdownFactor) + SlowestSlowdownFactor;
-
-            public bool Step(double realDt)
-            {
-                _slowdown = Math.Min(1, _slowdown + realDt / SlowdownTime);
-                return _slowdown >= 1;
-            }
-        }
+        GameModeChanged?.Invoke(_modeState);
     }
 }

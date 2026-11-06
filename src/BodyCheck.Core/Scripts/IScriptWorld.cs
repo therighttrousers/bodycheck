@@ -20,5 +20,8 @@ public interface IScriptWorld : IWorldView
     /// <c>using</c>, so that the cutscene ends when the script does, even if it fails. The game's mode changes after
     /// the world's tick, so controllers see the cutscene from the next tick.
     /// </summary>
-    IDisposable HoldCutscene();
+    /// <param name="request">
+    /// How the cutscene is to be presented, which the world joins with every other hold's: by default, with nothing more.
+    /// </param>
+    IDisposable HoldCutscene(CutsceneRequest? request = null);
 }
