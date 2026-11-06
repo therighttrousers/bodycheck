@@ -14,7 +14,8 @@ namespace BodyCheck;
 /// <summary>
 /// The game's <see cref="IDialoguePresenter"/>, and the text box that shows the dialogue, from Dialogue Manager's files
 /// in <see cref="DialogueDirectory"/>, in the font and size of <see cref="ThemePath"/>. It belongs in the game's
-/// viewport, on a layer above the colour pass, along its bottom edge. The box itself is still a placeholder.
+/// viewport, on a layer above the colour pass, along its bottom edge. Beside the line is the speaker's avatar, if they
+/// have one in <see cref="AvatarDirectory"/>. The box itself is still a placeholder.
 /// <para>
 /// <see cref="Present"/> only queues the dialogue: <see cref="GameModeManager"/> starts each with
 /// <see cref="StartNext"/> at its own point in the tick, once it has paused the game for it, and goes back to playing
@@ -37,6 +38,11 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
     /// <see cref="Garble.Tofu"/>. A locale with a font of its own would remap the theme.
     /// </summary>
     private const string ThemePath = "res://assets/fonts/dialogue_theme.tres";
+    /// <summary>
+    /// Where the speakers' avatars are: each a PNG, 48 by 48 pixels, named for the speaker as the dialogue files name
+    /// them, before translation, as <c>Voice.png</c>.
+    /// </summary>
+    private const string AvatarDirectory = "res://assets/avatars";
 
     private readonly Queue<Request> _waiting = new();
     private Request? _current;
@@ -45,6 +51,7 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
     private DialogueLine? _line;
     private int _response;
 
+    private readonly TextureRect _avatar = new() { SizeFlagsVertical = Control.SizeFlags.ShrinkBegin };
     private readonly Label _character = new();
     private readonly GarbledDialogueLabel _text = new();
     private readonly VBoxContainer _responses = new();
@@ -77,9 +84,13 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
         });
         margin.AddChild(panel);
 
-        var lines = new VBoxContainer();
+        var row = new HBoxContainer();
+        row.AddThemeConstantOverride("separation", 6);
+        panel.AddChild(row);
+        row.AddChild(_avatar);
+        var lines = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         lines.AddThemeConstantOverride("separation", 0);
-        panel.AddChild(lines);
+        row.AddChild(lines);
         _character.Modulate = new Color(1, 0.85f, 0.4f);
         lines.AddChild(_character);
         lines.AddChild(_text);
@@ -167,6 +178,9 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
     {
         _character.Text = _line!.Character;
         _character.Visible = _line.Character != "";
+        string avatar = $"{AvatarDirectory}/{_line.Character}.png";
+        _avatar.Texture = _line.Character != "" && ResourceLoader.Exists(avatar) ? GD.Load<Texture2D>(avatar) : null;
+        _avatar.Visible = _avatar.Texture is not null;
         _text.DialogueLine = _line;
         ClearResponses();
         _text.TypeOut();

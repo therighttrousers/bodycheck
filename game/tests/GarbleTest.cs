@@ -15,7 +15,7 @@ public class GarbleTest
     [TestCase]
     public void Replaces_the_fraction_of_letters_and_digits_one_codepoint_for_one()
     {
-        string garbled = Garble.Apply(Line, 0.5f, "seed");
+        string garbled = Garble.Apply(Line, 0.5f, "seed", 0);
 
         // 20 letters and digits, outside the tags.
         AssertThat(garbled.EnumerateRunes().Count(r => r == Garble.Tofu)).IsEqual(10);
@@ -45,12 +45,12 @@ public class GarbleTest
     [TestCase]
     public void Garbles_the_same_way_every_time_and_more_garble_garbles_the_same_glyphs_and_more()
     {
-        string less = Garble.Apply(Line, 0.25f, "seed");
-        string more = Garble.Apply(Line, 0.5f, "seed");
+        string less = Garble.Apply(Line, 0.25f, "seed", 0);
+        string more = Garble.Apply(Line, 0.5f, "seed", 0);
 
-        AssertThat(Garble.Apply(Line, 0.25f, "seed")).IsEqual(less);
-        AssertThat(Garble.Apply(Line, 0.25f, "other seed")).IsNotEqual(less);
-        AssertThat(Garble.Apply(Line, 0, "seed")).IsEqual(Line);
+        AssertThat(Garble.Apply(Line, 0.25f, "seed", 0)).IsEqual(less);
+        AssertThat(Garble.Apply(Line, 0.25f, "other seed", 0)).IsNotEqual(less);
+        AssertThat(Garble.Apply(Line, 0, "seed", 0)).IsEqual(Line);
         string[] lessRunes = [.. less.EnumerateRunes().Select(r => r.ToString())];
         string[] moreRunes = [.. more.EnumerateRunes().Select(r => r.ToString())];
         for (int i = 0; i < lessRunes.Length; i++)
@@ -60,5 +60,16 @@ public class GarbleTest
                 AssertThat(moreRunes[i]).IsEqual(TofuText);
             }
         }
+    }
+
+    [TestCase]
+    public void Shifts_which_glyphs_are_garbled_but_not_how_many_from_step_to_step()
+    {
+        string first = Garble.Apply(Line, 0.5f, "seed", 0);
+        string second = Garble.Apply(Line, 0.5f, "seed", 1);
+
+        AssertThat(second).IsNotEqual(first);
+        AssertThat(second.EnumerateRunes().Count(r => r == Garble.Tofu)).IsEqual(10);
+        AssertThat(Garble.Apply(Line, 0.5f, "seed", 1)).IsEqual(second);
     }
 }
