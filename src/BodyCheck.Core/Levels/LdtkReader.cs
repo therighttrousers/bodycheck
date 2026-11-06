@@ -222,6 +222,8 @@ public static class LdtkReader
                 MapOrigin = origin,
                 MapSize = size,
                 MapColor = color,
+                OpenStop = fields.Point("OpenStop", height),
+                CloseStop = fields.Point("CloseStop", height),
             },
             LdtkEntityName.Respawn => new EntityConfig.Respawn()
             {

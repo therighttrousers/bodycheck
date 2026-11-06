@@ -19,4 +19,9 @@ public interface ITick
     /// which for a task it resumed is the next tick's, and a loop that waits can't spin within a tick.
     /// </summary>
     TickTask Wait(float seconds);
+
+    /// <summary>
+    /// The length of the tick being run, or of the last one run, on the clock that waits count.
+    /// </summary>
+    float Dt { get; }
 }

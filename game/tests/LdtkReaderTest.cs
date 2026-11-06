@@ -202,8 +202,11 @@ public class LdtkReaderTest
         { "__identifier": "Garble", "__value": 0.5 }
         """);
 
-    private const string Door =
-        """{ "__identifier": "VerticalDoor", "__pivot": [0, 0], "px": [32, 0], "width": 16, "height": 48, "__smartColor": "#FFFFFF", "iid": "door", "fieldInstances": [] }""";
+    private const string Door = """
+        { "__identifier": "VerticalDoor", "__pivot": [0, 0], "px": [32, 16], "width": 16, "height": 48, "__smartColor": "#FFFFFF", "iid": "door", "fieldInstances": [
+            { "__identifier": "OpenStop", "__value": { "cx": 2, "cy": 0 } }, { "__identifier": "CloseStop", "__value": { "cx": 2, "cy": 6 } }
+        ] }
+        """;
 
     /// <summary>A sequence with these Targets and Actions, as the insides of their arrays.</summary>
     private static string Sequence(string targets, string actions) => Control("Sequence", "sequence", $$"""

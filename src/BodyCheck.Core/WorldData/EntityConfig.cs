@@ -23,7 +23,11 @@ public static class EntityKinds
 {
     private static readonly TriggerAction[] None = [];
     private static readonly TriggerAction[] Default = [TriggerAction.Default];
-    private static readonly TriggerAction[] Close = [TriggerAction.Close];
+    private static readonly TriggerAction[] OpenClose = [
+        TriggerAction.ToggleOpenClose,
+        TriggerAction.Open,
+        TriggerAction.Close
+    ];
 
     extension(EntityKind kind)
     {
@@ -48,7 +52,7 @@ public static class EntityKinds
         {
             EntityKind.Player or EntityKind.Robot or EntityKind.Platform or EntityKind.Block or EntityKind.Trigger
                 => None,
-            EntityKind.VerticalDoor => Close,
+            EntityKind.VerticalDoor => OpenClose,
             EntityKind.Respawn or EntityKind.Sequence or EntityKind.Fanout or EntityKind.Once or EntityKind.Dialogue
                 => Default,
         };
@@ -111,10 +115,25 @@ public abstract record EntityConfig
         public override EntityKind Kind => EntityKind.Block;
     }
 
-    /// <summary>A door that slides down to close.</summary>
+    /// <summary>
+    /// A door that slides down to close and up to open, between its stops. It may start anywhere between them.
+    /// </summary>
     public sealed record VerticalDoor : EntityConfig
     {
         public override EntityKind Kind => EntityKind.VerticalDoor;
+        /// <summary>The cell above the door that it stops against when it opens, in one of its columns.</summary>
+        public required Vector2I OpenStop { get; init; }
+        /// <summary>The cell below the door that it stops against when it closes, in one of its columns.</summary>
+        public required Vector2I CloseStop { get; init; }
+
+        public override EntityConfig MovedBy(Vector2I offset) =>
+            this with { MapOrigin = MapOrigin + offset, OpenStop = OpenStop + offset, CloseStop = CloseStop + offset };
+
+        /// <summary>
+        /// Whether the door starts closed: whether its box starts touching its close stop. Anywhere else it starts
+        /// open, so that it closes when asked.
+        /// </summary>
+        public bool StartsClosed => CloseStop.Y == MapOrigin.Y - 1;
     }
 
     /// <summary>A place the player can start from, such as after a reload.</summary>

@@ -14,6 +14,7 @@ Relevant decision records:
 - [043: Triggers, actions and scripts](../../../docs/decision-records/043-triggers-and-scripts.md)
 - [046: Actions as async methods](../../../docs/decision-records/046-async-actions.md)
 - [047: `Once`, and routing actions](../../../docs/decision-records/047-once-and-routing.md)
+- [049: Doors and their stops](../../../docs/decision-records/049-doors-and-stops.md)
 
 ## What it is
 
@@ -26,7 +27,7 @@ Behaviour: what the player's input or an NPC makes a body do. Where entities sta
 ## Bodies
 
 - An `Entity` is one thing in a room that has a body: the player, a robot, a platform, a block. It is the engine's rigid body itself, so what the engine reports about bodies is about entities. Its body values are a `BodyTuning`, and it is given what to draw.
-- A `BodyTuning` includes the body's physics layer and how it grips what it stands on and what it carries; its presets read those, its mass and its engine friction from features, through functions of no arguments that read `Features.Current`, so that each is read when it is used, as an action's tuning is (`019 §6.1`, `029 §1.1`, `035 §3.1`). The engine holds the mass, so whatever steps the entities puts each one's there when the features change, before any entity steps (`029 §2.1`, `§2.5`).
+- A `BodyTuning` includes the body's physics layer and mask, how it grips what it stands on and what it carries, whether the player can phase through it, and whether it is locked on X, as a door is, so that nothing pushes it sideways (`043 §6.3`); its presets read those, its mass and its engine friction from features, through functions of no arguments that read `Features.Current`, so that each is read when it is used, as an action's tuning is (`019 §6.1`, `029 §1.1`, `035 §3.1`). The engine holds the mass, so whatever steps the entities puts each one's there when the features change, before any entity steps (`029 §2.1`, `§2.5`).
 - An entity's origin is the centre of its body, where its collision box is centred. What it draws has its origin at its base, and the entity lowers it by half the body's height (`006 §2.1`).
 - A subclass is a kind of body that gives its controller more to move it with: `WalkerEntity`, whose controller drives it with `ApplyTraction`, and `PlayerEntity`, a `WalkerEntity` whose controller can also let it slip, with `SlipAfterEntitySteps`, and whose friction changes with what it touches and does (`005 §3.8`, `032 §3.1`, `§3.3`). A robot is a `RobotEntity`, a `WalkerEntity` with a laser. A platform is a `PlatformEntity`, which its controller tells how hard it is working, for its model's face. A block is a plain `Entity`, and so is a vertical door.
 

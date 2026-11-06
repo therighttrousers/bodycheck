@@ -5,6 +5,7 @@ Relevant decision records:
 - [022: Actions at the end of a tick](../../../docs/decision-records/022-end-of-tick-actions.md)
 - [035: One shape for actions](../../../docs/decision-records/035-one-shape-for-actions.md)
 - [046: Actions as async methods](../../../docs/decision-records/046-async-actions.md)
+- [049: Doors and their stops](../../../docs/decision-records/049-doors-and-stops.md)
 
 ## What it is
 
@@ -16,7 +17,7 @@ New capabilities of a body, such as a motor: those belong to the entity. Reading
 
 ## Controllers
 
-The player's, the robots' and the platforms' controllers. Each is built with its entity, as the kind of body it needs.
+The player's, the robots', the platforms' and the doors' controllers. Each is built with its entity, as the kind of body it needs.
 
 ## Actions
 
@@ -33,7 +34,7 @@ What a controller makes its entity do, which another controller could make its o
 A controller can respond to the actions a route asks of its entity, such as a door's `Close`, in one of two ways, each a way of running something that takes several ticks. Which to use depends on who changes the entity's state over time (`046 §1.8`).
 
 - **A controller whose `Apply` drives its entity records the action and returns at once,** as the player's, the robots' and the platforms' would. `Apply` acts on it at its next step, in order with everything else it does, so all of the entity's state stays in the controller and its actions, where the interactions between them can be seen. It is also the only way for something that runs on paused ticks, since the world doesn't resume async actions then. Letting what ran the action wait for it to end is harder, and not obvious.
-- **A controller with nothing to do between actions may respond with an `async` method** that holds the whole action, given the world's `ITick` to wait on: a door's `Close` slams the door, waits until it has settled, and freezes it. Its `Apply` does nothing, or only what it does while idle, and changes nothing the method changes.
+- **A controller with nothing to do between actions may respond with an `async` method** that holds the whole action, given the world's `ITick` to wait on: a door's `Close` unfreezes the door, thrusts it down until it stops, against its stop or whatever it meets, and freezes it (`049 §2`). Its `Apply` does nothing, or only what it does while idle, and changes nothing the method changes.
 - **The two don't mix on one entity.** An async method that drives a body that its `Apply` also drives splits the body's state between them, and hides how they interact. An action that takes time on such an entity is another of the controller's actions, stepped from `Apply`.
 
 ## Phasing
@@ -43,3 +44,7 @@ The player's controller phases with a `PhaseAction`, using its entity's moves an
 ## The robot's laser
 
 A robot's controller is given a function that returns the player, its target, and sets the robot's laser each tick from its `LaserAction`, which steps the laser through its timeline. The action is given the beam's origin and the way the robot faces on each tick, and finds the beam's end, and whether it can see the player, with a ray cast on a plain entity, so that another kind of body, such as a turret, can fire one (`035 §6.1`).
+
+## Open questions
+
+- What a door should do when it meets something on its way, such as opening again or pushing on. For now it stops there, and counts as having opened or closed (`049 §2.2`).

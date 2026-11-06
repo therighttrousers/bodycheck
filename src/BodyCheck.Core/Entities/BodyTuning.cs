@@ -37,6 +37,12 @@ public sealed record BodyTuning
     public required PhysicsLayer CollisionLayer { get; init; }
 
     /// <summary>
+    /// The layers this entity collides with: by default tiles and every entity. A door's leaves out tiles, so that it can
+    /// hide in them, and takes in door stops.
+    /// </summary>
+    public PhysicsLayer CollisionMask { get; init; } = PhysicsLayer.DefaultCollisionMask;
+
+    /// <summary>
     /// The engine's coefficient of friction for this body, against everything it touches. The player's changes with
     /// what it touches and does, with <see cref="GroundFriction"/>; see <see cref="PlayerEntity"/>.
     /// <para>
@@ -69,6 +75,12 @@ public sealed record BodyTuning
     /// what it rests on as it holds any two bodies.
     /// </summary>
     public bool CanBeCarried { get; init; } = true;
+
+    /// <summary>Whether the player can phase through this body.</summary>
+    public bool CanBePhased { get; init; } = true;
+
+    /// <summary>Whether the engine keeps this body from moving along X, so that nothing pushes it sideways.</summary>
+    public bool LockedOnX { get; init; }
 
     public static BodyTuning Player { get; } = new()
     {
@@ -115,7 +127,7 @@ public sealed record BodyTuning
 
     /// <summary>
     /// A door that slides down to close, whose body is its whole box in the map. Nothing carries it, so that the player
-    /// can't carry a door.
+    /// can't carry a door, the player can't phase through it, and nothing pushes it sideways.
     /// </summary>
     public static BodyTuning VerticalDoor(Vector2I mapSize) => new()
     {
@@ -123,7 +135,10 @@ public sealed record BodyTuning
         Anchor = Vector2.Zero,
         Mass = () => mapSize.X * mapSize.Y * Features.Current.DoorMassPerTile,
         CollisionLayer = PhysicsLayer.Character,
+        CollisionMask = PhysicsLayer.EntityCollisionMask | PhysicsLayer.DoorStop,
         CanBeCarried = false,
+        CanBePhased = false,
+        LockedOnX = true,
     };
 
     /// <summary>A block, which has no controller: it is only pushed, carried and stood on.</summary>

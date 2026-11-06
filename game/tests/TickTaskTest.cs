@@ -172,4 +172,40 @@ public class TickTaskTest
         AssertThat(log).ContainsExactly("a starts", "a ends", "b starts", "b ends", "c starts", "c ends");
         AssertThat(c.IsFinished).IsTrue();
     }
+
+    [TestCase(Reentry.Join)]
+    [TestCase(Reentry.Once)]
+    [TestCase(Reentry.Queue)]
+    public void A_request_made_while_starting_a_run_throws_even_with_none_in_progress(Reentry reentry)
+    {
+        var scheduler = new TickScheduler();
+        var reentrant = new ReentrantTask(reentry);
+
+        async TickTask Inner()
+        {
+            await scheduler.NextTick();
+        }
+
+        var e = Thrown<InvalidOperationException>(() => reentrant.Run(() => reentrant.Run(Inner)));
+        AssertThat(e.Message).StartsWith("A ReentrantTask was asked for a run while starting one");
+    }
+
+    [TestCase]
+    public void A_queued_request_made_while_starting_its_run_fails_the_tick()
+    {
+        var scheduler = new TickScheduler();
+        var queue = new ReentrantTask(Reentry.Queue);
+
+        async TickTask Work()
+        {
+            await scheduler.NextTick();
+        }
+
+        _ = queue.Run(Work);
+        // Queued behind the first, it asks for more of itself when it starts, in the scheduler's run.
+        _ = queue.Run(() => queue.Run(Work));
+
+        var e = Thrown<InvalidOperationException>(() => scheduler.Run(Dt));
+        AssertThat(e.Message).StartsWith("A ReentrantTask was asked for a run while starting one");
+    }
 }

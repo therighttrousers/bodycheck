@@ -1,5 +1,6 @@
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 
 using BodyCheck.Core.Levels;
 using BodyCheck.Core.Simulation;
@@ -19,8 +20,9 @@ namespace BodyCheck.Tests;
 public class GameWorldsTest
 {
     [TestCase]
-    public void Builds_each_world_with_routes_that_its_triggers_can_run()
+    public async Task Builds_each_world_with_routes_that_its_triggers_can_run()
     {
+        var tree = (SceneTree)Engine.GetMainLoop();
         string path = ProjectSettings.GlobalizePath("res://levels/main.ldtk");
         foreach (World world in LdtkReader.ReadWorlds(path, File.ReadAllText))
         {
@@ -29,9 +31,13 @@ public class GameWorldsTest
             {
                 AssertArray(node.Triggers.Keys).ContainsExactlyInAnyOrder(
                     world.Controls.OfType<EntityConfig.Trigger>().Select(trigger => trigger.Id));
+
+                // In the tree and in a physics tick, since what a route runs may query the engine, as a door does.
+                tree.Root.AddChild(node);
+                await tree.ToSignal(tree, SceneTree.SignalName.PhysicsFrame);
                 foreach (var trigger in node.Triggers.Values)
                 {
-                    trigger.Touch(node.Tick);
+                    _ = trigger.Touch(node.Tick);
                 }
             }
             finally

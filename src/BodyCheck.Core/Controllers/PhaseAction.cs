@@ -152,8 +152,9 @@ public sealed class PhaseAction(WalkerEntity entity, PhaseTuning tuning)
     }
 
     /// <summary>
-    /// The entity in reach, if any, whose box is nearest a point offset from the entity's center in the direction
-    /// held. Reach is a sphere around the entity's center, which meets every entity touching its box.
+    /// The entity in reach that can be phased through, if any, whose box is nearest a point offset from the entity's
+    /// center in the direction held. Reach is a sphere around the entity's center, which meets every entity touching its
+    /// box.
     /// </summary>
     private Entity? TargetedEntity(Vector3 direction)
     {
@@ -162,6 +163,7 @@ public sealed class PhaseAction(WalkerEntity entity, PhaseTuning tuning)
         // A sphere meets a box exactly when the box's nearest point is within its radius of its center.
         return entity.Overlapping(new SphereShape3D { Radius = radius }, entity.Position)
             .OfType<Entity>()
+            .Where(other => other.Tuning.CanBePhased)
             .MinBy(other =>
             {
                 Vector2 apart = ((from - other.Position.ToVector2()).Abs() - other.HalfSize).Max(Vector2.Zero);

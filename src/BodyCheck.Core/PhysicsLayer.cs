@@ -18,6 +18,8 @@ public enum PhysicsLayer : uint
     Prop = 1 << 3,
     /// <summary>Character entities like the player, robots, drones, platforms and doors.</summary>
     Character = 1 << 4,
+    /// <summary>What doors stop against, where they open and where they close. Only doors collide with it.</summary>
+    DoorStop = 1 << 5,
     /// <summary>Any Entity.</summary>
     EntityCollisionMask = Prop | Character,
     DefaultCollisionMask = Static | EntityCollisionMask,

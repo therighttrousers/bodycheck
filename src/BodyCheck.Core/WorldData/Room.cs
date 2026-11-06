@@ -15,8 +15,9 @@ public sealed class Room : IOffsetTileGrid
     /// <param name="tiles">The room's tiles. The room keeps it, so the caller must not change it afterwards.</param>
     /// <param name="entityConfigs">
     /// Each entity's configuration, including where its box is, in the room's coordinates. Every box has a positive
-    /// size, but may be outside the room. A platform is one tile high, with two different ends; a sequence and a fanout
-    /// have at least one step; and a dialogue's garble is from 0 to 1.
+    /// size, but may be outside the room. A platform is one tile high, with two different ends; a door's stops are in its
+    /// columns, its open stop above it and its close stop below it, and it doesn't touch both; a sequence and a
+    /// fanout have at least one step; and a dialogue's garble is from 0 to 1.
     /// </param>
     /// <exception cref="ArgumentException">When a configuration isn't what the room can hold.</exception>
     public Room(string name, Vector2I origin, TileGrid tiles, IEnumerable<EntityConfig> entityConfigs)
@@ -41,10 +42,41 @@ public sealed class Room : IOffsetTileGrid
         { MapSize.X: <= 0 } or { MapSize.Y: <= 0 } => "has a box that isn't of a positive size",
         EntityConfig.Platform { MapSize.Y: not 1 } => "isn't 1 tile high",
         EntityConfig.Platform platform when platform.RangeA == platform.RangeB => "has its two ends in the same cell",
+        EntityConfig.VerticalDoor door => DoorProblem(door),
         EntityConfig.Sequence { Steps.Count: 0 } or EntityConfig.Fanout { Steps.Count: 0 } => "has no steps",
         EntityConfig.Dialogue { Garble: < 0 or > 1 or float.NaN } => "has a garble that isn't from 0 to 1",
         _ => null,
     };
+
+    /// <summary>What is wrong with a door's stops, as <see cref="Problem"/> says it, or null if nothing is.</summary>
+    private static string? DoorProblem(EntityConfig.VerticalDoor door)
+    {
+        int left = door.MapOrigin.X;
+        int right = door.MapOrigin.X + door.MapSize.X - 1;
+        int bottom = door.MapOrigin.Y;
+        int top = door.MapOrigin.Y + door.MapSize.Y - 1;
+        if (door.OpenStop.X < left || door.OpenStop.X > right)
+        {
+            return "has its open stop outside its columns";
+        }
+        if (door.CloseStop.X < left || door.CloseStop.X > right)
+        {
+            return "has its close stop outside its columns";
+        }
+        if (door.OpenStop.Y <= top)
+        {
+            return "has its open stop not above it";
+        }
+        if (door.CloseStop.Y >= bottom)
+        {
+            return "has its close stop not below it";
+        }
+        if (door.OpenStop.Y == top + 1 && door.CloseStop.Y == bottom - 1)
+        {
+            return "touches both of its stops, so it can't move";
+        }
+        return null;
+    }
 
     /// <summary>
     /// A room described as text, top row first:
