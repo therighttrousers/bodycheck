@@ -44,6 +44,9 @@ public partial class WorldNode : Node3D, IWorldView
 
     private readonly TickScheduler _scheduler = new();
 
+    // The game's mode on the last tick the controllers stepped, played or paused, or null before the first.
+    private GameMode? _steppedGameMode;
+
     // Each trigger's area, in the order of the world's controls.
     private readonly List<TouchTrigger> _touchTriggers = [];
 
@@ -456,6 +459,7 @@ public partial class WorldNode : Node3D, IWorldView
         _defer.Clear();
         try
         {
+            NoteGameMode();
             foreach (Entity entity in _entities)
             {
                 entity.StepPaused(RealDt, _defer);
@@ -481,6 +485,10 @@ public partial class WorldNode : Node3D, IWorldView
         _defer.Clear();
         try
         {
+            if (ControllersEnabled)
+            {
+                NoteGameMode();
+            }
             foreach (Entity entity in _entities)
             {
                 if (entity.CanProcess())
@@ -507,6 +515,22 @@ public partial class WorldNode : Node3D, IWorldView
         }
 
         UpdateCurrentRespawn();
+    }
+
+    /// <summary>
+    /// Tells every controller when the game's mode differs from the one they last stepped in, before they step.
+    /// </summary>
+    private void NoteGameMode()
+    {
+        GameMode mode = GameMode;
+        if (_steppedGameMode is GameMode from && from != mode)
+        {
+            foreach (Entity entity in _entities)
+            {
+                entity.Controller?.GameModeChanged(from, mode);
+            }
+        }
+        _steppedGameMode = mode;
     }
 
     // Listens for changes to the features only while in the tree, so that the event doesn't keep the world alive: Godot

@@ -109,6 +109,33 @@ public class DialogueTest
         AssertThat(Mathf.Abs(_run.Node.Player.Position.X - start)).IsLess(0.01f);
     }
 
+    [TestCase]
+    public async Task A_jump_held_as_a_cutscene_ends_jumps_only_when_pressed_again()
+    {
+        _run = new RoomRun(RoomRun.RoomOf(
+            "#######",
+            "#.....#",
+            "#.....#",
+            "#.....#",
+            "#.....#",
+            "#..P..#",
+            "#######"));
+        GameMode mode = GameMode.Cutscene;
+        _run.Node.GameModeSource = () => mode;
+        await _run.Tick(RoomRun.Idle, 10);
+        float ground = _run.Node.Player.Position.Y;
+
+        // Jump is pressed in the cutscene, as to end a dialogue, and still held when play resumes.
+        await _run.Tick(RoomRun.Jump, 5);
+        mode = GameMode.Playing;
+        await _run.Tick(RoomRun.Jump, 10);
+        AssertThat(_run.Node.Player.Position.Y - ground).IsLess(0.01f);
+
+        await _run.Tick(RoomRun.Idle);
+        await _run.Tick(RoomRun.Jump, 10);
+        AssertThat(_run.Node.Player.Position.Y - ground).IsGreater(0.5f);
+    }
+
     [TestCase("debug", "start", true)]
     [TestCase("debug", "missing", false)]
     [TestCase("missing", "start", false)]

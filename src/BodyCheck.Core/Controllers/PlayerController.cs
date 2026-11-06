@@ -124,23 +124,33 @@ public sealed class PlayerController : IController<PlayerEntity>
 
     /// <summary>
     /// The player's input this tick: the world's <see cref="IWorldView.PlayerInput"/>, or none in a cutscene, so that the
-    /// player comes to rest while the world runs. A cutscene also clears every leniency timer and buffered press, so that
-    /// nothing pressed before it, such as a direction held while aiming a phase, acts during it. Scripted input for
-    /// cutscenes may come from here later.
+    /// player comes to rest while the world runs. Scripted input for cutscenes may come from here later.
     /// </summary>
-    private PlayerInput GetInput()
+    private PlayerInput GetInput() =>
+        _world.GameMode is GameMode.Cutscene ? default : _world.PlayerInput;
+
+    /// <summary>
+    /// At the edges of a cutscene, makes what the controller remembers of the player's input fit the new mode. Entering
+    /// one, it forgets every leniency timer and buffered press, so that nothing pressed before it, such as a direction
+    /// held while aiming a phase, acts during it. Leaving one, a button already held is not a new press, so that the
+    /// jump that ends a dialogue doesn't also jump: only presses made after the cutscene count. Only at the edges, so
+    /// that a script that runs and jumps the player during a cutscene keeps its own.
+    /// </summary>
+    public void GameModeChanged(GameMode from, GameMode to)
     {
-        if (_world.GameMode is not GameMode.Cutscene)
+        if (to is GameMode.Cutscene && from is not GameMode.Cutscene)
         {
-            return _world.PlayerInput;
+            _direction = Vector3.Zero;
+            _directionTimeLeft = 0;
+            _groundTimeLeft = 0;
+            _jumpBufferLeft = 0;
         }
-        _direction = Vector3.Zero;
-        _directionTimeLeft = 0;
-        _groundTimeLeft = 0;
-        _jumpBufferLeft = 0;
-        _jumpWasHeld = false;
-        _spawnWasHeld = false;
-        return new PlayerInput();
+        else if (from is GameMode.Cutscene && to is not GameMode.Cutscene)
+        {
+            PlayerInput input = _world.PlayerInput;
+            _jumpWasHeld = input.JumpHeld;
+            _spawnWasHeld = input.SpawnHeld;
+        }
     }
 
     /// <summary>Reports the player's measurements to <see cref="Telemetry"/>, as of the engine's last step.</summary>

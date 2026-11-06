@@ -23,6 +23,19 @@ public interface IController<out TEntity> : IActionTarget where TEntity : Entity
     {
     }
 
+    /// <summary>
+    /// Called on the tick, before the controller steps, when the game's mode differs from the one the world last stepped
+    /// its controllers in: where a controller changes state that would mean something else in the new mode, such as
+    /// input it remembers. A trip to the menu or the map and back is no change, since no controller runs meanwhile. It
+    /// is called for every change, the slowdown and the pause for a phase included, so a controller tests for the
+    /// modes it cares about.
+    /// </summary>
+    /// <param name="from">The mode the world last stepped its controllers in.</param>
+    /// <param name="to">The mode now.</param>
+    public void GameModeChanged(GameMode from, GameMode to)
+    {
+    }
+
     /// <summary>Called once per physics tick, before the engine's step.</summary>
     /// <param name="gameDt">The tick's length in game time, which the engine's time scale shortens.</param>
     /// <param name="realDt">The tick's length in real time, which the time scale doesn't change.</param>
