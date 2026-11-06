@@ -16,7 +16,9 @@ namespace BodyCheck;
 /// The game's <see cref="IDialoguePresenter"/>, and the text box that shows the dialogue, from Dialogue Manager's files
 /// in <see cref="DialogueDirectory"/>, in the font and size of <see cref="ThemePath"/>. It belongs in the game's
 /// viewport, on a layer above the colour pass, along its bottom edge. Beside the line is the speaker's avatar, if they
-/// have one in <see cref="AvatarDirectory"/>. The box itself is still a placeholder.
+/// have one in <see cref="AvatarDirectory"/>. The box itself is still a placeholder. <see cref="Main"/> shows it only in a
+/// cutscene, and within that, it shows only while a dialogue is presented or waits, so that a cutscene with no dialogue
+/// has no box.
 /// <para>
 /// <see cref="Present"/> only queues the dialogue: <see cref="GameModeManager"/> starts each with
 /// <see cref="StartNext"/> at its own point in the tick, in a cutscene, and goes back to playing
@@ -63,22 +65,23 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
     private readonly Label _character = new();
     private readonly GarbledDialogueLabel _text = new();
     private readonly VBoxContainer _responses = new();
+    // Everything the box shows, which it shows only while a dialogue is presented or waits.
+    private readonly MarginContainer _shown = new() { Visible = false };
 
     public DialogueBox()
     {
         Layer = 2; // Above the colour pass, so the dither leaves it alone.
         Visible = false;
 
-        var margin = new MarginContainer();
-        margin.SetAnchorsPreset(Control.LayoutPreset.BottomWide);
-        margin.GrowVertical = Control.GrowDirection.Begin;
+        _shown.SetAnchorsPreset(Control.LayoutPreset.BottomWide);
+        _shown.GrowVertical = Control.GrowDirection.Begin;
         // Every line's height comes from the theme's font, so that a locale's font sets it.
-        margin.Theme = GD.Load<Theme>(ThemePath);
+        _shown.Theme = GD.Load<Theme>(ThemePath);
         foreach (string side in new[] { "left", "right", "bottom" })
         {
-            margin.AddThemeConstantOverride($"margin_{side}", 4);
+            _shown.AddThemeConstantOverride($"margin_{side}", 4);
         }
-        AddChild(margin);
+        AddChild(_shown);
 
         var panel = new PanelContainer();
         panel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
@@ -90,7 +93,7 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
             ContentMarginBottom = 4,
             AntiAliasing = false,
         });
-        margin.AddChild(panel);
+        _shown.AddChild(panel);
 
         var row = new HBoxContainer();
         row.AddThemeConstantOverride("separation", 6);
@@ -130,6 +133,7 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
     {
         TickCompletion completion = tick.NewCompletion();
         _waiting.Enqueue(new Request(file, title, completion));
+        UpdateShown();
         return completion.Task;
     }
 
@@ -141,6 +145,7 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
             throw new InvalidOperationException("A dialogue is already being presented.");
         }
         _current = _waiting.Dequeue();
+        UpdateShown();
         _resource = Load(_current.File);
         if (_resource is null)
         {
@@ -258,6 +263,7 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
         _line = null;
         _text.DialogueLine = null;
         ClearResponses();
+        UpdateShown();
         if (failure is null)
         {
             request.Completion.Finish();
@@ -268,9 +274,15 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
         }
     }
 
+    /// <summary>
+    /// Shows the box's contents while a dialogue is presented or waits, so that a cutscene with no dialogue shows no
+    /// box, and the box stays up between dialogues that follow one another.
+    /// </summary>
+    private void UpdateShown() => _shown.Visible = IsPresenting || HasWaiting;
+
     public override void _UnhandledInput(InputEvent @event)
     {
-        if (!Visible)
+        if (!Visible || !_shown.Visible)
         {
             return;
         }
