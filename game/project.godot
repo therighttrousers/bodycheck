@@ -64,7 +64,6 @@ scene={
 
 common/physics_jitter_fix=0
 3d/physics_engine="Jolt Physics"
-jolt_physics_3d/simulation/velocity_steps=16
 jolt_physics_3d/simulation/penetration_slop=0.0
 jolt_physics_3d/simulation/continuous_cd_max_penetration=0.0
 jolt_physics_3d/collisions/collision_margin_fraction=0.005
