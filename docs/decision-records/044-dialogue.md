@@ -27,7 +27,9 @@ Goals and requirements (Neil):
   - Its C# API is a typed wrapper over the GDScript singleton: static methods and events, with `DialogueLine` and `DialogueResponse` as plain C# classes. Thin enough to use directly.
   - We drive it: we ask for each line, and nothing runs on its own timers. But it answers on Godot's frames, a frame or more after it is asked, with a .NET `Task`, so it can't be called from the tick. The text box, which only draws and runs on frames, calls it while the world is paused, and only the end of a dialogue reaches the tick (§2.4).
   - Its presentation is ours: we use none of its balloons.
-  - Translation is not yet tried. Its editor plugin adds each dialogue file to the project's translation templates, `locale/translations_pot_files` in `project.godot`, for Godot's "Extract Translatable Strings", so a new file changes `project.godot` once the editor or an import sees it.
+  - Translation, tried in a copy with the debug dialogue, IDs written by hand and a French `.po` file (Claude, 2026-11-05). By default, a line's static ID, `[ID:...]`, is its translation key, in the context `dialogue`; a line without one is keyed by its text. Lines and responses came out in French through Godot's `TranslationServer`, with `--language fr`, from a `.po` file listed in the project's translations. Its editor plugin adds each dialogue file to the project's translation templates, `locale/translations_pot_files` in `project.godot`, for Godot's "Extract Translatable Strings", so a new file changes `project.godot` once the editor or an import sees it. The plugin's extraction runs headless only inside the editor (`--headless --editor -s` with a script); it gives each key and context, and a comment with the speaker and the English line, for translators.
+  - Once any translation is loaded, every locale looks lines up by ID, English included: with no English translation, English shows the IDs, and a line missing from a locale's file shows its ID too (§5.3).
+  - Speaker names are extracted for translation, but it doesn't translate them when it shows a line: the box has to, with `Tr(character, "dialogue")`.
 
 ## 2. The game while dialogue plays
 
@@ -53,3 +55,7 @@ Goals and requirements (Neil):
 
 - [x] 5.1 Dialogue files are organized by story beat, not by level (Neil, Claude): a beat outlives the levels it spans, and maps to a slice, which gives translators a file's context. Lines shared everywhere, such as the "Sleep" option, go in a common file that others import. A long-running character may get a file of its own.
 - [~] 5.2 A `Dialogue` entity in LDtk names its file and title as strings. The reader checks, when the world loads, that the file exists and holds the title, and a test that loads every world makes a wrong name a failure in CI. Enums in LDtk would have to be kept in step with the files by hand.
+- [ ] 5.3 Translation keys (§1.4). Options:
+  - (a) Static IDs as keys, Dialogue Manager's default, with an English translation file made from the dialogue files, so that English shows text. Editing an English line keeps its key, so translations stay attached, but nothing flags them as out of date.
+  - (b) English text as keys, with the ID as context, by turning off its setting `use_static_ids_as_translation_keys`. English needs no file, and a missing translation shows English. Editing an English line changes its key, so its translations are lost until a translator's tool, such as gettext's merge, matches them up again, marked fuzzy for review.
+  Either way, a test could check that every line has an ID and that every locale's file has every key.
