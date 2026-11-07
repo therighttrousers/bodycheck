@@ -25,3 +25,12 @@ Voice: Please, enter you the door. We wait... we sleep. Broken, broken, all. [#g
 Voice: Gratitude, you have much. Please, thank you. We are here, many are deep.
 
 => END
+
+~ DoorRefusal
+
+% Door: This door is closed for scheduled maintenance. Kindly return at a later date.
+% Door: Opening is not permitted while the facility is in quarantine. Thank you for your patience.
+% Door: Your access has lapsed. Please renew it at the front desk.
+% Door: A pressure difference is detected outside. Opening now would be most unwise.
+
+=> END

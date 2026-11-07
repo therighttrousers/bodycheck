@@ -110,6 +110,8 @@ public class WorldTest
         MapSize = Vector2I.One,
         MapColor = Colors.White,
         Step = new Step(target, action),
+        StartsOn = true,
+        SetOffBy = TriggerSetOffBy.Touch,
     };
 
     private static EntityConfig.Once Once(string target, TriggerAction action = TriggerAction.Default) => new()
@@ -152,7 +154,7 @@ public class WorldTest
     [TestCase("missing", TriggerAction.Default)] // Not in the world
     [TestCase("door", TriggerAction.Default)] // Responds to Close only
     [TestCase("dialogue", TriggerAction.Close)] // Responds to Default only
-    [TestCase("trigger", TriggerAction.Default)] // Responds to no action
+    [TestCase("trigger", TriggerAction.Default)] // Responds to being turned on and off only
     [TestCase("sequence", TriggerAction.Default)] // Back to the once, through the sequence
     public void Refuses_a_route_that_its_target_cant_run(string target, TriggerAction action) =>
         AssertThrown(() => WorldOf(

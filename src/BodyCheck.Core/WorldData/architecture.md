@@ -7,6 +7,7 @@ Relevant decision records:
 - [045: Control entities in the world](../../../docs/decision-records/045-control-entities-in-the-world.md)
 - [047: `Once`, and routing actions](../../../docs/decision-records/047-once-and-routing.md)
 - [049: Doors and their stops](../../../docs/decision-records/049-doors-and-stops.md)
+- [052: The talking door](../../../docs/decision-records/052-talking-door.md)
 
 ## What it is
 
@@ -25,7 +26,7 @@ Anything that runs: engine nodes, bodies or colliders. Reading files in an edito
 
 ## Routes
 
-The control entities are a small language for wiring story beats, described in `043 §1`: a `Trigger` runs one step when touched, and responds to no action; a `Sequence` runs its steps in turn and a `Fanout` all at once; a `Once` runs its step only the first time it is asked; a `Dialogue` presents a title of a dialogue file; and a `Respawn` becomes the player's respawn (`047 §1.1`, `§1.2`). What runs them is described in [Scripts](../Scripts/architecture.md). A step is a `Step`: an action, from `TriggerAction` in Core's root, and its target's id (`045 §3.1`, `§3.2`).
+The control entities are a small language for wiring story beats, described in `043 §1`: a `Trigger` runs one step when the player sets it off, by touch or by interacting, as its `SetOffBy` says, if it is on, and responds to being turned on and off, starting as its `StartsOn` says; a `Sequence` runs its steps in turn and a `Fanout` all at once; a `Once` runs its step only the first time it is asked; a `Dialogue` presents a title of a dialogue file; and a `Respawn` becomes the player's respawn (`047 §1.1`, `§1.2`, `052 §1.1`, `§2.2`). What runs them is described in [Scripts](../Scripts/architecture.md). A step is a `Step`: an action, from `TriggerAction` in Core's root, and its target's id (`045 §3.1`, `§3.2`).
 
 - `EntityKinds` says, for each kind, whether it has a body, and which actions it responds to: `Default` alone for a kind that does one thing, and otherwise actions without it, so that `Default` never stands for one of several (`043 §1.4`). It is a table, as switches over every kind; a test checks the rule against it.
 - What is true of one room, `Room` checks: every box has a positive size, a platform is one tile high with two different ends, a door's stops are in its columns, its open stop above it and its close stop below it, and it doesn't touch both (`049 §1.4`), and a `Sequence` or a `Fanout` has at least one step (`045 §4.2`).

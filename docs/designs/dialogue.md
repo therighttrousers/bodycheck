@@ -5,6 +5,7 @@ Relevant decision records:
 - [044: Dialogue](../decision-records/044-dialogue.md)
 - [050: The cutscene mode](../decision-records/050-cutscene-mode.md)
 - [051: The scripted run at the spawn](../decision-records/051-scripted-run-at-the-spawn.md)
+- [052: The talking door](../decision-records/052-talking-door.md)
 
 How dialogue is written, shown and translated. What the characters say is in [story.md](story.md#dialogue); how the code is put together is in [`game/main/`](../../game/main/architecture.md#the-games-modes).
 
@@ -15,6 +16,14 @@ Dialogue is written in Dialogue Manager's files, in `game/dialogue/`, and fetche
 Files are organized by story beat, not by level. Lines shared everywhere, such as "Sleep", go in a common file that others import (`044 §5.1`).
 
 A level presents dialogue with a `Dialogue` control entity, which names a file, without its directory or extension, and a title in it, as strings. Each time it is asked, it presents that title, after any dialogue already waiting, and finishes when the dialogue ends. A world checks, when it is built, that each of its dialogues' files exists and holds its title, and fails to build if not; a test builds every world, so a wrong name fails in CI, not in play (`044 §5.2`).
+
+## Talking to things
+
+The player talks to something by pressing up in a trigger set off by interacting, standing on the ground, while playing; the trigger runs a `Dialogue`. Looking up needs up held for a while, so a press is free (`052 §2.3`, `§2.4`). While the player could set one off, a speech bubble shows over the top of its box (`052 §3.1`).
+
+- **When it has something to say.** Routes turn the trigger on and off. The door of `Entrance` starts off, and the `Sequence` that shuts it ends by turning it on, so that it says nothing while it is open (`052 §1.3`).
+- **The speaker** is a name in the dialogue file, such as `Door`, with an avatar if there is one by that name (`052 §2.5`).
+- **Lines that vary** each time are Dialogue Manager's random lines: one of a group of lines that start with `%` is chosen each time the title is presented, as the door's excuses are.
 
 ## The game while dialogue plays
 
@@ -43,6 +52,8 @@ The Voice's broken lines are garbled when they are shown, not as written: writer
 
 ## Open questions
 
+- Talking to something that moves, such as a robot: probably an interact trigger whose area moves with a body, with what the robot does while it talks, such as facing the player, to be decided when robots talk (`052 §2.1`).
+- The prompt shows while an interact trigger's step runs outside a cutscene, though a press then starts nothing. No interact trigger yet runs a step that isn't a cutscene (`052 §3.3`).
 - The Voice's real avatar, if it gets one.
 - Fonts for other locales: Fusion Pixel's other versions, or others such as Ark Pixel or Unifont; licences and quality to be checked (`044 §4.1`). How many lines a box holds in each locale.
 - Translation keys: static IDs as keys, with an English translation file, or English text as keys (`044 §5.3`). Speaker names are extracted for translation, but the box doesn't yet translate them (`044 §1.4`).

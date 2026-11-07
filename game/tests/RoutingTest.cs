@@ -97,16 +97,29 @@ public class RoutingTest
     [TestCase]
     public void A_trigger_touched_while_its_step_runs_starts_nothing()
     {
-        var trigger = new TriggerRunner(CallOf("a", 2));
+        var trigger = new TriggerRunner(CallOf("a", 2), startsOn: true);
 
-        TickTask first = trigger.Touch(_scheduler);
+        TickTask first = trigger.SetOff(_scheduler);
         RunTicks(1);
-        AssertThat(trigger.Touch(_scheduler)).IsSame(first);
+        AssertThat(trigger.SetOff(_scheduler)).IsSame(first);
         AssertThat(_log).ContainsExactly("a starts");
 
         RunTicks(1);
-        trigger.Touch(_scheduler);
+        trigger.SetOff(_scheduler);
         AssertThat(_log).ContainsExactly("a starts", "a ends", "a starts");
+    }
+
+    [TestCase]
+    public void A_trigger_that_is_off_starts_nothing_until_turned_on()
+    {
+        var trigger = new TriggerRunner(CallOf("a", 1), startsOn: false);
+
+        AssertThat(trigger.SetOff(_scheduler).IsFinished).IsTrue();
+        AssertThat(_log).IsEmpty();
+
+        AssertThat(trigger.TurnOn(_scheduler).IsFinished).IsTrue();
+        trigger.SetOff(_scheduler);
+        AssertThat(_log).ContainsExactly("a starts");
     }
 
     [TestCase]

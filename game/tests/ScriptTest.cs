@@ -88,6 +88,8 @@ public class ScriptTest
             MapSize = player.MapSize,
             MapColor = Colors.White,
             Step = new Step(script.Id, TriggerAction.Default),
+            StartsOn = true,
+            SetOffBy = TriggerSetOffBy.Touch,
         };
         return new Room(room.Name, room.Origin, TileGrid.FromText(rows), room.EntityConfigs.Append(trigger).Append(script));
     }

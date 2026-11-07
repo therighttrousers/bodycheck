@@ -10,5 +10,8 @@ public readonly record struct PlayerInput(
     bool PhaseHeld = false,
     bool SpawnHeld = false)
 {
+    /// <summary>Whether interact is held: up, which only looks once it has been held a while.</summary>
+    public bool InteractHeld => YAxis > 0;
+
     public bool CanLook => YAxis != 0 && XAxis == 0 && !JumpHeld && !PhaseHeld && !SpawnHeld;
 }

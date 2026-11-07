@@ -24,6 +24,11 @@ public static class EntityKinds
 {
     private static readonly TriggerAction[] None = [];
     private static readonly TriggerAction[] Default = [TriggerAction.Default];
+    private static readonly TriggerAction[] OnOff = [
+        TriggerAction.ToggleOnOff,
+        TriggerAction.TurnOn,
+        TriggerAction.TurnOff
+    ];
     private static readonly TriggerAction[] OpenClose = [
         TriggerAction.ToggleOpenClose,
         TriggerAction.Open,
@@ -51,13 +56,22 @@ public static class EntityKinds
         /// </summary>
         public IReadOnlyList<TriggerAction> Responses => kind switch
         {
-            EntityKind.Player or EntityKind.Robot or EntityKind.Platform or EntityKind.Block or EntityKind.Trigger
-                => None,
+            EntityKind.Player or EntityKind.Robot or EntityKind.Platform or EntityKind.Block => None,
+            EntityKind.Trigger => OnOff,
             EntityKind.VerticalDoor => OpenClose,
             EntityKind.Respawn or EntityKind.Sequence or EntityKind.Fanout or EntityKind.Once or EntityKind.Dialogue
                 or EntityKind.Script => Default,
         };
     }
+}
+
+/// <summary>What sets a trigger off, as LDtk's enum of the same name.</summary>
+public enum TriggerSetOffBy
+{
+    /// <summary>The player coming into its area.</summary>
+    Touch,
+    /// <summary>The player pressing up in its area, on the ground, while playing.</summary>
+    Interact,
 }
 
 /// <summary>One step of a route: an action, and the id of the entity to run it on.</summary>
@@ -145,11 +159,16 @@ public abstract record EntityConfig
         public override EntityKind Kind => EntityKind.Respawn;
     }
 
-    /// <summary>An area that, when touched, runs its step. It responds to no action.</summary>
+    /// <summary>
+    /// An area that, when the player sets it off, runs its step, if it is on. It responds to being turned on and off.
+    /// </summary>
     public sealed record Trigger : EntityConfig
     {
         public override EntityKind Kind => EntityKind.Trigger;
         public required Step Step { get; init; }
+        /// <summary>Whether it starts on. One that is off isn't set off.</summary>
+        public required bool StartsOn { get; init; }
+        public required TriggerSetOffBy SetOffBy { get; init; }
     }
 
     /// <summary>Runs its steps in turn, each when the one before has finished.</summary>

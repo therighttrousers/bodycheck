@@ -48,7 +48,10 @@ public partial class WorldNode : Node3D, IScriptWorld
     private GameMode? _steppedGameMode;
 
     // Each trigger's area, in the order of the world's controls.
-    private readonly List<TouchTrigger> _touchTriggers = [];
+    private readonly List<TriggerArea> _triggerAreas = [];
+
+    // Whether the player held interact when the triggers were last polled, so that only a new press sets one off.
+    private bool _interactWasHeld;
 
     private readonly RunningScripts _runningScripts = new();
 
@@ -181,7 +184,7 @@ public partial class WorldNode : Node3D, IScriptWorld
             var size = new Vector3(trigger.MapSize.X, trigger.MapSize.Y, Depth);
             area.AddChild(new CollisionShape3D { Shape = new BoxShape3D { Size = size } });
             AddChild(area);
-            _touchTriggers.Add(new TouchTrigger(trigger, area, Triggers[trigger.Id]));
+            _triggerAreas.Add(new TriggerArea(trigger, area, Triggers[trigger.Id]));
         }
 
         // Last, once the world is built, so that no controller sees it half built. An entity added later is to be given
@@ -219,6 +222,7 @@ public partial class WorldNode : Node3D, IScriptWorld
             }
             target = config switch
             {
+                EntityConfig.Trigger trigger => new TriggerRunner(CallOf(trigger.Step), trigger.StartsOn),
                 EntityConfig.Sequence sequence => new SequenceRunner(CallsOf(sequence.Steps)),
                 EntityConfig.Fanout fanout => new FanoutRunner(CallsOf(fanout.Steps)),
                 EntityConfig.Once once => new OnceRunner(CallOf(once.Step)),
@@ -237,9 +241,9 @@ public partial class WorldNode : Node3D, IScriptWorld
         var triggers = new Dictionary<string, TriggerRunner>();
         foreach (EntityConfig config in World.Controls)
         {
-            if (config is EntityConfig.Trigger trigger)
+            if (config is EntityConfig.Trigger)
             {
-                triggers[trigger.Id] = new TriggerRunner(CallOf(trigger.Step));
+                triggers[config.Id] = (TriggerRunner)TargetOf(config);
             }
             else if (config.Kind.Responses.Count > 0)
             {
@@ -434,10 +438,16 @@ public partial class WorldNode : Node3D, IScriptWorld
     public IReadOnlyDictionary<string, TriggerRunner> Triggers { get; }
 
     /// <summary>
-    /// Raised on the tick of play when the player comes into a trigger's area, which sets it off, whether or not that
-    /// starts a run.
+    /// Raised on the tick of play when the player sets off a trigger that is on, whether or not that starts a run.
     /// </summary>
-    public event Action<EntityConfig.Trigger>? TriggerTouched;
+    public event Action<EntityConfig.Trigger>? TriggerSetOff;
+
+    /// <summary>
+    /// The trigger that the player can set off by interacting, as of the last tick of play: one that is set off by
+    /// interacting, is on, and holds the player while it stands on the ground. Null if there is none, or the game
+    /// wasn't playing. If several could, the first in the order of the world's controls.
+    /// </summary>
+    public EntityConfig.Trigger? InteractTrigger { get; private set; }
 
     /// <summary>The scripts the world is running, in the order they started.</summary>
     public IReadOnlyList<IScript> RunningScripts => _runningScripts.All;
@@ -572,11 +582,11 @@ public partial class WorldNode : Node3D, IScriptWorld
         // Run this tick's post-entity-steps deferred actions.
         _defer.DrainAfterEntityStepsActions();
 
-        // Set off the triggers touched, then resume what waits on the world's tick, now that every controller has run,
-        // and its deferred actions too. Touches go first, so that what they start runs on in this tick's run.
+        // Set off the triggers, then resume what waits on the world's tick, now that every controller has run,
+        // and its deferred actions too. Triggers go first, so that what they start runs on in this tick's run.
         if (ControllersEnabled)
         {
-            TouchTriggers();
+            SetOffTriggers();
             _scheduler.Run((float)delta);
         }
 
@@ -636,30 +646,47 @@ public partial class WorldNode : Node3D, IScriptWorld
     }
 
     /// <summary>
-    /// Sets off each trigger that holds the player, as of the engine's last step, and didn't when it was last asked,
-    /// in the order of the world's controls. A trigger has held nothing before it is first asked, so a player that
-    /// starts in one sets it off.
+    /// Sets off each trigger that the player sets off, as of the engine's last step, in the order of the world's
+    /// controls. One set off by touch is set off when it holds the player and didn't when it was last asked. A trigger
+    /// has held nothing before it is first asked, so a player that starts in one sets it off. One set off by
+    /// interacting is set off when it holds the player, which stands on the ground, and interact has been pressed since
+    /// the last tick, only while playing: in a cutscene, the player acts on no input of its own.
     /// <para>
     /// An area finds what is in it at the end of each step, with no continuous detection, so a body that crosses it
     /// within one step is missed: a trigger and the body together must be as wide as the body moves in a tick.
     /// </para>
     /// </summary>
-    private void TouchTriggers()
+    private void SetOffTriggers()
     {
-        foreach (TouchTrigger trigger in _touchTriggers)
+        bool canInteract = GameMode is GameMode.Playing && Player.OnGround;
+        bool interactHeld = PlayerInput.InteractHeld;
+        bool interacts = canInteract && interactHeld && !_interactWasHeld;
+        _interactWasHeld = interactHeld;
+
+        InteractTrigger = null;
+        foreach (TriggerArea trigger in _triggerAreas)
         {
             bool held = trigger.Area.OverlapsBody(Player);
-            if (held && !trigger.HeldPlayer)
+            bool setOff = trigger.Config.SetOffBy switch
             {
-                trigger.Runner.Touch(_scheduler);
-                TriggerTouched?.Invoke(trigger.Config);
+                TriggerSetOffBy.Touch => held && !trigger.HeldPlayer,
+                TriggerSetOffBy.Interact => held && interacts,
+            };
+            if (trigger.Config.SetOffBy is TriggerSetOffBy.Interact && held && canInteract && trigger.Runner.IsOn)
+            {
+                InteractTrigger ??= trigger.Config;
+            }
+            if (setOff && trigger.Runner.IsOn)
+            {
+                trigger.Runner.SetOff(_scheduler);
+                TriggerSetOff?.Invoke(trigger.Config);
             }
             trigger.HeldPlayer = held;
         }
     }
 
     /// <summary>A trigger's area, what runs it, and whether the area held the player when it was last asked.</summary>
-    private sealed class TouchTrigger(EntityConfig.Trigger config, Area3D area, TriggerRunner runner)
+    private sealed class TriggerArea(EntityConfig.Trigger config, Area3D area, TriggerRunner runner)
     {
         public EntityConfig.Trigger Config { get; } = config;
         public Area3D Area { get; } = area;

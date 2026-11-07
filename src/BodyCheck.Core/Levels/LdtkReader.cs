@@ -241,6 +241,8 @@ public static class LdtkReader
                 Step = new Step(
                     fields.Read("Target", LdtkJsonContext.Default.LdtkEntityRef).EntityIid,
                     fields.Read("Action", LdtkJsonContext.Default.TriggerAction)),
+                StartsOn = fields.Read("StartsOn", LdtkJsonContext.Default.Boolean),
+                SetOffBy = fields.Read("SetOffBy", LdtkJsonContext.Default.TriggerSetOffBy),
             },
             LdtkEntityName.Sequence => new EntityConfig.Sequence()
             {

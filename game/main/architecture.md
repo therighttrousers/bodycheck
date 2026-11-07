@@ -21,6 +21,7 @@ Relevant decision records:
 - [044: Dialogue](../../docs/decision-records/044-dialogue.md)
 - [050: The cutscene mode](../../docs/decision-records/050-cutscene-mode.md)
 - [051: The scripted run at the spawn](../../docs/decision-records/051-scripted-run-at-the-spawn.md)
+- [052: The talking door](../../docs/decision-records/052-talking-door.md)
 
 ## What it is
 
@@ -62,6 +63,8 @@ With `--probe=` and a name, `Main` runs that probe instead of playing; its code 
 `Letterbox` draws black bars across the top and bottom of the game's viewport, sliding in while its `Shown` is set and out when not, which `Main` sets while the cutscene's request asks for black bars. They stay as they are under the menu, since the tree is paused, and are hidden in the map. See [rendering.md](../../docs/designs/rendering.md) for how they are drawn.
 
 `DialogueBox` is also the text box, in the game's viewport, on a layer above the colour pass, along its bottom edge, which `Main` shows in the cutscene mode only, and which shows itself only while a dialogue is presented or waits, so that a cutscene with no dialogue, such as a script's, has no box: the speaker's avatar, in a border, if `assets/avatars/` has one by the speaker's name, the speaker, the line, wrapped, and once the line has typed out, the responses, with the chosen one marked. The box itself, its panel and its margins, is a placeholder. Its font and size are the default of the theme `assets/fonts/dialogue_theme.tres`, so the font sets every line's height. The line is a `GarbledDialogueLabel`, Dialogue Manager's `DialogueLabel` with its scene's settings set in code, which types the line out, handles its inline tags and runs its inline mutations, and shows it garbled by `Garble`, by the fraction in the line's garble tag, from the line's ID and a step it counts up every half second, which shifts the garble (see [dialogue.md](../../docs/designs/dialogue.md)). Jump skips the typing, or once the line has typed out, goes on, and up and down choose a response. It gets each line from Dialogue Manager, which answers on Godot's frames with a .NET `Task`, a frame or more after it is asked; that is fine for the box, which only draws (`044 §1.4`). A dialogue file that doesn't exist, or an error in Dialogue Manager, fails the dialogue's task, which fails the world's next played tick.
+
+`InteractPrompt` shows that the player can interact: while the world's `InteractTrigger` isn't null, it draws `assets/prompts/interact.png`, a placeholder speech bubble, centred over the top of that trigger's box, at whole pixels, in the game's viewport, under the colour pass and the menu. `Main` shows it while playing only (`052 §3`).
 
 `PhaseAimMarker` is a placeholder, in the game's viewport, under the colour pass and the menu, for showing a phase being aimed: a box around the target, and arrows from the center of mass of the player and the target for the velocity each would leave with (`015 §5.7`, `039 §2.3`).
 

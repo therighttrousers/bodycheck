@@ -42,7 +42,7 @@ public class GameWorldsTest
                     await tree.ToSignal(tree, SceneTree.SignalName.PhysicsFrame);
                     foreach (var trigger in node.Triggers.Values)
                     {
-                        _ = trigger.Touch(node.Tick);
+                        _ = trigger.SetOff(node.Tick);
                     }
                 }
                 finally
