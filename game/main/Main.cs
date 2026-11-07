@@ -4,6 +4,7 @@ using System.Linq;
 
 using BodyCheck.Core;
 using BodyCheck.Core.Levels;
+using BodyCheck.Core.Scripts;
 using BodyCheck.Core.Simulation;
 using BodyCheck.Core.Tasks;
 using BodyCheck.Core.WorldData;
@@ -43,7 +44,8 @@ namespace BodyCheck;
 /// name; "--probe=" and a probe's name to run that probe and quit, in the editor's build only; "--overlay" to start with the
 /// <see cref="DebugOverlay"/> showing; "--collisions" to start with the <see cref="CollisionDebug"/> showing; "--markers" to start with
 /// the world's <see cref="WorldNode.MapMarkers"/> showing. F2 switches the markers on and off, for every world loaded after, F3 the
-/// overlay, and F4 the collisions. 2 presents the debug dialogue, which pauses the game (see <see cref="DialogueBox"/>).
+/// overlay, and F4 the collisions. 2 presents the debug dialogue in a cutscene, as a level's dialogue is presented,
+/// queued after any dialogue already presented (see <see cref="DialogueBox"/>).
 /// </para>
 /// </summary>
 public partial class Main : Node
@@ -220,17 +222,17 @@ public partial class Main : Node
         }
         else if (Input.IsActionJustPressed("debug_dialogue"))
         {
-            _ = PresentDebugDialogue(_world.Tick);
+            _ = PresentDebugDialogue();
         }
     }
 
     /// <summary>
-    /// Presents the debug dialogue, and says when the world has resumed what waits for it, which is in the first played
-    /// tick after it ends.
+    /// Presents the debug dialogue, as a level's <c>Dialogue</c> entity does, holding a cutscene while it does, and says
+    /// when the world has resumed what waits for it, which is in the tick it ends.
     /// </summary>
-    private async TickTask PresentDebugDialogue(ITick tick)
+    private async TickTask PresentDebugDialogue()
     {
-        await _dialogueBox.Present(tick, "debug", "start");
+        await new DialogueRunner(_dialogueBox, _world, "debug", "start").Default(_world.Tick);
         GD.Print("The debug dialogue has ended.");
     }
 
@@ -325,15 +327,18 @@ public partial class Main : Node
 
     private void LoadWorld(int index)
     {
-        Func<PlayerInput>? input = _world?.PlayerInputSource;
         _worldIndex = Mathf.PosMod(index, _worlds.Count);
-        LoadWorld(_worlds[_worldIndex]).PlayerInputSource = input;
+        LoadWorld(_worlds[_worldIndex]);
     }
 
-    /// <summary>Replaces the current world, if there is one, and has the camera follow the new one's player.</summary>
+    /// <summary>
+    /// Replaces the current world, if there is one, and has the camera follow the new one's player, with the old one's
+    /// input. The old world is dropped once the new one is in place, so that what runs in it cleans up, and the game is
+    /// whole even if its cleanup throws.
+    /// </summary>
     private WorldNode LoadWorld(World world)
     {
-        _world?.QueueFree();
+        WorldNode? old = _world;
         Telemetry.Reset();
         _world = WorldNode.Build(
             world,
@@ -341,6 +346,7 @@ public partial class Main : Node
             respawnId: _respawnIds.GetValueOrDefault(world.Name),
             dialogue: _dialogueBox,
             scripts: new ScriptLibrary());
+        _world.PlayerInputSource = old?.PlayerInputSource;
         _world.GameModeSource = () => _gameModeManager.GameMode;
         _world.MapMarkers.Visible = _showMapMarkers;
         _world.CurrentRespawnChanged += respawn =>
@@ -358,6 +364,7 @@ public partial class Main : Node
         _phaseAimMarker.World = _world;
         _interactPrompt.World = _world;
         ShowTitle();
+        old?.StopAndQueueFree();
         return _world;
     }
 

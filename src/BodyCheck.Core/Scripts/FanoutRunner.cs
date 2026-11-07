@@ -10,13 +10,5 @@ namespace BodyCheck.Core.Scripts;
 /// <param name="steps">The steps, at least one.</param>
 public sealed class FanoutRunner(IReadOnlyList<Call> steps) : IActionTarget
 {
-    public async TickTask Default(ITick tick)
-    {
-        // Start every step before awaiting any.
-        TickTask[] runs = [.. steps.Select(step => step.Run(tick))];
-        foreach (TickTask run in runs)
-        {
-            await run;
-        }
-    }
+    public TickTask Default(ITick tick) => tick.All(steps.Select(step => step.Run(tick)));
 }

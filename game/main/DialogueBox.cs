@@ -1,6 +1,6 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 using BodyCheck.Core;
 using BodyCheck.Core.Scripts;
@@ -24,12 +24,13 @@ namespace BodyCheck;
 /// ones before it have ended. It holds no cutscene: what presents a dialogue holds one, as Core's dialogue runner does,
 /// so that the game's modes know nothing of dialogue. Each line types out, and its responses show once it
 /// has. Jump skips the typing, or once a line has typed out, goes on to the next, and up and down choose a response.
-/// When a dialogue ends, its task finishes, and what waits for it resumes in the world's next tick.
 /// </para>
 /// <para>
-/// Dialogue Manager runs on Godot's frames and .NET's <c>Task</c>s, not on the world's tick: it fetches each line a
-/// frame or more after it is asked. That is fine for the box, which only draws; only the end of a dialogue reaches the
-/// world, through a <see cref="TickCompletion"/>.
+/// A dialogue is presented by an async method on the tick it is presented on, the world's, which waits for each line
+/// and for the player to go on from it: it ends when the dialogue does, so what waits for it resumes in that tick. When
+/// the world is dropped, stopping its tick, the method unwinds like any other, and the box drops the dialogue. Dialogue
+/// Manager fetches each line on Godot's frames, with a .NET <c>Task</c>, a frame or more after it is asked, and the
+/// player's input comes off the tick too: the method checks in each tick whether they have come.
 /// </para>
 /// </summary>
 public partial class DialogueBox : CanvasLayer, IDialoguePresenter
@@ -47,12 +48,13 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
     /// </summary>
     private const string AvatarDirectory = "res://assets/avatars";
 
-    private readonly Queue<Request> _waiting = new();
-    private Request? _current;
-    private Resource? _resource;
+    // So that one dialogue is presented at a time, and the next starts when the one before has ended.
+    private readonly ReentrantTask _presenting = new(Reentry.Queue);
     // The line being shown, or null while the next is being fetched.
     private DialogueLine? _line;
     private int _response;
+    // What the player has gone on to from the line shown: the next line's ID, or null until they go on.
+    private string? _next;
     // Whether the line shown has typed out. Not the label's IsTyping, which is false while an inline mutation, such as
     // a wait, is awaited partway through the line: going on then would end the line while the label still types it.
     private bool _typedOut;
@@ -130,32 +132,59 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
     }
 
     /// <summary>Whether a dialogue has started and not yet ended.</summary>
-    public bool IsPresenting => _current is not null;
+    public bool IsPresenting { get; private set; }
 
     /// <inheritdoc/>
-    public TickTask Present(ITick tick, string file, string title)
-    {
-        TickCompletion completion = tick.NewCompletion();
-        _waiting.Enqueue(new Request(file, title, completion));
-        if (_current is null)
-        {
-            StartNext();
-        }
-        return completion.Task;
-    }
+    public TickTask Present(ITick tick, string file, string title) =>
+        _presenting.Run(() => Run(tick, file, title));
 
-    /// <summary>Starts the dialogue that has waited longest. Only one is presented at a time.</summary>
-    private void StartNext()
+    /// <summary>
+    /// Presents the dialogue, line by line, until it ends. A missing file, a garble tag that isn't valid, or an error in
+    /// Dialogue Manager fails it. However it ends, even by its tick being stopped, the box drops it.
+    /// </summary>
+    private async TickTask Run(ITick tick, string file, string title)
     {
-        _current = _waiting.Dequeue();
+        Resource resource = Load(file)
+            ?? throw new System.IO.FileNotFoundException($"There is no dialogue file {PathOf(file)}.");
+        IsPresenting = true;
         UpdateShown();
-        _resource = Load(_current.File);
-        if (_resource is null)
+        try
         {
-            End(new System.IO.FileNotFoundException($"There is no dialogue file {PathOf(_current.File)}."));
-            return;
+            string key = title;
+            while (true)
+            {
+                _line = null;
+                Task<DialogueLine?> fetching = DialogueManager.GetNextDialogueLine(resource, key);
+                await tick.UntilCompleted(fetching);
+                if (fetching.Result is not DialogueLine line)
+                {
+                    return;
+                }
+                try
+                {
+                    _text.GarbleFraction = Garble.FractionOf(line.Tags);
+                }
+                catch (FormatException e)
+                {
+                    throw new FormatException($"In the dialogue {file}, title {title}: {e.Message}", e);
+                }
+                _line = line;
+                _response = 0;
+                _next = null;
+                ShowLine();
+                await tick.While(() => _next is null);
+                key = _next!;
+            }
         }
-        Fetch(_current.Title);
+        finally
+        {
+            IsPresenting = false;
+            _line = null;
+            _next = null;
+            _text.DialogueLine = null;
+            ClearResponses();
+            UpdateShown();
+        }
     }
 
     /// <inheritdoc/>
@@ -169,47 +198,6 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
     {
         string path = PathOf(file);
         return ResourceLoader.Exists(path) ? GD.Load<Resource>(path) : null;
-    }
-
-    /// <summary>
-    /// Fetches the line <paramref name="key"/> names, and shows it, garbled as its tag says, or ends the dialogue if
-    /// there is none. A garble tag that isn't valid fails the dialogue.
-    /// </summary>
-    private async void Fetch(string key)
-    {
-        Request request = _current!;
-        _line = null;
-        DialogueLine? line;
-        try
-        {
-            line = await DialogueManager.GetNextDialogueLine(_resource!, key);
-        }
-        catch (Exception e)
-        {
-            End(e);
-            return;
-        }
-        if (_current != request)
-        {
-            return; // Ended while the line was fetched.
-        }
-        if (line is null)
-        {
-            End(null);
-            return;
-        }
-        try
-        {
-            _text.GarbleFraction = Garble.FractionOf(line.Tags);
-        }
-        catch (FormatException e)
-        {
-            End(new FormatException($"In the dialogue {request.File}, title {request.Title}: {e.Message}", e));
-            return;
-        }
-        _line = line;
-        _response = 0;
-        ShowLine();
     }
 
     /// <summary>Shows the line, and starts typing it out. Its responses show once it has.</summary>
@@ -258,36 +246,9 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
         }
     }
 
-    /// <summary>Ends the dialogue being presented, finishing its task, or failing it with <paramref name="failure"/>.</summary>
-    private void End(Exception? failure)
-    {
-        Request request = _current!;
-        _current = null;
-        _resource = null;
-        _line = null;
-        _text.DialogueLine = null;
-        ClearResponses();
-        if (failure is null)
-        {
-            request.Completion.Finish();
-        }
-        else
-        {
-            request.Completion.Fail(failure);
-        }
-        if (_waiting.Count > 0)
-        {
-            StartNext();
-        }
-        else
-        {
-            UpdateShown();
-        }
-    }
-
     /// <summary>
     /// Shows the box's contents while a dialogue is presented, so that a cutscene with no dialogue shows no box. The
-    /// next dialogue starts as the one before ends, so the box stays up between them.
+    /// next dialogue starts in the same tick as the one before ends, so the box stays up between them.
     /// </summary>
     private void UpdateShown() => _shown.Visible = IsPresenting;
 
@@ -311,7 +272,8 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
 
     /// <summary>
     /// Skips the typing of the line shown, running its inline mutations that are left; or once it has typed out, goes
-    /// on from it: to the next line, or the chosen response's, if it is allowed. Does nothing while no line is shown.
+    /// on from it: to the next line, or the chosen response's, if it is allowed, which is fetched in the world's next
+    /// tick. Does nothing while no line is shown.
     /// </summary>
     public void Advance()
     {
@@ -325,11 +287,11 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
         }
         else if (_line.Responses.Count == 0)
         {
-            Fetch(_line.NextId);
+            _next = _line.NextId;
         }
         else if (_line.Responses[_response].IsAllowed)
         {
-            Fetch(_line.Responses[_response].NextId);
+            _next = _line.Responses[_response].NextId;
         }
     }
 
@@ -343,6 +305,4 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
         _response = Mathf.PosMod(_response + step, _line.Responses.Count);
         ShowResponses();
     }
-
-    private sealed record Request(string File, string Title, TickCompletion Completion);
 }

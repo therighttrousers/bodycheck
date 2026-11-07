@@ -1,8 +1,11 @@
+using System.Runtime.ExceptionServices;
+
 namespace BodyCheck.Core.Tasks;
 
 /// <summary>
 /// What runs <see cref="TickTask"/>s: the queue of what waits for tasks that have finished, and the clock that its
-/// waits count, which its owner runs once a tick. Dropping it drops whatever waits on it.
+/// waits count, which its owner runs once a tick, and stops when it is done with it, which unwinds whatever waits on
+/// it.
 /// </summary>
 public sealed class TickScheduler : ITick
 {
@@ -18,6 +21,8 @@ public sealed class TickScheduler : ITick
 
     private bool _running;
 
+    private bool _stopped;
+
     /// <summary>Adds what waits for a task that has finished, to run when the scheduler next runs.</summary>
     internal void Add(Action continuation) => _queue.Enqueue(continuation);
 
@@ -29,14 +34,130 @@ public sealed class TickScheduler : ITick
     {
         ArgumentOutOfRangeException.ThrowIfNegative(seconds);
         var task = new TickTask(this);
-        _waits.Add((task, _time + seconds));
+        if (_stopped)
+        {
+            // Such as by a finally block that waits, as a stop unwinds it: it would never finish.
+            task.Cancel(Cancellation());
+        }
+        else
+        {
+            _waits.Add((task, _time + seconds));
+        }
         return task;
     }
 
     /// <inheritdoc/>
-    public TickCompletion NewCompletion() => new(this);
+    public async TickTask While(Func<bool> condition)
+    {
+        while (condition())
+        {
+            await NextTick();
+        }
+    }
 
+    /// <inheritdoc/>
+    public async TickTask While(Func<bool> condition, Action body)
+    {
+        while (condition())
+        {
+            body();
+            await NextTick();
+        }
+    }
+
+    /// <inheritdoc/>
+    public async TickTask While(Func<bool> condition, Func<TickTask> body)
+    {
+        while (condition())
+        {
+            double time = _time;
+            await body();
+            if (_time == time)
+            {
+                await NextTick();
+            }
+        }
+    }
+
+    /// <inheritdoc/>
+    public async TickTask UntilCompleted(Task task)
+    {
+        await While(() => !task.IsCompleted);
+        // Not await: the method would resume off the tick. The task has completed, so this only throws its exception,
+        // if it has one, unwrapped, as await would.
+        task.GetAwaiter().GetResult();
+    }
+
+    /// <inheritdoc/>
+    public async TickTask All(IEnumerable<TickTask> tasks)
+    {
+        // Enumerated first, so that every task has started before any is awaited.
+        List<TickTask> taskList = [.. tasks];
+        foreach (var task in taskList)
+        {
+            await task;
+        }
+    }
+
+    /// <inheritdoc/>
     public float Dt => _dt;
+
+    /// <inheritdoc/>
+    public double Time => _time;
+
+    /// <summary>
+    /// Stops the scheduler for good, unwinding everything that waits on it: cancels every wait that hasn't finished,
+    /// then runs what waits for the tasks that have, and for those it cancelled, until nothing is left. Awaiting a
+    /// cancelled task throws an <see cref="OperationCanceledException"/>, so every method waiting on the scheduler
+    /// unwinds in this call, through its <c>using</c> and <c>finally</c> blocks, while what they clean up is still
+    /// there. A wait made after it has stopped is cancelled at once. It runs no more ticks.
+    /// <para>
+    /// If cleanup fails, such as a <c>finally</c> block that throws, it unwinds everything else first, then throws
+    /// the first failure, so that one failure doesn't leave the rest of the cleanup undone.
+    /// </para>
+    /// </summary>
+    public void Stop()
+    {
+        if (_running)
+        {
+            throw new InvalidOperationException("A TickScheduler can't be stopped while it runs.");
+        }
+        if (_stopped)
+        {
+            return;
+        }
+        _stopped = true;
+        _running = true;
+        try
+        {
+            foreach ((TickTask task, double _) in _waits)
+            {
+                task.Cancel(Cancellation());
+            }
+            _waits.Clear();
+
+            ExceptionDispatchInfo? firstFailure = null;
+            while (_queue.TryDequeue(out Action? continuation))
+            {
+                // Only what fails a task throws: kept, to throw once everything has unwound.
+                try
+                {
+                    continuation();
+                }
+                catch (Exception e)
+                {
+                    firstFailure ??= ExceptionDispatchInfo.Capture(e);
+                }
+            }
+            firstFailure?.Throw();
+        }
+        finally
+        {
+            _running = false;
+        }
+    }
+
+    private static OperationCanceledException Cancellation() => new("The TickScheduler was stopped.");
 
     /// <summary>
     /// Runs one tick: finishes the waits that are due, then runs what waits for every task that has finished, until
@@ -51,6 +172,10 @@ public sealed class TickScheduler : ITick
         if (_running)
         {
             throw new InvalidOperationException("The TickScheduler is already running.");
+        }
+        if (_stopped)
+        {
+            throw new InvalidOperationException("The TickScheduler has stopped.");
         }
         _running = true;
         try

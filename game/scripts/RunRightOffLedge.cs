@@ -10,16 +10,18 @@ public class RunRightOffLedge : IScript
 {
     public async TickTask Run(IScriptWorld world, ITick tick)
     {
+        // Go into cutscene mode for the duration of this method.
         using IDisposable cutscene = world.HoldCutscene(new() { BlackBars = true });
+
         // Hold right until the ground falls away.
         world.PlayerController.ScriptedInput = new PlayerInput(XAxis: 1);
-        while (world.Player.OnGround) await tick.NextTick();
-        // Try to zero out horizontal velocity until landing.
-        while (!world.Player.OnGround)
-        {
-            // Not as elegant as a PD controller, but any overcorrection is barely visible.
-            world.PlayerController.ScriptedInput = new PlayerInput(XAxis: Math.Sign(-world.Player.LinearVelocity.X));
-            await tick.NextTick();
-        }
+        await tick.While(() => world.Player.OnGround);
+
+        // Try to zero out horizontal velocity until landing. This is not as elegant as a PD controller, but any
+        // overcorrection is barely visible.
+        await tick.While(
+            () => !world.Player.OnGround,
+            () => world.PlayerController.ScriptedInput = new PlayerInput(XAxis: Math.Sign(-world.Player.LinearVelocity.X))
+        );
     }
 }
