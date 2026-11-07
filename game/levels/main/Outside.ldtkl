@@ -297,44 +297,15 @@
 				},
 				{
 					"__identifier": "Trigger",
-					"__grid": [0,5],
+					"__grid": [1,3],
 					"__pivot": [0,0],
 					"__tags": ["Control"],
 					"__tile": null,
 					"__smartColor": "#D7CF43",
 					"iid": "0e223010-bde0-11f1-a315-c15e5d279e84",
-					"width": 48,
-					"height": 48,
-					"defUid": 237,
-					"px": [0,80],
-					"fieldInstances": [
-						{ "__identifier": "Target", "__type": "EntityRef", "__value": {
-							"entityIid": "14d19d10-bde0-11f1-a315-65b4c7b7dcb8",
-							"layerIid": "6aa1dfc1-bde0-11f1-a170-2f753f312d69",
-							"levelIid": "6aa1dfc0-bde0-11f1-a170-f914bfc3ae23",
-							"worldIid": "0f349180-bde0-11f1-b046-a5531090d1ba"
-						}, "__tile": null, "defUid": 240, "realEditorValues": [{
-							"id": "V_String",
-							"params": ["14d19d10-bde0-11f1-a315-65b4c7b7dcb8"]
-						}] },
-						{ "__identifier": "Action", "__type": "LocalEnum.TriggerAction", "__value": "Default", "__tile": null, "defUid": 242, "realEditorValues": [] },
-						{ "__identifier": "StartsOn", "__type": "Bool", "__value": true, "__tile": null, "defUid": 270, "realEditorValues": [] },
-						{ "__identifier": "SetOffBy", "__type": "LocalEnum.TriggerSetOffBy", "__value": "Touch", "__tile": null, "defUid": 272, "realEditorValues": [] }
-					],
-					"__worldX": -960,
-					"__worldY": 80
-				},
-				{
-					"__identifier": "Once",
-					"__grid": [1,3],
-					"__pivot": [0,0],
-					"__tags": ["Control"],
-					"__tile": null,
-					"__smartColor": "#3E2731",
-					"iid": "14d19d10-bde0-11f1-a315-65b4c7b7dcb8",
 					"width": 16,
 					"height": 16,
-					"defUid": 261,
+					"defUid": 237,
 					"px": [16,48],
 					"fieldInstances": [
 						{ "__identifier": "Target", "__type": "EntityRef", "__value": {
@@ -342,11 +313,16 @@
 							"layerIid": "6aa1dfc1-bde0-11f1-a170-2f753f312d69",
 							"levelIid": "6aa1dfc0-bde0-11f1-a170-f914bfc3ae23",
 							"worldIid": "0f349180-bde0-11f1-b046-a5531090d1ba"
-						}, "__tile": null, "defUid": 262, "realEditorValues": [{
+						}, "__tile": null, "defUid": 240, "realEditorValues": [{
 							"id": "V_String",
 							"params": ["16f1e500-bde0-11f1-a315-154ba4d4dfb8"]
 						}] },
-						{ "__identifier": "Action", "__type": "LocalEnum.TriggerAction", "__value": "Default", "__tile": null, "defUid": 263, "realEditorValues": [] }
+						{ "__identifier": "Action", "__type": "LocalEnum.TriggerAction", "__value": "Default", "__tile": null, "defUid": 242, "realEditorValues": [] },
+						{ "__identifier": "StartsOn", "__type": "Bool", "__value": true, "__tile": null, "defUid": 270, "realEditorValues": [] },
+						{ "__identifier": "SetOffBy", "__type": "LocalEnum.TriggerSetOffBy", "__value": "Start", "__tile": null, "defUid": 272, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["Start"]
+						}] }
 					],
 					"__worldX": -944,
 					"__worldY": 48
@@ -363,10 +339,21 @@
 					"height": 16,
 					"defUid": 259,
 					"px": [48,48],
-					"fieldInstances": [{ "__identifier": "ClassName", "__type": "String", "__value": "RunRightOffLedge", "__tile": null, "defUid": 260, "realEditorValues": [{
-						"id": "V_String",
-						"params": ["RunRightOffLedge"]
-					}] }],
+					"fieldInstances": [
+						{ "__identifier": "ClassName", "__type": "String", "__value": "RunRightOffLedge", "__tile": null, "defUid": 260, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["RunRightOffLedge"]
+						}] },
+						{ "__identifier": "Entities", "__type": "Array<EntityRef>", "__value": [{
+							"entityIid": "9cb9aa60-bde0-11f1-a170-05b3f2bcfd25",
+							"layerIid": "6aa1dfc2-bde0-11f1-a170-8b44d457842c",
+							"levelIid": "6aa1dfc0-bde0-11f1-a170-f914bfc3ae23",
+							"worldIid": "0f349180-bde0-11f1-b046-a5531090d1ba"
+						}], "__tile": null, "defUid": 273, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["9cb9aa60-bde0-11f1-a170-05b3f2bcfd25"]
+						}] }
+					],
 					"__worldX": -912,
 					"__worldY": 48
 				}

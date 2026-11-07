@@ -106,6 +106,24 @@ public sealed class World
             }
         }
 
+        foreach (EntityConfig.Script script in Controls.OfType<EntityConfig.Script>())
+        {
+            foreach (string id in script.Entities)
+            {
+                if (!ConfigsById.TryGetValue(id, out EntityConfig? entity))
+                {
+                    throw new ArgumentException(
+                        $"In world '{name}', {Named(script)} is given '{id}', which isn't in the world.", nameof(rooms));
+                }
+                if (!entity.Kind.HasBody)
+                {
+                    throw new ArgumentException(
+                        $"In world '{name}', {Named(script)} is given {Named(entity)}, which has no body.",
+                        nameof(rooms));
+                }
+            }
+        }
+
         if (FindCycle() is EntityConfig start)
         {
             throw new ArgumentException(

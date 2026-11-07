@@ -286,6 +286,7 @@ public static class LdtkReader
                 MapSize = size,
                 MapColor = color,
                 ClassName = fields.Read("ClassName", LdtkJsonContext.Default.String),
+                Entities = fields.References("Entities"),
             },
         };
     }
@@ -320,6 +321,13 @@ public static class LdtkReader
             // LDtk's y is down, from the top of the level, and the room's is up, from the bottom.
             return new Vector2I(point.Cx, height - 1 - point.Cy);
         }
+
+        /// <summary>Reads an array of entity references as the entities' ids, each of which must have a value.</summary>
+        public IReadOnlyList<string> References(string field) =>
+        [
+            .. Read(field, LdtkJsonContext.Default.LdtkEntityRefArray)
+                .Select(reference => reference?.EntityIid ?? throw Invalid($"has an element of {field} with no value."))
+        ];
 
         /// <summary>Reads the arrays <c>Targets</c> and <c>Actions</c>, which must be the same length, as steps.</summary>
         public IReadOnlyList<Step> Steps()

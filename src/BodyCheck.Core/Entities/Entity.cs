@@ -189,6 +189,8 @@ public partial class Entity : RigidBody3D
         }
     }
 
+    public bool IsLive() => IsInstanceValid(this) && !IsQueuedForDeletion();
+
     public BodyTuning Tuning { get; }
 
     public Vector2 HalfSize => Tuning.HalfSize;

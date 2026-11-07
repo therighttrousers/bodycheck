@@ -44,6 +44,14 @@ public partial class WorldNode : Node3D, IScriptWorld
 
     // A failure that nothing in the world handles shows in Godot's debugger, with its stack trace, and the world plays
     // on.
+    // Whether a physics tick has run, so that the engine has stepped the world since it was built. Until it has, no
+    // body has contacts and no area holds anything, so triggers aren't set off and the scheduler doesn't run.
+    private bool _stepped;
+
+    // Whether the triggers have been asked whether they are set off, in a played tick: Start triggers are set off the
+    // first time.
+    private bool _started;
+
     private readonly TickScheduler _scheduler = new(e => GD.PushError(e.ToString()));
 
     // The game's mode on the last tick the controllers stepped, played or paused, or null before the first.
@@ -159,6 +167,7 @@ public partial class WorldNode : Node3D, IScriptWorld
                     or EntityKind.Dialogue or EntityKind.Script => throw new UnreachableException($"A {config.Kind} has no body."),
             };
 
+            Debug.Assert(entity.GetType() == EntityClassOf(config.Kind), "EntityClassOf agrees with what is built.");
             EntityConfig startBox = config.Kind == EntityKind.Player && CurrentRespawn is not null ? CurrentRespawn : config;
             entity.Position = StartPosition(entity, startBox);
             AddChild(entity);
@@ -244,7 +253,8 @@ public partial class WorldNode : Node3D, IScriptWorld
                 EntityConfig.Fanout fanout => new FanoutRunner(CallsOf(fanout.Steps)),
                 EntityConfig.Once once => new OnceRunner(CallOf(once.Step)),
                 EntityConfig.Dialogue lines => new DialogueRunner(dialogue!, this, lines.File, lines.Title),
-                EntityConfig.Script script => new ScriptRunner(scripts!, script.ClassName, this, _runningScripts),
+                EntityConfig.Script script => new ScriptRunner(
+                    scripts!, script.ClassName, [.. script.Entities.Select(id => bodies[id])], this, _runningScripts),
                 // Not yet run: a respawn becomes current by reach.
                 EntityConfig.Respawn => FinishesAtOnce.Instance,
                 _ when config.Kind.HasBody => bodies[config.Id].Controller
@@ -295,8 +305,9 @@ public partial class WorldNode : Node3D, IScriptWorld
     }
 
     /// <summary>
-    /// Checks that each of the world's scripts names a script that <paramref name="scripts"/> holds, so that a wrong name
-    /// fails when the world is built, not when the script runs.
+    /// Checks that each of the world's scripts names a script that <paramref name="scripts"/> holds, which takes the
+    /// entities it is given, so that a wrong name or a wrong entity fails when the world is built, not when the script
+    /// runs.
     /// </summary>
     private static void CheckScripts(World world, IScriptLibrary? scripts)
     {
@@ -308,14 +319,29 @@ public partial class WorldNode : Node3D, IScriptWorld
                     $"The world {world.Name} has a script, {config.Id}, and no script library to run it from.",
                     nameof(scripts));
             }
-            if (!scripts.Holds(config.ClassName))
+            Type[] entityTypes = [.. config.Entities.Select(id => EntityClassOf(world.ConfigsById[id].Kind))];
+            if (!scripts.Holds(config.ClassName, entityTypes))
             {
                 throw new ArgumentException(
-                    $"The script {config.Id} in the world {world.Name} runs {config.ClassName}, which isn't a script.",
+                    $"The script {config.Id} in the world {world.Name} runs {config.ClassName}, which isn't a script "
+                        + $"that takes ({string.Join(", ", entityTypes.Select(type => type.Name))}).",
                     nameof(world));
             }
         }
     }
+
+    /// <summary>
+    /// The class of the entity built for a kind with a body, so that a world can check what its scripts are given
+    /// before it builds anything.
+    /// </summary>
+    private static Type EntityClassOf(EntityKind kind) => kind switch
+    {
+        EntityKind.Player => typeof(PlayerEntity),
+        EntityKind.Robot => typeof(RobotEntity),
+        EntityKind.Platform => typeof(PlatformEntity),
+        EntityKind.Block or EntityKind.VerticalDoor => typeof(Entity),
+        _ => throw new ArgumentException($"A {kind} has no body.", nameof(kind)),
+    };
 
     /// <summary>What runs an action that does nothing yet, which finishes at once.</summary>
     private sealed class FinishesAtOnce : IActionTarget
@@ -604,7 +630,7 @@ public partial class WorldNode : Node3D, IScriptWorld
             }
             foreach (Entity entity in _entities)
             {
-                if (entity.CanProcess())
+                if (entity.IsLive() && entity.CanProcess())
                 {
                     entity.Step((float)delta, RealDt, _defer, ControllersEnabled);
                 }
@@ -620,12 +646,16 @@ public partial class WorldNode : Node3D, IScriptWorld
         _defer.DrainAfterEntityStepsActions();
 
         // Set off the triggers, then resume what waits on the world's tick, now that every controller has run,
-        // and its deferred actions too. Triggers go first, so that what they start runs on in this tick's run.
-        if (ControllersEnabled)
+        // and its deferred actions too. Triggers go first, so that what they start runs on in this tick's run. Not in
+        // the first tick: the engine steps the world after a tick, so in the first, what they would see of contacts and
+        // overlaps is empty. A world built in a physics tick may have been stepped before its first, but one built
+        // before the first physics tick hasn't, and both start the same way.
+        if (ControllersEnabled && _stepped)
         {
             SetOffTriggers();
             _scheduler.Run((float)delta);
         }
+        _stepped = true;
 
         UpdateCurrentRespawn();
     }
@@ -687,7 +717,8 @@ public partial class WorldNode : Node3D, IScriptWorld
     /// controls. One set off by touch is set off when it holds the player and didn't when it was last asked. A trigger
     /// has held nothing before it is first asked, so a player that starts in one sets it off. One set off by
     /// interacting is set off when it holds the player, which stands on the ground, and interact has been pressed since
-    /// the last tick, only while playing: in a cutscene, the player acts on no input of its own.
+    /// the last tick, only while playing: in a cutscene, the player acts on no input of its own. One set off at the start
+    /// is set off the first time, if it is on then.
     /// <para>
     /// An area finds what is in it at the end of each step, with no continuous detection, so a body that crosses it
     /// within one step is missed: a trigger and the body together must be as wide as the body moves in a tick.
@@ -708,6 +739,8 @@ public partial class WorldNode : Node3D, IScriptWorld
             {
                 TriggerSetOffBy.Touch => held && !trigger.HeldPlayer,
                 TriggerSetOffBy.Interact => held && interacts,
+                // Only in the first: one that is off then never is.
+                TriggerSetOffBy.Start => !_started,
             };
             if (trigger.Config.SetOffBy is TriggerSetOffBy.Interact && held && canInteract && trigger.Runner.IsOn)
             {
@@ -720,6 +753,7 @@ public partial class WorldNode : Node3D, IScriptWorld
             }
             trigger.HeldPlayer = held;
         }
+        _started = true;
     }
 
     /// <summary>A trigger's area, what runs it, and whether the area held the player when it was last asked.</summary>
