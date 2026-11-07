@@ -53,6 +53,9 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
     // The line being shown, or null while the next is being fetched.
     private DialogueLine? _line;
     private int _response;
+    // Whether the line shown has typed out. Not the label's IsTyping, which is false while an inline mutation, such as
+    // a wait, is awaited partway through the line: going on then would end the line while the label still types it.
+    private bool _typedOut;
 
     private readonly TextureRect _avatar = new();
     // The avatar's border and background, shown only while the speaker has an avatar.
@@ -119,7 +122,11 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
         lines.AddChild(_character);
         lines.AddChild(_text);
         lines.AddChild(_responses);
-        _text.FinishedTyping += ShowResponses;
+        _text.FinishedTyping += () =>
+        {
+            _typedOut = true;
+            ShowResponses();
+        };
     }
 
     /// <summary>Whether a dialogue has started and not yet ended.</summary>
@@ -215,6 +222,7 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
         _avatarBackground.Visible = _avatar.Texture is not null;
         _text.DialogueLine = _line;
         ClearResponses();
+        _typedOut = false;
         _text.TypeOut();
     }
 
@@ -311,7 +319,7 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
         {
             return;
         }
-        if (_text.IsTyping)
+        if (!_typedOut)
         {
             _text.SkipTyping();
         }
@@ -328,7 +336,7 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
     /// <summary>Chooses the response <paramref name="step"/> after the chosen one, wrapping around.</summary>
     private void ChooseResponse(int step)
     {
-        if (_line is null || _line.Responses.Count == 0 || _text.IsTyping)
+        if (_line is null || _line.Responses.Count == 0 || !_typedOut)
         {
             return;
         }
