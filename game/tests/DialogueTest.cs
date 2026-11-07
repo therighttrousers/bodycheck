@@ -96,6 +96,29 @@ public class DialogueTest
     }
 
     [TestCase]
+    public void Dropping_the_world_drops_its_dialogue_so_that_the_next_world_presents_its_own_at_once()
+    {
+        _run = new RoomRun(RoomRun.RoomOf(
+            "#####",
+            "#.P.#",
+            "#####"));
+        _box = new DialogueBox();
+        Tree.Root.AddChild(_box);
+
+        TickTask dropped = _box.Present(_run.Node.Tick, "debug", "start");
+        AssertThat(_box.IsPresenting).IsTrue();
+        _run.Node.Drop();
+        AssertThat(dropped.IsCancelled).IsTrue();
+        AssertThat(_box.IsPresenting).IsFalse();
+
+        // As the next world's tick.
+        var next = new TickScheduler();
+        _ = _box.Present(next, "debug", "start");
+        AssertThat(_box.IsPresenting).IsTrue();
+        next.Stop();
+    }
+
+    [TestCase]
     public async Task In_a_cutscene_the_player_gets_no_input()
     {
         _run = new RoomRun(RoomRun.RoomOf(

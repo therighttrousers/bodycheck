@@ -21,10 +21,18 @@ public interface ITick
     TickTask Wait(float seconds);
 
     /// <summary>
-    /// A task that finishes when something off the tick says, such as a callback from the engine, through the
-    /// completion returned. What waits for it resumes when the scheduler next runs after that.
+    /// A task that finishes in the first of the scheduler's runs in which <paramref name="condition"/> holds, checking
+    /// it in each, or at once if it holds now: the way to wait for what changes off the tick, such as with the player's
+    /// input to a menu.
     /// </summary>
-    TickCompletion NewCompletion();
+    TickTask Until(Func<bool> condition);
+
+    /// <summary>
+    /// A task that finishes in the first of the scheduler's runs after <paramref name="task"/> has completed, or at once
+    /// if it has: the way to wait for a .NET <c>Task</c>, which can't be awaited on the tick. It fails with the task's
+    /// exception, if it has one, or is cancelled, if it was. A result, if the task has one, is then read from the task.
+    /// </summary>
+    TickTask Until(Task task);
 
     /// <summary>
     /// The length of the tick being run, or of the last one run, on the clock that waits count.

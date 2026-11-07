@@ -8,7 +8,8 @@ namespace BodyCheck.Core.Tasks;
 /// <para>
 /// The method runs at once, up to its first <c>await</c> of a task that hasn't finished. Its task then takes that
 /// task's scheduler, and the method resumes when that scheduler runs. Awaiting anything but a <see cref="TickTask"/>
-/// fails the method's task.
+/// fails the method's task. A method that throws an <see cref="OperationCanceledException"/>, such as by awaiting a
+/// cancelled task, cancels its task.
 /// </para>
 /// </summary>
 public struct TickTaskMethodBuilder
@@ -31,7 +32,21 @@ public struct TickTaskMethodBuilder
 
     public void SetResult() => Task.Finish();
 
-    public void SetException(Exception exception) => Task.Fail(exception);
+    /// <summary>
+    /// Ends the method's task with the exception its method threw: cancelled, if it is a cancellation, such as from
+    /// awaiting a cancelled task, so that a cancellation unwinding a chain doesn't fail the tick; otherwise failed.
+    /// </summary>
+    public void SetException(Exception exception)
+    {
+        if (exception is OperationCanceledException cancellation)
+        {
+            Task.Cancel(cancellation);
+        }
+        else
+        {
+            Task.Fail(exception);
+        }
+    }
 
     public void AwaitOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine)
         where TAwaiter : INotifyCompletion

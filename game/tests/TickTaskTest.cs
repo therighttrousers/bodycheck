@@ -138,25 +138,103 @@ public class TickTaskTest
     }
 
     [TestCase]
-    public void A_completion_finished_off_the_tick_resumes_what_waits_when_the_scheduler_next_runs()
+    public void A_dotnet_task_completed_off_the_tick_resumes_what_waits_when_the_scheduler_next_runs()
     {
         var scheduler = new TickScheduler();
-        TickCompletion completion = scheduler.NewCompletion();
-        bool resumed = false;
+        var source = new TaskCompletionSource<int>();
+        int result = 0;
 
-        async TickTask Waits()
+        async TickTask Waits(ITick tick)
         {
-            await completion.Task;
-            resumed = true;
+            await tick.Until(source.Task);
+            result = source.Task.Result;
         }
-        _ = Waits();
+        _ = Waits(scheduler);
 
         scheduler.Run(Dt);
-        AssertThat(resumed).IsFalse();
-        completion.Finish();
-        AssertThat(resumed).IsFalse();
+        AssertThat(result).IsEqual(0);
+        source.SetResult(1);
+        AssertThat(result).IsEqual(0);
         scheduler.Run(Dt);
-        AssertThat(resumed).IsTrue();
+        AssertThat(result).IsEqual(1);
+    }
+
+    [TestCase]
+    public void Stopping_unwinds_what_waits_through_its_finally_blocks_without_failing()
+    {
+        var scheduler = new TickScheduler();
+        var log = new List<string>();
+
+        async TickTask Inner(ITick tick)
+        {
+            try
+            {
+                await tick.Wait(10);
+                log.Add("inner resumed");
+            }
+            finally
+            {
+                log.Add("inner cleaned up");
+            }
+        }
+
+        async TickTask Outer(ITick tick)
+        {
+            using var cleanup = new Cleanup(() => log.Add("outer cleaned up"));
+            await Inner(tick);
+            log.Add("outer resumed");
+        }
+
+        TickTask outer = Outer(scheduler);
+        scheduler.Run(Dt);
+
+        scheduler.Stop();
+        AssertThat(log).ContainsExactly("inner cleaned up", "outer cleaned up");
+        AssertThat(outer.IsCancelled).IsTrue();
+        AssertThat(scheduler.NextTick().IsCancelled).IsTrue();
+    }
+
+    [TestCase]
+    public void Stopping_unwinds_everything_before_throwing_the_first_failure_of_cleanup()
+    {
+        var scheduler = new TickScheduler();
+        bool cleanedUp = false;
+
+        static async TickTask FailsToCleanUp(ITick tick)
+        {
+            try
+            {
+                await tick.NextTick();
+            }
+            finally
+            {
+                throw new InvalidOperationException("broken");
+            }
+        }
+
+        async TickTask CleansUp(ITick tick)
+        {
+            try
+            {
+                await tick.NextTick();
+            }
+            finally
+            {
+                cleanedUp = true;
+            }
+        }
+
+        _ = FailsToCleanUp(scheduler);
+        _ = CleansUp(scheduler);
+
+        var e = Thrown<InvalidOperationException>(scheduler.Stop);
+        AssertThat(e.Message).IsEqual("broken");
+        AssertThat(cleanedUp).IsTrue();
+    }
+
+    private sealed class Cleanup(Action action) : IDisposable
+    {
+        public void Dispose() => action();
     }
 
     [TestCase]

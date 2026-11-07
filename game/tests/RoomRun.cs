@@ -49,11 +49,14 @@ public sealed class RoomRun
     /// <summary>
     /// Frees a node, and runs the finalizers of the C# objects it leaves behind, such as the wrappers of its meshes and
     /// shapes. Godot crashes if a finalizer runs while it shuts down, so none may be left when the last test ends: every
-    /// test that frees a world frees it with this.
+    /// test that frees a world frees it with this. A world the test has dropped may already be freed.
     /// </summary>
     public static void FreeAndFinalize(Node node)
     {
-        node.Free();
+        if (GodotObject.IsInstanceValid(node))
+        {
+            node.Free();
+        }
         GC.Collect();
         GC.WaitForPendingFinalizers();
     }

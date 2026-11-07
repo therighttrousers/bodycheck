@@ -325,15 +325,18 @@ public partial class Main : Node
 
     private void LoadWorld(int index)
     {
-        Func<PlayerInput>? input = _world?.PlayerInputSource;
         _worldIndex = Mathf.PosMod(index, _worlds.Count);
-        LoadWorld(_worlds[_worldIndex]).PlayerInputSource = input;
+        LoadWorld(_worlds[_worldIndex]);
     }
 
-    /// <summary>Replaces the current world, if there is one, and has the camera follow the new one's player.</summary>
+    /// <summary>
+    /// Replaces the current world, if there is one, and has the camera follow the new one's player, with the old one's
+    /// input. The old world is dropped once the new one is in place, so that what runs in it cleans up, and the game is
+    /// whole even if its cleanup throws.
+    /// </summary>
     private WorldNode LoadWorld(World world)
     {
-        _world?.QueueFree();
+        WorldNode? old = _world;
         Telemetry.Reset();
         _world = WorldNode.Build(
             world,
@@ -341,6 +344,7 @@ public partial class Main : Node
             respawnId: _respawnIds.GetValueOrDefault(world.Name),
             dialogue: _dialogueBox,
             scripts: new ScriptLibrary());
+        _world.PlayerInputSource = old?.PlayerInputSource;
         _world.GameModeSource = () => _gameModeManager.GameMode;
         _world.MapMarkers.Visible = _showMapMarkers;
         _world.CurrentRespawnChanged += respawn =>
@@ -358,6 +362,7 @@ public partial class Main : Node
         _phaseAimMarker.World = _world;
         _interactPrompt.World = _world;
         ShowTitle();
+        old?.Drop();
         return _world;
     }
 
