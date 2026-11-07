@@ -236,12 +236,16 @@ public class LdtkReaderTest
     }
 
     [TestCase]
-    public void Reads_a_script_by_its_class_name()
+    public void Reads_a_script_by_its_class_name_with_its_entities()
     {
-        string script = Control("Script", "script", """{ "__identifier": "ClassName", "__value": "RunRight" }""");
+        string script = Control("Script", "script", $$"""
+            { "__identifier": "ClassName", "__value": "RunRight" }, { "__identifier": "Entities", "__value": [ {{Ref("p")}} ] }
+            """);
         World world = ReadOne(Project(Level(0, 0, PlayerStart, control: script)));
 
-        AssertThat(((EntityConfig.Script)world.ConfigsById["script"]).ClassName).IsEqual("RunRight");
+        var config = (EntityConfig.Script)world.ConfigsById["script"];
+        AssertThat(config.ClassName).IsEqual("RunRight");
+        AssertThat(config.Entities).ContainsExactly("p");
     }
 
     public static IEnumerable<string> BadControlEntities =>

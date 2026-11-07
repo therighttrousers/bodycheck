@@ -8,6 +8,7 @@ Relevant decision records:
 - [050: The cutscene mode](../../../docs/decision-records/050-cutscene-mode.md)
 - [051: The scripted run at the spawn](../../../docs/decision-records/051-scripted-run-at-the-spawn.md)
 - [052: The talking door](../../../docs/decision-records/052-talking-door.md)
+- [056: Scripts for entities](../../../docs/decision-records/056-scripts-for-entities.md)
 
 ## What it is
 
@@ -38,9 +39,9 @@ What a runner holds is only what its kind needs to decide whether to run: what a
 
 ## Scripts
 
-A script is a class that implements `IScript`, with a constructor of no arguments: a new one is made for each run and dropped when it finishes, so it keeps nothing between runs (`043 §5.1`). Its one method, `Run`, usually `async`, is given what it can see and do, an `IScriptWorld`, which holds the world's `ITick` to wait on, and its task finishes when the script does.
+A script is a class that implements `IScript`: a new one is made for each run and dropped when it finishes, so it keeps nothing between runs (`043 §5.1`). It takes the entities its `Script` entity gives it through its one public constructor, as `ScriptArguments` says: a parameter of a type of `Entity` takes the next entity, which must be of its type, and a last one of `IReadOnlyList` of a type of `Entity` takes the rest, so that a script about any number of entities says so; every entity must be taken, and a script with no parameters takes none. Its parameters are the script's only arguments for now; other kinds can be added beside entities later, with nothing replaced (`056 §2.2`, `§2.3`). Its one method, `Run`, usually `async`, is given what it can see and do, an `IScriptWorld`, which holds the world's `ITick` to wait on, and its task finishes when the script does.
 
-- **Where scripts come from.** The scripts are the game's, in its project, so that level designers seldom need Core. `IScriptLibrary` is what makes them, by the name a `Script` entity gives, which the game implements, as it implements `IDialoguePresenter`, so that what a world needs from the game is given to it, and a test's dependencies are plain. It also says whether a name is a script's, so that a world can check its scripts when it is built (`051 §2.2`, `§2.3`).
+- **Where scripts come from.** The scripts are the game's, in its project, so that level designers seldom need Core. `IScriptLibrary` is what makes them, by the name a `Script` entity gives, which the game implements, as it implements `IDialoguePresenter`, so that what a world needs from the game is given to it, and a test's dependencies are plain. It also says whether a name is a script's that takes entities of given classes, so that a world can check its scripts, and what they are given, when it is built, before it has entities (`051 §2.2`, `§2.3`, `056 §2.3`).
 - **What a script sees.** `IScriptWorld`, which the simulation implements, extends `IWorldView`, what controllers see, with the player's controller, holding a cutscene, and the world's tick, which an action is given as an argument instead (`046 §1.3`). Controllers don't see the player's controller, so only scripts can drive the player (`051 §2.4`).
 - **Driving the player.** A script sets the player's controller's `ScriptedInput`, input as the player would press it, which the controller acts on in a cutscene, through its own leniency and actions, so that a scripted run is one the player could make. Helpers that wait for what the player does, written on that as plain async code, keep scripts short (`051 §3.3`).
 - **Cutscenes.** A script holds a cutscene with `IScriptWorld.HoldCutscene`, through a handle disposed with `using`, so that the cutscene ends when the script does, even if it fails. A script that drives no player, such as one for a robot, needn't hold one (`051 §3.1`, `§3.2`).

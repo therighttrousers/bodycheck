@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
 using BodyCheck.Core;
+using BodyCheck.Core.Entities;
 using BodyCheck.Core.Scripts;
 using BodyCheck.Core.Simulation;
 using BodyCheck.Core.Tasks;
@@ -52,16 +54,46 @@ public class ScriptTest
         }
     }
 
-    /// <summary>Knows only <see cref="RunRight"/>, as <c>RunRight</c>.</summary>
-    private sealed class Library : IScriptLibrary
+    /// <summary>A script that takes the player, and finishes at once.</summary>
+    private sealed class TakesThePlayer(PlayerEntity player) : IScript
     {
-        public bool Holds(string className) => className == nameof(RunRight);
+        public PlayerEntity Player { get; } = player;
 
-        public IScript Create(string className) => new RunRight();
+        public TickTask Run(IScriptWorld world) => TickTask.Finished;
     }
 
-    /// <summary>A room with a trigger around the player, which runs the script <paramref name="className"/>.</summary>
-    private static Room RoomWithScript(string className)
+    /// <summary>
+    /// Knows <see cref="RunRight"/>, which takes no entities, and <see cref="TakesThePlayer"/>, by their names, and keeps
+    /// the scripts it makes.
+    /// </summary>
+    private sealed class Library : IScriptLibrary
+    {
+        public List<IScript> Made { get; } = [];
+
+        public bool Holds(string className, IReadOnlyList<Type> entityTypes) => className switch
+        {
+            nameof(RunRight) => entityTypes.Count == 0,
+            nameof(TakesThePlayer) => entityTypes is [Type type] && type == typeof(PlayerEntity),
+            _ => false,
+        };
+
+        public IScript Create(string className, IReadOnlyList<Entity> entities)
+        {
+            IScript script = className == nameof(RunRight) ? new RunRight() : new TakesThePlayer((PlayerEntity)entities[0]);
+            Made.Add(script);
+            return script;
+        }
+    }
+
+    /// <summary>
+    /// A room with a trigger around the player, which runs the script <paramref name="className"/>, given
+    /// <paramref name="entities"/>, when it is set off by <paramref name="setOffBy"/>.
+    /// </summary>
+    private static Room RoomWithScript(
+        string className,
+        TriggerSetOffBy setOffBy = TriggerSetOffBy.Touch,
+        IReadOnlyList<string>? entities = null,
+        bool startsOn = true)
     {
         string[] rows =
         [
@@ -80,6 +112,7 @@ public class ScriptTest
             MapSize = Vector2I.One,
             MapColor = Colors.White,
             ClassName = className,
+            Entities = entities ?? [],
         };
         var trigger = new EntityConfig.Trigger
         {
@@ -88,8 +121,8 @@ public class ScriptTest
             MapSize = player.MapSize,
             MapColor = Colors.White,
             Step = new Step(script.Id, TriggerAction.Default),
-            StartsOn = true,
-            SetOffBy = TriggerSetOffBy.Touch,
+            StartsOn = startsOn,
+            SetOffBy = setOffBy,
         };
         return new Room(room.Name, room.Origin, TileGrid.FromText(rows), room.EntityConfigs.Append(trigger).Append(script));
     }
@@ -111,6 +144,52 @@ public class ScriptTest
         AssertThat(world.RunningScripts.Count).IsEqual(0);
         AssertThat(world.CutsceneRequest).IsNull();
         AssertThat(world.PlayerController.ScriptedInput).IsEqual(default(PlayerInput));
+    }
+
+    [TestCase]
+    public async Task A_start_trigger_runs_its_script_once_given_its_entities()
+    {
+        var library = new Library();
+        // A text room's ids are its name and the cell: the player's 'P' is at 1,3.
+        _run = new RoomRun(RoomWithScript(nameof(TakesThePlayer), TriggerSetOffBy.Start, ["Test 1,3"]), scripts: library);
+
+        await _run.Tick(RoomRun.Idle, 3);
+        AssertThat(library.Made).HasSize(1);
+        AssertThat(((TakesThePlayer)library.Made[0]).Player).IsSame(_run.Node.Player);
+    }
+
+    [TestCase]
+    public void A_room_rejects_a_start_trigger_that_starts_off() =>
+        AssertThrown(() => RoomWithScript(nameof(RunRight), TriggerSetOffBy.Start, startsOn: false))
+            .IsInstanceOf<ArgumentException>();
+
+    [TestCase]
+    public void A_script_takes_entities_through_its_constructor_in_order_with_a_list_for_the_rest()
+    {
+        Type[] none = [];
+        Type[] robotAndBlocks = [typeof(RobotEntity), typeof(Entity), typeof(Entity)];
+
+        AssertThat(ScriptArguments.Constructor(typeof(RunRight), none)).IsNotNull();
+        AssertThat(ScriptArguments.Constructor(typeof(RunRight), [typeof(Entity)])).IsNull();
+        AssertThat(ScriptArguments.Constructor(typeof(RobotThenRest), robotAndBlocks)).IsNotNull();
+        AssertThat(ScriptArguments.Constructor(typeof(RobotThenRest), [typeof(RobotEntity)])).IsNotNull();
+        AssertThat(ScriptArguments.Constructor(typeof(RobotThenRest), [typeof(Entity)])).IsNull();
+        AssertThat(ScriptArguments.Constructor(typeof(RestThenRobot), robotAndBlocks)).IsNull();
+        AssertThat(ScriptArguments.Constructor(typeof(TakesThePlayer), [typeof(PlayerEntity), typeof(Entity)])).IsNull();
+    }
+
+    private sealed class RobotThenRest(RobotEntity robot, IReadOnlyList<Entity> rest) : IScript
+    {
+        public IReadOnlyList<Entity> Entities { get; } = [robot, .. rest];
+
+        public TickTask Run(IScriptWorld world) => TickTask.Finished;
+    }
+
+    private sealed class RestThenRobot(IReadOnlyList<Entity> rest, RobotEntity robot) : IScript
+    {
+        public IReadOnlyList<Entity> Entities { get; } = [robot, .. rest];
+
+        public TickTask Run(IScriptWorld world) => TickTask.Finished;
     }
 
     [TestCase]

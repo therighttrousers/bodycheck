@@ -17,7 +17,7 @@ public sealed class Room : IOffsetTileGrid
     /// Each entity's configuration, including where its box is, in the room's coordinates. Every box has a positive
     /// size, but may be outside the room. A platform is one tile high, with two different ends; a door's stops are in its
     /// columns, its open stop above it and its close stop below it, and it doesn't touch both; and a sequence and a
-    /// fanout have at least one step.
+    /// fanout have at least one step; and a trigger set off at the start starts on.
     /// </param>
     /// <exception cref="ArgumentException">When a configuration isn't what the room can hold.</exception>
     public Room(string name, Vector2I origin, TileGrid tiles, IEnumerable<EntityConfig> entityConfigs)
@@ -44,6 +44,8 @@ public sealed class Room : IOffsetTileGrid
         EntityConfig.Platform platform when platform.RangeA == platform.RangeB => "has its two ends in the same cell",
         EntityConfig.VerticalDoor door => DoorProblem(door),
         EntityConfig.Sequence { Steps.Count: 0 } or EntityConfig.Fanout { Steps.Count: 0 } => "has no steps",
+        // Never set off, since it is set off only at the start, if it is on then.
+        EntityConfig.Trigger { SetOffBy: TriggerSetOffBy.Start, StartsOn: false } => "set off at the start starts off",
         _ => null,
     };
 

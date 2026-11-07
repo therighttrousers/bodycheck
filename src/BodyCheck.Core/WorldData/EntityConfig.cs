@@ -72,6 +72,8 @@ public enum TriggerSetOffBy
     Touch,
     /// <summary>The player pressing up in its area, on the ground, while playing.</summary>
     Interact,
+    /// <summary>The world starting: once, in its first played tick, if the trigger is on then.</summary>
+    Start,
 }
 
 /// <summary>One step of a route: an action, and the id of the entity to run it on.</summary>
@@ -213,5 +215,9 @@ public abstract record EntityConfig
         public override EntityKind Kind => EntityKind.Script;
         /// <summary>The script's class, by the name the game's script library knows it by.</summary>
         public required string ClassName { get; init; }
+        /// <summary>
+        /// The ids of the entities given to the script's constructor, in order, each an entity with a body.
+        /// </summary>
+        public required IReadOnlyList<string> Entities { get; init; }
     }
 }
