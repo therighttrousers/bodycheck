@@ -90,7 +90,7 @@ A playtester plays from a clone of the repository, started by `play.cmd`, which 
 Paused, the debug tools still work: the `DebugOverlay`, the `CollisionDebug` and the rendering switches process while the tree is paused.
 
 - F2 shows the world's map markers. `Main` keeps whether they show as it loads worlds.
-- 2 presents the debug dialogue, `dialogue/debug.dialogue`, from its title `start`, and prints when what waits for it has resumed. Its lines have a wait, a speed change, two garble tags, and responses whose branches meet again.
+- 2 presents the debug dialogue, `dialogue/debug.dialogue`, from its title `start`, through Core's `DialogueRunner`, as a level's `Dialogue` entity does, so that it plays in a cutscene and queues after any dialogue already presented, and prints when what waits for it has resumed. Its lines have a wait, a speed change, two garble tags, and responses whose branches meet again.
 - `DebugOverlay`, on F3, shows the frame rate and times and every telemetry value, at the window's resolution (`008 §2.3`).
 - `CollisionDebug`, on F4, shows the collisions in the game as Godot does with visible collision shapes on: every enabled collision shape as Godot's own debug wireframe, a mesh added to the shape, for comparing bodies with their models, and every contact point as a small diamond, in Godot's colour for contacts, drawn through the bodies. The contacts are those of every body that reports them, which every entity does, so a contact between two entities shows as a point on each. Godot's own contact points can't be used, since the engine's API for them isn't exposed to scripts. It reads the shapes and contacts from the engine each frame while showing, and doesn't process while not.
 
