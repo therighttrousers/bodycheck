@@ -1,12 +1,13 @@
 using BodyCheck.Core.Controllers;
 using BodyCheck.Core.Entities;
+using BodyCheck.Core.Tasks;
 
 namespace BodyCheck.Core.Scripts;
 
 /// <summary>
 /// What a script can see and do in the world it runs in: what controllers see, and also the player's controller, to
-/// drive the player with input in a cutscene, and holding a cutscene. The simulation implements it. Like
-/// <see cref="IWorldView"/>, read it when needed, never once and kept, so that what a script sees is current.
+/// drive the player with input in a cutscene, holding a cutscene, and the world's tick. The simulation implements it.
+/// Like <see cref="IWorldView"/>, read it when needed, never once and kept, so that what a script sees is current.
 /// </summary>
 public interface IScriptWorld : IWorldView
 {
@@ -24,4 +25,7 @@ public interface IScriptWorld : IWorldView
     /// How the cutscene is to be presented, which the world joins with every other hold's: by default, with nothing more.
     /// </param>
     IDisposable HoldCutscene(CutsceneRequest? request = null);
+
+    /// <summary>The world's tick, which what the script awaits resumes on.</summary>
+    ITick Tick { get; }
 }
