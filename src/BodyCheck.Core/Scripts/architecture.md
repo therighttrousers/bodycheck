@@ -7,6 +7,7 @@ Relevant decision records:
 - [047: `Once`, and routing actions](../../../docs/decision-records/047-once-and-routing.md)
 - [050: The cutscene mode](../../../docs/decision-records/050-cutscene-mode.md)
 - [051: The scripted run at the spawn](../../../docs/decision-records/051-scripted-run-at-the-spawn.md)
+- [052: The talking door](../../../docs/decision-records/052-talking-door.md)
 
 ## What it is
 
@@ -20,14 +21,14 @@ What a body does when an action reaches it: that is its controller's. The script
 
 A runner is given its steps already resolved, as `Call`s, each an action and the `IActionTarget` that runs it, so that running a route is a direct call with nothing looked up, and a runner knows no ids or configurations (`045 §3.3`, `047 §2.3`). `Call` is the one place that turns a `TriggerAction` into the target's method for it. Each runs its steps on the `ITick` it is given, and returns a `TickTask` that finishes as its kind says (`043 §2.3`):
 
-- **`TriggerRunner`**: when touched, runs its step, and finishes when the step does. A touch while the step runs starts nothing (`043 §1.7`). It responds to no action, so only a touch sets it off (`047 §1.1`).
+- **`TriggerRunner`**: when set off, runs its step, if it is on, and finishes when the step does. Setting it off while the step runs starts nothing (`043 §1.7`). It responds to `TurnOn`, `TurnOff` and `ToggleOnOff`, which finish at once; turning it off doesn't stop a run in progress. It doesn't respond to `Default`, so a route can switch it but not set it off: only the player does (`047 §1.1`, `052 §1.1`). Whether it is on is in memory, for as long as its world lasts, until the game state saves it.
 - **`SequenceRunner`**: on `Default`, runs each step in turn, each when the one before has finished, and finishes when the last does.
 - **`FanoutRunner`**: on `Default`, starts every step, in order, and finishes when all have.
 - **`OnceRunner`**: on the first `Default`, runs its step, and every `Default` gets that first run, so one asked while it runs finishes when it does, and one asked after finishes at once (`047 §1.2`). It remembers this in memory, for as long as its world lasts, until the game state saves it.
 - **`DialogueRunner`**: on `Default`, presents its title of its dialogue file, holding a cutscene while it does, as a script would, and finishes when the dialogue ends (`043 §2.3`, `050 §1.4`, `051 §3.5`). Every `Default` presents it again, after any dialogue already waiting.
 - **`ScriptRunner`**: on `Default`, runs a new instance of its script, and finishes when the script does. Every `Default` runs one, alongside any run in progress (`043 §1.7`).
 
-A `Sequence`, a `Fanout` or a `Script` runs every `Default`, alongside any run in progress, since what it runs comes down to controllers, which decide for themselves what a second request does (`043 §1.7`). A runner that does something else when asked again says so with a `ReentrantTask`, in one line: a `Trigger` joins, and a `Once` runs once. The runners that respond to `Default` implement only `IActionTarget.Default`.
+A `Sequence`, a `Fanout` or a `Script` runs every `Default`, alongside any run in progress, since what it runs comes down to controllers, which decide for themselves what a second request does (`043 §1.7`). A runner that does something else when asked again says so with a `ReentrantTask`, in one line: a `Trigger` joins, and a `Once` runs once. The runners that respond to `Default` implement only `IActionTarget.Default`, and a `Trigger`'s only switching.
 
 What a runner holds is only what its kind needs to decide whether to run: what an action changes belongs to the controller that responds to it (`043 §1.9`).
 

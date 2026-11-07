@@ -76,6 +76,7 @@ public partial class Main : Node
     // Each world's current respawn, by the world's name and the respawn's id, to start its player at when it restarts.
     private readonly Dictionary<string, string> _respawnIds = [];
     private readonly PhaseAimMarker _phaseAimMarker = new();
+    private readonly InteractPrompt _interactPrompt = new();
 #if TOOLS
     private IProbe? _probe;
 #endif
@@ -90,6 +91,7 @@ public partial class Main : Node
         _collisions = new CollisionDebug(_worldView);
         AddChild(_collisions);
         _worldView.World.AddChild(_phaseAimMarker);
+        _worldView.World.AddChild(_interactPrompt);
         AddChild(_debugOverlay);
         AddChild(_errorOverlay);
         AddChild(_gameModeManager);
@@ -102,6 +104,7 @@ public partial class Main : Node
         _gameModeManager.GameModeChanged += modeState =>
         {
             _pauseMenuOverlay.Visible = modeState.Mode == GameMode.Menu;
+            _interactPrompt.Visible = modeState.Mode == GameMode.Playing;
             _dialogueBox.Visible = modeState.Mode == GameMode.Cutscene;
             // When a cutscene's holds ask for them. Left as they are under the menu, since the tree is paused, and
             // hidden in the map.
@@ -332,15 +335,13 @@ public partial class Main : Node
     {
         _world?.QueueFree();
         Telemetry.Reset();
-        _world = new WorldNode(
+        _world = WorldNode.Build(
             world,
             _assets,
             respawnId: _respawnIds.GetValueOrDefault(world.Name),
             dialogue: _dialogueBox,
-            scripts: new ScriptLibrary())
-        {
-            GameModeSource = () => _gameModeManager.GameMode,
-        };
+            scripts: new ScriptLibrary());
+        _world.GameModeSource = () => _gameModeManager.GameMode;
         _world.MapMarkers.Visible = _showMapMarkers;
         _world.CurrentRespawnChanged += respawn =>
         {
@@ -355,6 +356,7 @@ public partial class Main : Node
         _cameraRig.Follow(_world);
         _gameModeManager.World = _world;
         _phaseAimMarker.World = _world;
+        _interactPrompt.World = _world;
         ShowTitle();
         return _world;
     }

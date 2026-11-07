@@ -36,7 +36,8 @@ public class RidingTest
     private async Task Start()
     {
         _input = Idle;
-        _world = new WorldNode(new World(TestRoomLibrary.RobotRiding), new AssetLibrary()) { PlayerInputSource = () => _input };
+        _world = WorldNode.Build(new World(TestRoomLibrary.RobotRiding), new AssetLibrary());
+        _world.PlayerInputSource = () => _input;
         Tree.Root.AddChild(_world);
         await Tick(Idle, 120);
     }

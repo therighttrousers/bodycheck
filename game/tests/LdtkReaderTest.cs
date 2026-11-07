@@ -216,7 +216,8 @@ public class LdtkReaderTest
     public void Reads_routes_as_steps_that_name_their_targets_by_iid()
     {
         string trigger = Control("Trigger", "trigger", $$"""
-            { "__identifier": "Target", "__value": {{Ref("once")}} }, { "__identifier": "Action", "__value": "Default" }
+            { "__identifier": "Target", "__value": {{Ref("once")}} }, { "__identifier": "Action", "__value": "Default" },
+            { "__identifier": "StartsOn", "__value": false }, { "__identifier": "SetOffBy", "__value": "Interact" }
             """);
         string once = Control("Once", "once", $$"""
             { "__identifier": "Target", "__value": {{Ref("sequence")}} }, { "__identifier": "Action", "__value": "Default" }
@@ -224,7 +225,9 @@ public class LdtkReaderTest
         string sequence = Sequence($"{Ref("dialogue")}, {Ref("door")}", "\"Default\", \"Close\"");
         World world = ReadOne(Project(Level(0, 0, PlayerStart + ", " + Door, control: $"{trigger}, {once}, {sequence}, {Dialogue}")));
 
-        AssertThat(((EntityConfig.Trigger)world.ConfigsById["trigger"]).Step).IsEqual(new Step("once", TriggerAction.Default));
+        var readTrigger = (EntityConfig.Trigger)world.ConfigsById["trigger"];
+        AssertThat(readTrigger.Step).IsEqual(new Step("once", TriggerAction.Default));
+        AssertThat((readTrigger.StartsOn, readTrigger.SetOffBy)).IsEqual((false, TriggerSetOffBy.Interact));
         AssertThat(((EntityConfig.Once)world.ConfigsById["once"]).Step).IsEqual(new Step("sequence", TriggerAction.Default));
         AssertArray(((EntityConfig.Sequence)world.ConfigsById["sequence"]).Steps).ContainsExactly(
             new Step("dialogue", TriggerAction.Default), new Step("door", TriggerAction.Close));

@@ -1,6 +1,8 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
+using BodyCheck.Core.WorldData;
+
 namespace BodyCheck.Core.Levels;
 
 // The parts of LDtk's JSON that the loader reads, as records for System.Text.Json. Everything else in the file is
@@ -181,7 +183,7 @@ internal enum LdtkEntityName
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     RespectNullableAnnotations = true,
-    Converters = [typeof(StrictEnumConverter<TriggerAction>)])]
+    Converters = [typeof(StrictEnumConverter<TriggerAction>), typeof(StrictEnumConverter<TriggerSetOffBy>)])]
 [JsonSerializable(typeof(LdtkProject))]
 [JsonSerializable(typeof(LdtkLevel))]
 [JsonSerializable(typeof(LdtkPoint))]
@@ -189,6 +191,7 @@ internal enum LdtkEntityName
 [JsonSerializable(typeof(LdtkEntityRef[]))]
 [JsonSerializable(typeof(TriggerAction))]
 [JsonSerializable(typeof(TriggerAction[]))]
+[JsonSerializable(typeof(TriggerSetOffBy))]
 [JsonSerializable(typeof(bool))]
 [JsonSerializable(typeof(float))]
 [JsonSerializable(typeof(string))]

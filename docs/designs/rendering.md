@@ -18,6 +18,7 @@ Relevant decision records:
 - [050: The cutscene mode](../decision-records/050-cutscene-mode.md)
 - [040: No vertex snap](../decision-records/040-no-vertex-snap.md)
 - [042: The camera clamped by tiles](../decision-records/042-camera-clamped-by-tiles.md)
+- [052: The talking door](../decision-records/052-talking-door.md)
 
 The image is Mode X with modern lighting: 320x240 and 256 colours, as on a VGA card in the mid-1990s, drawn with shadows, ambient occlusion, reflections and bloom. Star Fox, Quake and Descent are the references for the geometry, and Mode X for the image (`003`).
 
@@ -99,7 +100,7 @@ Other ways of choosing colours were tried and set aside: quantising in HSV, a la
 - The resolution of game UI. It stays out of the colour pass, whose dither changes even colours taken from the palette. The placeholder menu is drawn at 320x240 on a layer above the colour pass, in the game's viewport, with the default font antialiased; aliased, it looked terrible (`039 §2.1`, `§2.2`). Whether all game UI is drawn this way, or at the window's resolution, is undecided. Text in system fonts at 8 pixels is unreadable at 320x240; a 3x5 pixel font is readable (`008 §2.1`, `§2.6`). The dialogue box is drawn at 320x240 in a pixel font, Fusion Pixel at 10 pixels, aliased (`044 §4.1`).
 - What the aim of a phase looks like. Leaning (Claude): part of the game's image, as Ori's bash arrow is part of its world, whether as a 3D model, a billboard or 2D sprites (`015 §5.7`, `039 §2.3`).
 - Framing by area: centring underwater and in platforming challenges, the player to one side on ledges in front of challenges, and camera distances that suit the geometry. Phantom Camera's way: a phantom camera per area, made active by trigger areas. Put off until there are areas (`010 §3.1`).
-- Looking when up and down mean something else too, such as doors, climbing or aiming. Any input that controls the player has to stop a look (`014 §1.1`).
+- Looking when up and down mean something else too, such as climbing or aiming. Any input that controls the player has to stop a look (`014 §1.1`). Interacting is a press of up, which a look, needing a hold, leaves free (`052 §2.3`).
 - Looking with the left stick. Each axis has its own dead zone of 0.2, so a stick pushed fully up still looks up to about 11.5° either side of vertical; past that, the player moves and the look stops. Many games give up a wedge of ±22.5°. Not judged on a gamepad (`014 §1.1`).
 - What the camera keeps inside in the seamless world. For now, the world's bounding box (`011 §4.1`). Tried and parked: clamps by the static tiles, the last by how hidden each tile is from the player. Next to try: outside tiles that designers paint in LDtk, which the view avoids showing (`042 §5.3`).
 - When should the camera leave the 16-pixel distance? Leaning: zooming out for cinematics, or to show something important that is hard to see at the usual distance. Contextual zoom may turn out better after trying both (`009 §5.2`).
