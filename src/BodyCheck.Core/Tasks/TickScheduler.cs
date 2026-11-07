@@ -7,11 +7,12 @@ namespace BodyCheck.Core.Tasks;
 /// waits count, which its owner runs once a tick, and stops when it is done with it, which unwinds whatever waits on
 /// it.
 /// </summary>
-public sealed class TickScheduler : ITick
+public sealed class TickScheduler
 {
     private readonly Queue<Action> _queue = new();
 
-    private readonly List<(TickTask Task, double Due)> _waits = [];
+    // Each with the condition of its tick's scope, if it has one.
+    private readonly List<(TickTask Task, double Due, Func<bool>? Condition)> _waits = [];
 
     // The time that has passed in the ticks this scheduler has run.
     private double _time;
@@ -23,87 +24,45 @@ public sealed class TickScheduler : ITick
 
     private bool _stopped;
 
+    public TickScheduler() => Tick = new ScopedTick(this, null);
+
+    /// <summary>
+    /// The scheduler's tick, as its tasks see it, with no scope: what it waits on ends only when the scheduler stops.
+    /// </summary>
+    public ITick Tick { get; }
+
     /// <summary>Adds what waits for a task that has finished, to run when the scheduler next runs.</summary>
     internal void Add(Action continuation) => _queue.Enqueue(continuation);
 
-    /// <inheritdoc/>
-    public TickTask NextTick() => Wait(0);
-
-    /// <inheritdoc/>
-    public TickTask Wait(float seconds)
+    /// <summary>
+    /// A wait of <paramref name="seconds"/>, which is cancelled if <paramref name="condition"/> no longer holds when
+    /// it is made, or in a run before it is due.
+    /// </summary>
+    internal TickTask Wait(float seconds, Func<bool>? condition)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(seconds);
         var task = new TickTask(this);
         if (_stopped)
         {
             // Such as by a finally block that waits, as a stop unwinds it: it would never finish.
-            task.Cancel(Cancellation());
+            task.Cancel(Stopped());
+        }
+        else if (condition?.Invoke() == false)
+        {
+            task.Cancel(ScopeEnded());
         }
         else
         {
-            _waits.Add((task, _time + seconds));
+            _waits.Add((task, _time + seconds, condition));
         }
         return task;
     }
 
-    /// <inheritdoc/>
-    public async TickTask While(Func<bool> condition)
-    {
-        while (condition())
-        {
-            await NextTick();
-        }
-    }
+    /// <summary>The length of the tick being run, or of the last one run.</summary>
+    internal float Dt => _dt;
 
-    /// <inheritdoc/>
-    public async TickTask While(Func<bool> condition, Action body)
-    {
-        while (condition())
-        {
-            body();
-            await NextTick();
-        }
-    }
-
-    /// <inheritdoc/>
-    public async TickTask While(Func<bool> condition, Func<TickTask> body)
-    {
-        while (condition())
-        {
-            double time = _time;
-            await body();
-            if (_time == time)
-            {
-                await NextTick();
-            }
-        }
-    }
-
-    /// <inheritdoc/>
-    public async TickTask UntilCompleted(Task task)
-    {
-        await While(() => !task.IsCompleted);
-        // Not await: the method would resume off the tick. The task has completed, so this only throws its exception,
-        // if it has one, unwrapped, as await would.
-        task.GetAwaiter().GetResult();
-    }
-
-    /// <inheritdoc/>
-    public async TickTask All(IEnumerable<TickTask> tasks)
-    {
-        // Enumerated first, so that every task has started before any is awaited.
-        List<TickTask> taskList = [.. tasks];
-        foreach (var task in taskList)
-        {
-            await task;
-        }
-    }
-
-    /// <inheritdoc/>
-    public float Dt => _dt;
-
-    /// <inheritdoc/>
-    public double Time => _time;
+    /// <summary>The total length of the ticks the scheduler has run, counting the one being run.</summary>
+    internal double Time => _time;
 
     /// <summary>
     /// Stops the scheduler for good, unwinding everything that waits on it: cancels every wait that hasn't finished,
@@ -130,9 +89,9 @@ public sealed class TickScheduler : ITick
         _running = true;
         try
         {
-            foreach ((TickTask task, double _) in _waits)
+            foreach ((TickTask task, double _, Func<bool>? _) in _waits)
             {
-                task.Cancel(Cancellation());
+                task.Cancel(Stopped());
             }
             _waits.Clear();
 
@@ -157,10 +116,12 @@ public sealed class TickScheduler : ITick
         }
     }
 
-    private static OperationCanceledException Cancellation() => new("The TickScheduler was stopped.");
+    private static OperationCanceledException Stopped() => new("The TickScheduler was stopped.");
+
+    private static OperationCanceledException ScopeEnded() => new("The scope of the tick waited on has ended.");
 
     /// <summary>
-    /// Runs one tick: finishes the waits that are due, then runs what waits for every task that has finished, until
+    /// Runs one tick: cancels the waits whose scopes have ended, finishes those that are due, then runs what waits for every task that has finished, until
     /// nothing is left, so that a chain of tasks that finish at once runs to its end in one tick.
     /// <para>
     /// If anything it runs throws, or a task has failed, it forgets everything queued and throws, failing the tick.
@@ -182,6 +143,7 @@ public sealed class TickScheduler : ITick
         {
             _dt = dt;
             _time += dt;
+            CancelWaitsOfEndedScopes();
             FinishDueWaits(dt);
             while (_queue.TryDequeue(out Action? continuation))
             {
@@ -197,6 +159,33 @@ public sealed class TickScheduler : ITick
         finally
         {
             _running = false;
+        }
+    }
+
+    /// <summary>Cancels the waits whose scopes' conditions no longer hold, in the order they were made.</summary>
+    private void CancelWaitsOfEndedScopes()
+    {
+        int kept = 0;
+        int i = 0;
+        try
+        {
+            for (; i < _waits.Count; i++)
+            {
+                if (_waits[i].Condition?.Invoke() == false)
+                {
+                    _waits[i].Task.Cancel(ScopeEnded());
+                }
+                else
+                {
+                    _waits[kept++] = _waits[i];
+                }
+            }
+        }
+        finally
+        {
+            // Drops the cancelled waits' entries. If a condition threw, which fails the tick, this also keeps its wait
+            // and those not yet checked.
+            _waits.RemoveRange(kept, i - kept);
         }
     }
 

@@ -21,7 +21,7 @@ namespace BodyCheck.Core.Tasks;
 /// <para>
 /// Cancelling one doesn't fail the tick: awaiting it throws an <see cref="OperationCanceledException"/>, which unwinds
 /// what awaits it through its <c>using</c> and <c>finally</c> blocks, and cancels that method's task in turn. Only
-/// <see cref="TickScheduler.Stop"/> cancels tasks.
+/// the scheduler cancels tasks: when it stops, and when the scope of a wait ends (<see cref="ITick.Scoped"/>).
 /// </para>
 /// </summary>
 [AsyncMethodBuilder(typeof(TickTaskMethodBuilder))]

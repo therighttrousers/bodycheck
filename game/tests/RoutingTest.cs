@@ -55,7 +55,7 @@ public class RoutingTest
     {
         var sequence = new SequenceRunner([CallOf("a", 2), CallOf("b", 1)]);
 
-        TickTask run = sequence.Default(_scheduler);
+        TickTask run = sequence.Default(_scheduler.Tick);
         AssertThat(_log).ContainsExactly("a starts");
 
         RunTicks(2);
@@ -72,9 +72,9 @@ public class RoutingTest
     {
         var sequence = new SequenceRunner([CallOf("a", 2)]);
 
-        sequence.Default(_scheduler);
+        sequence.Default(_scheduler.Tick);
         RunTicks(1);
-        sequence.Default(_scheduler);
+        sequence.Default(_scheduler.Tick);
         AssertThat(_log).ContainsExactly("a starts", "a starts");
     }
 
@@ -83,7 +83,7 @@ public class RoutingTest
     {
         var fanout = new FanoutRunner([CallOf("a", 2), CallOf("b", 1)]);
 
-        TickTask run = fanout.Default(_scheduler);
+        TickTask run = fanout.Default(_scheduler.Tick);
         AssertThat(_log).ContainsExactly("a starts", "b starts");
 
         RunTicks(1);
@@ -99,13 +99,13 @@ public class RoutingTest
     {
         var trigger = new TriggerRunner(CallOf("a", 2), startsOn: true);
 
-        TickTask first = trigger.SetOff(_scheduler);
+        TickTask first = trigger.SetOff(_scheduler.Tick);
         RunTicks(1);
-        AssertThat(trigger.SetOff(_scheduler)).IsSame(first);
+        AssertThat(trigger.SetOff(_scheduler.Tick)).IsSame(first);
         AssertThat(_log).ContainsExactly("a starts");
 
         RunTicks(1);
-        trigger.SetOff(_scheduler);
+        trigger.SetOff(_scheduler.Tick);
         AssertThat(_log).ContainsExactly("a starts", "a ends", "a starts");
     }
 
@@ -114,11 +114,11 @@ public class RoutingTest
     {
         var trigger = new TriggerRunner(CallOf("a", 1), startsOn: false);
 
-        AssertThat(trigger.SetOff(_scheduler).IsFinished).IsTrue();
+        AssertThat(trigger.SetOff(_scheduler.Tick).IsFinished).IsTrue();
         AssertThat(_log).IsEmpty();
 
-        AssertThat(trigger.TurnOn(_scheduler).IsFinished).IsTrue();
-        trigger.SetOff(_scheduler);
+        AssertThat(trigger.TurnOn(_scheduler.Tick).IsFinished).IsTrue();
+        trigger.SetOff(_scheduler.Tick);
         AssertThat(_log).ContainsExactly("a starts");
     }
 
@@ -127,14 +127,14 @@ public class RoutingTest
     {
         var once = new OnceRunner(CallOf("a", 2));
 
-        TickTask first = once.Default(_scheduler);
+        TickTask first = once.Default(_scheduler.Tick);
         RunTicks(1);
         // Asked while it runs, it finishes when the first run does.
-        AssertThat(once.Default(_scheduler)).IsSame(first);
+        AssertThat(once.Default(_scheduler.Tick)).IsSame(first);
 
         RunTicks(1);
         // Asked after, it finishes at once, and runs nothing.
-        TickTask after = once.Default(_scheduler);
+        TickTask after = once.Default(_scheduler.Tick);
         AssertThat(after.IsFinished).IsTrue();
         AssertThat(_log).ContainsExactly("a starts", "a ends");
     }

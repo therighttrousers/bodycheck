@@ -517,7 +517,7 @@ public partial class WorldNode : Node3D, IScriptWorld
     /// once every entity has stepped and the actions they deferred have run, before the engine's step, and its waits
     /// count game time. <see cref="StopAndQueueFree"/> stops it.
     /// </summary>
-    public ITick Tick => _scheduler;
+    public ITick Tick => _scheduler.Tick;
 
     /// <summary>
     /// Stops the world's tick, which unwinds everything that waits on it, such as scripts and dialogues, through their
@@ -716,7 +716,7 @@ public partial class WorldNode : Node3D, IScriptWorld
             }
             if (setOff && trigger.Runner.IsOn)
             {
-                trigger.Runner.SetOff(_scheduler);
+                trigger.Runner.SetOff(_scheduler.Tick);
                 TriggerSetOff?.Invoke(trigger.Config);
             }
             trigger.HeldPlayer = held;
