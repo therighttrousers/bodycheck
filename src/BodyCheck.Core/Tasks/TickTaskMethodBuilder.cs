@@ -34,7 +34,7 @@ public struct TickTaskMethodBuilder
 
     /// <summary>
     /// Ends the method's task with the exception its method threw: cancelled, if it is a cancellation, such as from
-    /// awaiting a cancelled task, so that a cancellation unwinding a chain doesn't fail the tick; otherwise failed.
+    /// awaiting a cancelled task, so that a cancellation unwinding a chain isn't reported as a failure; otherwise failed.
     /// </summary>
     public void SetException(Exception exception)
     {

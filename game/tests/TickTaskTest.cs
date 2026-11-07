@@ -20,7 +20,7 @@ public class TickTaskTest
     [TestCase]
     public void Resumes_only_when_the_scheduler_runs()
     {
-        var scheduler = new TickScheduler();
+        var scheduler = new TickScheduler(Rethrow);
         var log = new List<string>();
 
         async TickTask Steps(ITick tick)
@@ -43,7 +43,7 @@ public class TickTaskTest
     [TestCase]
     public void Runs_a_chain_that_finishes_at_once_in_one_tick()
     {
-        var scheduler = new TickScheduler();
+        var scheduler = new TickScheduler(Rethrow);
         var log = new List<string>();
         TickTask? inner = null;
 
@@ -74,7 +74,7 @@ public class TickTaskTest
     [TestCase]
     public void Waiting_for_no_time_finishes_in_the_next_tick()
     {
-        var scheduler = new TickScheduler();
+        var scheduler = new TickScheduler(Rethrow);
         int ticks = 0;
 
         async TickTask Count(ITick tick)
@@ -96,7 +96,7 @@ public class TickTaskTest
     [TestCase]
     public void A_wait_made_before_the_scheduler_runs_finishes_in_that_run()
     {
-        var scheduler = new TickScheduler();
+        var scheduler = new TickScheduler(Rethrow);
         scheduler.Run(Dt);
 
         // As in a controller's Apply, before the world runs the scheduler in the same tick.
@@ -110,7 +110,7 @@ public class TickTaskTest
     [TestCase(0.1f, 1f / 60, 6)]
     public void Waits_on_game_time_counted_in_played_ticks(float seconds, float gameDt, int ticks)
     {
-        var scheduler = new TickScheduler();
+        var scheduler = new TickScheduler(Rethrow);
         TickTask wait = scheduler.Tick.Wait(seconds);
 
         for (int i = 1; i < ticks; i++)
@@ -123,25 +123,53 @@ public class TickTaskTest
     }
 
     [TestCase]
-    public void An_exception_fails_the_tick_even_if_nothing_awaits_it()
+    public void A_failure_goes_to_what_awaits_it_then_once_to_the_sink_while_the_rest_carries_on()
     {
-        var scheduler = new TickScheduler();
+        var failures = new List<Exception>();
+        var scheduler = new TickScheduler(failures.Add);
+        var log = new List<string>();
 
         static async TickTask Throws(ITick tick)
         {
             await tick.NextTick();
             throw new InvalidOperationException("broken");
         }
-        _ = Throws(scheduler.Tick);
 
-        var e = Thrown<InvalidOperationException>(() => scheduler.Run(Dt));
-        AssertThat(e.Message).IsEqual("broken");
+        async TickTask Awaits(ITick tick)
+        {
+            try
+            {
+                await Throws(tick);
+            }
+            finally
+            {
+                log.Add("awaiter cleaned up");
+            }
+        }
+
+        async TickTask Unrelated(ITick tick)
+        {
+            await tick.NextTick();
+            log.Add("unrelated resumed");
+        }
+
+        // Both resume in the same run: the failure doesn't stop the unrelated task.
+        TickTask awaits = Awaits(scheduler.Tick);
+        _ = Unrelated(scheduler.Tick);
+
+        scheduler.Run(Dt);
+        AssertThat(log).ContainsExactlyInAnyOrder("awaiter cleaned up", "unrelated resumed");
+        AssertThat(awaits.IsFinished).IsTrue();
+        AssertThat(awaits.IsCancelled).IsFalse();
+        // Reported once, at the top of its chain, which nothing awaits.
+        AssertThat(failures).HasSize(1);
+        AssertThat(failures[0].Message).IsEqual("broken");
     }
 
     [TestCase]
     public void While_with_an_async_body_runs_it_once_a_tick_whether_or_not_it_lets_time_pass()
     {
-        var scheduler = new TickScheduler();
+        var scheduler = new TickScheduler(Rethrow);
         int instant = 0;
         int waiting = 0;
 
@@ -170,7 +198,7 @@ public class TickTaskTest
     [TestCase]
     public void All_starts_every_task_of_a_lazy_sequence_before_awaiting_any()
     {
-        var scheduler = new TickScheduler();
+        var scheduler = new TickScheduler(Rethrow);
         var log = new List<string>();
 
         async TickTask Work(string name)
@@ -191,7 +219,7 @@ public class TickTaskTest
     [TestCase]
     public void A_dotnet_task_completed_off_the_tick_resumes_what_waits_when_the_scheduler_next_runs()
     {
-        var scheduler = new TickScheduler();
+        var scheduler = new TickScheduler(Rethrow);
         var source = new TaskCompletionSource<int>();
         int result = 0;
 
@@ -213,7 +241,7 @@ public class TickTaskTest
     [TestCase]
     public void Stopping_unwinds_what_waits_through_its_finally_blocks_without_failing()
     {
-        var scheduler = new TickScheduler();
+        var scheduler = new TickScheduler(Rethrow);
         var log = new List<string>();
 
         async TickTask Inner(ITick tick)
@@ -246,9 +274,10 @@ public class TickTaskTest
     }
 
     [TestCase]
-    public void Stopping_unwinds_everything_before_throwing_the_first_failure_of_cleanup()
+    public void Stopping_unwinds_everything_and_reports_a_cleanup_that_fails()
     {
-        var scheduler = new TickScheduler();
+        var failures = new List<Exception>();
+        var scheduler = new TickScheduler(failures.Add);
         bool cleanedUp = false;
 
         static async TickTask FailsToCleanUp(ITick tick)
@@ -278,15 +307,16 @@ public class TickTaskTest
         _ = FailsToCleanUp(scheduler.Tick);
         _ = CleansUp(scheduler.Tick);
 
-        var e = Thrown<InvalidOperationException>(scheduler.Stop);
-        AssertThat(e.Message).IsEqual("broken");
+        scheduler.Stop();
         AssertThat(cleanedUp).IsTrue();
+        AssertThat(failures).HasSize(1);
+        AssertThat(failures[0].Message).IsEqual("broken");
     }
 
     [TestCase]
     public void A_scope_that_ends_unwinds_what_waits_on_it_without_failing()
     {
-        var scheduler = new TickScheduler();
+        var scheduler = new TickScheduler(Rethrow);
         ITick world = scheduler.Tick;
         var log = new List<string>();
 
@@ -318,7 +348,7 @@ public class TickTaskTest
     [TestCase]
     public void A_wait_in_an_ended_scope_is_cancelled_at_once_and_the_outer_scope_guards_the_inner()
     {
-        var scheduler = new TickScheduler();
+        var scheduler = new TickScheduler(Rethrow);
         bool there = false;
         bool innerChecked = false;
 
@@ -328,6 +358,26 @@ public class TickTaskTest
 
         AssertThat(tick.NextTick().IsCancelled).IsTrue();
         AssertThat(innerChecked).IsFalse();
+    }
+
+    [TestCase]
+    public void A_condition_that_throws_ends_its_scope_and_goes_to_the_sink_once()
+    {
+        var failures = new List<Exception>();
+        var scheduler = new TickScheduler(failures.Add);
+        bool broken = false;
+        ITick tick = scheduler.Tick.Scoped(() => broken ? throw new InvalidOperationException("broken") : true);
+
+        // Two waits on one scope, so that its condition is checked, and throws, twice in the run.
+        TickTask first = tick.Wait(1);
+        TickTask second = tick.Wait(1);
+        broken = true;
+
+        scheduler.Run(Dt);
+        AssertThat(first.IsCancelled).IsTrue();
+        AssertThat(second.IsCancelled).IsTrue();
+        AssertThat(failures).HasSize(1);
+        AssertThat(failures[0].Message).IsEqual("broken");
     }
 
     private sealed class Cleanup(Action action) : IDisposable
@@ -347,7 +397,7 @@ public class TickTaskTest
     [TestCase]
     public void A_queued_request_runs_once_the_last_asked_for_has_finished()
     {
-        var scheduler = new TickScheduler();
+        var scheduler = new TickScheduler(Rethrow);
         var log = new List<string>();
         var queue = new ReentrantTask(Reentry.Queue);
 
@@ -376,7 +426,7 @@ public class TickTaskTest
     [TestCase(Reentry.Queue)]
     public void A_request_made_while_starting_a_run_throws_even_with_none_in_progress(Reentry reentry)
     {
-        var scheduler = new TickScheduler();
+        var scheduler = new TickScheduler(Rethrow);
         var reentrant = new ReentrantTask(reentry);
 
         async TickTask Inner()
@@ -389,9 +439,10 @@ public class TickTaskTest
     }
 
     [TestCase]
-    public void A_queued_request_made_while_starting_its_run_fails_the_tick()
+    public void A_queued_request_made_while_starting_its_run_fails()
     {
-        var scheduler = new TickScheduler();
+        var failures = new List<Exception>();
+        var scheduler = new TickScheduler(failures.Add);
         var queue = new ReentrantTask(Reentry.Queue);
 
         async TickTask Work()
@@ -403,7 +454,8 @@ public class TickTaskTest
         // Queued behind the first, it asks for more of itself when it starts, in the scheduler's run.
         _ = queue.Run(() => queue.Run(Work));
 
-        var e = Thrown<InvalidOperationException>(() => scheduler.Run(Dt));
-        AssertThat(e.Message).StartsWith("A ReentrantTask was asked for a run while starting one");
+        scheduler.Run(Dt);
+        AssertThat(failures).HasSize(1);
+        AssertThat(failures[0].Message).StartsWith("A ReentrantTask was asked for a run while starting one");
     }
 }

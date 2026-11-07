@@ -12,6 +12,7 @@ using GdUnit4;
 
 using Godot;
 
+using static BodyCheck.Tests.Exceptions;
 using static GdUnit4.Assertions;
 
 namespace BodyCheck.Tests;
@@ -112,7 +113,7 @@ public class DialogueTest
         AssertThat(_box.IsPresenting).IsFalse();
 
         // As the next world's tick.
-        var next = new TickScheduler();
+        var next = new TickScheduler(Rethrow);
         _ = _box.Present(next.Tick, "debug", "start");
         AssertThat(_box.IsPresenting).IsTrue();
         next.Stop();
