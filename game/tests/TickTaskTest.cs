@@ -32,7 +32,7 @@ public class TickTaskTest
             log.Add("next tick");
         }
 
-        TickTask steps = Steps(scheduler);
+        TickTask steps = Steps(scheduler.Tick);
         AssertThat(log).ContainsExactly("start", "finished");
 
         scheduler.Run(Dt);
@@ -63,8 +63,8 @@ public class TickTaskTest
         }
 
         // The outer method's wait is made first, so it resumes first.
-        TickTask outer = Outer(scheduler);
-        inner = Inner(scheduler);
+        TickTask outer = Outer(scheduler.Tick);
+        inner = Inner(scheduler.Tick);
 
         scheduler.Run(Dt);
         AssertThat(log).ContainsExactly("outer", "inner", "after inner");
@@ -85,7 +85,7 @@ public class TickTaskTest
                 ticks++;
             }
         }
-        _ = Count(scheduler);
+        _ = Count(scheduler.Tick);
 
         scheduler.Run(Dt);
         scheduler.Run(Dt);
@@ -100,7 +100,7 @@ public class TickTaskTest
         scheduler.Run(Dt);
 
         // As in a controller's Apply, before the world runs the scheduler in the same tick.
-        TickTask wait = scheduler.NextTick();
+        TickTask wait = scheduler.Tick.NextTick();
         scheduler.Run(Dt);
         AssertThat(wait.IsFinished).IsTrue();
     }
@@ -111,7 +111,7 @@ public class TickTaskTest
     public void Waits_on_game_time_counted_in_played_ticks(float seconds, float gameDt, int ticks)
     {
         var scheduler = new TickScheduler();
-        TickTask wait = scheduler.Wait(seconds);
+        TickTask wait = scheduler.Tick.Wait(seconds);
 
         for (int i = 1; i < ticks; i++)
         {
@@ -132,7 +132,7 @@ public class TickTaskTest
             await tick.NextTick();
             throw new InvalidOperationException("broken");
         }
-        _ = Throws(scheduler);
+        _ = Throws(scheduler.Tick);
 
         var e = Thrown<InvalidOperationException>(() => scheduler.Run(Dt));
         AssertThat(e.Message).IsEqual("broken");
@@ -147,15 +147,15 @@ public class TickTaskTest
 
         // One body lets no time pass, so the loop waits for the next tick; the other waits for it itself, so the loop
         // doesn't wait again.
-        _ = scheduler.While(() => true, async () =>
+        _ = scheduler.Tick.While(() => true, async () =>
         {
             instant++;
             await TickTask.Finished;
         });
-        _ = scheduler.While(() => true, async () =>
+        _ = scheduler.Tick.While(() => true, async () =>
         {
             waiting++;
-            await scheduler.NextTick();
+            await scheduler.Tick.NextTick();
         });
         AssertThat(instant).IsEqual(1);
         AssertThat(waiting).IsEqual(1);
@@ -176,11 +176,11 @@ public class TickTaskTest
         async TickTask Work(string name)
         {
             log.Add($"{name} starts");
-            await scheduler.NextTick();
+            await scheduler.Tick.NextTick();
             log.Add($"{name} ends");
         }
 
-        TickTask all = scheduler.All(new[] { "a", "b" }.Select(Work));
+        TickTask all = scheduler.Tick.All(new[] { "a", "b" }.Select(Work));
         AssertThat(log).ContainsExactly("a starts", "b starts");
 
         scheduler.Run(Dt);
@@ -200,7 +200,7 @@ public class TickTaskTest
             await tick.UntilCompleted(source.Task);
             result = source.Task.Result;
         }
-        _ = Waits(scheduler);
+        _ = Waits(scheduler.Tick);
 
         scheduler.Run(Dt);
         AssertThat(result).IsEqual(0);
@@ -236,13 +236,13 @@ public class TickTaskTest
             log.Add("outer resumed");
         }
 
-        TickTask outer = Outer(scheduler);
+        TickTask outer = Outer(scheduler.Tick);
         scheduler.Run(Dt);
 
         scheduler.Stop();
         AssertThat(log).ContainsExactly("inner cleaned up", "outer cleaned up");
         AssertThat(outer.IsCancelled).IsTrue();
-        AssertThat(scheduler.NextTick().IsCancelled).IsTrue();
+        AssertThat(scheduler.Tick.NextTick().IsCancelled).IsTrue();
     }
 
     [TestCase]
@@ -275,12 +275,59 @@ public class TickTaskTest
             }
         }
 
-        _ = FailsToCleanUp(scheduler);
-        _ = CleansUp(scheduler);
+        _ = FailsToCleanUp(scheduler.Tick);
+        _ = CleansUp(scheduler.Tick);
 
         var e = Thrown<InvalidOperationException>(scheduler.Stop);
         AssertThat(e.Message).IsEqual("broken");
         AssertThat(cleanedUp).IsTrue();
+    }
+
+    [TestCase]
+    public void A_scope_that_ends_unwinds_what_waits_on_it_without_failing()
+    {
+        var scheduler = new TickScheduler();
+        ITick world = scheduler.Tick;
+        var log = new List<string>();
+
+        async TickTask Loops(ITick tick, string name)
+        {
+            try
+            {
+                await tick.While(() => true, () => log.Add(name));
+            }
+            finally
+            {
+                log.Add($"{name} cleaned up");
+            }
+        }
+
+        // A timeout: the scope lasts until the deadline, two ticks from now.
+        double deadline = world.Time + 2 * Dt;
+        TickTask scoped = Loops(world.Scoped(() => world.Time < deadline), "scoped");
+        _ = Loops(world, "unscoped");
+
+        scheduler.Run(Dt);
+        scheduler.Run(Dt);
+        // Each loop runs its body once at once, and once in the first tick; in the second, the scoped one ends.
+        AssertThat(log).ContainsExactly(
+            "scoped", "unscoped", "scoped", "unscoped", "unscoped", "scoped cleaned up");
+        AssertThat(scoped.IsCancelled).IsTrue();
+    }
+
+    [TestCase]
+    public void A_wait_in_an_ended_scope_is_cancelled_at_once_and_the_outer_scope_guards_the_inner()
+    {
+        var scheduler = new TickScheduler();
+        bool there = false;
+        bool innerChecked = false;
+
+        ITick tick = scheduler.Tick
+            .Scoped(() => there)
+            .Scoped(() => innerChecked = true);
+
+        AssertThat(tick.NextTick().IsCancelled).IsTrue();
+        AssertThat(innerChecked).IsFalse();
     }
 
     private sealed class Cleanup(Action action) : IDisposable
@@ -307,7 +354,7 @@ public class TickTaskTest
         async TickTask Work(string name)
         {
             log.Add($"{name} starts");
-            await scheduler.NextTick();
+            await scheduler.Tick.NextTick();
             log.Add($"{name} ends");
         }
 
@@ -334,7 +381,7 @@ public class TickTaskTest
 
         async TickTask Inner()
         {
-            await scheduler.NextTick();
+            await scheduler.Tick.NextTick();
         }
 
         var e = Thrown<InvalidOperationException>(() => reentrant.Run(() => reentrant.Run(Inner)));
@@ -349,7 +396,7 @@ public class TickTaskTest
 
         async TickTask Work()
         {
-            await scheduler.NextTick();
+            await scheduler.Tick.NextTick();
         }
 
         _ = queue.Run(Work);

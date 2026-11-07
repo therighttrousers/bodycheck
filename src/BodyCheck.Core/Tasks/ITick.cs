@@ -21,6 +21,19 @@ public interface ITick
     TickTask Wait(float seconds);
 
     /// <summary>
+    /// A tick whose waits are cancelled once <paramref name="condition"/> no longer holds, as stopping the scheduler
+    /// cancels them, so that whatever awaits them unwinds through its <c>using</c> and <c>finally</c> blocks: a scope
+    /// for the tasks that wait on it, such as "while the entity is there" or "until the deadline". The condition is
+    /// checked when a wait is made, and in each of the scheduler's runs before any wait finishes, so a wait isn't
+    /// finished in the run in which its scope ends. A tick scoped from this one ends with either scope.
+    /// </summary>
+    /// <param name="condition">
+    /// What the scope lasts while. It is called often, so it must be cheap and have no side effects; one that throws
+    /// fails the tick.
+    /// </param>
+    ITick Scoped(Func<bool> condition);
+
+    /// <summary>
     /// A task that loops while <paramref name="condition"/> holds, checking it once in each of the scheduler's runs, and
     /// finishes in the first in which it doesn't, or at once if it doesn't hold now: "do this while that". It is the way
     /// to wait for what changes in the world, or off the tick, such as the player's input to a menu.

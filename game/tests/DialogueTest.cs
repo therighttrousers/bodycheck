@@ -113,7 +113,7 @@ public class DialogueTest
 
         // As the next world's tick.
         var next = new TickScheduler();
-        _ = _box.Present(next, "debug", "start");
+        _ = _box.Present(next.Tick, "debug", "start");
         AssertThat(_box.IsPresenting).IsTrue();
         next.Stop();
     }
