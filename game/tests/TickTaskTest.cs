@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 using BodyCheck.Core.Tasks;
@@ -135,6 +136,56 @@ public class TickTaskTest
 
         var e = Thrown<InvalidOperationException>(() => scheduler.Run(Dt));
         AssertThat(e.Message).IsEqual("broken");
+    }
+
+    [TestCase]
+    public void While_with_an_async_body_runs_it_once_a_tick_whether_or_not_it_lets_time_pass()
+    {
+        var scheduler = new TickScheduler();
+        int instant = 0;
+        int waiting = 0;
+
+        // One body lets no time pass, so the loop waits for the next tick; the other waits for it itself, so the loop
+        // doesn't wait again.
+        _ = scheduler.While(() => true, async () =>
+        {
+            instant++;
+            await TickTask.Finished;
+        });
+        _ = scheduler.While(() => true, async () =>
+        {
+            waiting++;
+            await scheduler.NextTick();
+        });
+        AssertThat(instant).IsEqual(1);
+        AssertThat(waiting).IsEqual(1);
+
+        scheduler.Run(Dt);
+        scheduler.Run(Dt);
+        scheduler.Run(Dt);
+        AssertThat(instant).IsEqual(4);
+        AssertThat(waiting).IsEqual(4);
+    }
+
+    [TestCase]
+    public void All_starts_every_task_of_a_lazy_sequence_before_awaiting_any()
+    {
+        var scheduler = new TickScheduler();
+        var log = new List<string>();
+
+        async TickTask Work(string name)
+        {
+            log.Add($"{name} starts");
+            await scheduler.NextTick();
+            log.Add($"{name} ends");
+        }
+
+        TickTask all = scheduler.All(new[] { "a", "b" }.Select(Work));
+        AssertThat(log).ContainsExactly("a starts", "b starts");
+
+        scheduler.Run(Dt);
+        AssertThat(log).ContainsExactly("a starts", "b starts", "a ends", "b ends");
+        AssertThat(all.IsFinished).IsTrue();
     }
 
     [TestCase]
