@@ -9,7 +9,7 @@ Once records land in `main`, regard them as agents' shared memories of how the r
 An agent carries nothing from one session to the next: what a later session knows of why the code is as it is comes from these records, read as they stand on `main`, not from git's history.
 People who work here have memories of their own, abstract and imprecise but useful; agents have only these.
 So the rules protect what an agent relies on when it reads a record:
-- **A citation keeps its meaning.** Code and docs cite items as `NNN §x.y`. If a cited item's content changed, or items were renumbered, every citation would silently come to mean something else.
+- **A citation keeps its meaning.** Docs (not code) cite items as `NNN §x.y`. If a cited item's content changed, or items were renumbered, every citation would silently come to mean something else.
 - **A settled item stays settled.** An agent must be able to trust that `[x]`, with its decision and rationale, is what was decided, not a later rewrite.
 - **What is open looks open.** `[ ]` and `[~]` say so, so an agent doesn't take a leaning for a decision.
 
