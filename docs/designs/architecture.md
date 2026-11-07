@@ -18,6 +18,7 @@ Relevant decision records:
 - [048: Triggers set off by touch](../decision-records/048-touch.md)
 - [052: The talking door](../decision-records/052-talking-door.md)
 - [053: Cancelling tasks](../decision-records/053-cancelling-tasks.md)
+- [055: Unhandled task failures](../decision-records/055-unhandled-task-failures.md)
 
 This is the top of the architecture docs. Each directory with parts of its own has an `architecture.md`, which describes it and how its parts relate, and links theirs. Follow the links down as far as the level you want to work at.
 
@@ -61,7 +62,7 @@ The game builds on Core's rules, putting them on screen and in the player's hand
   "Next step" is ambiguous here, so code says "this tick's step" for the one about to run, and "the last step" for the one whose results it reads. Godot runs `CallDeferred` calls made during the physics process before the engine's step, along with other deferred work, so the game queues its own actions on `IDefer` instead, in a known order (`022 §2`).
 - **Timing in names.** A method that changes state changes it when it is called; the engine then acts on it in this tick's step. A name says when, if not: `AfterEntitySteps` for a change made after the entity steps, and `AfterPhysicsStep` for one made after the engine's step.
 - **`_Process` only changes what is drawn or heard** in anything the simulation runs. It may read state, but never changes physics state or calls what a controller would, so that work done between ticks makes no difference to the simulation.
-- **Catch what you expect** (Neil). Code handles only the exceptions it expects, and never swallows every exception, such as with `catch (Exception)`, which hides bugs, and also stops the cancellation that unwinds a task when its scheduler stops (`053 §1.4`). A catch of everything that cleans up and rethrows is fine, as is one that keeps failures to throw once the rest is done, as a stopping scheduler does.
+- **Catch what you expect** (Neil). Code handles only the exceptions it expects, and never swallows every exception, such as with `catch (Exception)`, which hides bugs, and also stops the cancellation that unwinds a task when its scheduler stops (`053 §1.4`). A catch of everything that cleans up and rethrows is fine, as is one that hands what it catches to a sink for failures nothing else handles, as the task scheduler does with a scope's condition.
 - **Reading data is typed and validated** (Neil). Data from files is read into types that say what it must be, and anything else is an error, reported with where it is: a missing or null value, a name that isn't one of a fixed set, a number where a name should be. Checks that types can't express are made right after reading. Nothing is silently defaulted or skipped, except parts of a format the game doesn't read. For JSON this is `System.Text.Json`'s source generator over records whose properties are `required`, with nullable annotations respected and enums read by name only (`009 §3`). One stated exception: a configuration names only the features it changes, and the rest are their defaults; a name that isn't a feature is still an error (`017 §2.2`).
 
 ## Exports

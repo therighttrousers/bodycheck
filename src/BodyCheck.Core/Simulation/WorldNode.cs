@@ -42,7 +42,9 @@ public partial class WorldNode : Node3D, IScriptWorld
 
     private readonly Defer _defer = new();
 
-    private readonly TickScheduler _scheduler = new();
+    // A failure that nothing in the world handles shows in Godot's debugger, with its stack trace, and the world plays
+    // on.
+    private readonly TickScheduler _scheduler = new(e => GD.PushError(e.ToString()));
 
     // The game's mode on the last tick the controllers stepped, played or paused, or null before the first.
     private GameMode? _steppedGameMode;
@@ -523,11 +525,8 @@ public partial class WorldNode : Node3D, IScriptWorld
     /// Stops the world's tick, which unwinds everything that waits on it, such as scripts and dialogues, through their
     /// <c>using</c> and <c>finally</c> blocks, while the world is still whole and in the tree; then stops the world
     /// processing, and queues it to be freed. Whatever replaces a world calls this, rather than freeing it, so that what
-    /// runs in it cleans up.
+    /// runs in it cleans up. A cleanup that fails is reported, as any unhandled failure in the world is.
     /// </summary>
-    /// <exception cref="Exception">
-    /// The first exception thrown by cleanup, once the world is stopped and queued to be freed all the same.
-    /// </exception>
     public void StopAndQueueFree()
     {
         try

@@ -24,12 +24,12 @@ public interface ITick
     /// A tick whose waits are cancelled once <paramref name="condition"/> no longer holds, as stopping the scheduler
     /// cancels them, so that whatever awaits them unwinds through its <c>using</c> and <c>finally</c> blocks: a scope
     /// for the tasks that wait on it, such as "while the entity is there" or "until the deadline". The condition is
-    /// checked when a wait is made, and in each of the scheduler's runs before any wait finishes, so a wait isn't
+    /// checked when a wait is made, and in each of the scheduler's runs before the wait could finish, so a wait isn't
     /// finished in the run in which its scope ends. A tick scoped from this one ends with either scope.
     /// </summary>
     /// <param name="condition">
-    /// What the scope lasts while. It is called often, so it must be cheap and have no side effects; one that throws
-    /// fails the tick.
+    /// What the scope lasts while. It is called often, so it must be cheap and have no side effects. One that throws
+    /// ends the scope, and its exception goes to the scheduler's sink for unhandled failures, once.
     /// </param>
     ITick Scoped(Func<bool> condition);
 

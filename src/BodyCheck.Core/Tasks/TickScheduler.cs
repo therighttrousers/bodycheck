@@ -1,18 +1,27 @@
-using System.Runtime.ExceptionServices;
-
 namespace BodyCheck.Core.Tasks;
 
 /// <summary>
 /// What runs <see cref="TickTask"/>s: the queue of what waits for tasks that have finished, and the clock that its
 /// waits count, which its owner runs once a tick, and stops when it is done with it, which unwinds whatever waits on
-/// it.
+/// it. What fails with nothing to handle it goes to the owner's sink, and everything else carries on.
 /// </summary>
-public sealed class TickScheduler
+/// <param name="unhandled">
+/// Where unhandled failures go: the exception of each failed task that nothing has awaited by the end of the run in
+/// which it failed, and of each scope's condition that throws. If it throws, so does the run.
+/// </param>
+public sealed class TickScheduler(Action<Exception> unhandled)
 {
     private readonly Queue<Action> _queue = new();
 
     // Each with the condition of its tick's scope, if it has one.
     private readonly List<(TickTask Task, double Due, Func<bool>? Condition)> _waits = [];
+
+    // What has failed since the end of the last run, in order, to report at the end of this one: the tasks that have
+    // failed, if nothing has awaited them by then, and the exceptions of the scopes' conditions that have thrown.
+    private readonly List<(TickTask? Task, Exception? Exception)> _failures = [];
+
+    // The scopes' conditions that have thrown since the end of the last run, so that each is reported once.
+    private readonly HashSet<Func<bool>> _conditionsThrown = new(ReferenceEqualityComparer.Instance);
 
     // The time that has passed in the ticks this scheduler has run.
     private double _time;
@@ -24,15 +33,16 @@ public sealed class TickScheduler
 
     private bool _stopped;
 
-    public TickScheduler() => Tick = new ScopedTick(this, null);
-
     /// <summary>
     /// The scheduler's tick, as its tasks see it, with no scope: what it waits on ends only when the scheduler stops.
     /// </summary>
-    public ITick Tick { get; }
+    public ITick Tick => field ??= new ScopedTick(this, null);
 
     /// <summary>Adds what waits for a task that has finished, to run when the scheduler next runs.</summary>
     internal void Add(Action continuation) => _queue.Enqueue(continuation);
+
+    /// <summary>Notes a task that has failed, to report at the end of the run if nothing has awaited it.</summary>
+    internal void Failed(TickTask task) => _failures.Add((task, null));
 
     /// <summary>
     /// A wait of <paramref name="seconds"/>, which is cancelled if <paramref name="condition"/> no longer holds when
@@ -47,7 +57,7 @@ public sealed class TickScheduler
             // Such as by a finally block that waits, as a stop unwinds it: it would never finish.
             task.Cancel(Stopped());
         }
-        else if (condition?.Invoke() == false)
+        else if (!Holds(condition))
         {
             task.Cancel(ScopeEnded());
         }
@@ -71,8 +81,8 @@ public sealed class TickScheduler
     /// unwinds in this call, through its <c>using</c> and <c>finally</c> blocks, while what they clean up is still
     /// there. A wait made after it has stopped is cancelled at once. It runs no more ticks.
     /// <para>
-    /// If cleanup fails, such as a <c>finally</c> block that throws, it unwinds everything else first, then throws
-    /// the first failure, so that one failure doesn't leave the rest of the cleanup undone.
+    /// A cleanup that fails, such as a <c>finally</c> block that throws, fails its method's task, and goes to the sink
+    /// once everything has unwound, if nothing awaits the task.
     /// </para>
     /// </summary>
     public void Stop()
@@ -94,21 +104,8 @@ public sealed class TickScheduler
                 task.Cancel(Stopped());
             }
             _waits.Clear();
-
-            ExceptionDispatchInfo? firstFailure = null;
-            while (_queue.TryDequeue(out Action? continuation))
-            {
-                // Only what fails a task throws: kept, to throw once everything has unwound.
-                try
-                {
-                    continuation();
-                }
-                catch (Exception e)
-                {
-                    firstFailure ??= ExceptionDispatchInfo.Capture(e);
-                }
-            }
-            firstFailure?.Throw();
+            RunQueued();
+            ReportUnhandled();
         }
         finally
         {
@@ -121,11 +118,9 @@ public sealed class TickScheduler
     private static OperationCanceledException ScopeEnded() => new("The scope of the tick waited on has ended.");
 
     /// <summary>
-    /// Runs one tick: cancels the waits whose scopes have ended, finishes those that are due, then runs what waits for every task that has finished, until
-    /// nothing is left, so that a chain of tasks that finish at once runs to its end in one tick.
-    /// <para>
-    /// If anything it runs throws, or a task has failed, it forgets everything queued and throws, failing the tick.
-    /// </para>
+    /// Runs one tick: cancels the waits whose scopes have ended and finishes those that are due, then runs what waits
+    /// for every task that has finished, until nothing is left, so that a chain of tasks that finish at once runs to its
+    /// end in one tick. Last, it gives the sink the failures that nothing has handled.
     /// </summary>
     /// <param name="dt">The tick's length on the clock that waits count.</param>
     public void Run(float dt)
@@ -143,18 +138,9 @@ public sealed class TickScheduler
         {
             _dt = dt;
             _time += dt;
-            CancelWaitsOfEndedScopes();
-            FinishDueWaits(dt);
-            while (_queue.TryDequeue(out Action? continuation))
-            {
-                continuation();
-            }
-        }
-        catch
-        {
-            // We can't count on the owner's state being as expected for what is queued, so don't run it.
-            _queue.Clear();
-            throw;
+            SettleWaits(dt);
+            RunQueued();
+            ReportUnhandled();
         }
         finally
         {
@@ -162,44 +148,91 @@ public sealed class TickScheduler
         }
     }
 
-    /// <summary>Cancels the waits whose scopes' conditions no longer hold, in the order they were made.</summary>
-    private void CancelWaitsOfEndedScopes()
+    /// <summary>Runs what is queued, and what that queues, until nothing is left.</summary>
+    private void RunQueued()
     {
-        int kept = 0;
-        int i = 0;
         try
         {
-            for (; i < _waits.Count; i++)
+            while (_queue.TryDequeue(out Action? continuation))
             {
-                if (_waits[i].Condition?.Invoke() == false)
-                {
-                    _waits[i].Task.Cancel(ScopeEnded());
-                }
-                else
-                {
-                    _waits[kept++] = _waits[i];
-                }
+                // An async method's continuation doesn't throw: its builder fails its task with what the method throws.
+                continuation();
             }
         }
-        finally
+        catch
         {
-            // Drops the cancelled waits' entries. If a condition threw, which fails the tick, this also keeps its wait
-            // and those not yet checked.
-            _waits.RemoveRange(kept, i - kept);
+            // Only a bug in the tasks themselves gets here. We can't count on the state of what is queued, so we don't
+            // run it.
+            _queue.Clear();
+            throw;
         }
     }
 
-    /// <summary>Finishes the waits due by the end of a tick of <paramref name="dt"/>, in the order they were made.</summary>
-    private void FinishDueWaits(float dt)
+    /// <summary>
+    /// Gives the sink what has failed with nothing to handle it, in the order it failed, and forgets it: the tasks
+    /// that nothing has awaited, and the scopes' conditions that have thrown. A task awaited later fails what awaits
+    /// it, which may be reported in turn.
+    /// </summary>
+    private void ReportUnhandled()
+    {
+        // Copied, so that if the sink throws, nothing is reported twice.
+        List<(TickTask? Task, Exception? Exception)> failures = [.. _failures];
+        _failures.Clear();
+        _conditionsThrown.Clear();
+        foreach ((TickTask? task, Exception? exception) in failures)
+        {
+            if ((task?.UnhandledFailure ?? exception) is Exception e)
+            {
+                unhandled(e);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Whether a scope's condition holds. One that throws counts as not holding, so that its scope ends: its waits are
+    /// cancelled, which blames nothing. Its exception goes to the sink at the end of the run, once.
+    /// </summary>
+    private bool Holds(Func<bool>? condition)
+    {
+        if (condition is null)
+        {
+            return true;
+        }
+        try
+        {
+            return condition();
+        }
+        // Everything: the condition is the caller's code, and its failure goes to the sink, which is where it would
+        // go if its caller didn't handle it.
+        catch (Exception e)
+        {
+            if (_conditionsThrown.Add(condition))
+            {
+                _failures.Add((null, e));
+            }
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Settles the waits, in the order they were made: cancels those whose scopes have ended, and finishes those due by
+    /// the end of a tick of <paramref name="dt"/>. A wait whose scope has ended is cancelled even if it is due.
+    /// </summary>
+    private void SettleWaits(float dt)
     {
         // A wait is due in the tick that ends nearest it: the first that ends no more than half a tick before it.
         double dueBy = _time + dt / 2;
         int kept = 0;
         for (int i = 0; i < _waits.Count; i++)
         {
-            if (_waits[i].Due <= dueBy)
+            (TickTask task, double due, Func<bool>? condition) = _waits[i];
+            if (!Holds(condition))
             {
-                _waits[i].Task.Finish();
+                task.Cancel(ScopeEnded());
+            }
+            else if (due <= dueBy)
+            {
+                task.Finish();
             }
             else
             {

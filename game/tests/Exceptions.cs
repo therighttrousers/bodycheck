@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.ExceptionServices;
 
 using GdUnit4.Core.Execution.Exceptions;
 
@@ -24,4 +25,10 @@ public static class Exceptions
         }
         throw new TestFailedException($"Expected {typeof(T).Name} to be thrown, but nothing was.");
     }
+
+    /// <summary>
+    /// A sink for the unhandled failures of a scheduler whose tasks aren't expected to fail: it throws the failure,
+    /// with its stack trace, out of the scheduler's run, failing the test.
+    /// </summary>
+    public static void Rethrow(Exception e) => ExceptionDispatchInfo.Throw(e);
 }

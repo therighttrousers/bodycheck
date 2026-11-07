@@ -15,13 +15,16 @@ namespace BodyCheck.Core.Tasks;
 /// resume it off the tick; awaiting anything else fails it.
 /// </para>
 /// <para>
-/// Failing one fails the tick: the scheduler throws the exception when it next runs, whether or not anything awaits
-/// the task, so that it is never lost. Tasks and their scheduler are for one thread.
+/// Failing one throws its exception in what awaits it, as <c>await</c> does with any exception. A failed task that
+/// nothing has awaited by the end of the scheduler's run in which it failed is unhandled: the scheduler gives its
+/// exception to its owner's sink, so that it is never lost, and everything else carries on. Tasks and their scheduler
+/// are for one thread.
 /// </para>
 /// <para>
-/// Cancelling one doesn't fail the tick: awaiting it throws an <see cref="OperationCanceledException"/>, which unwinds
-/// what awaits it through its <c>using</c> and <c>finally</c> blocks, and cancels that method's task in turn. Only
-/// the scheduler cancels tasks: when it stops, and when the scope of a wait ends (<see cref="ITick.Scoped"/>).
+/// Cancelling one isn't a failure, and is never reported: awaiting it throws an
+/// <see cref="OperationCanceledException"/>, which unwinds what awaits it through its <c>using</c> and <c>finally</c>
+/// blocks, and cancels that method's task in turn. Only the scheduler cancels tasks: when it stops, and when the scope
+/// of a wait ends (<see cref="ITick.Scoped"/>).
 /// </para>
 /// </summary>
 [AsyncMethodBuilder(typeof(TickTaskMethodBuilder))]
@@ -34,6 +37,9 @@ public sealed class TickTask
     private readonly List<Action> _continuations = [];
 
     private ExceptionDispatchInfo? _failure;
+
+    // Whether anything has awaited the task: attached a continuation, or read the result of the task once finished.
+    private bool _awaited;
 
     /// <param name="scheduler">The scheduler that runs what waits for the task.</param>
     internal TickTask(TickScheduler scheduler) => _scheduler = scheduler;
@@ -58,12 +64,15 @@ public sealed class TickTask
     /// <summary>Whether the task has been cancelled.</summary>
     public bool IsCancelled { get; private set; }
 
+    /// <summary>The exception of a task that has failed, not been cancelled, if nothing has awaited it.</summary>
+    internal Exception? UnhandledFailure => _awaited || IsCancelled ? null : _failure?.SourceException;
+
     /// <summary>Finishes the task, queueing what waits for it. A task finishes only once.</summary>
     internal void Finish() => Settle(null);
 
     /// <summary>
     /// Cancels the task with <paramref name="exception"/>, which awaiting it throws, queueing what waits for it. Unlike
-    /// failing, it doesn't fail the tick. A task finishes only once.
+    /// a failure, it is never unhandled. A task finishes only once.
     /// </summary>
     internal void Cancel(OperationCanceledException exception)
     {
@@ -72,8 +81,8 @@ public sealed class TickTask
     }
 
     /// <summary>
-    /// Fails the task, queueing the exception, which the scheduler throws when it next runs, then what waits for the
-    /// task, which never runs once the exception has failed the tick. A task finishes only once.
+    /// Fails the task with <paramref name="exception"/>, which awaiting it throws, queueing what waits for it, and tells
+    /// the scheduler, which reports it if nothing has awaited the task by the end of its run. A task finishes only once.
     /// </summary>
     internal void Fail(Exception exception) => Settle(ExceptionDispatchInfo.Capture(exception));
 
@@ -97,7 +106,7 @@ public sealed class TickTask
 
         if (failure is not null && !IsCancelled)
         {
-            _scheduler.Add(failure.Throw);
+            _scheduler.Failed(this);
         }
         foreach (Action continuation in _continuations)
         {
@@ -140,6 +149,7 @@ public sealed class TickTask
                 throw new InvalidOperationException("The TickTask has already finished.");
             }
             Debug.Assert(Task._scheduler is not null, "An unfinished async method's task has a scheduler.");
+            Task._awaited = true;
             Task._continuations.Add(continuation);
         }
 
@@ -150,6 +160,8 @@ public sealed class TickTask
             {
                 throw new InvalidOperationException("The TickTask hasn't finished.");
             }
+            // Awaiting a task that has already finished reads its result without attaching a continuation.
+            Task._awaited = true;
             Task._failure?.Throw();
         }
     }

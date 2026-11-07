@@ -7,6 +7,7 @@ using BodyCheck.Core.Tasks;
 
 using GdUnit4;
 
+using static BodyCheck.Tests.Exceptions;
 using static GdUnit4.Assertions;
 
 namespace BodyCheck.Tests;
@@ -18,14 +19,14 @@ public class RoutingTest
     private const float Dt = 1f / 60;
 
     // gdUnit4 runs a suite's tests on one instance, so each test starts with a scheduler and a log of its own.
-    private TickScheduler _scheduler = new();
+    private TickScheduler _scheduler = new(Rethrow);
 
     private readonly List<string> _log = [];
 
     [BeforeTest]
     public void Reset()
     {
-        _scheduler = new TickScheduler();
+        _scheduler = new TickScheduler(Rethrow);
         _log.Clear();
     }
 
