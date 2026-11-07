@@ -31,7 +31,7 @@ public class GameWorldsTest
             foreach (World world in LdtkReader.ReadWorlds(path, File.ReadAllText))
             {
                 // Building it checks that its dialogues name titles that their files hold, and its scripts scripts.
-                var node = new WorldNode(world, new AssetLibrary(), dialogue: dialogue, scripts: new ScriptLibrary());
+                var node = WorldNode.Build(world, new AssetLibrary(), dialogue: dialogue, scripts: new ScriptLibrary());
                 try
                 {
                     AssertArray(node.Triggers.Keys).ContainsExactlyInAnyOrder(

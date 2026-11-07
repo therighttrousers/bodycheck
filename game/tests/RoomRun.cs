@@ -24,15 +24,13 @@ public sealed class RoomRun
 
     private PlayerInput _input = Idle;
 
-    /// <param name="respawnId">The respawn the player starts at, as <see cref="WorldNode"/> takes it.</param>
-    /// <param name="scripts">The scripts the room's <c>Script</c> entities run, as <see cref="WorldNode"/> takes them.</param>
+    /// <param name="respawnId">The respawn the player starts at, as <see cref="WorldNode.Build"/> takes it.</param>
+    /// <param name="scripts">The scripts the room's <c>Script</c> entities run, as <see cref="WorldNode.Build"/> takes them.</param>
     public RoomRun(Room room, bool controllersEnabled = true, string? respawnId = null, IScriptLibrary? scripts = null)
     {
-        Node = new WorldNode(new World(room), new AssetLibrary(), respawnId: respawnId, scripts: scripts)
-        {
-            PlayerInputSource = () => _input,
-            ControllersEnabled = controllersEnabled,
-        };
+        Node = WorldNode.Build(new World(room), new AssetLibrary(), respawnId: respawnId, scripts: scripts);
+        Node.PlayerInputSource = () => _input;
+        Node.ControllersEnabled = controllersEnabled;
         Tree.Root.AddChild(Node);
     }
 

@@ -332,15 +332,13 @@ public partial class Main : Node
     {
         _world?.QueueFree();
         Telemetry.Reset();
-        _world = new WorldNode(
+        _world = WorldNode.Build(
             world,
             _assets,
             respawnId: _respawnIds.GetValueOrDefault(world.Name),
             dialogue: _dialogueBox,
-            scripts: new ScriptLibrary())
-        {
-            GameModeSource = () => _gameModeManager.GameMode,
-        };
+            scripts: new ScriptLibrary());
+        _world.GameModeSource = () => _gameModeManager.GameMode;
         _world.MapMarkers.Visible = _showMapMarkers;
         _world.CurrentRespawnChanged += respawn =>
         {

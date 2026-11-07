@@ -55,6 +55,11 @@ public partial class WorldNode : Node3D, IScriptWorld
     // The cutscene holds held, each once, whatever its request: see HoldCutscene.
     private readonly HashSet<CutsceneHold> _cutsceneHolds = [];
 
+    /// <summary>
+    /// Checks that the world's dialogues and scripts name what <paramref name="dialogue"/> and <paramref name="scripts"/>
+    /// hold, and builds the world. It checks first, so that a world that fails builds no nodes: Godot makes a node's
+    /// engine object before its constructor's body runs, and nothing would free it.
+    /// </summary>
     /// <param name="assets">What to draw for each entity and for tiles.</param>
     /// <param name="respawnId">
     /// The respawn the player starts at, which is then the current one. The player starts where the world says if this is
@@ -68,7 +73,7 @@ public partial class WorldNode : Node3D, IScriptWorld
     /// The world has a dialogue, and there is no <paramref name="dialogue"/>, or its file doesn't exist or doesn't hold
     /// its title; or it has a script, and there is no <paramref name="scripts"/>, or it doesn't hold the script.
     /// </exception>
-    public WorldNode(
+    public static WorldNode Build(
         World world,
         IAssetLibrary assets,
         BodyTuning? playerBody = null,
@@ -76,10 +81,20 @@ public partial class WorldNode : Node3D, IScriptWorld
         IDialoguePresenter? dialogue = null,
         IScriptLibrary? scripts = null)
     {
-        // First, so that a world that fails builds no nodes.
         CheckDialogues(world, dialogue);
         CheckScripts(world, scripts);
+        return new WorldNode(world, assets, playerBody, respawnId, dialogue, scripts);
+    }
 
+    /// <summary>Builds the world, whose dialogues and scripts <see cref="Build"/> has checked.</summary>
+    private WorldNode(
+        World world,
+        IAssetLibrary assets,
+        BodyTuning? playerBody,
+        string? respawnId,
+        IDialoguePresenter? dialogue,
+        IScriptLibrary? scripts)
+    {
         World = world;
         CurrentRespawn = respawnId is null ? null : world.ConfigsById.GetValueOrDefault(respawnId) as EntityConfig.Respawn;
         ProcessPhysicsPriority = PhysicsPriority;
@@ -195,7 +210,7 @@ public partial class WorldNode : Node3D, IScriptWorld
     /// <summary>
     /// Builds what runs each control entity, with each step resolved to what runs its action, and returns the triggers'
     /// runners, by id. The world has checked that every route's target responds to its action, and that no route leads
-    /// back to where it started, so each runner is built after its targets. The constructor has checked the world's
+    /// back to where it started, so each runner is built after its targets. <see cref="Build"/> has checked the world's
     /// dialogues against <paramref name="dialogue"/>, and its scripts against <paramref name="scripts"/>.
     /// </summary>
     private Dictionary<string, TriggerRunner> BuildRoutes(IDialoguePresenter? dialogue, IScriptLibrary? scripts)
