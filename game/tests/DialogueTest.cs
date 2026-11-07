@@ -107,7 +107,7 @@ public class DialogueTest
 
         TickTask dropped = _box.Present(_run.Node.Tick, "debug", "start");
         AssertThat(_box.IsPresenting).IsTrue();
-        _run.Node.Drop();
+        _run.Node.StopAndQueueFree();
         AssertThat(dropped.IsCancelled).IsTrue();
         AssertThat(_box.IsPresenting).IsFalse();
 

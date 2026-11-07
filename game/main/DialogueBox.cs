@@ -155,7 +155,7 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
             {
                 _line = null;
                 Task<DialogueLine?> fetching = DialogueManager.GetNextDialogueLine(resource, key);
-                await tick.Until(fetching);
+                await tick.UntilCompleted(fetching);
                 if (fetching.Result is not DialogueLine line)
                 {
                     return;
@@ -172,7 +172,7 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
                 _response = 0;
                 _next = null;
                 ShowLine();
-                await tick.Until(() => _next is not null);
+                await tick.While(() => _next is null);
                 key = _next!;
             }
         }

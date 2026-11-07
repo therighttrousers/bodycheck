@@ -47,24 +47,63 @@ public sealed class TickScheduler : ITick
     }
 
     /// <inheritdoc/>
-    public async TickTask Until(Func<bool> condition)
+    public async TickTask While(Func<bool> condition)
     {
-        while (!condition())
+        while (condition())
         {
             await NextTick();
         }
     }
 
     /// <inheritdoc/>
-    public async TickTask Until(Task task)
+    public async TickTask While(Func<bool> condition, Action body)
     {
-        await Until(() => task.IsCompleted);
+        while (condition())
+        {
+            body();
+            await NextTick();
+        }
+    }
+
+    /// <inheritdoc/>
+    public async TickTask While(Func<bool> condition, Func<TickTask> body)
+    {
+        while (condition())
+        {
+            double time = _time;
+            await body();
+            if (_time == time)
+            {
+                await NextTick();
+            }
+        }
+    }
+
+    /// <inheritdoc/>
+    public async TickTask UntilCompleted(Task task)
+    {
+        await While(() => !task.IsCompleted);
         // Not await: the method would resume off the tick. The task has completed, so this only throws its exception,
         // if it has one, unwrapped, as await would.
         task.GetAwaiter().GetResult();
     }
 
+    /// <inheritdoc/>
+    public async TickTask All(IEnumerable<TickTask> tasks)
+    {
+        // Enumerated first, so that every task has started before any is awaited.
+        List<TickTask> taskList = [.. tasks];
+        foreach (var task in taskList)
+        {
+            await task;
+        }
+    }
+
+    /// <inheritdoc/>
     public float Dt => _dt;
+
+    /// <inheritdoc/>
+    public double Time => _time;
 
     /// <summary>
     /// Stops the scheduler for good, unwinding everything that waits on it: cancels every wait that hasn't finished,

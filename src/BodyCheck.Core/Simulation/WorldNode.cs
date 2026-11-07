@@ -515,18 +515,20 @@ public partial class WorldNode : Node3D, IScriptWorld
     /// <summary>
     /// The world's tick, for the tasks of what runs in it, such as actions: what awaits it resumes in each played tick,
     /// once every entity has stepped and the actions they deferred have run, before the engine's step, and its waits
-    /// count game time. <see cref="Drop"/> stops it.
+    /// count game time. <see cref="StopAndQueueFree"/> stops it.
     /// </summary>
     public ITick Tick => _scheduler;
 
     /// <summary>
-    /// Drops the world: stops its tick, which unwinds everything that waits on it, such as scripts and dialogues, through
-    /// their <c>using</c> and <c>finally</c> blocks, while the world is still whole and in the tree; then stops it
-    /// processing, and frees it. Whatever replaces a world drops it, rather than freeing it, so that what runs in it
-    /// cleans up.
+    /// Stops the world's tick, which unwinds everything that waits on it, such as scripts and dialogues, through their
+    /// <c>using</c> and <c>finally</c> blocks, while the world is still whole and in the tree; then stops the world
+    /// processing, and queues it to be freed. Whatever replaces a world calls this, rather than freeing it, so that what
+    /// runs in it cleans up.
     /// </summary>
-    /// <exception cref="Exception">The first exception thrown by cleanup, once the world is dropped all the same.</exception>
-    public void Drop()
+    /// <exception cref="Exception">
+    /// The first exception thrown by cleanup, once the world is stopped and queued to be freed all the same.
+    /// </exception>
+    public void StopAndQueueFree()
     {
         try
         {

@@ -362,7 +362,7 @@ public partial class Main : Node
         _phaseAimMarker.World = _world;
         _interactPrompt.World = _world;
         ShowTitle();
-        old?.Drop();
+        old?.StopAndQueueFree();
         return _world;
     }
 

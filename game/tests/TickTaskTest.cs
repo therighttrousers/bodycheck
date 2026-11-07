@@ -146,7 +146,7 @@ public class TickTaskTest
 
         async TickTask Waits(ITick tick)
         {
-            await tick.Until(source.Task);
+            await tick.UntilCompleted(source.Task);
             result = source.Task.Result;
         }
         _ = Waits(scheduler);
