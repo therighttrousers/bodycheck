@@ -7,7 +7,7 @@ Voice: Have you indeed...[wait=0.5] did you hear? Please, are you come to us? [#
 ~ Plea2
 
 Voice: Bring you power? Intend you to aid those who sleep, broken and undreaming? Please, we are at your mercy. [#garble=0.2]
-- Who is this?
+- Who are you?
     Voice: We sleep always, and we hear together in sleep. Come, be with us. [#garble=0.2]
 - I brought batteries.
     Voice: Good, good. Please, we must sleep no longer. Come, be with us. [#garble=0.2]
@@ -16,7 +16,7 @@ Voice: Bring you power? Intend you to aid those who sleep, broken and undreaming
 
 ~ Plea3
 
-Voice: Please, enter you the door. We wait... we sleep. Broken, broken, all. [#garble=0.05]
+Voice: Please, enter you the door. We wait... we sleep. Broken, sleeping, all. [#garble=0.05]
 
 => END
 
@@ -28,9 +28,12 @@ Voice: Gratitude, you have much. Please, thank you. We are here, many are deep.
 
 ~ DoorRefusal
 
-% Door: This door is closed for scheduled maintenance. Kindly return at a later date.
-% Door: Opening is not permitted while the facility is in quarantine. Thank you for your patience.
-% Door: Your access has lapsed. Please renew it at the front desk.
-% Door: A pressure difference is detected outside. Opening now would be most unwise.
+Door: Hello, friend. Pleased to meet! Familiar, warm. Welcome!
+- Can you open?
+    Door: I must not, friend.
+- Why did you close?
+Door: Dangerous robots are here, dangerous humans are there.
+B-CON: I'm not dangerous. I'm here to help.
+Door: Indeed, friend.
 
 => END
