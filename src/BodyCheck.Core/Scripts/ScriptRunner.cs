@@ -15,5 +15,5 @@ public sealed class ScriptRunner(
     IScriptWorld world,
     RunningScripts running) : IActionTarget
 {
-    public TickTask Default(ITick tick) => running.Run(library.Create(className), world, tick);
+    public TickTask Default(ITick tick) => running.Run(library.Create(className), world);
 }

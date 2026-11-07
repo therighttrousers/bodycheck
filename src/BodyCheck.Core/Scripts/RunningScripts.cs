@@ -10,12 +10,12 @@ public sealed class RunningScripts
     public IReadOnlyList<IScript> All => _scripts;
 
     /// <summary>Runs <paramref name="script"/>, which is among <see cref="All"/> until it finishes or fails.</summary>
-    public async TickTask Run(IScript script, IScriptWorld world, ITick tick)
+    public async TickTask Run(IScript script, IScriptWorld world)
     {
         _scripts.Add(script);
         try
         {
-            await script.Run(world, tick);
+            await script.Run(world);
         }
         finally
         {

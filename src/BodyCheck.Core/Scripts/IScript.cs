@@ -10,6 +10,5 @@ public interface IScript
 {
     /// <summary>Runs the script, usually as an <c>async</c> method. The task finishes when the script does.</summary>
     /// <param name="world">What the script can see and do in the world it runs in.</param>
-    /// <param name="tick">The world's tick, which what the script awaits resumes on.</param>
-    TickTask Run(IScriptWorld world, ITick tick);
+    TickTask Run(IScriptWorld world);
 }

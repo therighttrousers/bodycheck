@@ -41,13 +41,13 @@ public class ScriptTest
     /// <summary>Holds a cutscene, and runs the player right for <see cref="RunTicks"/> ticks.</summary>
     private sealed class RunRight : IScript
     {
-        public async TickTask Run(IScriptWorld world, ITick tick)
+        public async TickTask Run(IScriptWorld world)
         {
             using IDisposable cutscene = world.HoldCutscene();
             world.PlayerController.ScriptedInput = RoomRun.Right;
             for (int i = 0; i < RunTicks; i++)
             {
-                await tick.NextTick();
+                await world.Tick.NextTick();
             }
         }
     }
