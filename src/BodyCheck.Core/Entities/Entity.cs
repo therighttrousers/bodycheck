@@ -189,7 +189,42 @@ public partial class Entity : RigidBody3D
         }
     }
 
-    public bool IsLive() => IsInstanceValid(this) && !IsQueuedForDeletion();
+    /// <summary>
+    /// Whether the entity is still in its world: not removed, as <see cref="IWorldView.Remove"/> removes it, from the
+    /// moment it is asked to be, and not freed. A script or an action about the entity scopes its tick to it, so that it
+    /// ends when the entity goes.
+    /// </summary>
+    public bool IsLive() => !IsRemoved && IsInstanceValid(this) && !IsQueuedForDeletion();
+
+    /// <summary>Whether the world has been asked to remove the entity. The world sets it.</summary>
+    public bool IsRemoved { get; internal set; }
+
+    /// <summary>
+    /// Forgets <paramref name="removed"/>, which its world has just taken out, wherever the entity remembers it from the
+    /// engine's last step: as what it stands on, what is above it, or what a joint of its is anchored to, so that it
+    /// never acts on a freed entity. One that remembered it is woken, so that its next step finds what it touches now,
+    /// even if it was asleep, when the engine doesn't report its contacts.
+    /// </summary>
+    internal virtual void Forget(Entity removed)
+    {
+        bool remembered = _above.Remove(removed);
+        if (Support == removed)
+        {
+            Support = null;
+            remembered = true;
+        }
+        if (_steadyingAnchor == removed)
+        {
+            // Anchored again, to what it stands on then, the next time it is steadied.
+            _steadyingAnchored = false;
+            _steadyingAnchor = null;
+            remembered = true;
+        }
+        if (remembered)
+        {
+            Sleeping = false;
+        }
+    }
 
     public BodyTuning Tuning { get; }
 

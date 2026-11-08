@@ -21,10 +21,11 @@ namespace BodyCheck.Core.Tasks;
 /// are for one thread.
 /// </para>
 /// <para>
-/// Cancelling one isn't a failure, and is never reported: awaiting it throws an
-/// <see cref="OperationCanceledException"/>, which unwinds what awaits it through its <c>using</c> and <c>finally</c>
-/// blocks, and cancels that method's task in turn. Only the scheduler cancels tasks: when it stops, and when the scope
-/// of a wait ends (<see cref="ITick.Scoped"/>).
+/// Cancelling one isn't a failure: awaiting it throws an <see cref="OperationCanceledException"/>, which unwinds what
+/// awaits it through its <c>using</c> and <c>finally</c> blocks, and cancels that method's task in turn. Only the
+/// scheduler cancels tasks: when it stops, and when the scope of a wait ends (<see cref="ITick.Scoped"/>). A task that
+/// a scope's ending cancels, and that nothing has awaited by the end of the run, has cut short whatever it was doing,
+/// so the scheduler gives it to its owner's sink for warnings.
 /// </para>
 /// </summary>
 [AsyncMethodBuilder(typeof(TickTaskMethodBuilder))]
@@ -67,6 +68,13 @@ public sealed class TickTask
     /// <summary>The exception of a task that has failed, not been cancelled, if nothing has awaited it.</summary>
     internal Exception? UnhandledFailure => _awaited || IsCancelled ? null : _failure?.SourceException;
 
+    /// <summary>
+    /// The cancellation of a task that a scope's ending cancelled, if nothing has awaited it, so that it cut short what
+    /// it was doing with nothing to hear of it.
+    /// </summary>
+    internal OperationCanceledException? UnheardCancellation =>
+        !_awaited && _failure?.SourceException is ScopeEndedException e ? e : null;
+
     /// <summary>Finishes the task, queueing what waits for it. A task finishes only once.</summary>
     internal void Finish() => Settle(null);
 
@@ -104,9 +112,9 @@ public sealed class TickTask
             return;
         }
 
-        if (failure is not null && !IsCancelled)
+        if (failure is not null)
         {
-            _scheduler.Failed(this);
+            _scheduler.Settled(this);
         }
         foreach (Action continuation in _continuations)
         {

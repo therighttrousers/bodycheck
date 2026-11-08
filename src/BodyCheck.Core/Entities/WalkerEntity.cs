@@ -71,6 +71,17 @@ public partial class WalkerEntity : Entity
         _grip.SetFlagX(Generic6DofJoint3D.Flag.EnableLinearMotor, true);
     }
 
+    internal override void Forget(Entity removed)
+    {
+        base.Forget(removed);
+        if (_gripAnchor == removed)
+        {
+            // Anchored again, to what it stands on then, the next time it applies traction.
+            _gripAnchored = false;
+            _gripAnchor = null;
+        }
+    }
+
     protected override void DisableMotors()
     {
         base.DisableMotors();

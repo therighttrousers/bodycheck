@@ -42,6 +42,7 @@ public sealed class VerticalDoorController : IController<Entity>
     private async TickTask OpenOrClose(ITick tick, float move, bool closing, EntityCue cue)
     {
         if (_closed == closing) return;
+        tick = tick.Scoped(_entity.IsLive);
 
         // Wait until after all entity steps in this tick.
         await tick.NextTick();

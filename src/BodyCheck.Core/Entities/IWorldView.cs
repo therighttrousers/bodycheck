@@ -17,4 +17,15 @@ public interface IWorldView
 
     /// <summary>What the player is pressing this tick, whatever the game's mode.</summary>
     PlayerInput PlayerInput { get; }
+
+    /// <summary>
+    /// Removes <paramref name="entity"/> from the world. It can be asked at any point in a tick, by a controller or a
+    /// script, even about the entity whose controller or script asks, and more than once. From then on the entity isn't
+    /// <see cref="Entity.IsLive"/>, so scopes about it end, and it isn't stepped. At the end of the tick, the world
+    /// unwinds what ran in those scopes, while the entity is still whole, and then takes it out and frees it.
+    /// </summary>
+    /// <exception cref="ArgumentException">
+    /// When the entity isn't in the world, or is the player or the player's block, which the world always has.
+    /// </exception>
+    void Remove(Entity entity);
 }

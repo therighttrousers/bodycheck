@@ -8,8 +8,10 @@ namespace BodyCheck.Core.Entities;
 /// method; the others throw. The world checks every route when it is built, so no route asks a target for an action
 /// it doesn't respond to.
 /// <para>
-/// Each method runs on <c>tick</c>, the world's tick, and returns the action's run, which finishes when the action
-/// does, so that whatever ran it can await it.
+/// Each method runs on <c>tick</c>, the tick of whatever runs it, and returns the action's run, which finishes when the
+/// action does, so that whatever ran it can await it. A controller's action runs on that tick scoped to its entity
+/// being <see cref="Entity.IsLive"/>, since a controller means nothing without its entity: removing the entity
+/// cancels the action, which cancels what awaits it.
 /// </para>
 /// </summary>
 public interface IActionTarget
