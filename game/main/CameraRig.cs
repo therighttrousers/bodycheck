@@ -14,8 +14,9 @@ namespace BodyCheck;
 /// <summary>
 /// The camera, which Phantom Camera moves: its host on the <see cref="Camera3D"/> puts the camera where the phantom
 /// camera of highest priority is, and tweens it from one to the other when that changes. There are two. The player's
-/// follows a target that this node moves each frame. The target is above the player, kept where the view shows only
-/// the world, as far as the world is bigger than the view. The map's is far back, where it shows the whole world, and
+/// follows a target that this node moves each frame. The target is above the player, moved by
+/// <see cref="CameraFraming"/> where the view keeps the camera boundary out of view. The map's is far back, where it
+/// shows the whole world, and
 /// takes over in <see cref="GameMode.Map"/>.
 /// <para>
 /// The rig processes while the tree is paused, so that the camera can move to the map and back. The player looks up
@@ -63,6 +64,7 @@ public partial class CameraRig : Node3D
     private PhantomCamera3D _mapPhantomCamera = null!;
     private List<PhantomCamera3D> _currentCameras = [];
     private WorldNode? _world;
+    private CameraFraming? _framing;
 
     /// <summary>Eases <see cref="_lookAmount"/> from 0 to 1 while the player looks; null while the player doesn't.</summary>
     private Tween? _lookTween;
@@ -115,6 +117,7 @@ public partial class CameraRig : Node3D
     public void Follow(WorldNode world)
     {
         _world = world;
+        _framing = new CameraFraming(world.World);
         MoveMapCamera();
         MoveTarget();
         _phantomCamera.Node3D.Call("teleport_position");
@@ -184,7 +187,7 @@ public partial class CameraRig : Node3D
 
     private void MoveTarget()
     {
-        if (_world is null)
+        if (_world is null || _framing is null)
         {
             return;
         }
@@ -216,19 +219,10 @@ public partial class CameraRig : Node3D
         // The player's interpolated position, since the target moves every frame and the player every physics tick.
         Vector3 player = _world.Player.GetGlobalTransformInterpolated().Origin;
         Vector2 viewport = GetViewport().GetVisibleRect().Size;
-        float halfWidth = HalfHeight * viewport.X / viewport.Y;
-        _target.GlobalPosition = new Vector3(
-            Clamp(player.X, halfWidth, _world.World.Size.X),
-            Clamp(player.Y + lookOffset, HalfHeight, _world.World.Size.Y),
-            0);
+        var halfSize = new Vector2(HalfHeight * viewport.X / viewport.Y, HalfHeight);
+        Vector2 centre = _framing.Frame(new Vector2(player.X, player.Y + lookOffset), halfSize);
+        _target.GlobalPosition = new Vector3(centre.X, centre.Y, 0);
     }
-
-    /// <summary>
-    /// Keeps the view's centre where a view of <paramref name="half"/> either side of it stays between 0 and
-    /// <paramref name="size"/>, or in the middle when the world is smaller than the view.
-    /// </summary>
-    private static float Clamp(float centre, float half, float size) =>
-        size <= 2 * half ? size / 2 : Mathf.Clamp(centre, half, size - half);
 
     /// <summary>Phantom Camera's nodes are GDScript classes, which the C# wrappers wrap but can't create.</summary>
     private static T NewPhantomCameraNode<T>(string script) where T : Node =>

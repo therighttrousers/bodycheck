@@ -41,24 +41,32 @@ public class LdtkReaderTest
 
     /// <summary>
     /// A level of <paramref name="width"/> by <paramref name="height"/> tiles, with its layers in the project file. Its
-    /// tiles are empty except for <paramref name="solid"/>, indexes into its IntGrid, top row first.
+    /// tiles are empty except for <paramref name="solid"/>, indexes into its IntGrid, top row first, and so is its
+    /// camera boundary except for <paramref name="boundary"/>.
     /// </summary>
     /// <param name="pxWid">The level's width in pixels, if it isn't its layers' width.</param>
     private static string Level(
         int worldX, int worldY, string entities = "", int[]? solid = null, int width = 20, int height = 15,
-        int? pxWid = null, int worldDepth = 0, string identifier = "Test", string control = "")
+        int? pxWid = null, int worldDepth = 0, string identifier = "Test", string control = "", int[]? boundary = null)
     {
-        int[] values = new int[width * height];
-        foreach (int i in solid ?? [])
+        string Grid(int[]? set)
         {
-            values[i] = 1;
+            int[] values = new int[width * height];
+            foreach (int i in set ?? [])
+            {
+                values[i] = 1;
+            }
+            return string.Join(", ", values);
         }
         return $$"""
             { "identifier": "{{identifier}}", "pxWid": {{pxWid ?? width * 16}}, "pxHei": {{height * 16}}, "worldX": {{worldX}}, "worldY": {{worldY}},
               "worldDepth": {{worldDepth}}, "externalRelPath": null, "layerInstances": [
                 { "__identifier": "SolidGeometry", "__type": "IntGrid", "__cWid": {{width}}, "__cHei": {{height}}, "__gridSize": 16,
                   "__pxTotalOffsetX": 0, "__pxTotalOffsetY": 0,
-                  "intGridCsv": [{{string.Join(", ", values)}}], "entityInstances": [] },
+                  "intGridCsv": [{{Grid(solid)}}], "entityInstances": [] },
+                { "__identifier": "CameraBoundary", "__type": "IntGrid", "__cWid": {{width}}, "__cHei": {{height}}, "__gridSize": 16,
+                  "__pxTotalOffsetX": 0, "__pxTotalOffsetY": 0,
+                  "intGridCsv": [{{Grid(boundary)}}], "entityInstances": [] },
                 { "__identifier": "Entities", "__type": "Entities", "__cWid": {{width}}, "__cHei": {{height}}, "__gridSize": 16,
                   "__pxTotalOffsetX": 0, "__pxTotalOffsetY": 0,
                   "intGridCsv": [], "entityInstances": [ {{entities}} ] },
@@ -97,7 +105,8 @@ public class LdtkReaderTest
         const string robot =
             """{ "__identifier": "RobotBasic", "__pivot": [0.5, 1], "px": [8, 240], "width": 16, "height": 16, "__smartColor": "#FEAE34", "iid": "r", "fieldInstances": [] }""";
         World world = ReadOne(Project(
-            Level(-320, 0, robot, solid: [0], identifier: "Upper") + ", " + Level(0, 240, PlayerStart, identifier: "Lower")));
+            Level(-320, 0, robot, solid: [0], boundary: [1], identifier: "Upper") + ", "
+            + Level(0, 240, PlayerStart, identifier: "Lower")));
 
         AssertArray(world.Rooms.Select(room => room.Name)).ContainsExactly("Upper", "Lower");
         Room upper = world.Rooms[0];
@@ -106,6 +115,9 @@ public class LdtkReaderTest
         AssertThat(upper.Origin).IsEqual(new Vector2I(0, 15));
         AssertThat(upper.GetTileIndex(0, 14)).IsEqual(TileIndex.Ground); // Its top left tile
         AssertThat(upper.GetTileIndex(1, 14)).IsEqual(TileIndex.Empty);
+        AssertThat(upper.IsCameraBoundary(1, 14)).IsTrue(); // Its top row's second tile
+        AssertThat(upper.IsCameraBoundary(0, 14)).IsFalse();
+        AssertThat(world.IsCameraBoundary(1, 29)).IsTrue(); // The same, in the world
         EntityConfig robotConfig = upper.EntityConfigs.Single();
         AssertThat((robotConfig.Kind, robotConfig.MapOrigin)).IsEqual((EntityKind.Robot, new Vector2I(0, 0)));
 

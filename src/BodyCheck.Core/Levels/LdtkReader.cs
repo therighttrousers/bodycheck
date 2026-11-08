@@ -10,8 +10,9 @@ namespace BodyCheck.Core.Levels;
 /// <summary>
 /// Reads the worlds of an LDtk project with LDtk's multi-worlds on, each into a world with one room per level, and
 /// checks everything it reads. A level may be any whole number of tiles in size, at any whole number of tiles from the
-/// others, as long as no two overlap. Everything outside a world's rooms is empty. A level has three layers:
-/// <c>SolidGeometry</c>, an IntGrid in which every value but 0 is a solid tile, and <c>Entities</c> and <c>Control</c>,
+/// others, as long as no two overlap. Everything outside a world's rooms is empty. A level has four layers:
+/// <c>SolidGeometry</c>, an IntGrid in which every value but 0 is a solid tile; <c>CameraBoundary</c>, an IntGrid in
+/// which 1 is a tile the camera keeps out of view and 0 one it doesn't; and <c>Entities</c> and <c>Control</c>,
 /// whose entities are read alike: the layers only help the editor show them. Each entity keeps its <c>iid</c>, and the
 /// place, size and colour of its box in LDtk, which must be whole tiles. Routes name their targets by <c>iid</c>.
 /// </summary>
@@ -128,11 +129,15 @@ public static class LdtkReader
         LdtkLayerInstance solid = Layer(LdtkLayerName.SolidGeometry, LdtkLayerType.IntGrid);
         LdtkLayerInstance entities = Layer(LdtkLayerName.Entities, LdtkLayerType.Entities);
         LdtkLayerInstance control = Layer(LdtkLayerName.Control, LdtkLayerType.Entities);
+        LdtkLayerInstance boundary = Layer(LdtkLayerName.CameraBoundary, LdtkLayerType.IntGrid);
 
-        if (solid.IntGridCsv.Length != width * height)
+        foreach (LdtkLayerInstance grid in (ReadOnlySpan<LdtkLayerInstance>)[solid, boundary])
         {
-            throw Invalid(path, $"In level '{level.Identifier}', {solid.Identifier} has {solid.IntGridCsv.Length} "
-                + $"values for {width * height} cells.");
+            if (grid.IntGridCsv.Length != width * height)
+            {
+                throw Invalid(path, $"In level '{level.Identifier}', {grid.Identifier} has {grid.IntGridCsv.Length} "
+                    + $"values for {width * height} cells.");
+            }
         }
         var tiles = new TileGrid(width, height);
         for (int row = 0; row < height; row++)
@@ -150,6 +155,22 @@ public static class LdtkReader
             }
         }
 
+        var cameraBoundary = new bool[width, height];
+        for (int row = 0; row < height; row++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                var i = row * width + x;
+                cameraBoundary[x, height - 1 - row] = boundary.IntGridCsv[i] switch
+                {
+                    0 => false,
+                    1 => true,
+                    int value => throw Invalid(path, $"In level '{level.Identifier}', {boundary.Identifier} at "
+                        + $"{x},{row} (index {i}) is {value}, not 0 or 1."),
+                };
+            }
+        }
+
         EntityConfig[] entityConfigs =
         [
             .. entities.EntityInstances.Concat(control.EntityInstances)
@@ -157,7 +178,7 @@ public static class LdtkReader
         ];
         try
         {
-            return new Room(level.Identifier, origin, tiles, entityConfigs);
+            return new Room(level.Identifier, origin, tiles, entityConfigs, cameraBoundary);
         }
         catch (ArgumentException e)
         {
