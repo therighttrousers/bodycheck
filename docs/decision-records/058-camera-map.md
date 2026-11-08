@@ -62,3 +62,12 @@ Anti-goals:
   - `Main`, exactly as high as the view, is a line along its middle, ending 9 tiles from each end, where the view less its margin fits.
   - `Testing` is one skeleton, connected through the gaps between rooms, with no space anywhere wide and high enough for a view, so there are no areas, only lines.
   - Where a space is lower than the view, its line stops shrinking at its ends once its sides meet, so its ends are nearer the space's ends than a view less its margin allows: in a space 13 tiles high, about 7.7 tiles from the end rather than 9, which shows about 1.3 tiles more boundary there. Thinning that went on shortening lines' ends, to the view's half width, would fix it.
+
+## 5. Placing the view, the first version
+
+- 5.1 As built (Claude), taking "even simpler" as (b) of 3.1 alone, without 3.2 or a soft minimum: `CameraFraming` puts the view's centre at the point nearest the wanted framing on the map, among those in the box round the player of `042 §6.4`. Each pixel of the map stands for its cell, so that along the map's straight edges the centre slides rather than stepping from pixel to pixel; where the wanted framing is on the map, it's the wanted framing. Where nothing in the box is on the map, the wanted framing, kept in the box. The cost framing of 042 is gone. The map is made when the rig starts to follow a world, and `CameraDebug` draws the rig's.
+- 5.2 Measured (Claude), in Debug, with a view of 20x15 tiles:
+  - 0.17 ms a frame.
+  - Walking under a ceiling with a shaft 5 tiles wide through it, wanted 3 tiles above the player: the centre jumps 3.5 tiles in one step as the shaft's line becomes nearer the wanted framing than the space below, which damping turns into a quick pan.
+  - Under a band 2 tiles thick, in a space 11 tiles high: the view stays on the space's line, which is about 2.25 tiles thick, so its top can reach 1.25 tiles past the band, into the space above. Looking up or down moves it only within the line.
+- 5.3 Playtesting (Neil, 2026-11-08): "This is awesome. I love it." The quick pans and the looking through boundaries still happen, but with the map and the framing drawn, Neil can see what the problem has been, and expects to build enough intuition to solve them. He made the debug drawing partly transparent, so that it takes less attention while playing, and added `TestingOutside`, a level large enough that the map there is an area, not a skeleton.

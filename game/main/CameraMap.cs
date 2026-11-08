@@ -43,10 +43,13 @@ public sealed class CameraMap
     /// <summary>Whether the view's centre may be at each pixel, row by row from the bottom.</summary>
     private readonly bool[] _valid;
 
+    /// <summary>The camera boundary, in the world's tiles.</summary>
+    private readonly bool[,] _boundary;
+
     /// <summary>The map from <paramref name="world"/>'s camera boundary.</summary>
     public CameraMap(World world)
     {
-        bool[,] boundary = Boundary(world);
+        _boundary = Boundary(world);
         Width = world.Size.X * PixelsPerTile.X;
         Height = world.Size.Y * PixelsPerTile.Y;
         _valid = new bool[Width * Height];
@@ -54,7 +57,7 @@ public sealed class CameraMap
         {
             for (int x = 0; x < Width; x++)
             {
-                _valid[y * Width + x] = !boundary[x / PixelsPerTile.X, y / PixelsPerTile.Y];
+                _valid[y * Width + x] = !_boundary[x / PixelsPerTile.X, y / PixelsPerTile.Y];
             }
         }
         for (int step = 0; step < ThinSteps; step++)
@@ -83,10 +86,17 @@ public sealed class CameraMap
     public bool IsValid(int x, int y) => x >= 0 && y >= 0 && x < Width && y < Height && _valid[y * Width + x];
 
     /// <summary>
+    /// Whether tile (<paramref name="x"/>, <paramref name="y"/>) is camera boundary: marked for the camera to keep out of
+    /// view, or in no room, or outside the world.
+    /// </summary>
+    public bool IsBoundary(int x, int y) =>
+        x < 0 || y < 0 || x >= _boundary.GetLength(0) || y >= _boundary.GetLength(1) || _boundary[x, y];
+
+    /// <summary>
     /// The camera boundary, in <paramref name="world"/>'s tiles: the tiles its rooms mark for the camera to keep out of
     /// view, and those in no room.
     /// </summary>
-    internal static bool[,] Boundary(World world)
+    private static bool[,] Boundary(World world)
     {
         var boundary = new bool[world.Size.X, world.Size.Y];
         for (int x = 0; x < world.Size.X; x++)

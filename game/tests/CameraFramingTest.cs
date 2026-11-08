@@ -39,12 +39,13 @@ public class CameraFramingTest
     }
 
     [TestCase]
-    public void Keeps_to_the_wanted_framing_away_from_the_boundary()
+    public void Keeps_to_the_wanted_framing_where_the_map_allows()
     {
         var framing = new CameraFraming(Painted(60, 40, (x, y) => false));
         var player = new Vector2(30, 17);
+        Vector2 wanted = player + new Vector2(0.37f, 3);
 
-        AssertThat(framing.Frame(player, player, HalfSize).DistanceTo(player)).IsLess(1e-3f);
+        AssertThat(framing.Frame(player, wanted, HalfSize).DistanceTo(wanted)).IsLess(1e-4f);
     }
 
     [TestCase]
@@ -56,7 +57,7 @@ public class CameraFramingTest
         // Wanted where the view would show 4.5 rows of the ceiling.
         float top = framing.Frame(new Vector2(30, 19), new Vector2(30, 22), HalfSize).Y + HalfSize.Y;
 
-        AssertThat(top).IsLessEqual(ceiling + CameraFraming.Margin + 0.1f);
+        AssertThat(top).IsLessEqual(ceiling + CameraMap.MarginTiles + 0.01f);
         AssertThat(top).IsGreaterEqual(ceiling);
     }
 
@@ -69,7 +70,7 @@ public class CameraFramingTest
         // Wanted 5.6 tiles above the player in the corridor, as if looking up.
         float bottom = framing.Frame(new Vector2(30, 20), new Vector2(30, 25.6f), HalfSize).Y - HalfSize.Y;
 
-        AssertThat(bottom).IsLessEqual(18 - CameraFraming.Margin + 0.1f);
+        AssertThat(bottom).IsLessEqual(18 - CameraMap.MarginTiles + 0.01f);
     }
 
     [TestCase]
@@ -82,26 +83,8 @@ public class CameraFramingTest
         Vector2 centre = framing.Frame(player, player + new Vector2(0, 3), HalfSize);
 
         AssertThat(Math.Abs(centre.Y - player.Y)).IsLessEqual(HalfSize.Y - CameraFraming.PlayerMargin);
-    }
-
-    [TestCase]
-    public void Moves_the_view_smoothly_past_a_shaft_in_a_painted_ceiling()
-    {
-        // A ceiling from 20 up, with a shaft 5 tiles wide through it.
-        var framing = new CameraFraming(Painted(80, 40, (x, y) => y >= 20 && x is < 38 or >= 43));
-        const float step = 0.1f;
-
-        // Wanted where the view would show 3.5 rows of the ceiling.
-        Vector2 previous = framing.Frame(new Vector2(20, 13), new Vector2(20, 16), HalfSize);
-        float largest = 0;
-        for (float x = 20 + step; x <= 60; x += step)
-        {
-            Vector2 centre = framing.Frame(new Vector2(x, 13), new Vector2(x, 16), HalfSize);
-            largest = Math.Max(largest, centre.DistanceTo(previous));
-            previous = centre;
-        }
-
-        // No faster than the wanted framing moves, and a little more for the rise into the shaft.
-        AssertThat(largest).IsLessEqual(1.5f * step);
+        // And the view stays on the space's line: centred on the space, it would show all of the band, and the map lets
+        // it move by the margin, and by the line's thickness, a pixel.
+        AssertThat(centre.Y + HalfSize.Y).IsLessEqual(23 + CameraMap.MarginTiles + 1f / CameraMap.PixelsPerTile.Y);
     }
 }

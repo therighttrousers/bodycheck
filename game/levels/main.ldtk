@@ -11,7 +11,7 @@
 	"iid": "0f346a70-bde0-11f1-b046-ebfce3981aaf",
 	"jsonVersion": "1.5.3",
 	"appBuildId": 473703,
-	"nextUid": 282,
+	"nextUid": 283,
 	"identifierStyle": "Capitalize",
 	"toc": [{
 		"identifier": "PlayerStart",
@@ -1575,7 +1575,13 @@
 				"externalRelPath": "main/TestingEntrance.ldtkl",
 				"fieldInstances": [],
 				"layerInstances": null,
-				"__neighbours": [ { "levelIid": "9971ed40-bde0-11f1-a778-ebfea3fcd78b", "dir": "n" }, { "levelIid": "940919c0-bde0-11f1-b36f-115902cc0d05", "dir": "e" }, { "levelIid": "a19fed30-bde0-11f1-9446-a12c3e5c9621", "dir": "se" }, { "levelIid": "3aec9f20-bde0-11f1-a778-cd4d7eac5ccb", "dir": "s" } ]
+				"__neighbours": [
+					{ "levelIid": "9971ed40-bde0-11f1-a778-ebfea3fcd78b", "dir": "n" },
+					{ "levelIid": "940919c0-bde0-11f1-b36f-115902cc0d05", "dir": "e" },
+					{ "levelIid": "a19fed30-bde0-11f1-9446-a12c3e5c9621", "dir": "se" },
+					{ "levelIid": "3aec9f20-bde0-11f1-a778-cd4d7eac5ccb", "dir": "s" },
+					{ "levelIid": "2b1fbda0-bde0-11f1-a078-c1bbe61b1c66", "dir": "w" }
+				]
 			},
 			{
 				"identifier": "TestingClot",
@@ -1667,7 +1673,7 @@
 				"externalRelPath": "main/TestingGaps.ldtkl",
 				"fieldInstances": [],
 				"layerInstances": null,
-				"__neighbours": [ { "levelIid": "a19fed30-bde0-11f1-9446-a12c3e5c9621", "dir": "e" }, { "levelIid": "3aec9f20-bde0-11f1-a778-cd4d7eac5ccb", "dir": "n" } ]
+				"__neighbours": [ { "levelIid": "a19fed30-bde0-11f1-9446-a12c3e5c9621", "dir": "e" }, { "levelIid": "3aec9f20-bde0-11f1-a778-cd4d7eac5ccb", "dir": "n" }, { "levelIid": "2b1fbda0-bde0-11f1-a078-c1bbe61b1c66", "dir": "n" } ]
 			},
 			{
 				"identifier": "TestingShafts",
@@ -1690,7 +1696,36 @@
 				"externalRelPath": "main/TestingShafts.ldtkl",
 				"fieldInstances": [],
 				"layerInstances": null,
-				"__neighbours": [ { "levelIid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6", "dir": "n" }, { "levelIid": "940919c0-bde0-11f1-b36f-115902cc0d05", "dir": "ne" }, { "levelIid": "a19fed30-bde0-11f1-9446-a12c3e5c9621", "dir": "e" }, { "levelIid": "4aa45f20-bde0-11f1-9446-ef36bac1f552", "dir": "s" } ]
+				"__neighbours": [
+					{ "levelIid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6", "dir": "n" },
+					{ "levelIid": "940919c0-bde0-11f1-b36f-115902cc0d05", "dir": "ne" },
+					{ "levelIid": "a19fed30-bde0-11f1-9446-a12c3e5c9621", "dir": "e" },
+					{ "levelIid": "4aa45f20-bde0-11f1-9446-ef36bac1f552", "dir": "s" },
+					{ "levelIid": "2b1fbda0-bde0-11f1-a078-c1bbe61b1c66", "dir": "w" }
+				]
+			},
+			{
+				"identifier": "TestingOutside",
+				"iid": "2b1fbda0-bde0-11f1-a078-c1bbe61b1c66",
+				"uid": 282,
+				"worldX": -512,
+				"worldY": 0,
+				"worldDepth": 0,
+				"pxWid": 512,
+				"pxHei": 480,
+				"__bgColor": "#696A79",
+				"bgColor": null,
+				"useAutoIdentifier": false,
+				"bgRelPath": null,
+				"bgPos": null,
+				"bgPivotX": 0.5,
+				"bgPivotY": 0.5,
+				"__smartColor": "#ADADB5",
+				"__bgPos": null,
+				"externalRelPath": "main/TestingOutside.ldtkl",
+				"fieldInstances": [],
+				"layerInstances": null,
+				"__neighbours": [ { "levelIid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6", "dir": "e" }, { "levelIid": "4aa45f20-bde0-11f1-9446-ef36bac1f552", "dir": "s" }, { "levelIid": "3aec9f20-bde0-11f1-a778-cd4d7eac5ccb", "dir": "e" } ]
 			}
 		] }
 	],

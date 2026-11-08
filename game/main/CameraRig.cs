@@ -15,7 +15,7 @@ namespace BodyCheck;
 /// The camera, which Phantom Camera moves: its host on the <see cref="Camera3D"/> puts the camera where the phantom
 /// camera of highest priority is, and tweens it from one to the other when that changes. There are two. The player's
 /// follows a target that this node moves each frame. The target is above the player, moved by
-/// <see cref="CameraFraming"/> where the view keeps the camera boundary out of view. The map's is far back, where it
+/// <see cref="CameraFraming"/> onto the points where its map lets the view's centre be. The map's is far back, where it
 /// shows the whole world, and
 /// takes over in <see cref="GameMode.Map"/>.
 /// <para>
@@ -65,6 +65,9 @@ public partial class CameraRig : Node3D
     private List<PhantomCamera3D> _currentCameras = [];
     private WorldNode? _world;
     private CameraFraming? _framing;
+
+    /// <summary>The framing of the world the rig follows; null until it follows one.</summary>
+    public CameraFraming? Framing => _framing;
 
     /// <summary>Eases <see cref="_lookAmount"/> from 0 to 1 while the player looks; null while the player doesn't.</summary>
     private Tween? _lookTween;
@@ -220,7 +223,10 @@ public partial class CameraRig : Node3D
         Vector3 player = _world.Player.GetGlobalTransformInterpolated().Origin;
         Vector2 viewport = GetViewport().GetVisibleRect().Size;
         var halfSize = new Vector2(HalfHeight * viewport.X / viewport.Y, HalfHeight);
-        Vector2 centre = _framing.Frame(new Vector2(player.X, player.Y), new Vector2(player.X, player.Y + lookOffset), halfSize);
+        var wanted = new Vector2(player.X, player.Y + lookOffset);
+        Vector2 centre = _framing.Frame(new Vector2(player.X, player.Y), wanted, halfSize);
+        Telemetry.Report(Metric.CameraWanted, wanted);
+        Telemetry.Report(Metric.CameraTarget, centre);
         _target.GlobalPosition = new Vector3(centre.X, centre.Y, 0);
     }
 

@@ -47,7 +47,7 @@ With `--probe=` and a name, `Main` runs that probe instead of playing; its code 
 
 `CameraRig` is the camera: a `Camera3D` with a Phantom Camera host, which puts it where the phantom camera of highest priority is, and two phantom cameras, the player's and the map's. Phantom Camera's nodes are GDScript classes; C# reaches them through the wrappers it ships, which can't create them, so the rig creates them from their scripts.
 
-- The player's phantom camera follows a target, which the rig moves each frame, above the player, up or down by where the player looks, and moved by `CameraFraming` where its view keeps the camera boundary out of view (`010 §1.3`, `§2.1`, `042 §5.3`). `CameraFraming` is built from the world when the rig starts to follow it, and the rig gives it the wanted framing and the view's size each frame. See [rendering.md](../../docs/designs/rendering.md#scale) for how it frames.
+- The player's phantom camera follows a target, which the rig moves each frame, above the player, up or down by where the player looks, and moved by `CameraFraming` onto its `CameraMap`, the points where the view's centre may be (`010 §1.3`, `§2.1`, `042 §5.3`, `058`). `CameraFraming` is built from the world when the rig starts to follow it, and the rig gives it the wanted framing and the view's size each frame. See [rendering.md](../../docs/designs/rendering.md#scale) for how it frames.
 - The rig reads the look from the world's `PlayerInput`, which the player's controller reads too, so the function that supplies it must have no side effects. It looks only while the game is playing, not while paused or in a cutscene. It looks only while `PlayerInput.CanLook`, after a hold, easing a look amount with a `Tween` that it kills when the look stops (`014`). Looking up or down is the player's hands, so its delay and pan run on real time (`030 §3.1`).
 - The camera's follow damping, a smoothing time of 0.15 seconds, runs on game time, so that the camera lags a moving player by the same distance at any speed. It isn't scaled while the player looks, since following a look and snapping back from it barely differ at reasonable speeds (`030 §4.4`).
 - The rig processes while the tree is paused, so that the camera can move, and the player doesn't look up or down then.
@@ -90,9 +90,9 @@ A playtester plays from a clone of the repository, started by `play.cmd`, which 
 
 ## Debug tools
 
-Paused, the debug tools still work: the `DebugOverlay`, the `CollisionDebug` and the rendering switches process while the tree is paused.
+Paused, the debug tools still work: the `DebugOverlay`, the `CollisionDebug`, the `CameraDebug` and the rendering switches process while the tree is paused.
 
-- F1 shows the camera's map: `CameraMapView`, a child of each world, draws the world's `CameraMap`, where the view's centre may be, made from the camera boundary by thinning, on a quad behind the tiles' front layer. The map is made the first time it shows. `Main` keeps whether it shows as it loads worlds. `CameraFraming` doesn't use it yet (`058`).
+- `CameraDebug`, on F1, shows how the player's camera is framed, for debugging and tuning the framing and the painting: the world's `CameraMap`, on a quad behind the tiles' front layer, and the wanted framing and the view's centre as framed, which `CameraRig` reports to telemetry each frame, drawn through the tiles. `Main` adds one to each world, with the map of the rig's framing, and keeps whether it shows as it loads worlds. It makes the map's texture the first time it shows (`058 §2.3`).
 - F2 shows the world's map markers. `Main` keeps whether they show as it loads worlds.
 - 2 presents the debug dialogue, `dialogue/debug.dialogue`, from its title `start`, through Core's `DialogueRunner`, as a level's `Dialogue` entity does, so that it plays in a cutscene and queues after any dialogue already presented, and prints when what waits for it has resumed. Its lines have a wait, a speed change, two garble tags, and responses whose branches meet again.
 - `DebugOverlay`, on F3, shows the frame rate and times and every telemetry value, at the window's resolution (`008 §2.3`).

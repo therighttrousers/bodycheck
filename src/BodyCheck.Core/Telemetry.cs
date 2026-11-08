@@ -27,6 +27,10 @@ public enum Metric
     PlatformStrain,
 
     CurrentCamera,
+    /// <summary>Where the player's camera would centre its view, above the player or where the player looks, before it's framed.</summary>
+    CameraWanted,
+    /// <summary>Where the player's camera centres its view, as framed, which the camera follows with damping.</summary>
+    CameraTarget,
 
     // The player's last time in the air, reported on landing. Measured from its feet on the last tick on
     // the ground.
