@@ -40,6 +40,7 @@ Anti-goals:
 
 - [x] 2.1 F1 toggles drawing the map in the game, at Z = -0.5, between the tiles' front and back faces, opaque or partly transparent (Neil). F2 to F5 are taken.
 - [x] 2.2 The first step is the map and its drawing alone. `CameraFraming.Frame` is unchanged (Neil).
+- [x] 2.3 With the framing (Neil, after playing the first version, "a good direction", with tuning of the parameters and the algorithm to come): the drawing also shows the wanted framing and the view's actual centre, reported in telemetry, so that telemetry serves both drawing and tests. Later, points of interest that attract the view's centre. `CameraMapView` then becomes `CameraDebug`. Claude: as `CollisionDebug` already draws the corner correction from telemetry, and the F3 overlay shows reported values for free. `Frame` is still tested directly; telemetry is for watching the rig as it runs, such as a probe measuring how far the view jumps in a frame. Points of interest are the world's, so the drawing reads those from the world.
 
 ## 3. Placing the view
 
