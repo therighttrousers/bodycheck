@@ -220,7 +220,7 @@ public partial class CameraRig : Node3D
         Vector3 player = _world.Player.GetGlobalTransformInterpolated().Origin;
         Vector2 viewport = GetViewport().GetVisibleRect().Size;
         var halfSize = new Vector2(HalfHeight * viewport.X / viewport.Y, HalfHeight);
-        Vector2 centre = _framing.Frame(new Vector2(player.X, player.Y + lookOffset), halfSize);
+        Vector2 centre = _framing.Frame(new Vector2(player.X, player.Y), new Vector2(player.X, player.Y + lookOffset), halfSize);
         _target.GlobalPosition = new Vector3(centre.X, centre.Y, 0);
     }
 

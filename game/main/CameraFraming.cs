@@ -17,30 +17,31 @@ namespace BodyCheck;
 /// <see cref="Margin"/> smaller on each side, so that a painted wall's face can show.
 /// </item>
 /// <item>
-/// The centre is a soft minimum of the candidates, which are on a lattice fixed in the world, as far round the wanted
-/// framing as <see cref="Reach"/> says: their average, each weighted by <c>exp(-cost / Softness)</c>, so that it moves
-/// smoothly as the wanted framing does.
+/// The centre is a soft minimum of the candidates, which are on a lattice fixed in the world, wherever the view shows
+/// the player: their average, each weighted by <c>exp(-cost / Softness)</c>, so that it moves smoothly as the player
+/// and the wanted framing do.
 /// </item>
 /// </list>
 /// The boundary doesn't change, so its summed-area table is computed once, and the area of it in any rectangle is four
 /// reads of the table. Where the boundary is far from the view, the pull alone weighs the candidates, symmetrically, so
 /// the centre is the wanted framing. Near it, the centre eases away from it over about <c>sqrt(Softness / 2 Pull)</c>
-/// tiles, 1 tile as tuned, and stops about at the margin, since each row or column of the boundary in view costs much
-/// more than <see cref="Softness"/>.
+/// tiles, about 2 as tuned, and stops within the margin, since each row or column of the boundary in view costs several
+/// times <see cref="Softness"/>. The box round the player trims the pull on the side away from the player, so the
+/// centre is drawn a little toward the player when the wanted framing is far from it.
 /// </summary>
 public sealed class CameraFraming
 {
     /// <summary>How much of the boundary the view may show at each edge without cost, in tiles.</summary>
     internal const float Margin = 1;
     /// <summary>How strongly the view is pulled toward the wanted framing: the cost, in tiles of area, of being a tile away from it, squared.</summary>
-    internal const float Pull = 0.25f;
+    internal const float Pull = 0.5f;
     /// <summary>The temperature of the soft minimum, in tiles of area.</summary>
-    internal const float Softness = 0.5f;
+    internal const float Softness = 5f;
     /// <summary>
-    /// How far from the wanted framing a candidate centre may be, past the view's half size, in tiles, on each axis: as
-    /// far as the wanted framing goes from the player, so that a view showing the player is always a candidate.
+    /// How far inside each edge of the view the player's centre is kept, in tiles: far enough that the whole player, 1x2
+    /// tiles, shows.
     /// </summary>
-    internal const float Reach = 6;
+    internal const float PlayerMargin = 1;
     /// <summary>The spacing of the candidate centres, in tiles.</summary>
     private const float CandidateStep = 0.5f;
     /// <summary>
@@ -89,21 +90,26 @@ public sealed class CameraFraming
     }
 
     /// <summary>
-    /// The view's centre for a player who wants it at <paramref name="wanted"/>, for a view of
-    /// <paramref name="halfSize"/> either side of its centre at the tiles' front faces.
+    /// The view's centre for a player at <paramref name="player"/> who wants it at <paramref name="wanted"/>, for a view
+    /// of <paramref name="halfSize"/> either side of its centre at the tiles' front faces. The view always shows the
+    /// player, <see cref="PlayerMargin"/> inside its edges.
     /// </summary>
-    public Vector2 Frame(Vector2 wanted, Vector2 halfSize)
+    public Vector2 Frame(Vector2 player, Vector2 wanted, Vector2 halfSize)
     {
         Vector2 inner = (halfSize - new Vector2(Margin, Margin)).Max(Vector2.Zero);
 
-        // The lattice is fixed in the world, so that each candidate's area of the boundary stays the same as the wanted
-        // framing moves, and only the pull changes, smoothly. A lattice that moved with the wanted framing would sweep
-        // a wall's sharp edge across its candidates, and the centre would move in small steps.
-        Vector2 reach = halfSize + new Vector2(Reach, Reach);
-        int i0 = Mathf.CeilToInt((wanted.X - reach.X) / CandidateStep);
-        int i1 = Mathf.FloorToInt((wanted.X + reach.X) / CandidateStep);
-        int j0 = Mathf.CeilToInt((wanted.Y - reach.Y) / CandidateStep);
-        int j1 = Mathf.FloorToInt((wanted.Y + reach.Y) / CandidateStep);
+        // The candidates are the centres whose views show the player. The lattice is fixed in the world, so that each
+        // candidate's area of the boundary stays the same as the player moves, and only the pull changes, smoothly. A
+        // lattice that moved with the wanted framing would sweep a wall's sharp edge across its candidates, and the
+        // centre would move in small steps. Each candidate stands for the cell of the lattice round it, and is weighted
+        // by how much of its cell is in the box, so that it fades in and out as the box moves over it.
+        Vector2 box = (halfSize - new Vector2(PlayerMargin, PlayerMargin)).Max(Vector2.Zero);
+        Vector2 boxMin = player - box;
+        Vector2 boxMax = player + box;
+        int i0 = Mathf.RoundToInt(boxMin.X / CandidateStep);
+        int i1 = Mathf.RoundToInt(boxMax.X / CandidateStep);
+        int j0 = Mathf.RoundToInt(boxMin.Y / CandidateStep);
+        int j1 = Mathf.RoundToInt(boxMax.Y / CandidateStep);
         int count = (i1 - i0 + 1) * (j1 - j0 + 1);
         if (_costs.Length < count)
         {
@@ -117,24 +123,39 @@ public sealed class CameraFraming
             {
                 Vector2 centre = new Vector2(i, j) * CandidateStep;
                 costs[k] = BoundaryArea(centre - inner, centre + inner) + Pull * centre.DistanceSquaredTo(wanted);
-                least = Math.Min(least, costs[k]);
+                if (InBox(centre.X, boxMin.X, boxMax.X) > 0 && InBox(centre.Y, boxMin.Y, boxMax.Y) > 0)
+                {
+                    least = Math.Min(least, costs[k]);
+                }
             }
         }
 
-        // Summed from the wanted framing, for precision far from the origin.
+        // Summed from the player, for precision far from the origin.
         Vector2 sum = Vector2.Zero;
         float weights = 0;
         for (int i = i0, k = 0; i <= i1; i++)
         {
             for (int j = j0; j <= j1; j++, k++)
             {
-                // Less the least, so that the weights don't all underflow.
-                float weight = MathF.Exp(-(costs[k] - least) / Softness);
-                sum += weight * (new Vector2(i, j) * CandidateStep - wanted);
+                Vector2 centre = new Vector2(i, j) * CandidateStep;
+                // Less the least of those in the box, so that the weights don't all underflow.
+                float weight = MathF.Exp(-(costs[k] - least) / Softness)
+                    * InBox(centre.X, boxMin.X, boxMax.X) * InBox(centre.Y, boxMin.Y, boxMax.Y);
+                sum += weight * (centre - player);
                 weights += weight;
             }
         }
-        return wanted + sum / weights;
+        return player + sum / weights;
+    }
+
+    /// <summary>
+    /// How much of the lattice's cell round <paramref name="centre"/>, along one axis, is between
+    /// <paramref name="min"/> and <paramref name="max"/>, from 0 to 1.
+    /// </summary>
+    private static float InBox(float centre, float min, float max)
+    {
+        float half = CandidateStep / 2;
+        return Math.Clamp((Math.Min(centre + half, max) - Math.Max(centre - half, min)) / CandidateStep, 0, 1);
     }
 
     /// <summary>The area of the boundary in the rectangle from <paramref name="min"/> to <paramref name="max"/>, in the world.</summary>

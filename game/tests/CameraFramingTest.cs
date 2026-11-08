@@ -42,9 +42,9 @@ public class CameraFramingTest
     public void Keeps_to_the_wanted_framing_away_from_the_boundary()
     {
         var framing = new CameraFraming(Painted(60, 40, (x, y) => false));
-        var wanted = new Vector2(30, 20);
+        var player = new Vector2(30, 17);
 
-        AssertThat(framing.Frame(wanted, HalfSize).DistanceTo(wanted)).IsLess(1e-3f);
+        AssertThat(framing.Frame(player, player, HalfSize).DistanceTo(player)).IsLess(1e-3f);
     }
 
     [TestCase]
@@ -54,7 +54,7 @@ public class CameraFramingTest
         var framing = new CameraFraming(Painted(60, 40, (x, y) => y >= ceiling));
 
         // Wanted where the view would show 4.5 rows of the ceiling.
-        float top = framing.Frame(new Vector2(30, 22), HalfSize).Y + HalfSize.Y;
+        float top = framing.Frame(new Vector2(30, 19), new Vector2(30, 22), HalfSize).Y + HalfSize.Y;
 
         AssertThat(top).IsLessEqual(ceiling + CameraFraming.Margin + 0.1f);
         AssertThat(top).IsGreaterEqual(ceiling);
@@ -66,10 +66,22 @@ public class CameraFramingTest
         // A corridor 4 tiles high, from 18 to 22, painted above and below.
         var framing = new CameraFraming(Painted(60, 40, (x, y) => y is < 18 or >= 22));
 
-        // Wanted 8 tiles above the corridor, as if looking up.
-        float bottom = framing.Frame(new Vector2(30, 28), HalfSize).Y - HalfSize.Y;
+        // Wanted 5.6 tiles above the player in the corridor, as if looking up.
+        float bottom = framing.Frame(new Vector2(30, 20), new Vector2(30, 25.6f), HalfSize).Y - HalfSize.Y;
 
         AssertThat(bottom).IsLessEqual(18 - CameraFraming.Margin + 0.1f);
+    }
+
+    [TestCase]
+    public void Keeps_the_player_in_view_under_a_thin_band_between_rooms()
+    {
+        // A space 11 tiles high, lower than the view, under a band 2 tiles thick with open space above it.
+        var framing = new CameraFraming(Painted(60, 45, (x, y) => y is < 10 or 21 or 22 or 44));
+        var player = new Vector2(30, 19);
+
+        Vector2 centre = framing.Frame(player, player + new Vector2(0, 3), HalfSize);
+
+        AssertThat(Math.Abs(centre.Y - player.Y)).IsLessEqual(HalfSize.Y - CameraFraming.PlayerMargin);
     }
 
     [TestCase]
@@ -80,11 +92,11 @@ public class CameraFramingTest
         const float step = 0.1f;
 
         // Wanted where the view would show 3.5 rows of the ceiling.
-        Vector2 previous = framing.Frame(new Vector2(20, 16), HalfSize);
+        Vector2 previous = framing.Frame(new Vector2(20, 13), new Vector2(20, 16), HalfSize);
         float largest = 0;
         for (float x = 20 + step; x <= 60; x += step)
         {
-            Vector2 centre = framing.Frame(new Vector2(x, 16), HalfSize);
+            Vector2 centre = framing.Frame(new Vector2(x, 13), new Vector2(x, 16), HalfSize);
             largest = Math.Max(largest, centre.DistanceTo(previous));
             previous = centre;
         }
