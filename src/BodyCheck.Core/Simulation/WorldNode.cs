@@ -424,13 +424,13 @@ public partial class WorldNode : Node3D, IScriptWorld
             var current = new Dictionary<(int, int), int>();
             for (int x = 0; x < world.Size.X; x++)
             {
-                if (!world.IsSolid(x, y))
+                if (world.GetTileIndex(x, y) == TileIndex.Empty)
                 {
                     continue;
                 }
 
                 int start = x;
-                while (x + 1 < world.Size.X && world.IsSolid(x + 1, y))
+                while (x + 1 < world.Size.X && world.GetTileIndex(x + 1, y) != TileIndex.Empty)
                 {
                     x++;
                 }

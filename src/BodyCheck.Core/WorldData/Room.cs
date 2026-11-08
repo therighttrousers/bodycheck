@@ -82,7 +82,7 @@ public sealed class Room : IOffsetTileGrid
     /// <summary>
     /// A room described as text, top row first:
     /// <list type="bullet">
-    /// <item>'#' is a solid tile</item>
+    /// <item>'#' is a ground tile</item>
     /// <item>'P' is where the player starts</item>
     /// <item>'R' is where a robot starts</item>
     /// <item>'H' is where a platform starts, 3 tiles wide, which moves between the walls on either side of it</item>
@@ -178,8 +178,8 @@ public sealed class Room : IOffsetTileGrid
     /// <summary>The tiles the room covers, in the world's coordinates.</summary>
     public Rect2I Bounds => new(Origin, Size);
 
-    /// <summary>Whether a tile is solid, in the room's coordinates. Everything outside the room is empty.</summary>
-    public bool IsSolid(int x, int y) => _tiles.IsSolid(x, y);
+    /// <summary>A tile's kind, in the room's coordinates. Everything outside the room is empty.</summary>
+    public TileIndex GetTileIndex(int x, int y) => _tiles.GetTileIndex(x, y);
 
     /// <summary>
     /// Each entity's configuration, including where its box is, in the room's coordinates and in the order the room was

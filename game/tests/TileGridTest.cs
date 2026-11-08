@@ -23,9 +23,9 @@ public class TileGridTest
     {
         TileGrid grid = NewGrid();
 
-        AssertThat(grid.IsSolid(0, 0)).IsTrue();
-        AssertThat(grid.IsSolid(0, 1)).IsFalse();
-        AssertThat(grid.IsSolid(10, 4)).IsTrue();
+        AssertThat(grid.GetTileIndex(0, 0)).IsEqual(TileIndex.Ground);
+        AssertThat(grid.GetTileIndex(0, 1)).IsEqual(TileIndex.Empty);
+        AssertThat(grid.GetTileIndex(10, 4)).IsEqual(TileIndex.Ground);
     }
 
     [TestCase]
@@ -33,8 +33,8 @@ public class TileGridTest
     {
         TileGrid grid = NewGrid();
 
-        AssertThat(grid.IsSolid(-1, 2)).IsFalse();
-        AssertThat(grid.IsSolid(20, 2)).IsFalse();
-        AssertThat(grid.IsSolid(5, 5)).IsFalse();
+        AssertThat(grid.GetTileIndex(-1, 2)).IsEqual(TileIndex.Empty);
+        AssertThat(grid.GetTileIndex(20, 2)).IsEqual(TileIndex.Empty);
+        AssertThat(grid.GetTileIndex(5, 5)).IsEqual(TileIndex.Empty);
     }
 }

@@ -104,8 +104,8 @@ public class LdtkReaderTest
         Room lower = world.Rooms[1];
 
         AssertThat(upper.Origin).IsEqual(new Vector2I(0, 15));
-        AssertThat(upper.IsSolid(0, 14)).IsTrue(); // Its top left tile
-        AssertThat(upper.IsSolid(1, 14)).IsFalse();
+        AssertThat(upper.GetTileIndex(0, 14)).IsEqual(TileIndex.Ground); // Its top left tile
+        AssertThat(upper.GetTileIndex(1, 14)).IsEqual(TileIndex.Empty);
         EntityConfig robotConfig = upper.EntityConfigs.Single();
         AssertThat((robotConfig.Kind, robotConfig.MapOrigin)).IsEqual((EntityKind.Robot, new Vector2I(0, 0)));
 
@@ -125,7 +125,7 @@ public class LdtkReaderTest
         Room big = world.Rooms[0];
         Room small = world.Rooms[1];
         AssertThat((big.Origin, big.Size)).IsEqual((Vector2I.Zero, new Vector2I(40, 30)));
-        AssertThat(big.IsSolid(0, 0)).IsTrue(); // Its bottom left tile
+        AssertThat(big.GetTileIndex(0, 0)).IsEqual(TileIndex.Ground); // Its bottom left tile
         AssertThat((small.Origin, small.Size)).IsEqual((new Vector2I(41, 22), new Vector2I(7, 5)));
         AssertThat(small.EntityConfigs.Single().MapOrigin).IsEqual(new Vector2I(1, 4));
     }

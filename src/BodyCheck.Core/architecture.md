@@ -26,6 +26,7 @@ Relevant decision records:
 - [051: The scripted run at the spawn](../../docs/decision-records/051-scripted-run-at-the-spawn.md)
 - [052: The talking door](../../docs/decision-records/052-talking-door.md)
 - [055: Unhandled task failures](../../docs/decision-records/055-unhandled-task-failures.md)
+- [057: Tile kinds](../../docs/decision-records/057-tile-kinds.md)
 
 ## What it is
 
@@ -91,7 +92,7 @@ The order of a tick is in [the conventions](../../docs/designs/architecture.md#c
 
 ## The root
 
-The root holds only what several subsystems, or the game, share: telemetry, `Constants`, `Features`, `PhysicsLayer`, `GameMode`, what the game is doing, which the game holds and controllers can see, `PlayerInput`, what the player is pressing, including whether it is interacting, `TriggerAction`, the actions a route can ask of an entity (`045 §4.3`), extension members on Godot's vector types, and a JSON converter that reads enums by name only. It is not for anything that belongs to one subsystem, even if it is small, except a feature: a value that shapes gameplay belongs in the features, even if only one subsystem reads it. Nor is it for anything derived from a feature or cached from one, or for settings that belong to a machine rather than to gameplay, such as graphics.
+The root holds only what several subsystems, or the game, share: telemetry, `Constants`, `Features`, `PhysicsLayer`, `GameMode`, what the game is doing, which the game holds and controllers can see, `PlayerInput`, what the player is pressing, including whether it is interacting, `TriggerAction`, the actions a route can ask of an entity (`045 §4.3`), `Rand`, random numbers from a string seed that are the same on every run and every .NET version (`057 §2.4`), extension members on Godot's vector types, and a JSON converter that reads enums by name only. It is not for anything that belongs to one subsystem, even if it is small, except a feature: a value that shapes gameplay belongs in the features, even if only one subsystem reads it. Nor is it for anything derived from a feature or cached from one, or for settings that belong to a machine rather than to gameplay, such as graphics.
 
 ### Telemetry
 

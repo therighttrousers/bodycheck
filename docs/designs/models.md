@@ -8,6 +8,7 @@ Relevant decision records:
 - [031: Tests in the game's project](../decision-records/031-tests-in-the-game-project.md)
 - [037: Resizable platforms, and a first try at the game's style](../decision-records/037-resizable-platforms-and-first-style.md)
 - [038: Vertices on a grid, for the jitter of mid-1990s 3D](../decision-records/038-vertex-grid.md)
+- [057: Tile kinds](../decision-records/057-tile-kinds.md)
 
 What the game asks of a 3D model, and how code and art meet in it. The models in the game now are placeholders.
 
@@ -15,8 +16,8 @@ What the game asks of a 3D model, and how code and art meet in it. The models in
 
 - **Made in Blender**, exported as glTF, and imported by Godot. The import settings are in the `.import` file beside the glTF, and the Godot editor changes them in its Import dock.
 - **Godot imports only the glTF**, never a `.blend` file: the project setting `filesystem/import/blender/enabled` is off. Importing a `.blend` runs Blender, so every machine that opens the project would need it installed and configured, CI's included. Where it isn't, the model doesn't load.
-- **A wrapper scene** beside the glTF, `scene.tscn` in the model's folder in `game/assets/`, is what the game loads. It holds what Godot adds to the model: an animation tree, material overrides, and any adjustment to the model's position, size or direction.
-- **The wrapper's layout** (`006 §1.3`): its root is a plain `Node3D` with no transform, which the game moves and turns. The glTF is the root's child, named `Model`, which the artist moves, scales and turns. Each transform has one owner. The child's transform applies first, so the game turns the model about the root's origin, which is the model's base, wherever the glTF's own origin was.
+- **A wrapper scene** beside the glTF, a `.tscn` in the model's folder in `game/assets/`, is what the game loads. Its name is free, such as `scene.tscn` or the model's name (`057 §3.1`). It holds what Godot adds to the model: an animation tree, material overrides, and any adjustment to the model's position, size or direction.
+- **The wrapper's layout** (`006 §1.3`): its root is a plain `Node3D` with no transform, which the game moves and turns. The glTF is the root's child, which the artist moves, scales and turns. Its name is free, such as `Model` or the model's name (`057 §3.4`). Code that finds nodes in a wrapper by path has to be kept in step with the names in it: `AssetLibrary` finds the platform's parts at `Model/CapLeft`, `Model/CapRight` and `Model/Center`, so renaming the platform's child or its parts means changing those paths. Each transform has one owner. The child's transform applies first, so the game turns the model about the root's origin, which is the model's base, wherever the glTF's own origin was.
 - **Units:** one unit is one tile. The player is 0.8 tiles wide and 1.8 tall ([movement.md](movement.md)).
 - **The anchor is the origin** (`006 §1.1`, `037 §1.6`). The anchor is a spot on the body's box. For most bodies it is the base, where the model stands on the ground: between a character's feet, or the middle of a block's bottom face. For a hovering platform, which stands on nothing, it is the center. A model made for this game has its anchor at the origin in Blender. A model from elsewhere is adjusted in its wrapper scene until it does.
 - **It faces +Z**, towards the camera. The game turns it to face left or right.
@@ -46,16 +47,16 @@ Then wrap it as below, from step 2, using the `.glb` where the steps say `.gltf`
 2. **For an animated model, import the rest pose.** Select the `.gltf` in the FileSystem dock, open the **Import** tab, check **Import Rest as RESET** (under Animation), and click **Reimport**.
    - If you don't do this, Godot will make changes to your `.tscn` file whenever the editor plays an animation.
 3. **Make the wrapper scene.** **Scene → New Scene**, and choose **3D Scene** for the root, which makes a plain `Node3D`. Name it after the model.
-4. **Add the model.** Drag the `.gltf` from the FileSystem dock onto the root, or select the root and click **Instantiate Child Scene** (the chain link, Ctrl+Shift+A). Name the new child `Model`.
-5. **Make its children editable.** Right-click `Model` and check **Editable Children**. Without it, the nodes inside the glTF can't be selected: the `AnimationPlayer` for the tree, or a mesh to override.
-6. **Place it.** Move, scale and turn `Model` until its base is on the root's origin, it faces +Z, and its size is right in tiles. Leave the root alone.
-7. **For an animated model, add the tree.** Add an `AnimationTree` as a child of the root, named `AnimationTree`, and set its **Anim Player** to the `AnimationPlayer` inside `Model`. Build its graph (see [Animation](#animation)).
-8. **Save** it as `scene.tscn` in the model's folder. Right-click it in the FileSystem dock and choose **Copy Path** for the `res://` path that the game loads.
+4. **Add the model.** Drag the `.gltf` from the FileSystem dock onto the root, or select the root and click **Instantiate Child Scene** (the chain link, Ctrl+Shift+A). Name the new child, such as `Model`. If code finds nodes in it by path, keep the names in step with that code (see [A model](#a-model)).
+5. **Make its children editable.** Right-click the child and check **Editable Children**. Without it, the nodes inside the glTF can't be selected: the `AnimationPlayer` for the tree, or a mesh to override.
+6. **Place it.** Move, scale and turn the child until its base is on the root's origin, it faces +Z, and its size is right in tiles. Leave the root alone.
+7. **For an animated model, add the tree.** Add an `AnimationTree` as a child of the root, named `AnimationTree`, and set its **Anim Player** to the `AnimationPlayer` inside the child. Build its graph (see [Animation](#animation)).
+8. **Save** it in the model's folder, as `scene.tscn` or the model's name. Right-click it in the FileSystem dock and choose **Copy Path** for the `res://` path that the game loads.
    - This path can be passed to a call to `GD.Load<PackedScene>(path)` in the C# code to load the model and its animations.
 9. **Commit everything in the model's folder**, including the `.import` files Godot generated and the `.tscn` file you made.
 
 To make a variant of the wrapper scene; for example, to create a model with a different skin but with the same geometry and animations:
-1. Right-click `scene.tscn` for the model.
+1. Right-click the model's wrapper scene.
 2. Choose **New Inherited Scene**.
 3. Make your changes.
 4. Save the scene as a new `.tscn` file in the same folder as the wrapper.

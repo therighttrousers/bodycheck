@@ -23,6 +23,7 @@ Relevant decision records:
 - [051: The scripted run at the spawn](../../docs/decision-records/051-scripted-run-at-the-spawn.md)
 - [052: The talking door](../../docs/decision-records/052-talking-door.md)
 - [053: Cancelling tasks](../../docs/decision-records/053-cancelling-tasks.md)
+- [057: Tile kinds](../../docs/decision-records/057-tile-kinds.md)
 
 ## What it is
 
@@ -36,7 +37,7 @@ The game's rules, or how the image is made: the low-resolution view and the colo
 
 `Main` adds the camera, the lights, the player's input and the game's mode to a `WorldNode`, and switches worlds. Its worlds are the worlds of `levels/main.ldtk`, then a world for each text room in the library; the first plays unless the command line names another, and comma and period switch between them (`009 §4.3`, `011 §3.2`, `013 §4.6`). The game is drawn in a `WorldViewportContainer`, a viewport of its own at low resolution, and `Main`'s other children are drawn at the window's resolution.
 
-`AssetLibrary` is the game's asset library: it makes each kind of entity's visual and gives the tile's mesh, so that Core doesn't know the game's assets (`012 §3.1`, `020 §2.2`).
+`AssetLibrary` is the game's asset library: it makes each kind of entity's visual and gives each kind of tile's mesh, so that Core doesn't know the game's assets (`012 §3.1`, `020 §2.2`). It maps each kind of tile to its wrapper scene in `assets/tiles/`, and loads each kind's mesh, and each darkened copy, once (`057 §3.1`).
 
 With `--probe=` and a name, `Main` runs that probe instead of playing; its code for that is under `#if TOOLS`, since probes are only in the editor's build (`031 §2.3`).
 
