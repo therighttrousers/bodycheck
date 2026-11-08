@@ -22,7 +22,7 @@ public class CameraFramingTest
     /// A world of one room, with no tiles, the player in its bottom left corner, and <paramref name="boundary"/> telling
     /// which tiles are its camera boundary.
     /// </summary>
-    private static World Painted(int width, int height, Func<int, int, bool> boundary)
+    internal static World Painted(int width, int height, Func<int, int, bool> boundary)
     {
         string[] rows = [.. Enumerable.Range(0, height).Select(row =>
             row == height - 1 ? "P" + new string('.', width - 1) : new string('.', width))];

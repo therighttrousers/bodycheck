@@ -25,6 +25,7 @@ Relevant decision records:
 - [052: The talking door](../../docs/decision-records/052-talking-door.md)
 - [053: Cancelling tasks](../../docs/decision-records/053-cancelling-tasks.md)
 - [057: Tile kinds](../../docs/decision-records/057-tile-kinds.md)
+- [058: A map of where the camera may be](../../docs/decision-records/058-camera-map.md)
 
 ## What it is
 
@@ -91,6 +92,7 @@ A playtester plays from a clone of the repository, started by `play.cmd`, which 
 
 Paused, the debug tools still work: the `DebugOverlay`, the `CollisionDebug` and the rendering switches process while the tree is paused.
 
+- F1 shows the camera's map: `CameraMapView`, a child of each world, draws the world's `CameraMap`, where the view's centre may be, made from the camera boundary by thinning, on a quad behind the tiles' front layer. The map is made the first time it shows. `Main` keeps whether it shows as it loads worlds. `CameraFraming` doesn't use it yet (`058`).
 - F2 shows the world's map markers. `Main` keeps whether they show as it loads worlds.
 - 2 presents the debug dialogue, `dialogue/debug.dialogue`, from its title `start`, through Core's `DialogueRunner`, as a level's `Dialogue` entity does, so that it plays in a cutscene and queues after any dialogue already presented, and prints when what waits for it has resumed. Its lines have a wait, a speed change, two garble tags, and responses whose branches meet again.
 - `DebugOverlay`, on F3, shows the frame rate and times and every telemetry value, at the window's resolution (`008 §2.3`).

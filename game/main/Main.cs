@@ -43,8 +43,9 @@ namespace BodyCheck;
 /// User arguments, after "--" on the command line: a world's name; "--configuration=" and a configuration's
 /// name; "--probe=" and a probe's name to run that probe and quit, in the editor's build only; "--overlay" to start with the
 /// <see cref="DebugOverlay"/> showing; "--collisions" to start with the <see cref="CollisionDebug"/> showing; "--markers" to start with
-/// the world's <see cref="WorldNode.MapMarkers"/> showing. F2 switches the markers on and off, for every world loaded after, F3 the
-/// overlay, and F4 the collisions. 2 presents the debug dialogue in a cutscene, as a level's dialogue is presented,
+/// the world's <see cref="WorldNode.MapMarkers"/> showing; "--camera-map" to start with the <see cref="CameraMapView"/> showing.
+/// F1 switches the camera's map on and off, and F2 the markers, for every world loaded after, F3 the overlay, and F4 the
+/// collisions. 2 presents the debug dialogue in a cutscene, as a level's dialogue is presented,
 /// queued after any dialogue already presented (see <see cref="DialogueBox"/>).
 /// </para>
 /// </summary>
@@ -75,6 +76,8 @@ public partial class Main : Node
     private CollisionDebug _collisions = null!;
     // Whether each world's map markers show, kept as worlds are loaded.
     private bool _showMapMarkers;
+    private bool _showCameraMap;
+    private CameraMapView _cameraMap = null!;
     // Each world's current respawn, by the world's name and the respawn's id, to start its player at when it restarts.
     private readonly Dictionary<string, string> _respawnIds = [];
     private readonly PhaseAimMarker _phaseAimMarker = new();
@@ -126,6 +129,10 @@ public partial class Main : Node
             else if (arg == "--collisions")
             {
                 _collisions.Visible = true;
+            }
+            else if (arg == "--camera-map")
+            {
+                _showCameraMap = true;
             }
             else if (arg == "--markers")
             {
@@ -214,6 +221,11 @@ public partial class Main : Node
         else if (Input.IsActionJustPressed("previous_respawn"))
         {
             CycleRespawn(-1);
+        }
+        else if (Input.IsActionJustPressed("camera_map"))
+        {
+            _showCameraMap = !_showCameraMap;
+            _cameraMap.Visible = _showCameraMap;
         }
         else if (Input.IsActionJustPressed("map_markers"))
         {
@@ -349,6 +361,8 @@ public partial class Main : Node
         _world.PlayerInputSource = old?.PlayerInputSource;
         _world.GameModeSource = () => _gameModeManager.GameMode;
         _world.MapMarkers.Visible = _showMapMarkers;
+        _cameraMap = new CameraMapView(world) { Visible = _showCameraMap };
+        _world.AddChild(_cameraMap);
         _world.CurrentRespawnChanged += respawn =>
         {
             _respawnIds[world.Name] = respawn.Id;
@@ -486,6 +500,7 @@ public partial class Main : Node
         AddAction("map",
             new InputEventKey { PhysicalKeycode = Key.Tab },
             new InputEventJoypadButton { ButtonIndex = JoyButton.Back });
+        AddAction("camera_map", new InputEventKey { PhysicalKeycode = Key.F1 });
         AddAction("map_markers", new InputEventKey { PhysicalKeycode = Key.F2 });
         AddAction("debug_dialogue", new InputEventKey { PhysicalKeycode = Key.Key2 });
         AddAction("reload", new InputEventKey { PhysicalKeycode = Key.F5 });

@@ -48,3 +48,16 @@ Anti-goals:
   - (b) Claude: the valid pixel nearest the wanted framing, among those that keep the player in view (`042 §6.4`). Later, perhaps, a soft minimum over valid pixels, the cost of 042 with the map in place of the hidden area, to smooth the jumps where the nearest pixel switches from one part of the map to another. Claude's concern with (a): where the walk misses the map, as for a player above the skeleton of a low room who wants to look up, it returns the player, and the view goes through the band again.
   - Neil: start even simpler, and see what happens.
 - [ ] 3.2 Only the player's own area (Claude): thinning never joins areas that weren't connected, so if the view's centre may only be in the connected part of the map that the player is in, the room above a solid band can't win. That gives the regions of `042 §6.5` (b) without painting them.
+
+## 4. The first version, as built
+
+- 4.1 As built (Claude), in `CameraMap`, made when the map is first drawn:
+  - The space that isn't boundary, scaled 3 across and 4 up and down, nearest neighbour. At that scale a view of 20x15 tiles is 60x60 pixels, so thinning by half of it is the same number of steps both ways.
+  - Zhang and Suen's thinning, 30 steps, half the view. Each step is two halves, which together take a pixel off every side. It keeps a pixel whose removal would cut the space, and the end of a line.
+  - Grown by the margin, 1 tile: 3 pixels across and 4 up and down, a dilation by a rectangle, in place of the closing of 1.3, so that the margin is exact both ways and the image stays at the thinning's scale.
+  - `CameraMapView` draws it at Z = -0.5, a pixel to a pixel of a texture with nearest filtering: green, partly transparent, where the view's centre may be, and dim red on the boundary.
+- 4.2 Measured (Claude), in Debug: 90 ms for `Testing`, 73x55 tiles, and 65 ms for `Main`, 91x15. It's linear in the world's area, so a world of 16x16 rooms would take seconds; the thinning could then visit only the pixels on the space's edge.
+- 4.3 Seen in images of the worlds' maps (Claude):
+  - `Main`, exactly as high as the view, is a line along its middle, ending 9 tiles from each end, where the view less its margin fits.
+  - `Testing` is one skeleton, connected through the gaps between rooms, with no space anywhere wide and high enough for a view, so there are no areas, only lines.
+  - Where a space is lower than the view, its line stops shrinking at its ends once its sides meet, so its ends are nearer the space's ends than a view less its margin allows: in a space 13 tiles high, about 7.7 tiles from the end rather than 9, which shows about 1.3 tiles more boundary there. Thinning that went on shortening lines' ends, to the view's half width, would fix it.
