@@ -19,6 +19,7 @@ Relevant decision records:
 - [040: No vertex snap](../decision-records/040-no-vertex-snap.md)
 - [042: The camera clamped by tiles](../decision-records/042-camera-clamped-by-tiles.md)
 - [052: The talking door](../decision-records/052-talking-door.md)
+- [058: A map of where the camera may be](../decision-records/058-camera-map.md)
 
 The image is Mode X with modern lighting: 320x240 and 256 colours, as on a VGA card in the mid-1990s, drawn with shadows, ambient occlusion, reflections and bloom. Star Fox, Quake and Descent are the references for the geometry, and Mode X for the image (`003`).
 
@@ -103,7 +104,7 @@ Other ways of choosing colours were tried and set aside: quantising in HSV, a la
 - Looking when up and down mean something else too, such as climbing or aiming. Any input that controls the player has to stop a look (`014 §1.1`). Interacting is a press of up, which a look, needing a hold, leaves free (`052 §2.3`).
 - Looking with the left stick. Each axis has its own dead zone of 0.2, so a stick pushed fully up still looks up to about 11.5° either side of vertical; past that, the player moves and the look stops. Many games give up a wedge of ±22.5°. Not judged on a gamepad (`014 §1.1`).
 - Tuning the camera boundary in play: the constants of `CameraFraming` and the painting in LDtk. To watch for: whether the view pans smoothly through a gap of 4 or 5 tiles between painted areas, such as a short passage from one room to the next (`042 §6.2`). Not yet done: hiding, when drawing, the boundary that space narrower than the view shows (`042 §4.6`).
-- Painted tiles don't hide what's behind them: the cost counts how much boundary is in view, so where the player's space is lower than the view, a view through a thin painted band into the room beyond costs no more than one that stays, and one into a high open space nearby costs less. Options: visibility from the player, regions of open space, keeping the view's centre on the player's side, and a layout rule (`042 §6.3`, `§6.5`).
+- Painted tiles don't hide what's behind them: the cost counts how much boundary is in view, so where the player's space is lower than the view, a view through a thin painted band into the room beyond costs no more than one that stays, and one into a high open space nearby costs less. Hard visibility from the player was tried, and parked: it made quick pans worse and left hardly anywhere to look up or down (`042 §6.5`, `§6.7`, `§6.8`). Next: a map, made when the world loads by thinning the painted boundary, of where the view's centre may be, drawn on F1 for debugging; how the view is placed on it is open (`058`).
 - When should the camera leave the 16-pixel distance? Leaning: zooming out for cinematics, or to show something important that is hard to see at the usual distance. Contextual zoom may turn out better after trying both (`009 §5.2`).
 - On a 16:9 monitor the image has black bars at the sides. Whether to fill them, and with what, is undecided.
 - Shader time. A shader's `TIME` follows the engine's time scale but not the tree's pause, so the slowdown before a phase would slow shader animations, and the release would snap them back. The first animated shader gets a time uniform the game advances itself; which clock it runs on is open (`050 §3.1`, `§3.2`).
