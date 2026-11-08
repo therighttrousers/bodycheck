@@ -159,6 +159,63 @@ public class ScriptTest
     }
 
     [TestCase]
+    public async Task Removing_an_entity_ends_its_scopes_while_it_is_whole_then_takes_it_out()
+    {
+        _run = new RoomRun(RoomRun.RoomOf(
+            "######",
+            "#P..B#",
+            "######"));
+        WorldNode world = _run.Node;
+        Entity block = world.EntitiesOf(EntityKind.Block).Single();
+        bool wasInTree = false;
+        ITick tick = world.Tick.Scoped(block.IsLive);
+
+        async TickTask Hovers()
+        {
+            try
+            {
+                while (true)
+                {
+                    await tick.NextTick();
+                }
+            }
+            finally
+            {
+                wasInTree = block.IsInsideTree();
+            }
+        }
+
+        // Awaited, and its cancellation caught, as a script's route would await it, so that the world doesn't warn of it.
+        bool cancelled = false;
+        async TickTask Awaits()
+        {
+            try
+            {
+                await Hovers();
+            }
+            catch (OperationCanceledException)
+            {
+                cancelled = true;
+            }
+        }
+
+        _ = Awaits();
+        await _run.Tick(RoomRun.Idle, 2);
+        world.Remove(block);
+        world.Remove(block);
+        AssertThat(block.IsLive()).IsFalse();
+
+        await _run.Tick(RoomRun.Idle);
+        AssertThat(wasInTree).IsTrue();
+        AssertThat(cancelled).IsTrue();
+        AssertThat(world.EntitiesOf(EntityKind.Block)).IsEmpty();
+        // Out of the tree at once, and freed by the end of the frame.
+        AssertThat(!GodotObject.IsInstanceValid(block) || !block.IsInsideTree()).IsTrue();
+        AssertThrown(() => world.Remove(world.Player)).IsInstanceOf<ArgumentException>();
+        AssertThrown(() => world.Remove(world.PlayerBlock)).IsInstanceOf<ArgumentException>();
+    }
+
+    [TestCase]
     public void A_room_rejects_a_start_trigger_that_starts_off() =>
         AssertThrown(() => RoomWithScript(nameof(RunRight), TriggerSetOffBy.Start, startsOn: false))
             .IsInstanceOf<ArgumentException>();

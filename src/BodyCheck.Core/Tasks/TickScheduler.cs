@@ -9,15 +9,21 @@ namespace BodyCheck.Core.Tasks;
 /// Where unhandled failures go: the exception of each failed task that nothing has awaited by the end of the run in
 /// which it failed, and of each scope's condition that throws. If it throws, so does the run.
 /// </param>
-public sealed class TickScheduler(Action<Exception> unhandled)
+/// <param name="cutShort">
+/// Where warnings of what a scope cut short go: the cancellation of each task that a scope's ending cancelled, and that
+/// nothing has awaited by the end of the run, such as the task of a trigger's route whose script's scope ended. If it
+/// throws, so does the run. With none, they aren't reported.
+/// </param>
+public sealed class TickScheduler(Action<Exception> unhandled, Action<OperationCanceledException>? cutShort = null)
 {
     private readonly Queue<Action> _queue = new();
 
     // Each with the condition of its tick's scope, if it has one.
     private readonly List<(TickTask Task, double Due, Func<bool>? Condition)> _waits = [];
 
-    // What has failed since the end of the last run, in order, to report at the end of this one: the tasks that have
-    // failed, if nothing has awaited them by then, and the exceptions of the scopes' conditions that have thrown.
+    // What to report since the end of the last run, in order, at the end of this one: the tasks that have failed or a
+    // scope has cancelled, if nothing has awaited them by then, and the exceptions of the scopes' conditions that have
+    // thrown.
     private readonly List<(TickTask? Task, Exception? Exception)> _failures = [];
 
     // The scopes' conditions that have thrown since the end of the last run, so that each is reported once.
@@ -41,8 +47,11 @@ public sealed class TickScheduler(Action<Exception> unhandled)
     /// <summary>Adds what waits for a task that has finished, to run when the scheduler next runs.</summary>
     internal void Add(Action continuation) => _queue.Enqueue(continuation);
 
-    /// <summary>Notes a task that has failed, to report at the end of the run if nothing has awaited it.</summary>
-    internal void Failed(TickTask task) => _failures.Add((task, null));
+    /// <summary>
+    /// Notes a task that has failed or been cancelled, to report at the end of the run if nothing has awaited it and it
+    /// failed, or a scope's ending cancelled it.
+    /// </summary>
+    internal void Settled(TickTask task) => _failures.Add((task, null));
 
     /// <summary>
     /// A wait of <paramref name="seconds"/>, which is cancelled if <paramref name="condition"/> no longer holds when
@@ -59,7 +68,7 @@ public sealed class TickScheduler(Action<Exception> unhandled)
         }
         else if (!Holds(condition))
         {
-            task.Cancel(ScopeEnded());
+            task.Cancel(new ScopeEndedException());
         }
         else
         {
@@ -115,7 +124,6 @@ public sealed class TickScheduler(Action<Exception> unhandled)
 
     private static OperationCanceledException Stopped() => new("The TickScheduler was stopped.");
 
-    private static OperationCanceledException ScopeEnded() => new("The scope of the tick waited on has ended.");
 
     /// <summary>
     /// Runs one tick: cancels the waits whose scopes have ended and finishes those that are due, then runs what waits
@@ -138,7 +146,37 @@ public sealed class TickScheduler(Action<Exception> unhandled)
         {
             _dt = dt;
             _time += dt;
-            SettleWaits(dt);
+            // A wait is due in the tick that ends nearest it: the first that ends no more than half a tick before it.
+            SettleWaits(dueBy: _time + dt / 2);
+            RunQueued();
+            ReportUnhandled();
+        }
+        finally
+        {
+            _running = false;
+        }
+    }
+
+    /// <summary>
+    /// Ends the scopes whose conditions no longer hold, between runs, without a tick passing: cancels their waits, then
+    /// runs what waits for them, as <see cref="Run"/> does, until nothing is left, and gives the sinks what that leaves
+    /// unhandled. No wait finishes. It is for an owner that has made a scope's condition false and must have what runs
+    /// in it unwind now, while what it cleans up is still there, such as an entity about to be removed.
+    /// </summary>
+    public void EndScopes()
+    {
+        if (_running)
+        {
+            throw new InvalidOperationException("The TickScheduler is already running.");
+        }
+        if (_stopped)
+        {
+            return;
+        }
+        _running = true;
+        try
+        {
+            SettleWaits(dueBy: null);
             RunQueued();
             ReportUnhandled();
         }
@@ -169,9 +207,9 @@ public sealed class TickScheduler(Action<Exception> unhandled)
     }
 
     /// <summary>
-    /// Gives the sink what has failed with nothing to handle it, in the order it failed, and forgets it: the tasks
-    /// that nothing has awaited, and the scopes' conditions that have thrown. A task awaited later fails what awaits
-    /// it, which may be reported in turn.
+    /// Gives the sinks what has failed with nothing to handle it, and what a scope has cut short with nothing to hear of
+    /// it, in the order they happened, and forgets them: the tasks that nothing has awaited, and the scopes' conditions
+    /// that have thrown. A task awaited later fails or cancels what awaits it, which may be reported in turn.
     /// </summary>
     private void ReportUnhandled()
     {
@@ -184,6 +222,10 @@ public sealed class TickScheduler(Action<Exception> unhandled)
             if ((task?.UnhandledFailure ?? exception) is Exception e)
             {
                 unhandled(e);
+            }
+            else if (task?.UnheardCancellation is OperationCanceledException cancellation)
+            {
+                cutShort?.Invoke(cancellation);
             }
         }
     }
@@ -216,19 +258,17 @@ public sealed class TickScheduler(Action<Exception> unhandled)
 
     /// <summary>
     /// Settles the waits, in the order they were made: cancels those whose scopes have ended, and finishes those due by
-    /// the end of a tick of <paramref name="dt"/>. A wait whose scope has ended is cancelled even if it is due.
+    /// <paramref name="dueBy"/>, if it is given. A wait whose scope has ended is cancelled even if it is due.
     /// </summary>
-    private void SettleWaits(float dt)
+    private void SettleWaits(double? dueBy)
     {
-        // A wait is due in the tick that ends nearest it: the first that ends no more than half a tick before it.
-        double dueBy = _time + dt / 2;
         int kept = 0;
         for (int i = 0; i < _waits.Count; i++)
         {
             (TickTask task, double due, Func<bool>? condition) = _waits[i];
             if (!Holds(condition))
             {
-                task.Cancel(ScopeEnded());
+                task.Cancel(new ScopeEndedException());
             }
             else if (due <= dueBy)
             {

@@ -34,6 +34,12 @@ public partial class WorldNode : Node3D, IScriptWorld
 
     private readonly List<Entity> _entities = [];
 
+    // What built each entity that a configuration builds: all but the player's block.
+    private readonly Dictionary<Entity, EntityConfig> _configs = [];
+
+    // The entities that have been asked to be removed, and not yet taken out, in the order they were asked.
+    private readonly List<Entity> _removed = [];
+
     // The world's colliders: one static body for every tile.
     private readonly StaticBody3D _tiles;
 
@@ -52,7 +58,11 @@ public partial class WorldNode : Node3D, IScriptWorld
     // first time.
     private bool _started;
 
-    private readonly TickScheduler _scheduler = new(e => GD.PushError(e.ToString()));
+    // A route or script that a scope's ending cut short, with nothing awaiting it, shows as a warning, so that a beat
+    // cut short is never silent.
+    private readonly TickScheduler _scheduler = new(
+        e => GD.PushError(e.ToString()),
+        e => GD.PushWarning($"A scope's ending cut short a run that nothing awaited: {e}"));
 
     // The game's mode on the last tick the controllers stepped, played or paused, or null before the first.
     private GameMode? _steppedGameMode;
@@ -172,6 +182,7 @@ public partial class WorldNode : Node3D, IScriptWorld
             entity.Position = StartPosition(entity, startBox);
             AddChild(entity);
             _entities.Add(entity);
+            _configs[entity] = config;
         }
 
         foreach (EntityConfig config in world.Bodies.Concat(world.Controls))
@@ -456,14 +467,63 @@ public partial class WorldNode : Node3D, IScriptWorld
 
     /// <summary>
     /// Every entity in the world, in the order they are stepped: those the world's <see cref="World.Bodies"/> build, in
-    /// their order, so that <c>Entities[i]</c> was built from <c>World.Bodies[i]</c>, then
-    /// <see cref="PlayerBlock"/>, which no configuration builds.
+    /// their order, then <see cref="PlayerBlock"/>, which no configuration builds, less those taken out. One asked to be
+    /// removed stays until the end of the tick, not <see cref="Entity.IsLive"/>.
     /// </summary>
     public IReadOnlyList<Entity> Entities => _entities;
 
-    /// <summary>The entities of one kind that the world's configurations build, in the order they are stepped.</summary>
+    /// <summary>
+    /// The entities of one kind that the world's configurations build, in the order they are stepped, as
+    /// <see cref="Entities"/> holds them.
+    /// </summary>
     public IEnumerable<Entity> EntitiesOf(EntityKind kind) =>
-        _entities.Where((entity, i) => i < World.Bodies.Count && World.Bodies[i].Kind == kind);
+        _entities.Where(entity => _configs.TryGetValue(entity, out EntityConfig? config) && config.Kind == kind);
+
+    /// <inheritdoc/>
+    public void Remove(Entity entity)
+    {
+        if (entity == Player || entity == PlayerBlock)
+        {
+            throw new ArgumentException("The player and the player's block can't be removed.", nameof(entity));
+        }
+        if (!_entities.Contains(entity))
+        {
+            throw new ArgumentException("The entity isn't in this world.", nameof(entity));
+        }
+        if (!entity.IsRemoved)
+        {
+            entity.IsRemoved = true;
+            _removed.Add(entity);
+        }
+    }
+
+    /// <summary>
+    /// Takes out the entities asked to be removed, at the end of the tick: first ends the scheduler's scopes that their
+    /// removal ended, so that what ran in them unwinds while they are still whole and in the tree, then takes each out
+    /// of the world, has the others forget it, and frees it. What unwinds may remove more, which are taken out in turn.
+    /// Each leaves the tree at once, which takes its body out of the engine before the next step, since one queued to be
+    /// freed would still collide in it.
+    /// </summary>
+    private void TakeOutRemoved()
+    {
+        while (_removed.Count > 0)
+        {
+            _scheduler.EndScopes();
+            List<Entity> removed = [.. _removed];
+            _removed.Clear();
+            foreach (Entity entity in removed)
+            {
+                _entities.Remove(entity);
+                _configs.Remove(entity);
+                RemoveChild(entity);
+                entity.QueueFree();
+                foreach (Entity other in _entities)
+                {
+                    other.Forget(entity);
+                }
+            }
+        }
+    }
 
     /// <summary>
     /// The respawn the player came within reach of last, or started at: where the player would start from if the world
@@ -601,7 +661,10 @@ public partial class WorldNode : Node3D, IScriptWorld
             NoteGameMode();
             foreach (Entity entity in _entities)
             {
-                entity.StepPaused(RealDt, _defer);
+                if (entity.IsLive())
+                {
+                    entity.StepPaused(RealDt, _defer);
+                }
             }
         }
         catch
@@ -612,6 +675,7 @@ public partial class WorldNode : Node3D, IScriptWorld
         }
         // Run this tick's post-entity-steps deferred actions.
         _defer.DrainAfterEntityStepsActions();
+        TakeOutRemoved();
     }
 
     public override void _PhysicsProcess(double delta)
@@ -656,6 +720,7 @@ public partial class WorldNode : Node3D, IScriptWorld
             _scheduler.Run((float)delta);
         }
         _stepped = true;
+        TakeOutRemoved();
 
         UpdateCurrentRespawn();
     }

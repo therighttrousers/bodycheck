@@ -380,6 +380,58 @@ public class TickTaskTest
         AssertThat(failures[0].Message).IsEqual("broken");
     }
 
+    [TestCase]
+    public void What_a_scope_cuts_short_with_nothing_awaiting_it_goes_to_the_warning_sink()
+    {
+        var cutShort = new List<OperationCanceledException>();
+        var scheduler = new TickScheduler(Rethrow, cutShort.Add);
+        bool holds = true;
+        ITick tick = scheduler.Tick.Scoped(() => holds);
+
+        async TickTask Waits(ITick on) => await on.Wait(1);
+
+        async TickTask Awaits(TickTask task) => await task;
+
+        _ = Awaits(Waits(tick));
+        TickTask stopped = Waits(scheduler.Tick);
+        holds = false;
+        scheduler.Run(Dt);
+        // Only the top of the first chain, and not the second, whose scope holds.
+        AssertThat(cutShort).HasSize(1);
+
+        scheduler.Stop();
+        AssertThat(stopped.IsCancelled).IsTrue();
+        AssertThat(cutShort).HasSize(1);
+    }
+
+    [TestCase]
+    public void Ending_scopes_cancels_what_ended_at_once_and_finishes_no_wait()
+    {
+        var scheduler = new TickScheduler(Rethrow);
+        bool holds = true;
+        var log = new List<string>();
+
+        async TickTask Cleans(ITick tick)
+        {
+            try
+            {
+                await tick.NextTick();
+            }
+            finally
+            {
+                log.Add("cleaned up");
+            }
+        }
+
+        TickTask scoped = Cleans(scheduler.Tick.Scoped(() => holds));
+        TickTask unscoped = scheduler.Tick.NextTick();
+        holds = false;
+        scheduler.EndScopes();
+        AssertThat(scoped.IsCancelled).IsTrue();
+        AssertThat(log).ContainsExactly("cleaned up");
+        AssertThat(unscoped.IsFinished).IsFalse();
+    }
+
     private sealed class Cleanup(Action action) : IDisposable
     {
         public void Dispose() => action();
