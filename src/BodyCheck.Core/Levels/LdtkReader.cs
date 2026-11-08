@@ -139,7 +139,14 @@ public static class LdtkReader
         {
             for (int x = 0; x < width; x++)
             {
-                tiles.SetSolid(x, height - 1 - row, solid.IntGridCsv[row * width + x] != 0);
+                var i = row * width + x;
+                var index = (TileIndex)solid.IntGridCsv[i];
+                if (index < TileIndex.Empty || index >= TileIndex.Count)
+                {
+                    throw Invalid(path, $"In level '{level.Identifier}', {solid.Identifier} at {x},{row} "
+                        + $"(index {i}) is out of bounds (value = {index}).");
+                }
+                tiles.SetTileIndex(x, height - 1 - row, index);
             }
         }
 

@@ -4,6 +4,8 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 
+using BodyCheck.Core;
+
 namespace BodyCheck;
 
 /// <summary>
@@ -74,8 +76,8 @@ public static class Garble
         }
         // Each glyph gets a rank from the seed, the step and its place, and the lowest ranked are garbled. At each step, a
         // more garbled line garbles the same glyphs as a less garbled one, and more.
-        ulong stepHash = Mix(Fnv1a(seed) ^ (ulong)step);
-        foreach (int i in eligible.OrderBy(i => Mix(stepHash ^ (ulong)i)).Take(count))
+        ulong stepHash = Rand.SplitMix64(Rand.Fnv1a(seed) ^ (ulong)step);
+        foreach (int i in eligible.OrderBy(i => Rand.SplitMix64(stepHash ^ (ulong)i)).Take(count))
         {
             runes[i] = Tofu;
         }
@@ -109,25 +111,5 @@ public static class Garble
             }
         }
         return [.. eligible];
-    }
-
-    // .NET's string hashes differ from run to run, and its seeded Random isn't promised to stay the same across
-    // versions, so the garble uses hashes of its own: FNV-1a for the seed, and SplitMix64's finalizer for the ranks.
-
-    private static ulong Fnv1a(string s)
-    {
-        ulong hash = 14695981039346656037;
-        foreach (char c in s)
-        {
-            hash = (hash ^ c) * 1099511628211;
-        }
-        return hash;
-    }
-
-    private static ulong Mix(ulong x)
-    {
-        x = (x ^ (x >> 30)) * 0xBF58476D1CE4E5B9;
-        x = (x ^ (x >> 27)) * 0x94D049BB133111EB;
-        return x ^ (x >> 31);
     }
 }

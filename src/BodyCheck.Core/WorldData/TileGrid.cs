@@ -8,22 +8,23 @@ namespace BodyCheck.Core.WorldData;
 /// </summary>
 public sealed class TileGrid
 {
-    private readonly bool[,] _solid;
+    private readonly TileIndex[,] _indexes;
 
     public TileGrid(int width, int height)
     {
         Size = new Vector2I(width, height);
-        _solid = new bool[width, height];
+        _indexes = new TileIndex[width, height];
     }
 
     public Vector2I Size { get; }
 
-    public bool IsSolid(int x, int y) => x >= 0 && y >= 0 && x < Size.X && y < Size.Y && _solid[x, y];
+    public TileIndex GetTileIndex(int x, int y) =>
+        x >= 0 && y >= 0 && x < Size.X && y < Size.Y ? _indexes[x, y] : TileIndex.Empty;
 
-    public void SetSolid(int x, int y, bool solid) => _solid[x, y] = solid;
+    public void SetTileIndex(int x, int y, TileIndex index) => _indexes[x, y] = index;
 
     /// <summary>
-    /// Builds a grid from text rows, top row first. '#' is solid; anything else is empty.
+    /// Builds a grid from text rows, top row first. '#' is ground; anything else is empty.
     /// </summary>
     public static TileGrid FromText(IReadOnlyList<string> rows)
     {
@@ -32,7 +33,7 @@ public sealed class TileGrid
         {
             for (int x = 0; x < rows[row].Length; x++)
             {
-                grid._solid[x, rows.Count - 1 - row] = rows[row][x] == '#';
+                grid._indexes[x, rows.Count - 1 - row] = rows[row][x] == '#' ? TileIndex.Ground : TileIndex.Empty;
             }
         }
         return grid;

@@ -26,8 +26,8 @@ public interface IAssetLibrary
     MeshInstance3D GetDebugBoxVisual(Vector2 size, Color color, float alpha = 0.5f);
 
     /// <summary>
-    /// The mesh to draw a tile with, darkened by <paramref name="darkening"/> from 0 to 1, and the transform that fits it
+    /// The mesh to draw a kind of tile with, darkened by <paramref name="darkening"/> from 0 to 1, and the transform that fits it
     /// to a unit cube centred on the origin. Callers share the mesh, so they must not change it.
     /// </summary>
-    (Mesh Mesh, Transform3D Transform) GetTileMesh(float darkening = 0);
+    (Mesh Mesh, Transform3D Transform) GetTileMesh(TileIndex index, float darkening = 0);
 }

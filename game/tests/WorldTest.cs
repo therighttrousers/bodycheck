@@ -53,12 +53,12 @@ public class WorldTest
         var world = new World("Test", [left, right]);
 
         AssertThat((world.Size.X, world.Size.Y)).IsEqual((7, 3));
-        AssertThat(world.IsSolid(0, 1)).IsTrue(); // Left's '#'
-        AssertThat(world.IsSolid(1, 0)).IsFalse();
-        AssertThat(world.IsSolid(6, 1)).IsTrue(); // Right's '#'
-        AssertThat(world.IsSolid(5, 2)).IsFalse();
-        AssertThat(world.IsSolid(3, 1)).IsFalse(); // Between the rooms
-        AssertThat(world.IsSolid(0, 2)).IsFalse(); // Above the left room
+        AssertThat(world.GetTileIndex(0, 1)).IsEqual(TileIndex.Ground); // Left's '#'
+        AssertThat(world.GetTileIndex(1, 0)).IsEqual(TileIndex.Empty);
+        AssertThat(world.GetTileIndex(6, 1)).IsEqual(TileIndex.Ground); // Right's '#'
+        AssertThat(world.GetTileIndex(5, 2)).IsEqual(TileIndex.Empty);
+        AssertThat(world.GetTileIndex(3, 1)).IsEqual(TileIndex.Empty); // Between the rooms
+        AssertThat(world.GetTileIndex(0, 2)).IsEqual(TileIndex.Empty); // Above the left room
 
         AssertArray(world.Bodies.Select(config => (config.Kind, config.MapOrigin))).ContainsExactly(
             (EntityKind.Player, new Vector2I(1, 0)), (EntityKind.Block, new Vector2I(4, 1)));

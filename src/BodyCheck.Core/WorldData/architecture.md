@@ -8,6 +8,7 @@ Relevant decision records:
 - [047: `Once`, and routing actions](../../../docs/decision-records/047-once-and-routing.md)
 - [049: Doors and their stops](../../../docs/decision-records/049-doors-and-stops.md)
 - [052: The talking door](../../../docs/decision-records/052-talking-door.md)
+- [057: Tile kinds](../../../docs/decision-records/057-tile-kinds.md)
 
 ## What it is
 
@@ -22,6 +23,7 @@ Anything that runs: engine nodes, bodies or colliders. Reading files in an edito
 - A `World` is a name and its `Room`s, which don't overlap, with exactly one player start among them (`013 §2.3`, `§3.2`). It is data only: nothing at run time knows which room a tile or an entity is in (`013 §1.1`). Its tiles are the union of its rooms', over their bounding box, with everything outside a room empty (`020 §1.1`). Worlds come from two sources: the worlds of an LDtk project, one room per level, and a text room, as a world of one room.
 - A world holds its rooms' entity configurations in world coordinates, in two lists: `Bodies`, of the entities with bodies, in the order they are built and stepped, and `Controls`, of the control entities. Each is in the order of the rooms, then of each room's own, so that whatever goes through them does so in a known order. `ConfigsById` finds either kind by id (`013 §4.4`, `045 §2.1`, `§2.2`).
 - A `Room` is a name, an origin in the world, in tiles, a tile grid, and a configuration for each entity that starts in it, the player's included. Its tiles and starts are in its own coordinates (`013 §2.1`, `§2.2`).
+- Each tile has a kind, a `TileIndex`. `Empty` is no tile, and every other kind is solid; for now, kinds differ only in looks. The values are those of the LDtk project's `SolidGeometry` layer, and `Count` is last, so that code can loop over the kinds. A text room's `#` is `Ground` (`057 §1.1`, `§1.2`).
 - An entity's configuration is its kind, as an `EntityKind`, its id, unique in its world, where its box is, and whatever else a level says about it. Each kind has its own type of configuration, from which an entity of that kind is built. An entity's box may lie outside its room.
 
 ## Routes
@@ -40,3 +42,4 @@ Test rooms are a library of named rooms, described as text, each played as a wor
 ## Open questions
 
 - Closing the map: nothing outside the rooms is solid, so a world's rooms must close it with their own tiles, and nothing checks that they do (`020 §1.1`).
+- Whether kinds of tile will differ in play, such as in friction, or as one-way platforms (`057 §1.3`).

@@ -51,7 +51,7 @@ public sealed class World
             {
                 for (int x = 0; x < room.Size.X; x++)
                 {
-                    _tiles.SetSolid(x + room.Origin.X, y + room.Origin.Y, room.IsSolid(x, y));
+                    _tiles.SetTileIndex(x + room.Origin.X, y + room.Origin.Y, room.GetTileIndex(x, y));
                 }
             }
         }
@@ -183,7 +183,7 @@ public sealed class World
     public IReadOnlyList<Room> Rooms { get; }
 
     public Vector2I Size { get; }
-    public bool IsSolid(int x, int y) => _tiles.IsSolid(x, y);
+    public TileIndex GetTileIndex(int x, int y) => _tiles.GetTileIndex(x, y);
 
     /// <summary>
     /// The configurations of the entities with bodies, in the world's coordinates: each room's, in the order of the rooms

@@ -15,6 +15,7 @@ Relevant decision records:
 - [047: `Once`, and routing actions](../../../docs/decision-records/047-once-and-routing.md)
 - [049: Doors and their stops](../../../docs/decision-records/049-doors-and-stops.md)
 - [052: The talking door](../../../docs/decision-records/052-talking-door.md)
+- [057: Tile kinds](../../../docs/decision-records/057-tile-kinds.md)
 
 ## What it is
 
@@ -30,7 +31,7 @@ The game's maps are the worlds of one LDtk project, `levels/main.ldtk` in the ga
 
 - `LdtkReader` reads each of the project's worlds into a `World`, named after it, with a `Room` for each level, named after the level's identifier (`013 §4.5`), and rejects a project without multi-worlds. Tiles still merge across levels' edges, since the colliders are built from the world's grid (`011 §2.1`).
 - Levels may be any whole number of tiles in size, at any whole number of tiles from each other, at depth 0, as long as no two overlap (`024 §4.1`). Space with no level is empty (`020 §1.1`), and LDtk's `__neighbours` are ignored (`011 §3`). The reader moves each world's levels together so that the leftmost edge of any of them is at its origin's x, and the lowest edge at its y. Each world has one player start.
-- Every non-zero value of the `SolidGeometry` layer is a solid tile, and what LDtk writes for auto-layering is ignored.
+- Each value of the `SolidGeometry` layer is a tile's kind, a `TileIndex`, and the reader rejects a value that isn't one. What LDtk writes for auto-layering is ignored. LDtk draws the layer with `assets/authoring/ldtk-atlas.png`, a cell for each kind, so that levels look somewhat as they do in the game (`057 §1.1`, `§1.4`, `§3.2`).
 - Entities are in two layers, `Entities` for those with bodies and `Control` for the control entities, which LDtk keeps apart by their tags. The layers only help the editor show them: the reader reads both alike, and an entity's kind says whether it has a body (`045 §2.3`). LDtk lets the control entities but `Respawn` lie outside their level, to be placed out of the way.
 - Each entity keeps its `iid` as its id, and the place, size and colour of its box in LDtk, which must be whole tiles (`045 §1.1`). The game starts a body with its anchor at the same spot on that box ([models.md](../../../docs/designs/models.md#how-the-game-places-a-model)), and draws the box on the map markers.
 - The fields read are a platform's range (`025 §1.1`); a door's `OpenStop` and `CloseStop` (`049 §1.1`); a `Trigger`'s and a `Once`'s `Target` and `Action`; a `Trigger`'s `StartsOn` and `SetOffBy` (`052 §1.2`, `§2.2`); a `Sequence`'s and a `Fanout`'s `Targets` and `Actions`; a `Dialogue`'s `DialogueFile` and `DialogueTitle` (`043 §1.1`); and a `Script`'s `ClassName` and `Entities` (`056 §2.2`); how garbled a line is, its dialogue file says (`044 §3.7`). An `EntityRef` is read as the `iid` it refers to, and a `TriggerAction` or a `TriggerSetOffBy` by name. The reader pairs `Targets` with `Actions` as steps, and rejects them if they aren't the same length (`043 §1.5`, `045 §3.1`).

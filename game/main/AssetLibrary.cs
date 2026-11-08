@@ -15,15 +15,18 @@ namespace BodyCheck;
 /// </summary>
 public class AssetLibrary : IAssetLibrary
 {
-    private const string TilePath = "res://assets/tile/tile.tscn";
+    private static readonly Dictionary<TileIndex, string> TilePaths = new()
+    {
+        [TileIndex.Ground] = "res://assets/tiles/ground/ground.tscn",
+        [TileIndex.Grass] = "res://assets/tiles/grass/grass.tscn",
+    };
     private const string BlockPath = "res://assets/portal_cube/scene.tscn";
     private const string PlatformPath = "res://assets/platform/scene.tscn";
 
     // How opaque the player's block is: a ghost of a block.
     private const float PlayerBlockAlpha = 0.4f;
 
-    private (Mesh Mesh, Transform3D Transform)? _tile;
-    private readonly Dictionary<float, Mesh> _darkenedTiles = [];
+    private readonly Dictionary<(TileIndex index, float darkening), (Mesh Mesh, Transform3D Transform)> _tiles = [];
 
     public Node3D? GetEntityVisual(EntityConfig config) => config.Kind switch
     {
@@ -43,20 +46,14 @@ public class AssetLibrary : IAssetLibrary
         return model;
     }
 
-    public (Mesh Mesh, Transform3D Transform) GetTileMesh(float darkening = 0)
+    public (Mesh Mesh, Transform3D Transform) GetTileMesh(TileIndex index, float darkening = 0)
     {
-        _tile ??= LoadMesh(TilePath);
-        (Mesh mesh, Transform3D transform) = _tile.Value;
-        if (darkening == 0)
+        if (!_tiles.TryGetValue((index, darkening), out var tile))
         {
-            return (mesh, transform);
+            (Mesh mesh, Transform3D transform) = LoadMesh(TilePaths[index]);
+            tile = _tiles[(index, darkening)] = (darkening == 0 ? mesh : DarkenedMesh(mesh, darkening), transform);
         }
-        if (!_darkenedTiles.TryGetValue(darkening, out Mesh? darkened))
-        {
-            darkened = DarkenedMesh(mesh, darkening);
-            _darkenedTiles[darkening] = darkened;
-        }
-        return (darkened, transform);
+        return tile;
     }
 
     public MeshInstance3D GetDebugBoxVisual(Vector2 size, Color color, float alpha = 0.5f)
