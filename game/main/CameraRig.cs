@@ -122,7 +122,7 @@ public partial class CameraRig : Node3D
         _world = world;
         _framing = new CameraFraming(world.World);
         MoveMapCamera();
-        MoveTarget();
+        MoveTarget(0);
         _phantomCamera.Node3D.Call("teleport_position");
     }
 
@@ -164,7 +164,8 @@ public partial class CameraRig : Node3D
     public override void _Process(double delta)
     {
         MoveMapCamera();
-        MoveTarget();
+        // On game time, as the camera's damping is.
+        MoveTarget((float)delta);
     }
 
     /// <summary>
@@ -188,7 +189,7 @@ public partial class CameraRig : Node3D
             mapDistance + 0.5f);
     }
 
-    private void MoveTarget()
+    private void MoveTarget(float delta)
     {
         if (_world is null || _framing is null)
         {
@@ -224,7 +225,7 @@ public partial class CameraRig : Node3D
         Vector2 viewport = GetViewport().GetVisibleRect().Size;
         var halfSize = new Vector2(HalfHeight * viewport.X / viewport.Y, HalfHeight);
         var wanted = new Vector2(player.X, player.Y + lookOffset);
-        Vector2 centre = _framing.Frame(new Vector2(player.X, player.Y), wanted, halfSize);
+        Vector2 centre = _framing.Frame(new Vector2(player.X, player.Y), wanted, halfSize, delta);
         Telemetry.Report(Metric.CameraWanted, wanted);
         Telemetry.Report(Metric.CameraTarget, centre);
         _target.GlobalPosition = new Vector3(centre.X, centre.Y, 0);
