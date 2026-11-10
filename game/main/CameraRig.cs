@@ -64,10 +64,8 @@ public partial class CameraRig : Node3D
     /// <summary>The framing of the world the rig follows; null until it follows one.</summary>
     public CameraFraming? Framing => _framing;
 
-    /// <summary>Eases <see cref="_lookAmount"/> from 0 to 1 while the player looks; null while the player doesn't.</summary>
-    private Tween? _lookTween;
-    /// <summary>How far the player has looked, from 0 (not at all) to 1 (fully).</summary>
-    private float _lookAmount;
+    /// <summary>How long the player has been looking, in real seconds; 0 while the player isn't.</summary>
+    private float _lookHeldTime;
 
     /// <summary>How far ahead of the player the view wants to be, in tiles, to the right if positive.</summary>
     private float _lead;
@@ -121,6 +119,7 @@ public partial class CameraRig : Node3D
     {
         _world = world;
         _framing = new CameraFraming(world.World);
+        _lookHeldTime = 0;
         _lead = 0;
         _leadVelocity = 0;
         _leadReturnTimeLeft = 0;
@@ -199,31 +198,10 @@ public partial class CameraRig : Node3D
             return;
         }
 
-        float lookOffset;
-        if (_world.GameMode == GameMode.Playing && _world.PlayerInput.CanLook)
-        {
-            // Delay for a bit, then slowly pan.
-            if (_lookTween is null)
-            {
-                // In real time, since looking is the player's hands, not the world.
-                _lookTween = CreateTween().SetIgnoreTimeScale();
-                _lookTween.TweenMethod(Callable.From<float>(amount => _lookAmount = amount), 0f, 1f, LookTime)
-                    .SetDelay(LookDelay)
-                    .SetTrans(Tween.TransitionType.Quad)
-                    .SetEase(Tween.EaseType.In);
-            }
-            lookOffset = Mathf.Lerp(Lift, LookOffset * _world.PlayerInput.YAxis, _lookAmount);
-        }
-        else
-        {
-            // If not looking, the framing's spring eases the view back.
-            _lookTween?.Kill();
-            _lookTween = null;
-            _lookAmount = 0;
-            lookOffset = Lift;
-        }
-
+        StepLook(_world, delta);
         StepLead(_world, delta);
+        // Not looking, the look amount is 0, and the framing's spring eases the view back.
+        float lookOffset = Mathf.Lerp(Lift, LookOffset * _world.PlayerInput.YAxis, LookAmount);
 
         // The player's interpolated position, since the target moves every frame and the player every physics tick.
         Vector3 player = _world.Player.GetGlobalTransformInterpolated().Origin;
@@ -235,6 +213,37 @@ public partial class CameraRig : Node3D
         Telemetry.Report(Metric.CameraGoal, framed.Goal);
         Telemetry.Report(Metric.CameraTarget, framed.Centre);
         _target.GlobalPosition = new Vector3(framed.Centre.X, framed.Centre.Y, 0);
+    }
+
+    /// <summary>
+    /// Times the look for <paramref name="delta"/> game seconds: while the game is playing and
+    /// <see cref="PlayerInput.CanLook"/>, the player is looking, and otherwise not, so a look starts again from the
+    /// beginning. The look is the player's hands, not the world, so it's timed in real seconds.
+    /// </summary>
+    private void StepLook(WorldNode world, float delta)
+    {
+        if (world.GameMode == GameMode.Playing && world.PlayerInput.CanLook)
+        {
+            // While playing, the time scale is the gameplay speed, which is never 0.
+            _lookHeldTime += delta / (float)Engine.TimeScale;
+        }
+        else
+        {
+            _lookHeldTime = 0;
+        }
+    }
+
+    /// <summary>
+    /// How far the player has looked, from 0 (not at all) to 1 (fully): nothing for <see cref="LookDelay"/>, then
+    /// eased in, quadratically, over <see cref="LookTime"/>.
+    /// </summary>
+    private float LookAmount
+    {
+        get
+        {
+            float t = Math.Clamp((_lookHeldTime - LookDelay) / LookTime, 0, 1);
+            return t * t;
+        }
     }
 
     /// <summary>
@@ -252,7 +261,7 @@ public partial class CameraRig : Node3D
     /// </summary>
     private void StepLead(WorldNode world, float delta)
     {
-        if (_gameModeManager.GameMode is not (GameMode.Playing or GameMode.Cutscene))
+        if (world.GameMode is not (GameMode.Playing or GameMode.Cutscene))
         {
             return;
         }
