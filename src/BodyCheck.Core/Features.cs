@@ -137,6 +137,24 @@ public sealed record Features
     /// or round a corner. The pan then speeds up toward its end, as its smoothing time shortens.
     /// </summary>
     public float CameraPanSpeed { get; init; } = 5;
+
+    /// <summary>
+    /// How far ahead of the player, in tiles, the camera wants to be, the way the player last pressed. At 2.5, it about
+    /// makes up for the camera's lag behind a player running at full speed.
+    /// </summary>
+    public float CameraLead { get; init; } = 2.5f;
+
+    /// <summary>
+    /// How long, in game seconds, the camera's lead takes to move ~60% toward <see cref="CameraLead"/> the way the
+    /// player presses, and to settle when the player lets go.
+    /// </summary>
+    public float CameraLeadTime { get; init; } = 0.5f;
+
+    /// <summary>How long, in game seconds, the camera's lead holds after the player lets go, before it goes back to 0.</summary>
+    public float CameraLeadReturnDelay { get; init; } = 3f;
+
+    /// <summary>How long, in game seconds, the camera's lead takes to move ~60% of the way back to 0, after its hold.</summary>
+    public float CameraLeadReturnTime { get; init; } = 1f;
     #endregion
 
     #region Player

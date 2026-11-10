@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 using BodyCheck.Core;
+using BodyCheck.Core.Maths;
 using BodyCheck.Core.Simulation;
 
 using Godot;
@@ -15,8 +16,9 @@ namespace BodyCheck;
 /// The camera, which Phantom Camera moves: its host on the <see cref="Camera3D"/> puts the camera where the phantom
 /// camera of highest priority is, and tweens it from one to the other when that changes. There are two. The player's
 /// follows a target that this node moves each frame, with no damping of its own: <see cref="CameraFraming"/> moves the
-/// target, toward a point above the player where its map lets the view's centre be, and smooths it. The map's is far
-/// back, where it shows the whole world, and takes over in <see cref="GameMode.Map"/>.
+/// target, toward a point above the player and ahead of the way the player last pressed, where its map lets the view's
+/// centre be, and smooths it. The map's is far back, where it shows the whole world, and takes over in
+/// <see cref="GameMode.Map"/>.
 /// <para>
 /// The rig processes while the tree is paused, so that the camera can move to the map and back. The player looks up
 /// or down only while playing, not while paused or in a cutscene, and not when the user is giving any other movement
@@ -67,6 +69,13 @@ public partial class CameraRig : Node3D
     /// <summary>How far the player has looked, from 0 (not at all) to 1 (fully).</summary>
     private float _lookAmount;
 
+    /// <summary>How far ahead of the player the view wants to be, in tiles, to the right if positive.</summary>
+    private float _lead;
+    /// <summary>How fast <see cref="_lead"/> changes, in tiles per game second, as its spring moves it.</summary>
+    private float _leadVelocity;
+    /// <summary>How long, in game seconds, the lead holds before it starts back to 0, now that the player has let go.</summary>
+    private float _leadReturnTimeLeft;
+
     public Camera3D Camera { get; } = new() { Fov = Fov, Current = true };
 
     public CameraRig(GameModeManager gameModeManager)
@@ -112,6 +121,9 @@ public partial class CameraRig : Node3D
     {
         _world = world;
         _framing = new CameraFraming(world.World);
+        _lead = 0;
+        _leadVelocity = 0;
+        _leadReturnTimeLeft = 0;
         MoveMapCamera();
         MoveTarget(0);
         _phantomCamera.Node3D.Call("teleport_position");
@@ -211,16 +223,62 @@ public partial class CameraRig : Node3D
             lookOffset = Lift;
         }
 
+        StepLead(_world, delta);
+
         // The player's interpolated position, since the target moves every frame and the player every physics tick.
         Vector3 player = _world.Player.GetGlobalTransformInterpolated().Origin;
         Vector2 viewport = GetViewport().GetVisibleRect().Size;
         var halfSize = new Vector2(HalfHeight * viewport.X / viewport.Y, HalfHeight);
-        var wanted = new Vector2(player.X, player.Y + lookOffset);
+        var wanted = new Vector2(player.X + _lead, player.Y + lookOffset);
         CameraFraming.Result framed = _framing.Frame(new Vector2(player.X, player.Y), wanted, halfSize, delta);
         Telemetry.Report(Metric.CameraWanted, wanted);
         Telemetry.Report(Metric.CameraGoal, framed.Goal);
         Telemetry.Report(Metric.CameraTarget, framed.Centre);
         _target.GlobalPosition = new Vector3(framed.Centre.X, framed.Centre.Y, 0);
+    }
+
+    /// <summary>
+    /// Moves the lead for <paramref name="delta"/> game seconds, by the horizontal input the player's controller acts
+    /// on: the user's while playing, and a script's in a cutscene. In every other mode, it stays as it is, since the
+    /// input then either doesn't move the player or aims a phase.
+    /// <para>
+    /// The lead follows a critically damped spring. While there is input, its goal is <see cref="Features.CameraLead"/>
+    /// the way it presses, however far, so that pressing against a wall leads too; its smoothing time is
+    /// <see cref="Features.CameraLeadTime"/>, so that a tap moves it only a little. When the input stops, its goal is
+    /// wherever it is, so that it settles and holds, for <see cref="Features.CameraLeadReturnDelay"/>, and then 0, with
+    /// the smoothing time <see cref="Features.CameraLeadReturnTime"/>. Because the goal is set by input and not by the
+    /// player's velocity, stopping doesn't pull the view back.
+    /// </para>
+    /// </summary>
+    private void StepLead(WorldNode world, float delta)
+    {
+        if (_gameModeManager.GameMode is not (GameMode.Playing or GameMode.Cutscene))
+        {
+            return;
+        }
+        float intent = world.PlayerController.Input.XAxis;
+
+        Features features = Features.Current;
+        float goal;
+        float time;
+        if (Math.Abs(intent) > 1e-4f)
+        {
+            goal = Math.Sign(intent) * features.CameraLead;
+            time = features.CameraLeadTime;
+            _leadReturnTimeLeft = features.CameraLeadReturnDelay;
+        }
+        else if (_leadReturnTimeLeft > 0)
+        {
+            goal = _lead;
+            time = features.CameraLeadTime;
+            _leadReturnTimeLeft = Math.Max(0, _leadReturnTimeLeft - delta);
+        }
+        else
+        {
+            goal = 0;
+            time = features.CameraLeadReturnTime;
+        }
+        (_lead, _leadVelocity) = Spring.CriticallyDamped(_lead, _leadVelocity, goal, time, delta);
     }
 
     /// <summary>Phantom Camera's nodes are GDScript classes, which the C# wrappers wrap but can't create.</summary>

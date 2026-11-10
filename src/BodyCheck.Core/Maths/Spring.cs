@@ -15,19 +15,28 @@ public sealed class Spring
     public static (Vector2 Position, Vector2 Velocity) CriticallyDamped(
         Vector2 position, Vector2 velocity, Vector2 goal, float smoothTime, float delta)
     {
+        (float x, float vx) = CriticallyDamped(position.X, velocity.X, goal.X, smoothTime, delta);
+        (float y, float vy) = CriticallyDamped(position.Y, velocity.Y, goal.Y, smoothTime, delta);
+        return (new Vector2(x, y), new Vector2(vx, vy));
+    }
+
+    /// <inheritdoc cref="CriticallyDamped(Vector2, Vector2, Vector2, float, float)"/>
+    public static (float Position, float Velocity) CriticallyDamped(
+        float position, float velocity, float goal, float smoothTime, float delta)
+    {
         float w = 2 / smoothTime;
         float decay = MathF.Exp(-w * delta);
-        Vector2 x = position - goal;
-        Vector2 a = velocity + w * x;
+        float x = position - goal;
+        float a = velocity + w * x;
         return (goal + (x + a * delta) * decay, (velocity - w * delta * a) * decay);
     }
 
     /// <summary>
     /// The force that makes a body of <paramref name="mass"/>, at <paramref name="position"/> and moving at
     /// <paramref name="velocity"/>, follow a critically damped spring of smoothing time <paramref name="smoothTime"/>
-    /// toward <paramref name="goal"/>, as in <see cref="CriticallyDamped"/>, along one axis. It is a PD controller,
-    /// <c>K_p (goal - position) - K_d velocity</c>, with <c>K_p = m w²</c> and <c>K_d = 2 m w</c>, which damp it
-    /// critically. Being proportional to the mass, it moves a body of any mass alike.
+    /// toward <paramref name="goal"/>, as in <see cref="CriticallyDamped(float, float, float, float, float)"/>. It is a
+    /// PD controller, <c>K_p (goal - position) - K_d velocity</c>, with <c>K_p = m w²</c> and <c>K_d = 2 m w</c>, which
+    /// damp it critically. Being proportional to the mass, it moves a body of any mass alike.
     /// </summary>
     public static float CriticallyDampedForce(float position, float velocity, float goal, float smoothTime, float mass)
     {
