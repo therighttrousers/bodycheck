@@ -2,8 +2,13 @@ using Godot;
 
 namespace BodyCheck.Core.Maths;
 
-/// <summary>Rays cast through a grid of unit cells, such as tiles, each cell <c>(x, y)</c> from <c>(x, y)</c> to <c>(x + 1, y + 1)</c>.</summary>
-public static class GridRay
+/// <summary>
+/// Physics queries on a grid of unit cells, such as tiles, each cell <c>(x, y)</c> from <c>(x, y)</c> to
+/// <c>(x + 1, y + 1)</c>, where a predicate says which cells count: what the engine's space queries do for bodies,
+/// without any in the scene: queries that cast a ray, or a moving box, to the first cell it meets, or find the cells a
+/// box overlaps.
+/// </summary>
+public static class GridSpace
 {
     /// <summary>
     /// The point where the line from <paramref name="from"/> to <paramref name="to"/> first enters a cell that
@@ -12,7 +17,7 @@ public static class GridRay
     /// <paramref name="to"/> is in does. It walks the cells the line passes through, one step to a side at a time, as in
     /// Amanatides and Woo's traversal.
     /// </summary>
-    public static Vector2? Cast(Vector2 from, Vector2 to, Func<int, int, bool> hits)
+    public static Vector2? CastRay(Vector2 from, Vector2 to, Func<int, int, bool> hits)
     {
         int x = Mathf.FloorToInt(from.X);
         int y = Mathf.FloorToInt(from.Y);

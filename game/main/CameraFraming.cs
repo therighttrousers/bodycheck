@@ -140,7 +140,7 @@ public sealed class CameraFraming
     private bool CrossesBoundary(Vector2 from, Vector2 to)
     {
         var end = (Vector2I)to.Floor();
-        return GridRay.Cast(from, to, (x, y) => new Vector2I(x, y) != end && Map.IsBoundary(x, y)) is not null;
+        return GridSpace.CastRay(from, to, (x, y) => new Vector2I(x, y) != end && Map.IsBoundary(x, y)) is not null;
     }
 
     /// <summary>
