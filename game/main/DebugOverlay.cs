@@ -42,6 +42,10 @@ public partial class DebugOverlay : CanvasLayer
         Metric.CornerCorrectionTime,
         Metric.CornerCorrectionCenter,
         Metric.CornerCorrectionNudge,
+        // These are more understandable as rendered by CameraDebug:
+        Metric.CameraTarget,
+        Metric.CameraWanted,
+        Metric.CameraGoal,
     ];
     private static readonly Metric[] Metrics = [.. Enum.GetValues<Metric>().Where(metric => !CustomRender.Contains(metric))];
     private static readonly string[] Labels = [.. Metrics.Select(metric => Words(metric.ToString()))];
