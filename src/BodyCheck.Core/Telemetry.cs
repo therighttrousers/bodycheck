@@ -27,7 +27,10 @@ public enum Metric
     PlatformStrain,
 
     CurrentCamera,
-    /// <summary>Where the player's camera would centre its view, above the player or where the player looks, before it's framed.</summary>
+    /// <summary>
+    /// Where the player's camera would centre its view, before it's framed: above where the player last stood, ahead of
+    /// the way the player last pressed, or where the player looks.
+    /// </summary>
     CameraWanted,
     /// <summary>Where the player's camera centres its view, as framed and smoothed.</summary>
     CameraTarget,

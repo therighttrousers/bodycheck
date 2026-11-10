@@ -129,6 +129,18 @@ public sealed record Features
     #endregion
 
     #region Camera
+    /// <summary>
+    /// How far above the player's centre the camera wants the view's centre, in tiles, at rest. At 3, the player stands
+    /// 70% of the way down the screen.
+    /// </summary>
+    public float CameraLift { get; init; } = 3;
+
+    /// <summary>
+    /// How long, in game seconds, the height the camera holds through a jump takes to move ~60% of the way to where the
+    /// player lands.
+    /// </summary>
+    public float CameraLandTime { get; init; } = 0.25f;
+
     /// <summary>How long it takes the camera target to move ~60% toward its target, when moving its fastest.</summary>
     public float CameraMinSmoothTime { get; init; } = 0.15f;
 
