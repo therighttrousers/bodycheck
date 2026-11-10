@@ -155,6 +155,7 @@ internal enum LdtkLayerName
 {
     Control,
     Entities,
+    CameraBoundary,
     SolidGeometry,
 }
 

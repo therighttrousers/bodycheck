@@ -4,12 +4,13 @@ namespace BodyCheck.Core.WorldData;
 
 /// <summary>
 /// A named world: rooms that don't overlap, with one player start among them. Its tiles are the union of its rooms', and
-/// everywhere outside a room is empty. Its entities are its rooms', with ids unique in the world, and their routes may
+/// everywhere outside a room is empty; so is its camera boundary. Its entities are its rooms', with ids unique in the world, and their routes may
 /// lead into any of its rooms. A world comes from an LDtk project, one room per level, or from one text room.
 /// </summary>
 public sealed class World
 {
     private readonly TileGrid _tiles;
+    private readonly bool[,] _cameraBoundary;
 
     /// <param name="rooms">
     /// The rooms, each with its bottom left tile at or above and to the right of the world's origin. There must be at
@@ -45,6 +46,7 @@ public sealed class World
 
         Size = new Vector2I(Rooms.Max(room => room.Bounds.End.X), Rooms.Max(room => room.Bounds.End.Y));
         _tiles = new TileGrid(Size.X, Size.Y);
+        _cameraBoundary = new bool[Size.X, Size.Y];
         foreach (Room room in Rooms)
         {
             for (int y = 0; y < room.Size.Y; y++)
@@ -52,6 +54,7 @@ public sealed class World
                 for (int x = 0; x < room.Size.X; x++)
                 {
                     _tiles.SetTileIndex(x + room.Origin.X, y + room.Origin.Y, room.GetTileIndex(x, y));
+                    _cameraBoundary[x + room.Origin.X, y + room.Origin.Y] = room.IsCameraBoundary(x, y);
                 }
             }
         }
@@ -184,6 +187,13 @@ public sealed class World
 
     public Vector2I Size { get; }
     public TileIndex GetTileIndex(int x, int y) => _tiles.GetTileIndex(x, y);
+
+    /// <summary>
+    /// Whether a room marks a tile for the camera to keep out of view. False outside the rooms, though the camera keeps
+    /// out of there too: that is the camera's to decide.
+    /// </summary>
+    public bool IsCameraBoundary(int x, int y) =>
+        x >= 0 && y >= 0 && x < Size.X && y < Size.Y && _cameraBoundary[x, y];
 
     /// <summary>
     /// The configurations of the entities with bodies, in the world's coordinates: each room's, in the order of the rooms

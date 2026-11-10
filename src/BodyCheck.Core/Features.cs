@@ -128,6 +128,17 @@ public sealed record Features
     public float TileDefaultFriction { get; init; } = 0.5f;
     #endregion
 
+    #region Camera
+    /// <summary>How long it takes the camera target to move ~60% toward its target, when moving its fastest.</summary>
+    public float CameraMinSmoothTime { get; init; } = 0.15f;
+
+    /// <summary>
+    /// How fast the camera target pans at most, in tiles per game second, when where it should be jumps across a gap
+    /// or round a corner. The pan then speeds up toward its end, as its smoothing time shortens.
+    /// </summary>
+    public float CameraPanSpeed { get; init; } = 5;
+    #endregion
+
     #region Player
     /// <summary>The player's mass.</summary>
     public float PlayerMass { get; init; } = 1;

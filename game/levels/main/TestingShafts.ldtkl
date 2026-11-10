@@ -96,6 +96,41 @@
 			"entityInstances": []
 		},
 		{
+			"__identifier": "CameraBoundary",
+			"__type": "IntGrid",
+			"__cWid": 20,
+			"__cHei": 15,
+			"__gridSize": 16,
+			"__opacity": 0.5,
+			"__pxTotalOffsetX": 0,
+			"__pxTotalOffsetY": 0,
+			"__tilesetDefUid": null,
+			"__tilesetRelPath": null,
+			"iid": "eb5bbff1-bde0-11f1-a078-15ed926dd6f5",
+			"levelId": 217,
+			"layerDefUid": 281,
+			"pxOffsetX": 0,
+			"pxOffsetY": 0,
+			"visible": true,
+			"optionalRules": [],
+			"intGridCsv": [
+				1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+				0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,
+				0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,
+				0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+				1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+				0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,
+				0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,
+				0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+				1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+			],
+			"autoLayerTiles": [],
+			"seed": 3806628,
+			"overrideTilesetUid": null,
+			"gridTiles": [],
+			"entityInstances": []
+		},
+		{
 			"__identifier": "SolidGeometry",
 			"__type": "IntGrid",
 			"__cWid": 20,
@@ -284,5 +319,11 @@
 			"entityInstances": []
 		}
 	],
-	"__neighbours": [ { "levelIid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6", "dir": "n" }, { "levelIid": "940919c0-bde0-11f1-b36f-115902cc0d05", "dir": "ne" }, { "levelIid": "a19fed30-bde0-11f1-9446-a12c3e5c9621", "dir": "e" }, { "levelIid": "4aa45f20-bde0-11f1-9446-ef36bac1f552", "dir": "s" } ]
+	"__neighbours": [
+		{ "levelIid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6", "dir": "n" },
+		{ "levelIid": "940919c0-bde0-11f1-b36f-115902cc0d05", "dir": "ne" },
+		{ "levelIid": "a19fed30-bde0-11f1-9446-a12c3e5c9621", "dir": "e" },
+		{ "levelIid": "4aa45f20-bde0-11f1-9446-ef36bac1f552", "dir": "s" },
+		{ "levelIid": "2b1fbda0-bde0-11f1-a078-c1bbe61b1c66", "dir": "w" }
+	]
 }

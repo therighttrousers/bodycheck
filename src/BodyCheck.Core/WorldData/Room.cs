@@ -10,6 +10,7 @@ namespace BodyCheck.Core.WorldData;
 public sealed class Room : IOffsetTileGrid
 {
     private readonly TileGrid _tiles;
+    private readonly bool[,]? _cameraBoundary;
 
     /// <param name="origin">Where the room's bottom left tile is in the world, in tiles.</param>
     /// <param name="tiles">The room's tiles. The room keeps it, so the caller must not change it afterwards.</param>
@@ -19,13 +20,28 @@ public sealed class Room : IOffsetTileGrid
     /// columns, its open stop above it and its close stop below it, and it doesn't touch both; and a sequence and a
     /// fanout have at least one step; and a trigger set off at the start starts on.
     /// </param>
-    /// <exception cref="ArgumentException">When a configuration isn't what the room can hold.</exception>
-    public Room(string name, Vector2I origin, TileGrid tiles, IEnumerable<EntityConfig> entityConfigs)
+    /// <param name="cameraBoundary">
+    /// Which tiles the camera keeps out of view, by x and then y, the same size as <paramref name="tiles"/>; none if
+    /// null. The room keeps it, so the caller must not change it afterwards.
+    /// </param>
+    /// <exception cref="ArgumentException">
+    /// When a configuration isn't what the room can hold, or the camera boundary isn't the size of the tiles.
+    /// </exception>
+    public Room(
+        string name, Vector2I origin, TileGrid tiles, IEnumerable<EntityConfig> entityConfigs, bool[,]? cameraBoundary = null)
     {
         Name = name;
         _tiles = tiles;
         Origin = origin;
         Size = tiles.Size;
+        if (cameraBoundary is not null
+            && (cameraBoundary.GetLength(0) != Size.X || cameraBoundary.GetLength(1) != Size.Y))
+        {
+            throw new ArgumentException(
+                $"In room '{name}', the camera boundary is {cameraBoundary.GetLength(0)}x{cameraBoundary.GetLength(1)} "
+                + $"tiles, not {Size.X}x{Size.Y}.", nameof(cameraBoundary));
+        }
+        _cameraBoundary = cameraBoundary;
         EntityConfigs = [.. entityConfigs];
         foreach (EntityConfig config in EntityConfigs)
         {
@@ -180,6 +196,13 @@ public sealed class Room : IOffsetTileGrid
 
     /// <summary>A tile's kind, in the room's coordinates. Everything outside the room is empty.</summary>
     public TileIndex GetTileIndex(int x, int y) => _tiles.GetTileIndex(x, y);
+
+    /// <summary>
+    /// Whether the camera keeps a tile out of view, in the room's coordinates. False outside the room: what the camera
+    /// does there isn't the room's to say.
+    /// </summary>
+    public bool IsCameraBoundary(int x, int y) =>
+        _cameraBoundary is not null && x >= 0 && y >= 0 && x < Size.X && y < Size.Y && _cameraBoundary[x, y];
 
     /// <summary>
     /// Each entity's configuration, including where its box is, in the room's coordinates and in the order the room was

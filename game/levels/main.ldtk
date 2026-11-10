@@ -11,7 +11,7 @@
 	"iid": "0f346a70-bde0-11f1-b046-ebfce3981aaf",
 	"jsonVersion": "1.5.3",
 	"appBuildId": 473703,
-	"nextUid": 280,
+	"nextUid": 284,
 	"identifierStyle": "Capitalize",
 	"toc": [{
 		"identifier": "PlayerStart",
@@ -136,6 +136,41 @@
 		},
 		{
 			"__type": "IntGrid",
+			"identifier": "CameraBoundary",
+			"type": "IntGrid",
+			"uid": 281,
+			"doc": null,
+			"uiColor": null,
+			"gridSize": 16,
+			"guideGridWid": 0,
+			"guideGridHei": 0,
+			"displayOpacity": 0.5,
+			"inactiveOpacity": 0,
+			"hideInList": false,
+			"hideFieldsWhenInactive": false,
+			"canSelectWhenInactive": true,
+			"renderInWorldView": true,
+			"pxOffsetX": 0,
+			"pxOffsetY": 0,
+			"parallaxFactorX": 0,
+			"parallaxFactorY": 0,
+			"parallaxScaling": true,
+			"requiredTags": [],
+			"excludedTags": [],
+			"autoTilesKilledByOtherLayerUid": null,
+			"uiFilterTags": [],
+			"useAsyncRender": false,
+			"intGridValues": [{ "value": 1, "identifier": "Boundary", "color": "#FF0044", "tile": null, "groupUid": 0 }],
+			"intGridValuesGroups": [],
+			"autoRuleGroups": [],
+			"autoSourceLayerDefUid": null,
+			"tilesetDefUid": null,
+			"tilePivotX": 0,
+			"tilePivotY": 0,
+			"biomeFieldUid": null
+		},
+		{
+			"__type": "IntGrid",
 			"identifier": "SolidGeometry",
 			"type": "IntGrid",
 			"uid": 1,
@@ -161,8 +196,8 @@
 			"uiFilterTags": [],
 			"useAsyncRender": false,
 			"intGridValues": [
-				{ "value": 1, "identifier": "Ground", "color": "#C28569", "tile": null, "groupUid": 0 },
-				{ "value": 2, "identifier": "Grass", "color": "#63C74D", "tile": null, "groupUid": 0 }
+				{ "value": 1, "identifier": "Ground", "color": "#C28569", "tile": { "tilesetUid": 276, "x": 0, "y": 0, "w": 16, "h": 16 }, "groupUid": 0 },
+				{ "value": 2, "identifier": "Grass", "color": "#63C74D", "tile": { "tilesetUid": 276, "x": 17, "y": 0, "w": 16, "h": 16 }, "groupUid": 0 }
 			],
 			"intGridValuesGroups": [],
 			"autoRuleGroups": [
@@ -1540,7 +1575,13 @@
 				"externalRelPath": "main/TestingEntrance.ldtkl",
 				"fieldInstances": [],
 				"layerInstances": null,
-				"__neighbours": [ { "levelIid": "9971ed40-bde0-11f1-a778-ebfea3fcd78b", "dir": "n" }, { "levelIid": "940919c0-bde0-11f1-b36f-115902cc0d05", "dir": "e" }, { "levelIid": "a19fed30-bde0-11f1-9446-a12c3e5c9621", "dir": "se" }, { "levelIid": "3aec9f20-bde0-11f1-a778-cd4d7eac5ccb", "dir": "s" } ]
+				"__neighbours": [
+					{ "levelIid": "9971ed40-bde0-11f1-a778-ebfea3fcd78b", "dir": "n" },
+					{ "levelIid": "940919c0-bde0-11f1-b36f-115902cc0d05", "dir": "e" },
+					{ "levelIid": "a19fed30-bde0-11f1-9446-a12c3e5c9621", "dir": "se" },
+					{ "levelIid": "3aec9f20-bde0-11f1-a778-cd4d7eac5ccb", "dir": "s" },
+					{ "levelIid": "2b1fbda0-bde0-11f1-a078-c1bbe61b1c66", "dir": "w" }
+				]
 			},
 			{
 				"identifier": "TestingClot",
@@ -1563,7 +1604,7 @@
 				"externalRelPath": "main/TestingClot.ldtkl",
 				"fieldInstances": [],
 				"layerInstances": null,
-				"__neighbours": [ { "levelIid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6", "dir": "s" }, { "levelIid": "940919c0-bde0-11f1-b36f-115902cc0d05", "dir": "s" } ]
+				"__neighbours": [ { "levelIid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6", "dir": "s" }, { "levelIid": "940919c0-bde0-11f1-b36f-115902cc0d05", "dir": "s" }, { "levelIid": "1971f330-bde0-11f1-a007-1bd4b86a3e1a", "dir": "e" } ]
 			},
 			{
 				"identifier": "TestingGerald",
@@ -1572,7 +1613,7 @@
 				"worldX": 320,
 				"worldY": 0,
 				"worldDepth": 0,
-				"pxWid": 320,
+				"pxWid": 352,
 				"pxHei": 240,
 				"__bgColor": "#696A79",
 				"bgColor": null,
@@ -1586,7 +1627,13 @@
 				"externalRelPath": "main/TestingGerald.ldtkl",
 				"fieldInstances": [],
 				"layerInstances": null,
-				"__neighbours": [ { "levelIid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6", "dir": "w" }, { "levelIid": "9971ed40-bde0-11f1-a778-ebfea3fcd78b", "dir": "n" }, { "levelIid": "a19fed30-bde0-11f1-9446-a12c3e5c9621", "dir": "s" }, { "levelIid": "3aec9f20-bde0-11f1-a778-cd4d7eac5ccb", "dir": "sw" } ]
+				"__neighbours": [
+					{ "levelIid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6", "dir": "w" },
+					{ "levelIid": "9971ed40-bde0-11f1-a778-ebfea3fcd78b", "dir": "n" },
+					{ "levelIid": "a19fed30-bde0-11f1-9446-a12c3e5c9621", "dir": "s" },
+					{ "levelIid": "3aec9f20-bde0-11f1-a778-cd4d7eac5ccb", "dir": "sw" },
+					{ "levelIid": "1971f330-bde0-11f1-a007-1bd4b86a3e1a", "dir": "e" }
+				]
 			},
 			{
 				"identifier": "TestingDrop",
@@ -1609,7 +1656,13 @@
 				"externalRelPath": "main/TestingDrop.ldtkl",
 				"fieldInstances": [],
 				"layerInstances": null,
-				"__neighbours": [ { "levelIid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6", "dir": "nw" }, { "levelIid": "940919c0-bde0-11f1-b36f-115902cc0d05", "dir": "n" }, { "levelIid": "4aa45f20-bde0-11f1-9446-ef36bac1f552", "dir": "w" }, { "levelIid": "3aec9f20-bde0-11f1-a778-cd4d7eac5ccb", "dir": "w" } ]
+				"__neighbours": [
+					{ "levelIid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6", "dir": "nw" },
+					{ "levelIid": "940919c0-bde0-11f1-b36f-115902cc0d05", "dir": "n" },
+					{ "levelIid": "4aa45f20-bde0-11f1-9446-ef36bac1f552", "dir": "w" },
+					{ "levelIid": "3aec9f20-bde0-11f1-a778-cd4d7eac5ccb", "dir": "w" },
+					{ "levelIid": "1971f330-bde0-11f1-a007-1bd4b86a3e1a", "dir": "e" }
+				]
 			},
 			{
 				"identifier": "TestingGaps",
@@ -1632,7 +1685,7 @@
 				"externalRelPath": "main/TestingGaps.ldtkl",
 				"fieldInstances": [],
 				"layerInstances": null,
-				"__neighbours": [ { "levelIid": "a19fed30-bde0-11f1-9446-a12c3e5c9621", "dir": "e" }, { "levelIid": "3aec9f20-bde0-11f1-a778-cd4d7eac5ccb", "dir": "n" } ]
+				"__neighbours": [ { "levelIid": "a19fed30-bde0-11f1-9446-a12c3e5c9621", "dir": "e" }, { "levelIid": "3aec9f20-bde0-11f1-a778-cd4d7eac5ccb", "dir": "n" }, { "levelIid": "2b1fbda0-bde0-11f1-a078-c1bbe61b1c66", "dir": "n" } ]
 			},
 			{
 				"identifier": "TestingShafts",
@@ -1655,7 +1708,59 @@
 				"externalRelPath": "main/TestingShafts.ldtkl",
 				"fieldInstances": [],
 				"layerInstances": null,
-				"__neighbours": [ { "levelIid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6", "dir": "n" }, { "levelIid": "940919c0-bde0-11f1-b36f-115902cc0d05", "dir": "ne" }, { "levelIid": "a19fed30-bde0-11f1-9446-a12c3e5c9621", "dir": "e" }, { "levelIid": "4aa45f20-bde0-11f1-9446-ef36bac1f552", "dir": "s" } ]
+				"__neighbours": [
+					{ "levelIid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6", "dir": "n" },
+					{ "levelIid": "940919c0-bde0-11f1-b36f-115902cc0d05", "dir": "ne" },
+					{ "levelIid": "a19fed30-bde0-11f1-9446-a12c3e5c9621", "dir": "e" },
+					{ "levelIid": "4aa45f20-bde0-11f1-9446-ef36bac1f552", "dir": "s" },
+					{ "levelIid": "2b1fbda0-bde0-11f1-a078-c1bbe61b1c66", "dir": "w" }
+				]
+			},
+			{
+				"identifier": "TestingOutside",
+				"iid": "2b1fbda0-bde0-11f1-a078-c1bbe61b1c66",
+				"uid": 282,
+				"worldX": -512,
+				"worldY": 0,
+				"worldDepth": 0,
+				"pxWid": 512,
+				"pxHei": 480,
+				"__bgColor": "#696A79",
+				"bgColor": null,
+				"useAutoIdentifier": false,
+				"bgRelPath": null,
+				"bgPos": null,
+				"bgPivotX": 0.5,
+				"bgPivotY": 0.5,
+				"__smartColor": "#ADADB5",
+				"__bgPos": null,
+				"externalRelPath": "main/TestingOutside.ldtkl",
+				"fieldInstances": [],
+				"layerInstances": null,
+				"__neighbours": [ { "levelIid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6", "dir": "e" }, { "levelIid": "4aa45f20-bde0-11f1-9446-ef36bac1f552", "dir": "s" }, { "levelIid": "3aec9f20-bde0-11f1-a778-cd4d7eac5ccb", "dir": "e" } ]
+			},
+			{
+				"identifier": "TestingTooNarrow",
+				"iid": "1971f330-bde0-11f1-a007-1bd4b86a3e1a",
+				"uid": 283,
+				"worldX": 672,
+				"worldY": -112,
+				"worldDepth": 0,
+				"pxWid": 208,
+				"pxHei": 544,
+				"__bgColor": "#696A79",
+				"bgColor": null,
+				"useAutoIdentifier": false,
+				"bgRelPath": null,
+				"bgPos": null,
+				"bgPivotX": 0.5,
+				"bgPivotY": 0.5,
+				"__smartColor": "#ADADB5",
+				"__bgPos": null,
+				"externalRelPath": "main/TestingTooNarrow.ldtkl",
+				"fieldInstances": [],
+				"layerInstances": null,
+				"__neighbours": [ { "levelIid": "9971ed40-bde0-11f1-a778-ebfea3fcd78b", "dir": "w" }, { "levelIid": "940919c0-bde0-11f1-b36f-115902cc0d05", "dir": "w" }, { "levelIid": "a19fed30-bde0-11f1-9446-a12c3e5c9621", "dir": "w" } ]
 			}
 		] }
 	],

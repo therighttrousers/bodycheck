@@ -18,12 +18,14 @@ Relevant decision records:
 - [031: Tests in the game's project](../../docs/decision-records/031-tests-in-the-game-project.md)
 - [035: One shape for actions](../../docs/decision-records/035-one-shape-for-actions.md)
 - [039: Pausing for the menu and the map](../../docs/decision-records/039-modes-kept-across-pauses.md)
+- [042: The camera clamped by tiles](../../docs/decision-records/042-camera-clamped-by-tiles.md)
 - [044: Dialogue](../../docs/decision-records/044-dialogue.md)
 - [050: The cutscene mode](../../docs/decision-records/050-cutscene-mode.md)
 - [051: The scripted run at the spawn](../../docs/decision-records/051-scripted-run-at-the-spawn.md)
 - [052: The talking door](../../docs/decision-records/052-talking-door.md)
 - [053: Cancelling tasks](../../docs/decision-records/053-cancelling-tasks.md)
 - [057: Tile kinds](../../docs/decision-records/057-tile-kinds.md)
+- [058: A map of where the camera may be](../../docs/decision-records/058-camera-map.md)
 
 ## What it is
 
@@ -45,9 +47,9 @@ With `--probe=` and a name, `Main` runs that probe instead of playing; its code 
 
 `CameraRig` is the camera: a `Camera3D` with a Phantom Camera host, which puts it where the phantom camera of highest priority is, and two phantom cameras, the player's and the map's. Phantom Camera's nodes are GDScript classes; C# reaches them through the wrappers it ships, which can't create them, so the rig creates them from their scripts.
 
-- The player's phantom camera follows a target, which the rig moves each frame, above the player, up or down by where the player looks, and clamped to the world's tile grid, its rooms' bounding box (`010 §1.3`, `§2.1`, `011 §4.1`).
+- The player's phantom camera follows a target, with no damping of its own, which the rig moves each frame: `CameraFraming` moves it toward the point of its `CameraMap` nearest the wanted framing, above the player, and up or down by where the player looks, as a critically damped spring (`010 §1.3`, `§2.1`, `042 §5.3`, `058 §7`). `CameraFraming` is built from the world when the rig starts to follow it, and the rig gives it the wanted framing, the view's size and the frame's game time each frame, and reports to telemetry what it wanted, the goal and the view's centre. See [rendering.md](../../docs/designs/rendering.md#scale) for how it frames.
 - The rig reads the look from the world's `PlayerInput`, which the player's controller reads too, so the function that supplies it must have no side effects. It looks only while the game is playing, not while paused or in a cutscene. It looks only while `PlayerInput.CanLook`, after a hold, easing a look amount with a `Tween` that it kills when the look stops (`014`). Looking up or down is the player's hands, so its delay and pan run on real time (`030 §3.1`).
-- The camera's follow damping, a smoothing time of 0.15 seconds, runs on game time, so that the camera lags a moving player by the same distance at any speed. It isn't scaled while the player looks, since following a look and snapping back from it barely differ at reasonable speeds (`030 §4.4`).
+- The framing's spring runs on game time, so that the camera lags a moving player by the same distance at any speed. Its smoothing times are features, so that a configuration can tune them (`030 §4.4`, `058 §7.2`).
 - The rig processes while the tree is paused, so that the camera can move, and the player doesn't look up or down then.
 
 ## The game's modes
@@ -88,8 +90,9 @@ A playtester plays from a clone of the repository, started by `play.cmd`, which 
 
 ## Debug tools
 
-Paused, the debug tools still work: the `DebugOverlay`, the `CollisionDebug` and the rendering switches process while the tree is paused.
+Paused, the debug tools still work: the `DebugOverlay`, the `CollisionDebug`, the `CameraDebug` and the rendering switches process while the tree is paused.
 
+- `CameraDebug`, on F1, shows how the player's camera is framed, for debugging and tuning the framing and the painting: the world's `CameraMap`, on a quad behind the tiles' front layer, and the wanted framing and the view's centre as framed, which `CameraRig` reports to telemetry each frame, drawn through the tiles. `Main` adds one to each world, with the map of the rig's framing, and keeps whether it shows as it loads worlds. It makes the map's texture the first time it shows (`058 §2.3`).
 - F2 shows the world's map markers. `Main` keeps whether they show as it loads worlds.
 - 2 presents the debug dialogue, `dialogue/debug.dialogue`, from its title `start`, through Core's `DialogueRunner`, as a level's `Dialogue` entity does, so that it plays in a cutscene and queues after any dialogue already presented, and prints when what waits for it has resumed. Its lines have a wait, a speed change, two garble tags, and responses whose branches meet again.
 - `DebugOverlay`, on F3, shows the frame rate and times and every telemetry value, at the window's resolution (`008 §2.3`).
@@ -100,5 +103,5 @@ Paused, the debug tools still work: the `DebugOverlay`, the `CollisionDebug` and
 - Input across the game's modes (issue #174). The player's input is polled with `Input.IsActionPressed`, which sees a held key whether or not a node handled its press, so a key that closes the menu or the map can reach play on the next played tick. The jump that ends a dialogue doesn't, since the player's controller counts a button held as a cutscene ends as no new press (`050 §4.3`); input that owns its own presses would do that for every mode, and for the camera and scripted input too. Input is read in several places, in two ways.
 
 - The rest of the world as the map (Neil): the map pauses the tree and zooms out, but doesn't yet hide what moves or is expensive to draw, or show only the rooms the player has explored. Rooms already draw their own tiles (`020 §2.1`), so this would be revealing the explored ones, perhaps with a cheaper look each, and it means caching could unload a room's entities and colliders but not its look (`013`, Context). The zoom's tween is linear in distance, which does most of the visible zooming early; an exponential transition may feel more even at the sizes of a whole game, 16x16 to 32x32 rooms.
-- Phantom Camera's lookahead and newer framed-follow features are described for its 2D camera only, and are unverified in 3D. Its limits are 2D only; `CameraRig` clamps instead (`010 §2.1`).
+- Phantom Camera's lookahead and newer framed-follow features are described for its 2D camera only, and are unverified in 3D. Its limits are 2D only; `CameraRig` moves the target instead (`010 §2.1`).
 - The game can hit the same race at exit as [the tests](../tests/architecture.md). A crash then comes after the last frame, so it loses nothing that was supposed to persist, as long as nothing that must happen is left to a finalizer: .NET doesn't promise to run them when a process exits. When the menu gets a way to quit, quitting and closing the window should share one path that saves and flushes files explicitly, then runs the garbage collector and waits for its finalizers, then quits.
