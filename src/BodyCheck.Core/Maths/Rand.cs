@@ -1,4 +1,4 @@
-namespace BodyCheck.Core;
+namespace BodyCheck.Core.Maths;
 
 /// <summary>
 /// Random numbers that are the same on every run and every .NET version, from a string seed: FNV-1a hashes the seed,
