@@ -35,8 +35,8 @@ public sealed class CameraFraming
     /// </summary>
     internal const float PlayerMargin = 1;
 
-    /// <summary>How fast the smoothing time shortens toward its least after a jump: the fraction left after a game second is <c>e</c> to the minus this.</summary>
-    private const float SmoothTimeDecay = 2;
+    /// <summary>The smoothing time, in game seconds, of the smoothing time's own shortening toward its least after a jump.</summary>
+    private const float SmoothTimeShortening = 0.5f;
 
     private static readonly Vector2 Scale = CameraMap.PixelsPerTile;
     private static readonly Vector2 Cell = Vector2.One / Scale;
@@ -93,14 +93,13 @@ public sealed class CameraFraming
         }
         if (IsJump(_goal, goal))
         {
-            // Long enough that a spring's fastest, its distance times 2 / (e T), is the pan speed.
             float jump = _goal.DistanceTo(goal);
-            _smoothTime = Math.Max(features.CameraMinSmoothTime, 2 * jump / (MathF.E * features.CameraPanSpeed));
+            _smoothTime = Math.Max(
+                features.CameraMinSmoothTime, Spring.SmoothTimeForPeakSpeed(jump, features.CameraPanSpeed));
         }
         else
         {
-            _smoothTime = features.CameraMinSmoothTime
-                + (_smoothTime - features.CameraMinSmoothTime) * MathF.Exp(-SmoothTimeDecay * delta);
+            _smoothTime = Smoothing.Exponential(_smoothTime, features.CameraMinSmoothTime, SmoothTimeShortening, delta);
         }
         _goal = goal;
 
@@ -136,44 +135,12 @@ public sealed class CameraFraming
 
     /// <summary>
     /// Whether the line from <paramref name="from"/> to <paramref name="to"/> crosses a tile of the camera boundary,
-    /// not counting the tiles they're in, since the map's margin lets a point be on the boundary's edge. It walks the
-    /// tiles the line passes through, one step to a side at a time, as in Amanatides and Woo's traversal.
+    /// not counting the tiles they're in, since the map's margin lets a point be on the boundary's edge.
     /// </summary>
     private bool CrossesBoundary(Vector2 from, Vector2 to)
     {
-        int x = Mathf.FloorToInt(from.X);
-        int y = Mathf.FloorToInt(from.Y);
-        int endX = Mathf.FloorToInt(to.X);
-        int endY = Mathf.FloorToInt(to.Y);
-        Vector2 d = to - from;
-        int stepX = Math.Sign(endX - x);
-        int stepY = Math.Sign(endY - y);
-        // How far along the line, from 0 to 1, each step to a side is, and where the next one is.
-        float deltaX = stepX == 0 ? float.PositiveInfinity : 1 / MathF.Abs(d.X);
-        float deltaY = stepY == 0 ? float.PositiveInfinity : 1 / MathF.Abs(d.Y);
-        float nextX = stepX > 0 ? (x + 1 - from.X) * deltaX : stepX < 0 ? (from.X - x) * deltaX : float.PositiveInfinity;
-        float nextY = stepY > 0 ? (y + 1 - from.Y) * deltaY : stepY < 0 ? (from.Y - y) * deltaY : float.PositiveInfinity;
-
-        // Exactly as many steps as it takes to reach the last tile, so that rounding can't overshoot it.
-        int steps = Math.Abs(endX - x) + Math.Abs(endY - y);
-        for (int n = 1; n < steps; n++)
-        {
-            if (nextX <= nextY)
-            {
-                x += stepX;
-                nextX += deltaX;
-            }
-            else
-            {
-                y += stepY;
-                nextY += deltaY;
-            }
-            if (Map.IsBoundary(x, y))
-            {
-                return true;
-            }
-        }
-        return false;
+        var end = (Vector2I)to.Floor();
+        return GridRay.Cast(from, to, (x, y) => new Vector2I(x, y) != end && Map.IsBoundary(x, y)) is not null;
     }
 
     /// <summary>

@@ -2,6 +2,7 @@ using System.Diagnostics;
 
 using BodyCheck.Core.Controllers;
 using BodyCheck.Core.Entities;
+using BodyCheck.Core.Maths;
 using BodyCheck.Core.Scripts;
 using BodyCheck.Core.Tasks;
 using BodyCheck.Core.WorldData;
@@ -841,9 +842,7 @@ public partial class WorldNode : Node3D, IScriptWorld
         float nearestGap = 0;
         foreach (EntityConfig.Respawn respawn in World.Controls.OfType<EntityConfig.Respawn>())
         {
-            // How far apart the boxes are along each axis, or 0 where they overlap along it.
-            Vector2 apart = (center - respawn.MapCenter).Abs() - Player.HalfSize - (Vector2)respawn.MapSize / 2f;
-            float gap = new Vector2(MathF.Max(apart.X, 0), MathF.Max(apart.Y, 0)).Length();
+            float gap = Boxes.Distance(center, respawn.MapCenter, Player.HalfSize + (Vector2)respawn.MapSize / 2f);
             if (gap <= Features.Current.PlayerRespawnReach && (nearest is null || gap < nearestGap))
             {
                 nearest = respawn;

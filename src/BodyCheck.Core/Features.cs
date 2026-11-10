@@ -397,10 +397,10 @@ public sealed record Features
     public float PlatformBrakeFrac { get; init; } = 0.5f;
 
     /// <summary>
-    /// The natural frequency, in radians per second, of the critically damped controller that holds a platform on its
-    /// line. Being a frequency, it holds platforms of any mass alike. Higher -> less sag.
+    /// The smoothing time, in game seconds, of the critically damped spring that holds a platform on its line. It holds
+    /// platforms of any mass alike. Lower -> less sag.
     /// </summary>
-    public float PlatformHoldFrequency { get; init; } = 4.75f;
+    public float PlatformSmoothTime { get; init; } = 0.42f;
 
     /// <summary>How near to the end of its line a platform turns around, in tiles.</summary>
     public float PlatformTurnDistance { get; init; } = 0.1f;
