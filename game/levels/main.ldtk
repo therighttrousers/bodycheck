@@ -11,7 +11,7 @@
 	"iid": "0f346a70-bde0-11f1-b046-ebfce3981aaf",
 	"jsonVersion": "1.5.3",
 	"appBuildId": 473703,
-	"nextUid": 283,
+	"nextUid": 284,
 	"identifierStyle": "Capitalize",
 	"toc": [{
 		"identifier": "PlayerStart",
@@ -1604,7 +1604,7 @@
 				"externalRelPath": "main/TestingClot.ldtkl",
 				"fieldInstances": [],
 				"layerInstances": null,
-				"__neighbours": [ { "levelIid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6", "dir": "s" }, { "levelIid": "940919c0-bde0-11f1-b36f-115902cc0d05", "dir": "s" } ]
+				"__neighbours": [ { "levelIid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6", "dir": "s" }, { "levelIid": "940919c0-bde0-11f1-b36f-115902cc0d05", "dir": "s" }, { "levelIid": "1971f330-bde0-11f1-a007-1bd4b86a3e1a", "dir": "e" } ]
 			},
 			{
 				"identifier": "TestingGerald",
@@ -1613,7 +1613,7 @@
 				"worldX": 320,
 				"worldY": 0,
 				"worldDepth": 0,
-				"pxWid": 320,
+				"pxWid": 352,
 				"pxHei": 240,
 				"__bgColor": "#696A79",
 				"bgColor": null,
@@ -1627,7 +1627,13 @@
 				"externalRelPath": "main/TestingGerald.ldtkl",
 				"fieldInstances": [],
 				"layerInstances": null,
-				"__neighbours": [ { "levelIid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6", "dir": "w" }, { "levelIid": "9971ed40-bde0-11f1-a778-ebfea3fcd78b", "dir": "n" }, { "levelIid": "a19fed30-bde0-11f1-9446-a12c3e5c9621", "dir": "s" }, { "levelIid": "3aec9f20-bde0-11f1-a778-cd4d7eac5ccb", "dir": "sw" } ]
+				"__neighbours": [
+					{ "levelIid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6", "dir": "w" },
+					{ "levelIid": "9971ed40-bde0-11f1-a778-ebfea3fcd78b", "dir": "n" },
+					{ "levelIid": "a19fed30-bde0-11f1-9446-a12c3e5c9621", "dir": "s" },
+					{ "levelIid": "3aec9f20-bde0-11f1-a778-cd4d7eac5ccb", "dir": "sw" },
+					{ "levelIid": "1971f330-bde0-11f1-a007-1bd4b86a3e1a", "dir": "e" }
+				]
 			},
 			{
 				"identifier": "TestingDrop",
@@ -1650,7 +1656,13 @@
 				"externalRelPath": "main/TestingDrop.ldtkl",
 				"fieldInstances": [],
 				"layerInstances": null,
-				"__neighbours": [ { "levelIid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6", "dir": "nw" }, { "levelIid": "940919c0-bde0-11f1-b36f-115902cc0d05", "dir": "n" }, { "levelIid": "4aa45f20-bde0-11f1-9446-ef36bac1f552", "dir": "w" }, { "levelIid": "3aec9f20-bde0-11f1-a778-cd4d7eac5ccb", "dir": "w" } ]
+				"__neighbours": [
+					{ "levelIid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6", "dir": "nw" },
+					{ "levelIid": "940919c0-bde0-11f1-b36f-115902cc0d05", "dir": "n" },
+					{ "levelIid": "4aa45f20-bde0-11f1-9446-ef36bac1f552", "dir": "w" },
+					{ "levelIid": "3aec9f20-bde0-11f1-a778-cd4d7eac5ccb", "dir": "w" },
+					{ "levelIid": "1971f330-bde0-11f1-a007-1bd4b86a3e1a", "dir": "e" }
+				]
 			},
 			{
 				"identifier": "TestingGaps",
@@ -1726,6 +1738,29 @@
 				"fieldInstances": [],
 				"layerInstances": null,
 				"__neighbours": [ { "levelIid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6", "dir": "e" }, { "levelIid": "4aa45f20-bde0-11f1-9446-ef36bac1f552", "dir": "s" }, { "levelIid": "3aec9f20-bde0-11f1-a778-cd4d7eac5ccb", "dir": "e" } ]
+			},
+			{
+				"identifier": "TestingTooNarrow",
+				"iid": "1971f330-bde0-11f1-a007-1bd4b86a3e1a",
+				"uid": 283,
+				"worldX": 672,
+				"worldY": -112,
+				"worldDepth": 0,
+				"pxWid": 208,
+				"pxHei": 544,
+				"__bgColor": "#696A79",
+				"bgColor": null,
+				"useAutoIdentifier": false,
+				"bgRelPath": null,
+				"bgPos": null,
+				"bgPivotX": 0.5,
+				"bgPivotY": 0.5,
+				"__smartColor": "#ADADB5",
+				"__bgPos": null,
+				"externalRelPath": "main/TestingTooNarrow.ldtkl",
+				"fieldInstances": [],
+				"layerInstances": null,
+				"__neighbours": [ { "levelIid": "9971ed40-bde0-11f1-a778-ebfea3fcd78b", "dir": "w" }, { "levelIid": "940919c0-bde0-11f1-b36f-115902cc0d05", "dir": "w" }, { "levelIid": "a19fed30-bde0-11f1-9446-a12c3e5c9621", "dir": "w" } ]
 			}
 		] }
 	],

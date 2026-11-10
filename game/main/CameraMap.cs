@@ -20,8 +20,10 @@ namespace BodyCheck;
 /// </item>
 /// <item>
 /// It is thinned <see cref="ThinSteps"/> steps, by Zhang and Suen's thinning, half the view's size in pixels. Where the
-/// view fits, what's left is where it shows none of the boundary. Thinning keeps every connection and every end, so
-/// where it doesn't fit, a line, one or two pixels thick, is left along the middle of the space.
+/// view fits, what's left is where it shows none of the boundary. Thinning keeps every connection, so where it doesn't
+/// fit, a line, one or two pixels thick, is left along the middle of the space. A line's ends are shortened as the
+/// space's ends would have been, so that they come no nearer the space's ends than the view's half size; a space
+/// shorter than that is left with a point.
 /// </item>
 /// <item>
 /// It is grown by the margin, <see cref="MarginTiles"/>, so that the view may show a painted wall's face, and the lines
@@ -121,8 +123,15 @@ public sealed class CameraMap
 
     /// <summary>
     /// One half of a step of Zhang and Suen's thinning: removes, all at once, each pixel on the edge of the space that can
-    /// go without cutting the space or shortening a line. The first half takes pixels off the right and the bottom, and
-    /// the top left corners; the second, off the left and the top, and the bottom right corners. Whether it removed any.
+    /// go without cutting the space. The first half takes pixels off the right and the bottom, and the top left corners;
+    /// the second, off the left and the top, and the bottom right corners. Whether it removed any.
+    /// <para>
+    /// Unlike Zhang and Suen's, it shortens lines too, so that a line's end is where the space's end would be had it not
+    /// become a line: in a space narrower than the view, as far from the space's end as in one wider. An end goes in the
+    /// half that peels the side it faces, and only that one, since a line one pixel thick is on the edge both halves peel,
+    /// and would otherwise go twice a step. A single pixel never goes, so a space that shrinks to a point keeps it, and
+    /// the two pixels of a line two long face opposite ways, so they never go together.
+    /// </para>
     /// </summary>
     private bool Thin(bool firstHalf)
     {
@@ -146,7 +155,7 @@ public sealed class CameraMap
                 bool upLeft = IsValid(x - 1, y + 1);
                 ReadOnlySpan<bool> around = [up, upRight, right, downRight, down, downLeft, left, upLeft];
 
-                // With fewer than 2 neighbours, it's the end of a line; with more than 6, inside the space.
+                // With 1 neighbour, it's the end of a line; with none, a point; with more than 6, inside the space.
                 int neighbours = 0;
                 // Where it has more than one run of neighbours, removing it would cut the space.
                 int runs = 0;
@@ -155,13 +164,16 @@ public sealed class CameraMap
                     neighbours += around[i] ? 1 : 0;
                     runs += !around[i] && around[(i + 1) % around.Length] ? 1 : 0;
                 }
-                if (neighbours is < 2 or > 6 || runs != 1)
+                if (neighbours is 0 or > 6 || runs != 1)
                 {
                     continue;
                 }
-                bool onEdge = firstHalf
-                    ? !(up && right && down) && !(right && down && left)
-                    : !(up && right && left) && !(up && down && left);
+                bool onEdge = neighbours == 1
+                    // An end facing right or down, with its neighbour on the other side, goes in the first half.
+                    ? firstHalf == (left || upLeft || up || downLeft)
+                    : firstHalf
+                        ? !(up && right && down) && !(right && down && left)
+                        : !(up && right && left) && !(up && down && left);
                 if (onEdge)
                 {
                     removed.Add(y * Width + x);
