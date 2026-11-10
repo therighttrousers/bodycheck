@@ -145,7 +145,7 @@
 			"guideGridWid": 0,
 			"guideGridHei": 0,
 			"displayOpacity": 0.5,
-			"inactiveOpacity": 0.25,
+			"inactiveOpacity": 0,
 			"hideInList": false,
 			"hideFieldsWhenInactive": false,
 			"canSelectWhenInactive": true,

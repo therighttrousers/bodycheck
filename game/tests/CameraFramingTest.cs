@@ -45,7 +45,7 @@ public class CameraFramingTest
         var player = new Vector2(30, 17);
         Vector2 wanted = player + new Vector2(0.37f, 3);
 
-        AssertThat(framing.Frame(player, wanted, HalfSize, 0).DistanceTo(wanted)).IsLess(1e-4f);
+        AssertThat(framing.Frame(player, wanted, HalfSize, 0).Centre.DistanceTo(wanted)).IsLess(1e-4f);
     }
 
     [TestCase]
@@ -55,7 +55,7 @@ public class CameraFramingTest
         var framing = new CameraFraming(Painted(60, 40, (x, y) => y >= ceiling));
 
         // Wanted where the view would show 4.5 rows of the ceiling.
-        float top = framing.Frame(new Vector2(30, 19), new Vector2(30, 22), HalfSize, 0).Y + HalfSize.Y;
+        float top = framing.Frame(new Vector2(30, 19), new Vector2(30, 22), HalfSize, 0).Centre.Y + HalfSize.Y;
 
         AssertThat(top).IsLessEqual(ceiling + CameraMap.MarginTiles + 0.01f);
         AssertThat(top).IsGreaterEqual(ceiling);
@@ -67,8 +67,8 @@ public class CameraFramingTest
         // A corridor 4 tiles high, from 18 to 22, painted above and below.
         var framing = new CameraFraming(Painted(60, 40, (x, y) => y is < 18 or >= 22));
 
-        // Wanted 5.6 tiles above the player in the corridor, as if looking up.
-        float bottom = framing.Frame(new Vector2(30, 20), new Vector2(30, 25.6f), HalfSize, 0).Y - HalfSize.Y;
+        // Wanted 5.6 tiles above the player in the corridor.
+        float bottom = framing.Frame(new Vector2(30, 20), new Vector2(30, 25.6f), HalfSize, 0).Centre.Y - HalfSize.Y;
 
         AssertThat(bottom).IsLessEqual(18 - CameraMap.MarginTiles + 0.01f);
     }
@@ -80,7 +80,7 @@ public class CameraFramingTest
         var framing = new CameraFraming(Painted(60, 45, (x, y) => y is < 10 or 21 or 22 or 44));
         var player = new Vector2(30, 19);
 
-        Vector2 centre = framing.Frame(player, player + new Vector2(0, 3), HalfSize, 0);
+        Vector2 centre = framing.Frame(player, player + new Vector2(0, 3), HalfSize, 0).Centre;
 
         AssertThat(Math.Abs(centre.Y - player.Y)).IsLessEqual(HalfSize.Y - CameraFraming.PlayerMargin);
         // And the view stays on the space's line: centred on the space, it would show all of the band, and the map lets
@@ -89,43 +89,80 @@ public class CameraFramingTest
     }
 
     [TestCase]
-    public void Moves_no_faster_than_its_speed_past_a_shaft_in_a_painted_ceiling()
+    public void Pans_where_the_goal_jumps_rather_than_jumping()
     {
-        // A ceiling from 20 up, with a shaft 5 tiles wide through it.
+        // A ceiling from 20 up, with a shaft 5 tiles wide through it, from 38 to 43, which the goal jumps into and out of.
         var framing = new CameraFraming(Painted(80, 40, (x, y) => y >= 20 && x is < 38 or >= 43));
         const float delta = 1 / 60f;
 
         // Walking at 6 tiles a second, wanted 3 tiles above the player.
-        Vector2 previous = framing.Frame(new Vector2(20, 13), new Vector2(20, 16), HalfSize, 0);
+        Vector2 previous = framing.Frame(new Vector2(20, 13), new Vector2(20, 16), HalfSize, 0).Centre;
         float largest = 0;
         for (float x = 20.1f; x <= 60; x += 0.1f)
         {
-            Vector2 centre = framing.Frame(new Vector2(x, 13), new Vector2(x, 16), HalfSize, delta);
+            Vector2 centre = framing.Frame(new Vector2(x, 13), new Vector2(x, 16), HalfSize, delta).Centre;
             largest = Math.Max(largest, centre.DistanceTo(previous));
             previous = centre;
         }
 
-        // The box round the player may push it by as far as the player moves, besides.
-        AssertThat(largest).IsLessEqual(CameraFraming.Speed * delta + 0.1f + 1e-4f);
+        // About as fast as the player, rather than the goal's jump of 2.5 tiles in a frame.
+        AssertThat(largest).IsLess(0.2f);
     }
 
     [TestCase]
-    public void Stays_on_its_side_of_a_band_when_looking_up()
+    public void Keeps_up_with_the_player_past_a_shaft_it_rose_into()
     {
-        // Two corridors 4 tiles high, from 18 to 22 and from 24 to 28, with a solid band between them.
+        // As above.
+        var framing = new CameraFraming(Painted(80, 40, (x, y) => y >= 20 && x is < 38 or >= 43));
+        const float delta = 1 / 60f;
+
+        framing.Frame(new Vector2(20, 13), new Vector2(20, 16), HalfSize, 0);
+        float lag = 0;
+        for (float x = 20.1f; x <= 60; x += 0.1f)
+        {
+            lag = Math.Max(lag, Math.Abs(framing.Frame(new Vector2(x, 13), new Vector2(x, 16), HalfSize, delta).Centre.X - x));
+        }
+
+        AssertThat(lag).IsLess(3.5f);
+    }
+
+    [TestCase]
+    public void Does_not_pan_across_a_band()
+    {
+        // As above.
         var framing = new CameraFraming(Painted(60, 40, (x, y) => y is < 18 or 22 or 23 or >= 28));
         var player = new Vector2(30, 20);
         const float delta = 1 / 60f;
 
-        // Placed with the wanted framing 3 tiles above the player, then looking up over a second.
-        framing.Frame(player, player + new Vector2(0, 3), HalfSize, 0);
+        // The wanted framing rises over a second to where the upper corridor's line is nearer than the lower one's.
         Vector2 centre = Vector2.Zero;
-        for (int frame = 1; frame <= 60; frame++)
+        for (int frame = 0; frame <= 120; frame++)
         {
-            centre = framing.Frame(player, player + new Vector2(0, Mathf.Lerp(3, 5.6f, frame / 60f)), HalfSize, delta);
+            Vector2 wanted = player + new Vector2(0, Math.Min(frame / 60f, 1) * 4.5f);
+            centre = framing.Frame(player, wanted, HalfSize, frame == 0 ? 0 : delta).Centre;
         }
 
-        // Still on the lower corridor's line, which the margin thickens by a tile.
         AssertThat(centre.Y).IsLess(22);
+    }
+
+    [TestCase]
+    public void Eases_back_when_a_look_stops()
+    {
+        var framing = new CameraFraming(Painted(60, 40, (x, y) => false));
+        var player = new Vector2(30, 20);
+        Vector2 looking = player + new Vector2(0, 3);
+        const float delta = 1 / 60f;
+
+        // Looking moves the wanted framing; stopping moves it back at once.
+        framing.Frame(player, looking, HalfSize, 0);
+        Vector2 stopped = framing.Frame(player, player, HalfSize, delta).Centre;
+        for (int frame = 0; frame < 60; frame++)
+        {
+            framing.Frame(player, player, HalfSize, delta);
+        }
+        Vector2 back = framing.Frame(player, player, HalfSize, delta).Centre;
+
+        AssertThat(stopped.DistanceTo(looking)).IsLess(0.1f);
+        AssertThat(back.DistanceTo(player)).IsLess(0.01f);
     }
 }

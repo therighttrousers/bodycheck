@@ -14,10 +14,9 @@ namespace BodyCheck;
 /// <summary>
 /// The camera, which Phantom Camera moves: its host on the <see cref="Camera3D"/> puts the camera where the phantom
 /// camera of highest priority is, and tweens it from one to the other when that changes. There are two. The player's
-/// follows a target that this node moves each frame. The target is above the player, moved by
-/// <see cref="CameraFraming"/> onto the points where its map lets the view's centre be. The map's is far back, where it
-/// shows the whole world, and
-/// takes over in <see cref="GameMode.Map"/>.
+/// follows a target that this node moves each frame, with no damping of its own: <see cref="CameraFraming"/> moves the
+/// target, toward a point above the player where its map lets the view's centre be, and smooths it. The map's is far
+/// back, where it shows the whole world, and takes over in <see cref="GameMode.Map"/>.
 /// <para>
 /// The rig processes while the tree is paused, so that the camera can move to the map and back. The player looks up
 /// or down only while playing, not while paused or in a cutscene, and not when the user is giving any other movement
@@ -45,12 +44,6 @@ public partial class CameraRig : Node3D
     private const float LookTime = 1;
     /// <summary>How long the camera takes to move to the map and back, in real seconds.</summary>
     private const float MapMoveTime = 0.25f;
-    /// <summary>
-    /// Damping for moving the camera to follow the target near the player, expressed in game seconds for each axis:
-    /// about how long the camera takes to catch up. On game time, the camera lags a moving player by the same distance
-    /// at any gameplay speed. None along Z, which the camera doesn't move along.
-    /// </summary>
-    private readonly Vector3 _followDampingValue = new(0.15f, 0.15f, 0);
 
     private GameModeManager _gameModeManager = null!;
 
@@ -93,14 +86,12 @@ public partial class CameraRig : Node3D
 
         Node3D phantom = NewPhantomCameraNode<Node3D>("phantom_camera/phantom_camera_3d.gd");
         phantom.Set("follow_mode", (int)FollowMode3D.Simple);
-        phantom.Set("follow_damping", true);
         AddChild(phantom);
         _phantomCamera = phantom.AsPhantomCamera3D();
         // From the plane of play back to where a tile's front face, half a tile in front of it, is the right size.
         float distance = HalfHeight / Mathf.Tan(Mathf.DegToRad(Fov / 2));
         _phantomCamera.FollowOffset = new Vector3(0, 0, distance + 0.5f);
         _phantomCamera.FollowTarget = _target;
-        _phantomCamera.FollowDampingValue = _followDampingValue;
         _phantomCamera.Priority = CameraPriority;
         _phantomCamera.Node3D.Name = "PlayerCamera";
         _phantomCamera.TweenStarted += () => OnTweenStarted(_phantomCamera);
@@ -213,7 +204,7 @@ public partial class CameraRig : Node3D
         }
         else
         {
-            // If not looking, snap back as fast as damping allows.
+            // If not looking, the framing's spring eases the view back.
             _lookTween?.Kill();
             _lookTween = null;
             _lookAmount = 0;
@@ -225,10 +216,11 @@ public partial class CameraRig : Node3D
         Vector2 viewport = GetViewport().GetVisibleRect().Size;
         var halfSize = new Vector2(HalfHeight * viewport.X / viewport.Y, HalfHeight);
         var wanted = new Vector2(player.X, player.Y + lookOffset);
-        Vector2 centre = _framing.Frame(new Vector2(player.X, player.Y), wanted, halfSize, delta);
+        CameraFraming.Result framed = _framing.Frame(new Vector2(player.X, player.Y), wanted, halfSize, delta);
         Telemetry.Report(Metric.CameraWanted, wanted);
-        Telemetry.Report(Metric.CameraTarget, centre);
-        _target.GlobalPosition = new Vector3(centre.X, centre.Y, 0);
+        Telemetry.Report(Metric.CameraGoal, framed.Goal);
+        Telemetry.Report(Metric.CameraTarget, framed.Centre);
+        _target.GlobalPosition = new Vector3(framed.Centre.X, framed.Centre.Y, 0);
     }
 
     /// <summary>Phantom Camera's nodes are GDScript classes, which the C# wrappers wrap but can't create.</summary>

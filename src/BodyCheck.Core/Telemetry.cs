@@ -29,8 +29,13 @@ public enum Metric
     CurrentCamera,
     /// <summary>Where the player's camera would centre its view, above the player or where the player looks, before it's framed.</summary>
     CameraWanted,
-    /// <summary>Where the player's camera centres its view, as framed, which the camera follows with damping.</summary>
+    /// <summary>Where the player's camera centres its view, as framed and smoothed.</summary>
     CameraTarget,
+    /// <summary>
+    /// Where the player's camera's framing is moving the view's centre toward: the point nearest the wanted framing where
+    /// the view's centre may be.
+    /// </summary>
+    CameraGoal,
 
     // The player's last time in the air, reported on landing. Measured from its feet on the last tick on
     // the ground.

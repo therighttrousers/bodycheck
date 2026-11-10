@@ -15,7 +15,7 @@ namespace BodyCheck;
 /// </item>
 /// <item>
 /// The wanted framing, as a cross, and the view's centre as framed, as a diamond, with a line from one to the other,
-/// drawn through the tiles. They are read from <see cref="Telemetry"/> each frame while showing, so that what shows is
+/// and a line from the view's centre to the goal the framing moves it toward, drawn through the tiles. They are read from <see cref="Telemetry"/> each frame while showing, so that what shows is
 /// what the camera reported.
 /// </item>
 /// </list>
@@ -36,6 +36,7 @@ public partial class CameraDebug : Node3D
     private static readonly Color BoundaryColor = new(1, 0.2f, 0.2f, 0.1f);
     private static readonly Color WantedColor = new(1, 0.9f, 0.2f, 0.5f);
     private static readonly Color TargetColor = new(1, 1, 1, 0.5f);
+    private static readonly Color GoalColor = new(0.2f, 0.2f, 1, 0.5f);
 
     private readonly CameraMap _map;
     private readonly MeshInstance3D _mapQuad = new() { CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
@@ -81,12 +82,14 @@ public partial class CameraDebug : Node3D
     {
         _pointsMesh.ClearSurfaces();
         if (Telemetry.Get(Metric.CameraWanted) is not Vector2 wanted
-            || Telemetry.Get(Metric.CameraTarget) is not Vector2 target)
+            || Telemetry.Get(Metric.CameraTarget) is not Vector2 target
+            || Telemetry.Get(Metric.CameraGoal) is not Vector2 goal)
         {
             return;
         }
         _pointsMesh.SurfaceBegin(Mesh.PrimitiveType.Triangles);
         Line(wanted, target, WantedColor);
+        Line(target, goal, GoalColor);
         Line(wanted + new Vector2(-MarkSize, -MarkSize), wanted + new Vector2(MarkSize, MarkSize), WantedColor);
         Line(wanted + new Vector2(-MarkSize, MarkSize), wanted + new Vector2(MarkSize, -MarkSize), WantedColor);
         Vector2[] corners = [new(MarkSize, 0), new(0, MarkSize), new(-MarkSize, 0), new(0, -MarkSize)];
