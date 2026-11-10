@@ -49,10 +49,12 @@ Core is split into subsystems, each a subdirectory and a namespace (`012`). The 
 - [**`Simulation`**](Simulation/architecture.md): the world brought to life, with its entities stepped each tick. Not presentation.
 - [**`Tasks`**](Tasks/architecture.md): tasks that resume only on a tick, and their scheduler. Not what runs on them, or when in a tick.
 - [**`Scripts`**](Scripts/architecture.md): what runs the control entities, which route actions to their targets, and what a script is and sees. Not what a body does when an action reaches it, or the scripts themselves.
+- [**`Maths`**](Maths/architecture.md): standard mathematics, each piece self-contained, such as springs and casting rays through a grid. Not gameplay rules that happen to be arithmetic.
 
 ```mermaid
 graph BT
     Controllers --> Entities
+    Controllers --> Maths
     Entities --> Tasks
     Levels --> WorldData
     Scripts --> Controllers
@@ -63,6 +65,7 @@ graph BT
     Simulation --> Controllers
     Simulation --> Scripts
     Simulation --> Tasks
+    Simulation --> Maths
 ```
 
 An arrow points from a subsystem to one it uses. Every subsystem may use the root, which uses none of them, so the root is at the bottom of every chain; those arrows aren't drawn. There are no cycles.
@@ -71,6 +74,7 @@ An arrow points from a subsystem to one it uses. Every subsystem may use the roo
 - **Entities use tasks** for running an action: the interface that a route's target implements returns a `TickTask`, and is given the `ITick` to run on (`047 §2.2`).
 - **Scripts use entities and tasks** to run actions on their targets, through that interface alone, so a runner can't reach past it to a controller or a body (`043 §3.2`).
 - **Scripts use controllers** for the player's: a script drives the player with input on its controller, in a cutscene, through `IScriptWorld`, what a script sees of the world, which extends what controllers see (`051 §2.4`, `§3.3`).
+- **Controllers and Simulation use maths**, each for a few functions, such as a spring to hold a platform on its line, or the distance to a box. Maths uses no other subsystem.
 - **Levels produce the world's data.** The world's data knows nothing of where it came from.
 - **Simulation joins the rest.** It builds each entity from the world's data, gives it its controller, and steps it; none of the subsystems it uses know about it. It gives controllers the world itself, as an `IWorldView`, and scripts as an `IScriptWorld`.
 - **Simulation runs the world's tasks** on a scheduler of its own, at its point in the tick.
@@ -92,7 +96,7 @@ The order of a tick is in [the conventions](../../docs/designs/architecture.md#c
 
 ## The root
 
-The root holds only what several subsystems, or the game, share: telemetry, `Constants`, `Features`, `PhysicsLayer`, `GameMode`, what the game is doing, which the game holds and controllers can see, `PlayerInput`, what the player is pressing, including whether it is interacting, `TriggerAction`, the actions a route can ask of an entity (`045 §4.3`), `Rand`, random numbers from a string seed that are the same on every run and every .NET version (`057 §2.4`), extension members on Godot's vector types, and a JSON converter that reads enums by name only. It is not for anything that belongs to one subsystem, even if it is small, except a feature: a value that shapes gameplay belongs in the features, even if only one subsystem reads it. Nor is it for anything derived from a feature or cached from one, or for settings that belong to a machine rather than to gameplay, such as graphics.
+The root holds only what several subsystems, or the game, share: telemetry, `Constants`, `Features`, `PhysicsLayer`, `GameMode`, what the game is doing, which the game holds and controllers can see, `PlayerInput`, what the player is pressing, including whether it is interacting, `TriggerAction`, the actions a route can ask of an entity (`045 §4.3`), extension members on Godot's vector types, and a JSON converter that reads enums by name only. It is not for anything that belongs to one subsystem, even if it is small, except a feature: a value that shapes gameplay belongs in the features, even if only one subsystem reads it. Nor is it for anything derived from a feature or cached from one, or for settings that belong to a machine rather than to gameplay, such as graphics.
 
 ### Telemetry
 

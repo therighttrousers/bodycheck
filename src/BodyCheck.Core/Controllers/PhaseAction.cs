@@ -1,4 +1,5 @@
 using BodyCheck.Core.Entities;
+using BodyCheck.Core.Maths;
 
 using Godot;
 
@@ -145,11 +146,7 @@ public sealed class PhaseAction(WalkerEntity entity, PhaseTuning tuning)
         return entity.Overlapping(new SphereShape3D { Radius = radius }, entity.Position)
             .OfType<Entity>()
             .Where(other => other.Tuning.CanBePhased)
-            .MinBy(other =>
-            {
-                Vector2 apart = ((from - other.Position.ToVector2()).Abs() - other.HalfSize).Max(Vector2.Zero);
-                return apart.LengthSquared();
-            });
+            .MinBy(other => Boxes.Distance(from, other.Position.ToVector2(), other.HalfSize));
     }
 
     /// <summary>

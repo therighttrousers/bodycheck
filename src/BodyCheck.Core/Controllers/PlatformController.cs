@@ -1,4 +1,5 @@
 using BodyCheck.Core.Entities;
+using BodyCheck.Core.Maths;
 
 using Godot;
 
@@ -91,19 +92,21 @@ public sealed class PlatformController : IController<PlatformEntity>
         float drive = Math.Clamp(
             _entity.Mass * features.PlatformDriveGain * (targetSpeed - velocity.Dot(heading)), -maxThrust, maxThrust);
 
-        float hold = CriticallyDampedThrust(
-            _entity.Mass,
-            features.PlatformHoldFrequency,
-            error: (_rangeA - position).Dot(_across),
-            rate: velocity.Dot(_across),
-            max: maxThrust);
+        float hold = Math.Clamp(
+            Spring.CriticallyDampedForce(
+                position.Dot(_across),
+                velocity.Dot(_across),
+                goal: _rangeA.Dot(_across),
+                features.PlatformSmoothTime,
+                _entity.Mass),
+            -maxThrust,
+            maxThrust);
 
         Vector2 thrust = drive * heading + hold * _across;
         _entity.ApplyCentralForce(new Vector3(thrust.X, thrust.Y, 0) - _entity.Mass * _entity.GetGravity());
 
         float strain = MathF.Min(1, MathF.Max(MathF.Abs(hold), DriveFought(velocity)) / maxThrust);
-        // An exponential moving average, which settles at the same rate at any tick length.
-        _entity.Strain += (strain - _entity.Strain) * (1 - MathF.Exp(-gameDt / features.PlatformStrainTime));
+        _entity.Strain = Smoothing.Exponential(_entity.Strain, strain, features.PlatformStrainTime, gameDt);
         _lastDrive = drive;
         _lastHeading = heading;
         _lastVelocity = velocity;
@@ -127,17 +130,5 @@ public sealed class PlatformController : IController<PlatformEntity>
         }
         float acceleration = (velocity - _lastVelocity).Dot(_lastHeading) / _lastDt;
         return MathF.Max(0, _lastDrive - _entity.Mass * acceleration);
-    }
-
-    /// <summary>
-    /// The thrust, capped at <paramref name="max"/> either way, of a critically damped PD controller that pushes a
-    /// body of <paramref name="mass"/> to cancel <paramref name="error"/>, which changes at <paramref name="rate"/>.
-    /// </summary>
-    /// <param name="frequency">The controller's natural frequency, in radians per second.</param>
-    private static float CriticallyDampedThrust(float mass, float frequency, float error, float rate, float max)
-    {
-        // PD controller: thrust = K_p * error + K_d * -rate, with K_p = m ω² and K_d = 2 m ω for critical damping.
-        float thrust = mass * frequency * (frequency * error - 2 * rate);
-        return Math.Clamp(thrust, -max, max);
     }
 }
