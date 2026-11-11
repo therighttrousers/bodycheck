@@ -136,8 +136,8 @@ public sealed record Features
     public float CameraLift { get; init; } = 3;
 
     /// <summary>
-    /// How long, in game seconds, the height the camera holds through a jump takes to move ~60% of the way to where the
-    /// player lands.
+    /// How long, in game seconds, the height the camera holds through a jump takes to move ~63% of the way up to where
+    /// the player lands higher: the time constant of its exponential smoothing.
     /// </summary>
     public float CameraLandTime { get; init; } = 0.25f;
 

@@ -66,12 +66,10 @@ public partial class CameraRig : Node3D
     private float _lookHeldTime;
 
     /// <summary>
-    /// The height the view is lifted from, in tiles: where the player last stood, moving toward where they stand now
-    /// as a critically damped spring; null until the rig follows a world's player.
+    /// The height the view is lifted from, in tiles: never above the player's centre, nor more than twice the lift
+    /// below it; null until the rig follows a world's player.
     /// </summary>
     private float? _anchor;
-    /// <summary>How fast <see cref="_anchor"/> moves, in tiles per game second, as its spring moves it.</summary>
-    private float _anchorVelocity;
 
     /// <summary>How far ahead of the player the view wants to be, in tiles, to the right if positive.</summary>
     private float _lead;
@@ -127,7 +125,6 @@ public partial class CameraRig : Node3D
         _framing = new CameraFraming(world.World);
         _lookHeldTime = 0;
         _anchor = null;
-        _anchorVelocity = 0;
         _lead = 0;
         _leadVelocity = 0;
         _leadReturnTimeLeft = 0;
@@ -302,31 +299,32 @@ public partial class CameraRig : Node3D
     }
 
     /// <summary>
-    /// Moves the anchor for <paramref name="delta"/> game seconds, and gives the height the view is lifted from, for a
-    /// player whose centre is at <paramref name="player"/>. See <c>docs/designs/rendering.md</c>, on the camera.
+    /// Moves the anchor for <paramref name="delta"/> game seconds, for a player whose centre is at
+    /// <paramref name="player"/>, and gives it: the height the view is lifted from. See
+    /// <c>docs/designs/rendering.md</c>, on the camera.
     /// <para>
-    /// While the player is on the ground, the anchor moves toward where they stand, with smoothing time
-    /// <see cref="Features.CameraLandTime"/>, so that landing higher pans rather than jumps; in the air, it holds. The
-    /// height is the anchor, kept between the player and twice the lift below them. So a jump doesn't move the view;
-    /// a fall below the anchor follows the player at once, to show where they'll land; and a rise of more than twice
-    /// the lift, from a moving platform or a phase, follows them with the player as far above the view's centre as
-    /// the lift puts them below it at rest. Both edges are smooth, so there's nothing to cancel.
+    /// The anchor holds while the player is within twice the lift above it, and is pushed along when they leave that
+    /// range, either way. So a jump doesn't move the view; a fall below the anchor follows the player at once, to show
+    /// where they'll land; and a higher rise, such as from a platform moving up, follows them, with the player as far
+    /// above the view's centre as the lift puts them below it at rest. Being pushed, rather than following the player
+    /// out of range and back, the anchor stays where a high jump took it until the player falls back to it, so the
+    /// view moves up as the player rises and down only at the end of the fall.
+    /// </para>
+    /// <para>
+    /// On the ground, the anchor also moves up to where the player stands, smoothed exponentially with time constant
+    /// <see cref="Features.CameraLandTime"/>, so that landing higher pans the view rather than jumping it. Stepping
+    /// down needs no smoothing: the range alone puts the anchor where the player stands.
     /// </para>
     /// </summary>
     private float StepHold(WorldNode world, float player, float delta)
     {
-        float anchor = _anchor ?? player;
-        if (world.Player.OnGround)
+        float anchor = Math.Clamp(_anchor ?? player, player - 2 * Features.Current.CameraLift, player);
+        if (world.Player.OnGround && anchor < player)
         {
-            (anchor, _anchorVelocity) = Spring.CriticallyDamped(
-                anchor, _anchorVelocity, player, Features.Current.CameraLandTime, delta);
-        }
-        else
-        {
-            _anchorVelocity = 0;
+            anchor = Smoothing.Exponential(anchor, player, Features.Current.CameraLandTime, delta);
         }
         _anchor = anchor;
-        return Math.Clamp(anchor, player - 2 * Features.Current.CameraLift, player);
+        return anchor;
     }
 
     /// <summary>Phantom Camera's nodes are GDScript classes, which the C# wrappers wrap but can't create.</summary>
