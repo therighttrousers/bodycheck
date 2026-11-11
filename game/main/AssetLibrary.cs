@@ -17,8 +17,8 @@ public class AssetLibrary : IAssetLibrary
 {
     private static readonly Dictionary<TileIndex, string> TilePaths = new()
     {
-        [TileIndex.Ground] = "res://assets/tiles/ground/ground.tscn",
-        [TileIndex.Grass] = "res://assets/tiles/grass/grass.tscn",
+        [TileIndex.Ground] = "res://assets/tiles/ground.tscn",
+        [TileIndex.Grass] = "res://assets/tiles/grass.tscn",
     };
     private const string BlockPath = "res://assets/entities/block/block.tscn";
     private const string PlatformPath = "res://assets/entities/platform/platform.tscn";
