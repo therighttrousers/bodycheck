@@ -1,6 +1,6 @@
 [gd_resource type="StandardMaterial3D" format=3 uid="uid://bgoyrl15765qm"]
 
-[ext_resource type="Texture2D" uid="uid://cb57ywf0crit7" path="res://assets/entities/platform/platform_traces.png" id="1_traces"]
+[ext_resource type="Texture2D" uid="uid://cb57ywf0crit7" path="res://assets/entities/platform/model/platform_traces.png" id="1_traces"]
 
 [resource]
 resource_name = "Body"

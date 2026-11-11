@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://c7fosgy3qu3ng"]
 
-[ext_resource type="PackedScene" uid="uid://brc6q0yohusr8" path="res://assets/entities/platform/platform.glb" id="1_model"]
+[ext_resource type="PackedScene" uid="uid://brc6q0yohusr8" path="res://assets/entities/platform/model/platform.glb" id="1_model"]
 
 [sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_lwqlv"]
 animation = &"frown"
