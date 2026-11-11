@@ -2,8 +2,8 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://de0fv0jvca2w2"
-path.s3tc="res://.godot/imported/Heart_baseColor.jpeg-b16cc0c1ff494817a74242375d33c085.s3tc.ctex"
+uid="uid://c6s68m0qalddy"
+path.s3tc="res://.godot/imported/Border_metallicRoughness.png-37a249eac91d786b9f6d6eba2a4ec689.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -11,8 +11,8 @@ metadata={
 
 [deps]
 
-source_file="res://assets/portal_cube/textures/Heart_baseColor.jpeg"
-dest_files=["res://.godot/imported/Heart_baseColor.jpeg-b16cc0c1ff494817a74242375d33c085.s3tc.ctex"]
+source_file="res://assets/entities/block/textures/Border_metallicRoughness.png"
+dest_files=["res://.godot/imported/Border_metallicRoughness.png-37a249eac91d786b9f6d6eba2a4ec689.s3tc.ctex"]
 
 [params]
 

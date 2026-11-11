@@ -20,7 +20,7 @@ public class AssetLibrary : IAssetLibrary
         [TileIndex.Ground] = "res://assets/tiles/ground/ground.tscn",
         [TileIndex.Grass] = "res://assets/tiles/grass/grass.tscn",
     };
-    private const string BlockPath = "res://assets/portal_cube/scene.tscn";
+    private const string BlockPath = "res://assets/entities/block/block.tscn";
     private const string PlatformPath = "res://assets/entities/platform/platform.tscn";
 
     // How opaque the player's block is: a ghost of a block.
