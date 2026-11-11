@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://ctq5ypfqqc5op"]
 
-[ext_resource type="PackedScene" uid="uid://dfyyweqeug8hm" path="res://assets/entities/player/bob_the_robot/scene.gltf" id="1_icuvs"]
+[ext_resource type="PackedScene" uid="uid://dfyyweqeug8hm" path="res://assets/entities/player/model/scene.gltf" id="1_icuvs"]
 [ext_resource type="Script" uid="uid://bhce8wcrkqb6w" path="res://main/CueSounds.cs" id="2_512o4"]
 [ext_resource type="AudioStream" uid="uid://dnq26wds2nb26" path="res://assets/entities/player/sounds/phase_aim.wav" id="2_elv8a"]
 [ext_resource type="AudioStream" uid="uid://ch8ghbvfp6t6n" path="res://assets/entities/player/sounds/phase_throw.wav" id="3_512o4"]

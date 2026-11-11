@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://dfyyweqeug8hm"
-path="res://.godot/imported/scene.gltf-4f211c0763346b1abe312731869e2ec3.scn"
+path="res://.godot/imported/scene.gltf-86f52b41c8ac9d8986737fe4fb78dddc.scn"
 
 [deps]
 
-source_file="res://assets/entities/player/bob_the_robot/scene.gltf"
-dest_files=["res://.godot/imported/scene.gltf-4f211c0763346b1abe312731869e2ec3.scn"]
+source_file="res://assets/entities/player/model/scene.gltf"
+dest_files=["res://.godot/imported/scene.gltf-86f52b41c8ac9d8986737fe4fb78dddc.scn"]
 
 [params]
 

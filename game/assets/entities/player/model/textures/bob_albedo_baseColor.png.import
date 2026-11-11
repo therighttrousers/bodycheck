@@ -2,8 +2,8 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b48khkeuwo12m"
-path.s3tc="res://.godot/imported/bob_albedo_metallicRoughness.png-7d175bf55a7d195b098a0ca6bdc535b1.s3tc.ctex"
+uid="uid://utjfy6a6sgqx"
+path.s3tc="res://.godot/imported/bob_albedo_baseColor.png-a497f5b4dca997830439b095e218b7af.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -11,8 +11,8 @@ metadata={
 
 [deps]
 
-source_file="res://assets/entities/player/bob_the_robot/textures/bob_albedo_metallicRoughness.png"
-dest_files=["res://.godot/imported/bob_albedo_metallicRoughness.png-7d175bf55a7d195b098a0ca6bdc535b1.s3tc.ctex"]
+source_file="res://assets/entities/player/model/textures/bob_albedo_baseColor.png"
+dest_files=["res://.godot/imported/bob_albedo_baseColor.png-a497f5b4dca997830439b095e218b7af.s3tc.ctex"]
 
 [params]
 
