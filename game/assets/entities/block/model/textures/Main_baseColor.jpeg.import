@@ -2,8 +2,8 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c6s68m0qalddy"
-path.s3tc="res://.godot/imported/Border_metallicRoughness.png-37a249eac91d786b9f6d6eba2a4ec689.s3tc.ctex"
+uid="uid://b8llaeweil0v3"
+path.s3tc="res://.godot/imported/Main_baseColor.jpeg-df2a35bacc9f8f19ba583396f60134a7.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -11,8 +11,8 @@ metadata={
 
 [deps]
 
-source_file="res://assets/entities/block/textures/Border_metallicRoughness.png"
-dest_files=["res://.godot/imported/Border_metallicRoughness.png-37a249eac91d786b9f6d6eba2a4ec689.s3tc.ctex"]
+source_file="res://assets/entities/block/model/textures/Main_baseColor.jpeg"
+dest_files=["res://.godot/imported/Main_baseColor.jpeg-df2a35bacc9f8f19ba583396f60134a7.s3tc.ctex"]
 
 [params]
 
