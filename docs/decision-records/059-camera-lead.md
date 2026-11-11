@@ -1,5 +1,7 @@
 # 059: The camera's lead
 
+Status: closed. Whether the lead goes back to 0 (§1.8) is in [rendering.md](../designs/rendering.md)'s open questions.
+
 ## Context
 
 Issue #195 lists camera quality-of-life features to try. The camera follows the player with a lag, centred 3 tiles above them (`010 §1`), so a running player sees less of where they are going than of where they have been. Three ideas were on the issue:

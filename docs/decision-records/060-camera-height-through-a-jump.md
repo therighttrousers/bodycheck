@@ -1,5 +1,7 @@
 # 060: The camera's height through a jump
 
+Status: closed. The slack (§2.4) and the landing's time constant (§2.6) are in [rendering.md](../designs/rendering.md)'s open questions, for tuning in play.
+
 ## Context
 
 Issue #195's third camera feature: hold the wanted framing's height through a jump. The camera's view is centred 3 tiles above the player (`010 §1`), and the framing's spring, with its 0.15-second smoothing time, follows every jump up and down, so the view bobs with every hop. The issue asked how long to hold the height (until landing? until enough time passes?), and noted that the hold would have to be cancelled if the player moves too far vertically.
