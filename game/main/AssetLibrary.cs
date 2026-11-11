@@ -21,7 +21,7 @@ public class AssetLibrary : IAssetLibrary
         [TileIndex.Grass] = "res://assets/tiles/grass/grass.tscn",
     };
     private const string BlockPath = "res://assets/portal_cube/scene.tscn";
-    private const string PlatformPath = "res://assets/platform/scene.tscn";
+    private const string PlatformPath = "res://assets/entities/platform/platform.tscn";
 
     // How opaque the player's block is: a ghost of a block.
     private const float PlayerBlockAlpha = 0.4f;
@@ -78,8 +78,8 @@ public class AssetLibrary : IAssetLibrary
         var door = new Node3D();
         door.AddChild(GetDebugBoxVisual(config.MapSize, config.MapColor, alpha: 1));
         var sounds = new CueSounds();
-        sounds.AddChild(CueSound(EntityCue.DoorOpened, "res://assets/entity_sfx/door/door_open.wav"));
-        sounds.AddChild(CueSound(EntityCue.DoorClosed, "res://assets/entity_sfx/door/door_close.wav"));
+        sounds.AddChild(CueSound(EntityCue.DoorOpened, "res://assets/entities/door/door_open.wav"));
+        sounds.AddChild(CueSound(EntityCue.DoorClosed, "res://assets/entities/door/door_close.wav"));
         door.AddChild(sounds);
         return door;
     }
