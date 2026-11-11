@@ -21,11 +21,8 @@ public class RunRightOffLedge(PlayerEntity player) : IScript
         controller.ScriptedInput = new PlayerInput(XAxis: 1);
         await world.Tick.While(() => player.OnGround);
 
-        // Try to zero out horizontal velocity until landing. This is not as elegant as a PD controller, but any
-        // overcorrection is barely visible.
-        await world.Tick.While(
-            () => !player.OnGround,
-            () => controller.ScriptedInput = new PlayerInput(XAxis: Math.Sign(-player.LinearVelocity.X))
-        );
+        // Fall with no input until landing. The camera's lead holds, which hints to the user where to go next: right.
+        controller.ScriptedInput = new PlayerInput();
+        await world.Tick.While(() => !player.OnGround);
     }
 }

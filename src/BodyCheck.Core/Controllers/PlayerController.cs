@@ -74,7 +74,7 @@ public sealed class PlayerController : IController<PlayerEntity>
     /// </summary>
     public void ApplyPaused(float realDt, IDefer defer)
     {
-        PlayerInput input = GetInput();
+        PlayerInput input = Input;
         ApplyPhase(input, 0, realDt, defer);
         _jumpWasHeld = input.JumpHeld;
         _spawnWasHeld = input.SpawnHeld;
@@ -82,7 +82,7 @@ public sealed class PlayerController : IController<PlayerEntity>
 
     public void Apply(float gameDt, float realDt, IDefer defer)
     {
-        PlayerInput input = GetInput();
+        PlayerInput input = Input;
         float move = Math.Clamp(input.XAxis, -1, 1);
 
         if (_entity.OnGround)
@@ -129,12 +129,11 @@ public sealed class PlayerController : IController<PlayerEntity>
     }
 
     /// <summary>
-    /// The player's input this tick: the world's <see cref="IWorldView.PlayerInput"/>, or in a cutscene,
+    /// The input the controller acts on: the world's <see cref="IWorldView.PlayerInput"/>, or in a cutscene,
     /// <see cref="ScriptedInput"/>, which is none unless a script sets it, so that the player comes to rest while the
-    /// world runs.
+    /// world runs. Reading it has no side effects, so the camera reads it too.
     /// </summary>
-    private PlayerInput GetInput() =>
-        _world.GameMode is GameMode.Cutscene ? ScriptedInput : _world.PlayerInput;
+    public PlayerInput Input => _world.GameMode is GameMode.Cutscene ? ScriptedInput : _world.PlayerInput;
 
     /// <summary>
     /// At the edges of a cutscene, makes what the controller remembers of the player's input fit the new mode. Entering

@@ -129,6 +129,18 @@ public sealed record Features
     #endregion
 
     #region Camera
+    /// <summary>
+    /// How far above the player's centre the camera wants the view's centre, in tiles, at rest. At 3, the player stands
+    /// 70% of the way down the screen.
+    /// </summary>
+    public float CameraLift { get; init; } = 3;
+
+    /// <summary>
+    /// How long, in game seconds, the height the camera holds through a jump takes to move ~63% of the way up to where
+    /// the player lands higher: the time constant of its exponential smoothing.
+    /// </summary>
+    public float CameraLandTime { get; init; } = 0.25f;
+
     /// <summary>How long it takes the camera target to move ~60% toward its target, when moving its fastest.</summary>
     public float CameraMinSmoothTime { get; init; } = 0.15f;
 
@@ -137,6 +149,24 @@ public sealed record Features
     /// or round a corner. The pan then speeds up toward its end, as its smoothing time shortens.
     /// </summary>
     public float CameraPanSpeed { get; init; } = 5;
+
+    /// <summary>
+    /// How far ahead of the player, in tiles, the camera wants to be, the way the player last pressed. At 2.5, it about
+    /// makes up for the camera's lag behind a player running at full speed.
+    /// </summary>
+    public float CameraLead { get; init; } = 2.5f;
+
+    /// <summary>
+    /// How long, in game seconds, the camera's lead takes to move ~60% toward <see cref="CameraLead"/> the way the
+    /// player presses, and to settle when the player lets go.
+    /// </summary>
+    public float CameraLeadTime { get; init; } = 0.5f;
+
+    /// <summary>How long, in game seconds, the camera's lead holds after the player lets go, before it goes back to 0.</summary>
+    public float CameraLeadReturnDelay { get; init; } = 3f;
+
+    /// <summary>How long, in game seconds, the camera's lead takes to move ~60% of the way back to 0, after its hold.</summary>
+    public float CameraLeadReturnTime { get; init; } = 1f;
     #endregion
 
     #region Player

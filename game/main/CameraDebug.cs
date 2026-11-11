@@ -29,6 +29,7 @@ public partial class CameraDebug : Node3D
     private const float PointDepth = 0.5f;
     /// <summary>Half the size of a point's mark, in tiles.</summary>
     private const float MarkSize = 0.3f;
+    private readonly Vector2[] DiamondCorners = [new(MarkSize, 0), new(0, MarkSize), new(-MarkSize, 0), new(0, -MarkSize)];
     /// <summary>Half the width of the marks' lines, in tiles.</summary>
     private const float LineHalfWidth = 0.5f / Constants.TilePixels;
 
@@ -36,7 +37,7 @@ public partial class CameraDebug : Node3D
     private static readonly Color BoundaryColor = new(1, 0.2f, 0.2f, 0.1f);
     private static readonly Color WantedColor = new(1, 0.9f, 0.2f, 0.5f);
     private static readonly Color TargetColor = new(1, 1, 1, 0.5f);
-    private static readonly Color GoalColor = new(0.2f, 0.2f, 1, 0.5f);
+    private static readonly Color GoalColor = new(0.2f, 0.2f, 1, 0.25f);
 
     private readonly CameraMap _map;
     private readonly MeshInstance3D _mapQuad = new() { CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
@@ -92,10 +93,13 @@ public partial class CameraDebug : Node3D
         Line(target, goal, GoalColor);
         Line(wanted + new Vector2(-MarkSize, -MarkSize), wanted + new Vector2(MarkSize, MarkSize), WantedColor);
         Line(wanted + new Vector2(-MarkSize, MarkSize), wanted + new Vector2(MarkSize, -MarkSize), WantedColor);
-        Vector2[] corners = [new(MarkSize, 0), new(0, MarkSize), new(-MarkSize, 0), new(0, -MarkSize)];
-        for (int i = 0; i < corners.Length; i++)
+        for (int i = 0; i < DiamondCorners.Length; i++)
         {
-            Line(target + corners[i], target + corners[(i + 1) % corners.Length], TargetColor);
+            Line(target + DiamondCorners[i], target + DiamondCorners[(i + 1) % DiamondCorners.Length], TargetColor);
+        }
+        for (int i = 0; i < DiamondCorners.Length; i++)
+        {
+            Line(goal + DiamondCorners[i], goal + DiamondCorners[(i + 1) % DiamondCorners.Length], GoalColor);
         }
         _pointsMesh.SurfaceEnd();
     }

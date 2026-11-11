@@ -18,7 +18,8 @@ Anyone who wants to change these rules can, but ask them to weigh a change again
 ### Trial: open records on `main`
 
 To allow small and stacked PRs (decided 2026-11-07, as a trial), a record that is still open MAY land in `main` when a PR needs it, such as one whose code cites it.
-After it lands, it may only grow: open items may be settled, and new items added, but settled items keep their content and their numbers, and nothing cited is renumbered.
+Its status line says it is open (see below).
+After it lands, it may only grow: open items may be settled, and new items added, but settled items keep their content and their numbers, and nothing cited is renumbered. Its status line changes to closed when deliberation ends.
 Prefer splitting a record so that what lands is closed, when the split is natural: a record about one decision is easier for a later session to find.
 
 Formal ADRs are not necessary.
@@ -34,6 +35,12 @@ Name it `NNN-short-slug.md`, numbering sequentially from `000`.
 
 ## Decision record format
 
+Under the title, put a one-line status, so that a later session can tell whether to add to the record or start a new one:
+- `Status: open.` while deliberating, naming what is still to be settled here.
+- `Status: closed.` once deliberation ends (see below), naming where any unsettled items went, such as a design doc's open questions.
+
+Records written before this rule have no status line; they are all closed.
+
 Start with a `## Context` section: inciting event, goals, anti-goals, overarching questions, tensions - anything relevant.
 The context can be changed while deliberating.
 
@@ -48,8 +55,9 @@ Each item should contain the design question, options on the table, and the deci
 ## Closing a record
 
 When deliberation ends:
+- Set the status line to closed.
 - Write each outcome into the relevant design docs in [../designs/](../designs/AGENTS.md), and add this record to their "Relevant decision records" lists.
-- Move unresolved items (`[ ]`, `[~]`, or anything marked "to be checked") into those docs' "Open questions". Leave the items in the record as they are: the record shows where deliberation stopped.
+- Move unresolved items (`[ ]`, `[~]`, or anything marked "to be checked") into those docs' "Open questions". Leave the items in the record as they are: the record shows where deliberation stopped. A later session that settles one writes a new record, citing the item.
 
 ## Citing records
 
