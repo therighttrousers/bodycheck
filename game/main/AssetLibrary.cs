@@ -30,8 +30,8 @@ public class AssetLibrary : IAssetLibrary
 
     public Node3D? GetEntityVisual(EntityConfig config) => config.Kind switch
     {
-        EntityKind.Player => InstantiateModel("res://assets/bob_the_robot/scene.tscn"),
-        EntityKind.Robot => InstantiateModel("res://assets/bob_the_robot/robot.tscn"),
+        EntityKind.Player => InstantiateModel("res://assets/entities/player/player.tscn"),
+        EntityKind.Robot => InstantiateModel("res://assets/entities/robot/robot.tscn"),
         EntityKind.Platform => InstantiatePlatform(2 * BodyTuning.Platform(config.MapSize).HalfSize.X),
         EntityKind.Block => InstantiateModel(BlockPath),
         EntityKind.VerticalDoor => InstantiateDoor(config),
