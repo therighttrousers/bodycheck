@@ -26,7 +26,10 @@
 	"__smartColor": "#ADADB5",
 	"__bgPos": null,
 	"externalRelPath": null,
-	"fieldInstances": [],
+	"fieldInstances": [{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Outside", "__tile": null, "defUid": 286, "realEditorValues": [{
+		"id": "V_String",
+		"params": ["Outside"]
+	}] }],
 	"layerInstances": [
 		{
 			"__identifier": "Control",
