@@ -2,6 +2,13 @@
 
 Design docs and decision records are in [`docs/`](docs/AGENTS.md). Read that before implementing anything.
 
+## AI agents
+
+This repository doesn't favour any AI vendor, and `.gitignore` ignores every vendor's own configuration files and directories, such as `.claude/`, `CLAUDE.md`, `.cursor/` and `GEMINI.md`.
+
+- **Put instructions for agents in `AGENTS.md` files**, the nearest one to what they're about, never in a vendor's file.
+- **Put skills in `.agents/`.**
+
 ## Setup and running
 
 - Run `.\scripts\dev-setup.ps1` before the first build. It installs Godot into `Godot/`, and `BodyCheck.Core` doesn't compile without the GodotSharp assembly it brings.

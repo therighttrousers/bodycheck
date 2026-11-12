@@ -23,3 +23,71 @@ Godot_v*.zip
 recover.mmpz
 recover.mmp
 game/levels/**/backups/
+
+# AI-vendor-specific configuration. The repository is vendor-agnostic: shared
+# agent instructions go in AGENTS.md files and shared skills in .agents/.
+# These are ignored, too, so that local settings can't leak secrets into Git.
+# Claude
+.claude/
+CLAUDE.md
+CLAUDE.local.md
+.mcp.json
+# Cursor
+.cursor/
+.cursorrules
+.cursorignore
+.cursorindexingignore
+# Windsurf and Codeium
+.windsurf/
+.windsurfrules
+.codeium/
+.codeiumignore
+# Gemini
+.gemini/
+GEMINI.md
+.geminiignore
+# GitHub Copilot and VS Code
+.github/copilot-instructions.md
+.github/instructions/
+.github/prompts/
+.github/chatmodes/
+.github/agents/
+.vscode/mcp.json
+# OpenAI Codex
+.codex/
+# Aider
+.aider*
+# Cline
+.clinerules
+.clineignore
+# Roo Code
+.roo/
+.roomodes
+.roorules
+.rooignore
+# Continue
+.continue/
+.continuerc.json
+# Amazon Q and Kiro
+.amazonq/
+.kiro/
+# JetBrains Junie
+.junie/
+# Augment
+.augment/
+.augment-guidelines
+# Trae
+.trae/
+# OpenCode
+.opencode/
+opencode.json
+# Qwen Code
+.qwen/
+QWEN.md
+# Crush
+.crush/
+CRUSH.md
+# Goose
+.goosehints
+# Tabnine
+.tabnine/
