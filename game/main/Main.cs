@@ -20,7 +20,7 @@ namespace BodyCheck;
 
 /// <summary>
 /// Plays one world, drawn as gray boxes: a world of the LDtk project at <see cref="LevelsPath"/>, with one room per
-/// level, or a room from the <see cref="RoomLibrary"/> library, as a world of one room. It adds the camera, the lights and the player's input to a <see cref="WorldNode"/>,
+/// level, or a room from the <see cref="RoomLibrary"/> library, as a world of one room. It adds the camera, the environments and the player's input to a <see cref="WorldNode"/>,
 /// and the rendering pipeline's switches (see <see cref="LookSwitches"/>). The game is drawn in a <see cref="WorldViewportContainer"/>, and the overlay over
 /// it at the window's full resolution.
 /// <para>
@@ -370,6 +370,7 @@ public partial class Main : Node
         {
             _world.AddChild(new LookProps(_world.World.Size));
         }
+        _world.AddChild(new EnvironmentMixer(world, _cameraRig.Camera));
         _worldView.World.AddChild(_world);
         _cameraRig.Follow(_world);
         _cameraDebug = new CameraDebug(_cameraRig.Framing!.Map) { Visible = _showCameraDebug };
@@ -421,32 +422,10 @@ public partial class Main : Node
         return current < 0 ? "" : $" at respawn {current + 1} of {respawns.Length}";
     }
 
-    /// <summary>Adds the lights, the colour pass, and the switches that turn parts of the pipeline on and off.</summary>
+    /// <summary>Adds the colour pass, the animation stepper, and the switches that turn parts of the pipeline on and off.</summary>
     private void AddLook()
     {
         RenderingServer.SetDefaultClearColor(Colors.Black); // The bars around the view.
-
-        var light = new DirectionalLight3D
-        {
-            RotationDegrees = new Vector3(-35, 10, 0),
-            LightColor = new Color(1, 1, 0.9f),
-            LightEnergy = 0.5f,
-            ShadowEnabled = true,
-        };
-        _worldView.World.AddChild(light);
-
-        var environment = new Godot.Environment
-        {
-            BackgroundMode = Godot.Environment.BGMode.Color,
-            BackgroundColor = new Color(0.02f, 0.02f, 0.04f),
-            AmbientLightSource = Godot.Environment.AmbientSource.Color,
-            AmbientLightColor = new Color(0.5f, 0.5f, 1),
-            AmbientLightEnergy = 0.1f,
-            SsaoEnabled = true,
-            SsrEnabled = true,
-            GlowEnabled = true,
-        };
-        _worldView.World.AddChild(new WorldEnvironment { Environment = environment });
 
         var colorPass = new ColorPass();
         _worldView.World.AddChild(colorPass);
@@ -454,7 +433,7 @@ public partial class Main : Node
         var animationStepper = new AnimationStepper();
         AddChild(animationStepper);
 
-        _look = new LookSwitches(_worldView, light, environment, colorPass, animationStepper);
+        _look = new LookSwitches(_worldView, colorPass, animationStepper);
         AddChild(_look);
 
         _look.Changed += ShowTitle;

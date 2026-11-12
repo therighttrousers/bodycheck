@@ -178,7 +178,7 @@ public static class LdtkReader
         ];
         try
         {
-            return new Room(level.Identifier, origin, tiles, entityConfigs, cameraBoundary);
+            return new Room(level.Identifier, origin, tiles, entityConfigs, cameraBoundary, ReadEnvironment(path, level));
         }
         catch (ArgumentException e)
         {
@@ -317,6 +317,23 @@ public static class LdtkReader
                 Entities = fields.References("Entities"),
             },
         };
+    }
+
+    /// <summary>Reads a level's <c>Environment</c> field, which must have a value that names a room's environment.</summary>
+    private static RoomEnvironment ReadEnvironment(string path, LdtkLevel level)
+    {
+        const string field = "Environment";
+        LdtkFieldInstance instance = level.FieldInstances.FirstOrDefault(instance => instance.Identifier == field)
+            ?? throw Invalid(path, $"Level '{level.Identifier}' has no field {field}.");
+        try
+        {
+            return instance.Value.Deserialize(LdtkJsonContext.Default.RoomEnvironment);
+        }
+        catch (JsonException e)
+        {
+            throw Invalid(path, $"Level '{level.Identifier}' has a {field} that isn't a {nameof(RoomEnvironment)}: "
+                + e.Message, e);
+        }
     }
 
     /// <summary>Reads an entity's fields, each by its name and as its type, and makes errors that name the entity.</summary>

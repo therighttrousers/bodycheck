@@ -1477,7 +1477,11 @@
 			{ "id": "Interact", "tileRect": null, "color": 14120515 },
 			{ "id": "Start", "tileRect": null, "color": 15389866 }
 		], "iconTilesetUid": null, "externalRelPath": null, "externalFileChecksum": null, "tags": [] },
-		{ "identifier": "Environment", "uid": 285, "values": [ { "id": "Default", "tileRect": null, "color": 14120515 }, { "id": "Outside", "tileRect": null, "color": 12470831 } ], "iconTilesetUid": null, "externalRelPath": null, "externalFileChecksum": null, "tags": [] }
+		{ "identifier": "Environment", "uid": 285, "values": [
+			{ "id": "Default", "tileRect": null, "color": 14120515 },
+			{ "id": "Testing", "tileRect": null, "color": 15389866 },
+			{ "id": "Outside", "tileRect": null, "color": 12470831 }
+		], "iconTilesetUid": null, "externalRelPath": null, "externalFileChecksum": null, "tags": [] }
 	], "externalEnums": [], "levelFields": [
 		{
 			"identifier": "Environment",
@@ -1699,7 +1703,10 @@
 				"__smartColor": "#ADADB5",
 				"__bgPos": null,
 				"externalRelPath": "main/TestingDrop.ldtkl",
-				"fieldInstances": [{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Default", "__tile": null, "defUid": 286, "realEditorValues": [] }],
+				"fieldInstances": [{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Outside", "__tile": null, "defUid": 286, "realEditorValues": [{
+					"id": "V_String",
+					"params": ["Outside"]
+				}] }],
 				"layerInstances": null,
 				"__neighbours": [
 					{ "levelIid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6", "dir": "nw" },
@@ -1751,7 +1758,10 @@
 				"__smartColor": "#ADADB5",
 				"__bgPos": null,
 				"externalRelPath": "main/TestingShafts.ldtkl",
-				"fieldInstances": [{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Default", "__tile": null, "defUid": 286, "realEditorValues": [] }],
+				"fieldInstances": [{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Testing", "__tile": null, "defUid": 286, "realEditorValues": [{
+					"id": "V_String",
+					"params": ["Testing"]
+				}] }],
 				"layerInstances": null,
 				"__neighbours": [
 					{ "levelIid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6", "dir": "n" },
@@ -1780,7 +1790,10 @@
 				"__smartColor": "#ADADB5",
 				"__bgPos": null,
 				"externalRelPath": "main/TestingOutside.ldtkl",
-				"fieldInstances": [{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Default", "__tile": null, "defUid": 286, "realEditorValues": [] }],
+				"fieldInstances": [{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Outside", "__tile": null, "defUid": 286, "realEditorValues": [{
+					"id": "V_String",
+					"params": ["Outside"]
+				}] }],
 				"layerInstances": null,
 				"__neighbours": [ { "levelIid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6", "dir": "e" }, { "levelIid": "4aa45f20-bde0-11f1-9446-ef36bac1f552", "dir": "s" }, { "levelIid": "3aec9f20-bde0-11f1-a778-cd4d7eac5ccb", "dir": "e" } ]
 			},

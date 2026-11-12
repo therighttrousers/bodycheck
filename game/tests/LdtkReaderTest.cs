@@ -47,7 +47,8 @@ public class LdtkReaderTest
     /// <param name="pxWid">The level's width in pixels, if it isn't its layers' width.</param>
     private static string Level(
         int worldX, int worldY, string entities = "", int[]? solid = null, int width = 20, int height = 15,
-        int? pxWid = null, int worldDepth = 0, string identifier = "Test", string control = "", int[]? boundary = null)
+        int? pxWid = null, int worldDepth = 0, string identifier = "Test", string control = "", int[]? boundary = null,
+        string environment = "Default")
     {
         string Grid(int[]? set)
         {
@@ -60,7 +61,8 @@ public class LdtkReaderTest
         }
         return $$"""
             { "identifier": "{{identifier}}", "pxWid": {{pxWid ?? width * 16}}, "pxHei": {{height * 16}}, "worldX": {{worldX}}, "worldY": {{worldY}},
-              "worldDepth": {{worldDepth}}, "externalRelPath": null, "layerInstances": [
+              "worldDepth": {{worldDepth}}, "externalRelPath": null,
+              "fieldInstances": [ { "__identifier": "Environment", "__value": "{{environment}}" } ], "layerInstances": [
                 { "__identifier": "SolidGeometry", "__type": "IntGrid", "__cWid": {{width}}, "__cHei": {{height}}, "__gridSize": 16,
                   "__pxTotalOffsetX": 0, "__pxTotalOffsetY": 0,
                   "intGridCsv": [{{Grid(solid)}}], "entityInstances": [] },
@@ -140,6 +142,16 @@ public class LdtkReaderTest
         AssertThat(big.GetTileIndex(0, 0)).IsEqual(TileIndex.Ground); // Its bottom left tile
         AssertThat((small.Origin, small.Size)).IsEqual((new Vector2I(41, 22), new Vector2I(7, 5)));
         AssertThat(small.EntityConfigs.Single().MapOrigin).IsEqual(new Vector2I(1, 4));
+    }
+
+    [TestCase]
+    public void Reads_each_levels_environment_by_name()
+    {
+        World world = ReadOne(Project(Level(0, 0, PlayerStart, environment: "Outside")));
+
+        AssertThat(world.Rooms.Single().Environment).IsEqual(RoomEnvironment.Outside);
+        var e = Thrown<InvalidDataException>(() => ReadOne(Project(Level(0, 0, PlayerStart, environment: "Moon"))));
+        AssertThat(e.Message).StartsWith("test.ldtk: ");
     }
 
     [TestCase]

@@ -22,13 +22,20 @@ Relevant decision records:
 - [058: A map of where the camera may be](../decision-records/058-camera-map.md)
 - [059: The camera's lead](../decision-records/059-camera-lead.md)
 - [060: The camera's height through a jump](../decision-records/060-camera-height-through-a-jump.md)
+- [061: Environments per room](../docs/decision-records/061-room-environments.md)
 
 The image is Mode X with modern lighting: 320x240 and 256 colours, as on a VGA card in the mid-1990s, drawn with shadows, ambient occlusion, reflections and bloom. Star Fox, Quake and Descent are the references for the geometry, and Mode X for the image (`003`).
+
+## Environments
+
+Each room has an environment, its lighting and its sky, which its LDtk level names (`061 §2.2`). An environment is a scene in `game/assets/environments/`, made and tuned in the editor: a `WorldEnvironment` named `WorldEnvironment`, and a `Node3D` named `Lighting` that holds its lights (`061 §1.1`). Its background is a `ProceduralSkyMaterial` or a colour; anything fancier is for background layers (`061 §1.3`). The game switches on the post effects of [the pipeline](#pipeline) itself, so an environment doesn't (`061 §1.2`).
+
+Where rooms of different environments meet, the game blends them by where the view's centre is, over a band across their edge: the lights fade by their energy, and the environments' settings blend ([`game/main/`](../../game/main/architecture.md#environments)).
 
 ## Pipeline
 
 1. **Low resolution.** `WorldViewportContainer` draws the game into a viewport of its own, 320x240 (`003 §1.1`, `§2.1`). The window's own viewport is the window's size, so what is drawn there, outside the game's viewport, is at full resolution and doesn't go through the colour pass, such as the debug overlay (`008 §2.3`).
-2. **Lighting.** Shadows, ambient occlusion, screen-space reflections and glow, which is the engine's name for bloom. All were chosen by eye at the target size (`003 §4.2`). There is no anti-aliasing (`038 §1.3`).
+2. **Lighting.** Shadows, ambient occlusion, screen-space reflections, screen-space indirect lighting and glow, which is the engine's name for bloom. All but the indirect lighting were chosen by eye at the target size (`003 §4.2`, `061 §1.2`). The lights and the sky are each room's environment's (see [Environments](#environments)). There is no anti-aliasing (`038 §1.3`).
 3. **Colour pass.** `ColorPass` covers the screen with a rectangle whose shader, `game/look/mode_x.gdshader`, reads what is behind it and writes each pixel back as a colour of the palette, with dither (`003 §3.3`, `004 §2.10`).
 4. **Scaling.** `WorldViewportContainer` scales the image to the window by the largest whole number that fits, with nearest-neighbour sampling, and fills the rest with black bars. The window starts at 1280x960, which is 4x.
 

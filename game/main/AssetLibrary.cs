@@ -15,6 +15,12 @@ namespace BodyCheck;
 /// </summary>
 public class AssetLibrary : IAssetLibrary
 {
+    private static readonly Dictionary<RoomEnvironment, string> EnvironmentPaths = new()
+    {
+        [RoomEnvironment.Default] = "res://assets/environments/default.tscn",
+        [RoomEnvironment.Testing] = "res://assets/environments/testing.tscn",
+        [RoomEnvironment.Outside] = "res://assets/environments/outside.tscn",
+    };
     private static readonly Dictionary<TileIndex, string> TilePaths = new()
     {
         [TileIndex.Ground] = "res://assets/tiles/ground.tscn",
@@ -30,10 +36,10 @@ public class AssetLibrary : IAssetLibrary
 
     public Node3D? GetEntityVisual(EntityConfig config) => config.Kind switch
     {
-        EntityKind.Player => InstantiateModel("res://assets/entities/player/player.tscn"),
-        EntityKind.Robot => InstantiateModel("res://assets/entities/robot/robot.tscn"),
+        EntityKind.Player => InstantiateScene("res://assets/entities/player/player.tscn"),
+        EntityKind.Robot => InstantiateScene("res://assets/entities/robot/robot.tscn"),
         EntityKind.Platform => InstantiatePlatform(2 * BodyTuning.Platform(config.MapSize).HalfSize.X),
-        EntityKind.Block => InstantiateModel(BlockPath),
+        EntityKind.Block => InstantiateScene(BlockPath),
         EntityKind.VerticalDoor => InstantiateDoor(config),
         EntityKind.Respawn or EntityKind.Trigger or EntityKind.Sequence or EntityKind.Fanout or EntityKind.Once
             or EntityKind.Dialogue or EntityKind.Script => null,
@@ -41,9 +47,24 @@ public class AssetLibrary : IAssetLibrary
 
     public Node3D GetPlayerBlockVisual(Vector2 halfSize)
     {
-        Node3D model = InstantiateModel(BlockPath);
+        Node3D model = InstantiateScene(BlockPath);
         MakeGhostly(model);
         return model;
+    }
+
+    /// <summary>
+    /// Makes an environment's scene, with a <c>WorldEnvironment</c> and a <c>Lighting</c> node, as
+    /// <see cref="EnvironmentMixer"/> wants it, and with the post effects that every environment has switched on.
+    /// </summary>
+    public static Node3D GetEnvironment(RoomEnvironment kind)
+    {
+        var node = InstantiateScene(EnvironmentPaths[kind]);
+        var environment = node.GetNode<WorldEnvironment>("WorldEnvironment").Environment;
+        environment.SsrEnabled = true;
+        environment.SsaoEnabled = true;
+        environment.SsilEnabled = true;
+        environment.GlowEnabled = true;
+        return node;
     }
 
     public (Mesh Mesh, Transform3D Transform) GetTileMesh(TileIndex index, float darkening = 0)
@@ -92,7 +113,7 @@ public class AssetLibrary : IAssetLibrary
         Bus = "Sfx",
     };
 
-    private static Node3D InstantiateModel(string path)
+    private static Node3D InstantiateScene(string path)
     {
         var scene = GD.Load<PackedScene>(path);
         return scene.Instantiate<Node3D>();
@@ -104,7 +125,7 @@ public class AssetLibrary : IAssetLibrary
     /// </summary>
     private static Node3D InstantiatePlatform(float width)
     {
-        Node3D model = InstantiateModel(PlatformPath);
+        Node3D model = InstantiateScene(PlatformPath);
         var capLeft = model.GetNode<MeshInstance3D>("Model/CapLeft");
         var capRight = model.GetNode<MeshInstance3D>("Model/CapRight");
         var center = model.GetNode<MeshInstance3D>("Model/Center");
@@ -121,7 +142,7 @@ public class AssetLibrary : IAssetLibrary
     /// </summary>
     private static (Mesh Mesh, Transform3D Transform) LoadMesh(string path)
     {
-        Node3D root = InstantiateModel(path);
+        Node3D root = InstantiateScene(path);
         try
         {
             return FindMesh(root, Transform3D.Identity)

@@ -24,13 +24,16 @@ public sealed class Room : IOffsetTileGrid
     /// Which tiles the camera keeps out of view, by x and then y, the same size as <paramref name="tiles"/>; none if
     /// null. The room keeps it, so the caller must not change it afterwards.
     /// </param>
+    /// <param name="environment">The room's lighting and sky, which the game draws.</param>
     /// <exception cref="ArgumentException">
     /// When a configuration isn't what the room can hold, or the camera boundary isn't the size of the tiles.
     /// </exception>
     public Room(
-        string name, Vector2I origin, TileGrid tiles, IEnumerable<EntityConfig> entityConfigs, bool[,]? cameraBoundary = null)
+        string name, Vector2I origin, TileGrid tiles, IEnumerable<EntityConfig> entityConfigs, bool[,]? cameraBoundary = null,
+        RoomEnvironment environment = RoomEnvironment.Default)
     {
         Name = name;
+        Environment = environment;
         _tiles = tiles;
         Origin = origin;
         Size = tiles.Size;
@@ -193,6 +196,9 @@ public sealed class Room : IOffsetTileGrid
 
     /// <summary>The tiles the room covers, in the world's coordinates.</summary>
     public Rect2I Bounds => new(Origin, Size);
+
+    /// <summary>The room's lighting and sky, which the game draws.</summary>
+    public RoomEnvironment Environment { get; }
 
     /// <summary>A tile's kind, in the room's coordinates. Everything outside the room is empty.</summary>
     public TileIndex GetTileIndex(int x, int y) => _tiles.GetTileIndex(x, y);

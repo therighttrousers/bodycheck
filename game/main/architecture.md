@@ -28,10 +28,11 @@ Relevant decision records:
 - [058: A map of where the camera may be](../../docs/decision-records/058-camera-map.md)
 - [059: The camera's lead](../../docs/decision-records/059-camera-lead.md)
 - [060: The camera's height through a jump](../../docs/decision-records/060-camera-height-through-a-jump.md)
+- [061: Environments per room](../../docs/decision-records/061-room-environments.md)
 
 ## What it is
 
-The main scene, `Main.tscn`, and what it puts around a world: the camera, the lights, the player's input, the game's modes, sound, the debug tools, and the playtester's controls. It also gives the world what to draw for each kind of entity.
+The main scene, `Main.tscn`, and what it puts around a world: the camera, the environments, the player's input, the game's modes, sound, the debug tools, and the playtester's controls. It also gives the world what to draw for each kind of entity.
 
 ## What it is not for
 
@@ -39,9 +40,18 @@ The game's rules, or how the image is made: the low-resolution view and the colo
 
 ## `Main`
 
-`Main` adds the camera, the lights, the player's input and the game's mode to a `WorldNode`, and switches worlds. Its worlds are the worlds of `levels/main.ldtk`, then a world for each text room in the library; the first plays unless the command line names another, and comma and period switch between them (`009 §4.3`, `011 §3.2`, `013 §4.6`). The game is drawn in a `WorldViewportContainer`, a viewport of its own at low resolution, and `Main`'s other children are drawn at the window's resolution.
+`Main` adds the camera, the environments, the player's input and the game's mode to a `WorldNode`, and switches worlds. Its worlds are the worlds of `levels/main.ldtk`, then a world for each text room in the library; the first plays unless the command line names another, and comma and period switch between them (`009 §4.3`, `011 §3.2`, `013 §4.6`). The game is drawn in a `WorldViewportContainer`, a viewport of its own at low resolution, and `Main`'s other children are drawn at the window's resolution.
 
-`AssetLibrary` is the game's asset library: it makes each kind of entity's visual and gives each kind of tile's mesh, so that Core doesn't know the game's assets (`012 §3.1`, `020 §2.2`). It maps each kind of tile to its wrapper scene in `assets/tiles/`, and loads each kind's mesh, and each darkened copy, once (`057 §3.1`).
+`AssetLibrary` is the game's asset library: it makes each kind of entity's visual and gives each kind of tile's mesh, so that Core doesn't know the game's assets (`012 §3.1`, `020 §2.2`). It maps each kind of tile to its wrapper scene in `assets/tiles/`, and loads each kind's mesh, and each darkened copy, once (`057 §3.1`). It also makes each room environment's scene, from `assets/environments/`, with SSR, SSAO, SSIL and glow switched on in code, so that no environment has to remember them (`061 §1.2`).
+
+## Environments
+
+`EnvironmentMixer` draws a world's environments, which `Main` adds to each world it builds. It has each environment its rooms use, and blends them by where the camera is, so that the look changes smoothly across rooms' edges, and going back undoes it exactly (`061 §3.1`). See [rendering.md](../../docs/designs/rendering.md#environments) for what an environment is.
+
+- **Weights.** Each frame, from the camera's position in the world's plane, the view's centre (`061 §3.2`), each room near it weighs `clamp(0.5 - d / w, 0, 1)`, for its signed distance `d` from the world's `RoomsNear` and the blend's width `w`, `BlendWidth`, 6 tiles, so that two rooms that meet weigh a half each on their edge. An environment weighs what its rooms do, scaled so that the weights add up to 1. With no room within `w / 2`, the nearest room's environment is the look (`061 §3.3`).
+- **Lights.** Each environment's scene stays in the tree, without its `WorldEnvironment`, and each light in its `Lighting` has its energy scaled by the environment's weight. A scene with no weight is hidden (`061 §4.1`).
+- **The environment.** The mixer has the only `WorldEnvironment`, with an `Environment` of its own, copied from the first, and a `ProceduralSkyMaterial` of its own as its sky. It blends both property by property, for the properties in which the environments differ: floats, colours and vectors by their weights, and everything else from the heaviest. It sets them only when the weights change (`061 §4.2`).
+- It processes while the tree is paused, as the camera does, so that the map's zoom blends too.
 
 With `--probe=` and a name, `Main` runs that probe instead of playing; its code for that is under `#if TOOLS`, since probes are only in the editor's build (`031 §2.3`).
 
