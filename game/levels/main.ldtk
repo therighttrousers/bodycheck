@@ -11,7 +11,7 @@
 	"iid": "0f346a70-bde0-11f1-b046-ebfce3981aaf",
 	"jsonVersion": "1.5.3",
 	"appBuildId": 473703,
-	"nextUid": 287,
+	"nextUid": 288,
 	"identifierStyle": "Capitalize",
 	"toc": [{
 		"identifier": "PlayerStart",
@@ -1485,7 +1485,7 @@
 	], "externalEnums": [], "levelFields": [
 		{
 			"identifier": "Environment",
-			"doc": null,
+			"doc": "Which environment to use for this room.",
 			"__type": "LocalEnum.Environment",
 			"uid": 286,
 			"type": "F_Enum(285)",
@@ -1522,6 +1522,43 @@
 			"allowedRefsEntityUid": null,
 			"allowedRefTags": [],
 			"tilesetUid": null
+		},
+		{
+			"identifier": "EnvironmentBlend",
+			"doc": "How far this room's environment extends past its boundaries and blended with neighboring rooms' environments, measured in tiles.",
+			"__type": "Float",
+			"uid": 287,
+			"type": "F_Float",
+			"isArray": false,
+			"canBeNull": false,
+			"arrayMinLength": null,
+			"arrayMaxLength": null,
+			"editorDisplayMode": "Hidden",
+			"editorDisplayScale": 1,
+			"editorDisplayPos": "Above",
+			"editorLinkStyle": "StraightArrow",
+			"editorDisplayColor": null,
+			"editorAlwaysShow": false,
+			"editorShowInWorld": true,
+			"editorCutLongValues": true,
+			"editorTextSuffix": null,
+			"editorTextPrefix": null,
+			"useForSmartColor": false,
+			"exportToToc": false,
+			"searchable": false,
+			"min": 0,
+			"max": null,
+			"regex": null,
+			"acceptFileTypes": null,
+			"defaultOverride": { "id": "V_Float", "params": [6] },
+			"textLanguageMode": null,
+			"symmetricalRef": false,
+			"autoChainRef": true,
+			"allowOutOfLevelRef": true,
+			"allowedRefs": "OnlySame",
+			"allowedRefsEntityUid": null,
+			"allowedRefTags": [],
+			"tilesetUid": null
 		}
 	] },
 	"levels": [],
@@ -1546,7 +1583,10 @@
 				"__smartColor": "#ADADB5",
 				"__bgPos": null,
 				"externalRelPath": "main/Entrance.ldtkl",
-				"fieldInstances": [{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Default", "__tile": null, "defUid": 286, "realEditorValues": [] }],
+				"fieldInstances": [
+					{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Default", "__tile": null, "defUid": 286, "realEditorValues": [] },
+					{ "__identifier": "EnvironmentBlend", "__type": "Float", "__value": 6, "__tile": null, "defUid": 287, "realEditorValues": [] }
+				],
 				"layerInstances": null,
 				"__neighbours": [{ "levelIid": "6aa1dfc0-bde0-11f1-a170-f914bfc3ae23", "dir": "w" }]
 			},
@@ -1569,10 +1609,13 @@
 				"__smartColor": "#ADADB5",
 				"__bgPos": null,
 				"externalRelPath": "main/Outside.ldtkl",
-				"fieldInstances": [{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Outside", "__tile": null, "defUid": 286, "realEditorValues": [{
-					"id": "V_String",
-					"params": ["Outside"]
-				}] }],
+				"fieldInstances": [
+					{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Outside", "__tile": null, "defUid": 286, "realEditorValues": [{
+						"id": "V_String",
+						"params": ["Outside"]
+					}] },
+					{ "__identifier": "EnvironmentBlend", "__type": "Float", "__value": 2, "__tile": null, "defUid": 287, "realEditorValues": [{ "id": "V_Float", "params": [2] }] }
+				],
 				"layerInstances": null,
 				"__neighbours": [{ "levelIid": "4529bdd0-bde0-11f1-a170-3b125b576337", "dir": "e" }]
 			}
@@ -1597,7 +1640,10 @@
 				"__smartColor": "#ADADB5",
 				"__bgPos": null,
 				"externalRelPath": "main/Level_0.ldtkl",
-				"fieldInstances": [{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Default", "__tile": null, "defUid": 286, "realEditorValues": [] }],
+				"fieldInstances": [
+					{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Default", "__tile": null, "defUid": 286, "realEditorValues": [] },
+					{ "__identifier": "EnvironmentBlend", "__type": "Float", "__value": 6, "__tile": null, "defUid": 287, "realEditorValues": [] }
+				],
 				"layerInstances": null,
 				"__neighbours": []
 			}
@@ -1622,7 +1668,10 @@
 				"__smartColor": "#ADADB5",
 				"__bgPos": null,
 				"externalRelPath": "main/TestingEntrance.ldtkl",
-				"fieldInstances": [{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Default", "__tile": null, "defUid": 286, "realEditorValues": [] }],
+				"fieldInstances": [
+					{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Default", "__tile": null, "defUid": 286, "realEditorValues": [] },
+					{ "__identifier": "EnvironmentBlend", "__type": "Float", "__value": 6, "__tile": null, "defUid": 287, "realEditorValues": [] }
+				],
 				"layerInstances": null,
 				"__neighbours": [
 					{ "levelIid": "9971ed40-bde0-11f1-a778-ebfea3fcd78b", "dir": "n" },
@@ -1651,7 +1700,10 @@
 				"__smartColor": "#ADADB5",
 				"__bgPos": null,
 				"externalRelPath": "main/TestingClot.ldtkl",
-				"fieldInstances": [{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Default", "__tile": null, "defUid": 286, "realEditorValues": [] }],
+				"fieldInstances": [
+					{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Default", "__tile": null, "defUid": 286, "realEditorValues": [] },
+					{ "__identifier": "EnvironmentBlend", "__type": "Float", "__value": 6, "__tile": null, "defUid": 287, "realEditorValues": [] }
+				],
 				"layerInstances": null,
 				"__neighbours": [ { "levelIid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6", "dir": "s" }, { "levelIid": "940919c0-bde0-11f1-b36f-115902cc0d05", "dir": "s" }, { "levelIid": "1971f330-bde0-11f1-a007-1bd4b86a3e1a", "dir": "e" } ]
 			},
@@ -1674,7 +1726,10 @@
 				"__smartColor": "#ADADB5",
 				"__bgPos": null,
 				"externalRelPath": "main/TestingGerald.ldtkl",
-				"fieldInstances": [{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Default", "__tile": null, "defUid": 286, "realEditorValues": [] }],
+				"fieldInstances": [
+					{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Default", "__tile": null, "defUid": 286, "realEditorValues": [] },
+					{ "__identifier": "EnvironmentBlend", "__type": "Float", "__value": 6, "__tile": null, "defUid": 287, "realEditorValues": [] }
+				],
 				"layerInstances": null,
 				"__neighbours": [
 					{ "levelIid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6", "dir": "w" },
@@ -1703,10 +1758,13 @@
 				"__smartColor": "#ADADB5",
 				"__bgPos": null,
 				"externalRelPath": "main/TestingDrop.ldtkl",
-				"fieldInstances": [{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Outside", "__tile": null, "defUid": 286, "realEditorValues": [{
-					"id": "V_String",
-					"params": ["Outside"]
-				}] }],
+				"fieldInstances": [
+					{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Outside", "__tile": null, "defUid": 286, "realEditorValues": [{
+						"id": "V_String",
+						"params": ["Outside"]
+					}] },
+					{ "__identifier": "EnvironmentBlend", "__type": "Float", "__value": 6, "__tile": null, "defUid": 287, "realEditorValues": [] }
+				],
 				"layerInstances": null,
 				"__neighbours": [
 					{ "levelIid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6", "dir": "nw" },
@@ -1735,7 +1793,10 @@
 				"__smartColor": "#ADADB5",
 				"__bgPos": null,
 				"externalRelPath": "main/TestingGaps.ldtkl",
-				"fieldInstances": [{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Default", "__tile": null, "defUid": 286, "realEditorValues": [] }],
+				"fieldInstances": [
+					{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Default", "__tile": null, "defUid": 286, "realEditorValues": [] },
+					{ "__identifier": "EnvironmentBlend", "__type": "Float", "__value": 6, "__tile": null, "defUid": 287, "realEditorValues": [] }
+				],
 				"layerInstances": null,
 				"__neighbours": [ { "levelIid": "a19fed30-bde0-11f1-9446-a12c3e5c9621", "dir": "e" }, { "levelIid": "3aec9f20-bde0-11f1-a778-cd4d7eac5ccb", "dir": "n" }, { "levelIid": "2b1fbda0-bde0-11f1-a078-c1bbe61b1c66", "dir": "n" } ]
 			},
@@ -1758,10 +1819,13 @@
 				"__smartColor": "#ADADB5",
 				"__bgPos": null,
 				"externalRelPath": "main/TestingShafts.ldtkl",
-				"fieldInstances": [{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Testing", "__tile": null, "defUid": 286, "realEditorValues": [{
-					"id": "V_String",
-					"params": ["Testing"]
-				}] }],
+				"fieldInstances": [
+					{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Testing", "__tile": null, "defUid": 286, "realEditorValues": [{
+						"id": "V_String",
+						"params": ["Testing"]
+					}] },
+					{ "__identifier": "EnvironmentBlend", "__type": "Float", "__value": 6, "__tile": null, "defUid": 287, "realEditorValues": [] }
+				],
 				"layerInstances": null,
 				"__neighbours": [
 					{ "levelIid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6", "dir": "n" },
@@ -1790,10 +1854,13 @@
 				"__smartColor": "#ADADB5",
 				"__bgPos": null,
 				"externalRelPath": "main/TestingOutside.ldtkl",
-				"fieldInstances": [{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Outside", "__tile": null, "defUid": 286, "realEditorValues": [{
-					"id": "V_String",
-					"params": ["Outside"]
-				}] }],
+				"fieldInstances": [
+					{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Outside", "__tile": null, "defUid": 286, "realEditorValues": [{
+						"id": "V_String",
+						"params": ["Outside"]
+					}] },
+					{ "__identifier": "EnvironmentBlend", "__type": "Float", "__value": 0, "__tile": null, "defUid": 287, "realEditorValues": [{ "id": "V_Float", "params": [0] }] }
+				],
 				"layerInstances": null,
 				"__neighbours": [ { "levelIid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6", "dir": "e" }, { "levelIid": "4aa45f20-bde0-11f1-9446-ef36bac1f552", "dir": "s" }, { "levelIid": "3aec9f20-bde0-11f1-a778-cd4d7eac5ccb", "dir": "e" } ]
 			},
@@ -1816,7 +1883,10 @@
 				"__smartColor": "#ADADB5",
 				"__bgPos": null,
 				"externalRelPath": "main/TestingTooNarrow.ldtkl",
-				"fieldInstances": [{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Default", "__tile": null, "defUid": 286, "realEditorValues": [] }],
+				"fieldInstances": [
+					{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Default", "__tile": null, "defUid": 286, "realEditorValues": [] },
+					{ "__identifier": "EnvironmentBlend", "__type": "Float", "__value": 6, "__tile": null, "defUid": 287, "realEditorValues": [] }
+				],
 				"layerInstances": null,
 				"__neighbours": [ { "levelIid": "9971ed40-bde0-11f1-a778-ebfea3fcd78b", "dir": "w" }, { "levelIid": "940919c0-bde0-11f1-b36f-115902cc0d05", "dir": "w" }, { "levelIid": "a19fed30-bde0-11f1-9446-a12c3e5c9621", "dir": "w" } ]
 			}

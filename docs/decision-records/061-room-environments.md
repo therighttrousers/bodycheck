@@ -1,6 +1,6 @@
 # 061: Environments per room
 
-Status: open. The blend's width (§3.3) and fading background layers (§5.1) are still to be settled.
+Status: open. The default blend's width (§3.3) and fading background layers (§5.1) are still to be settled.
 
 ## Context
 
@@ -38,6 +38,7 @@ Goals:
   Decision (Neil): E.
 - [x] 3.2 The point. Decision: the camera's position in the world's plane, which is the view's centre, rather than the player's: the look follows what is on screen, and the framing's spring already smooths it, so the blend eases with the camera.
 - [~] 3.3 The weights. Each room weighs `clamp(0.5 - d / w, 0, 1)` for signed distance `d` and blend width `w`, so two rooms that meet weigh a half each on their edge; an environment weighs what its rooms do, and the weights are scaled to add up to 1. With no room within `w / 2`, the nearest room's environment is the look. Leaning: `w` of 6 tiles, chosen without play; to tune by eye.
+- [x] 3.4 A width per room. Neil asked for one. Each room weighs by its own width, so two rooms that meet still weigh a half each on their edge, and the band is lopsided where their widths differ: a long fade from open country, a sharp one through a doorway, which is about the room's shape, so per room rather than per environment. Decision (Neil): a level field, `EnvironmentBlend`, a float in tiles, not negative, and 0 must work: no band, a step at the edge, for rooms whose sky background layers cover. A wide blend on a small room tints its neighbours' entrances, so it's for the level's author to judge. 6 tiles is the default, and §3.3's weight is each room's.
 
 ## 4. Mixing
 

@@ -13,10 +13,10 @@ namespace BodyCheck;
 /// room to one of another environment changes the look smoothly, and going back undoes it exactly.
 /// <list type="bullet">
 /// <item>
-/// Each room weighs from 1, deep inside it, to 0, at half of <see cref="BlendWidth"/> outside it, by the signed distance
-/// of the view's centre from its box, so that two rooms that meet weigh a half each on the edge between them. An
-/// environment weighs what its rooms do, and the weights are scaled to add up to 1. With no room near, the nearest one's
-/// environment is the look.
+/// Each room weighs from 1, half its <see cref="Room.EnvironmentBlend"/> inside it, to 0, half of it outside, by the
+/// signed distance of the view's centre from its box, so that two rooms that meet weigh a half each on the edge between
+/// them, whatever their blends. A room whose blend is 0 weighs 1 inside it and 0 outside. An environment weighs what its
+/// rooms do, and the weights are scaled to add up to 1. With no room near, the nearest one's environment is the look.
 /// </item>
 /// <item>
 /// Each environment's scene has a <c>WorldEnvironment</c>, whose <see cref="Godot.Environment"/> the mixer blends into
@@ -32,9 +32,6 @@ namespace BodyCheck;
 /// </summary>
 public partial class EnvironmentMixer : Node3D
 {
-    /// <summary>How wide the band is across a room's edge in which its environment blends with the next, in tiles.</summary>
-    public const float BlendWidth = 6;
-
     private readonly World _world;
     private readonly Camera3D _camera;
     private readonly RoomEnvironment[] _kinds;
@@ -43,6 +40,8 @@ public partial class EnvironmentMixer : Node3D
     private readonly PropertyMix _environmentMix;
     private readonly PropertyMix _skyMix;
     private readonly float[] _weights;
+    // How far outside a room it can weigh anything: half the widest blend.
+    private readonly float _reach;
 
     /// <param name="world">The world whose rooms say which environment is where.</param>
     /// <param name="camera">The camera, whose position in the world's plane is the view's centre.</param>
@@ -53,6 +52,7 @@ public partial class EnvironmentMixer : Node3D
         _kinds = [.. world.Rooms.Select(room => room.Environment).Distinct()];
         _scenes = [.. _kinds.Select(AssetLibrary.GetEnvironment)];
         _weights = new float[_kinds.Length];
+        _reach = world.Rooms.Max(room => room.EnvironmentBlend) / 2;
 
         var environments = new Godot.Environment[_kinds.Length];
         var skies = new ProceduralSkyMaterial[_kinds.Length];
@@ -114,9 +114,9 @@ public partial class EnvironmentMixer : Node3D
     private float[] Weights(Vector2 point)
     {
         var weights = new float[_kinds.Length];
-        foreach ((Room room, float distance) in _world.RoomsNear(point, BlendWidth / 2))
+        foreach ((Room room, float distance) in _world.RoomsNear(point, _reach))
         {
-            weights[Array.IndexOf(_kinds, room.Environment)] += Mathf.Clamp(0.5f - distance / BlendWidth, 0, 1);
+            weights[Array.IndexOf(_kinds, room.Environment)] += Weight(distance, room.EnvironmentBlend);
         }
         float total = weights.Sum();
         if (total <= 0)
@@ -131,6 +131,13 @@ public partial class EnvironmentMixer : Node3D
         }
         return weights;
     }
+
+    /// <summary>
+    /// A room's weight, at a signed distance from it, given its blend: a ramp from 1 to 0 across the band, or with no
+    /// band, a step at the edge, where it weighs a half, as on any ramp.
+    /// </summary>
+    private static float Weight(float distance, float blend) =>
+        blend > 0 ? Mathf.Clamp(0.5f - distance / blend, 0, 1) : distance < 0 ? 1 : distance > 0 ? 0 : 0.5f;
 
     /// <summary>An environment's sky: its own, or, for a background of a colour, a sky of that colour throughout.</summary>
     /// <exception cref="InvalidOperationException">When its background is neither.</exception>

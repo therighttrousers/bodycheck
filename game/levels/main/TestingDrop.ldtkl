@@ -26,10 +26,13 @@
 	"__smartColor": "#ADADB5",
 	"__bgPos": null,
 	"externalRelPath": null,
-	"fieldInstances": [{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Outside", "__tile": null, "defUid": 286, "realEditorValues": [{
-		"id": "V_String",
-		"params": ["Outside"]
-	}] }],
+	"fieldInstances": [
+		{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Outside", "__tile": null, "defUid": 286, "realEditorValues": [{
+			"id": "V_String",
+			"params": ["Outside"]
+		}] },
+		{ "__identifier": "EnvironmentBlend", "__type": "Float", "__value": 6, "__tile": null, "defUid": 287, "realEditorValues": [] }
+	],
 	"layerInstances": [
 		{
 			"__identifier": "Control",
