@@ -24,13 +24,27 @@ public sealed class Room : IOffsetTileGrid
     /// Which tiles the camera keeps out of view, by x and then y, the same size as <paramref name="tiles"/>; none if
     /// null. The room keeps it, so the caller must not change it afterwards.
     /// </param>
+    /// <param name="environment">The room's lighting and sky, which the game draws.</param>
+    /// <param name="environmentBlend">
+    /// How wide the band across the room's edges is in which its environment blends with its neighbours', in tiles: half
+    /// inside the room and half outside it. Not negative; 0 changes the environment at the edge.
+    /// </param>
     /// <exception cref="ArgumentException">
-    /// When a configuration isn't what the room can hold, or the camera boundary isn't the size of the tiles.
+    /// When a configuration isn't what the room can hold, the camera boundary isn't the size of the tiles, or the
+    /// environment's blend is negative.
     /// </exception>
     public Room(
-        string name, Vector2I origin, TileGrid tiles, IEnumerable<EntityConfig> entityConfigs, bool[,]? cameraBoundary = null)
+        string name, Vector2I origin, TileGrid tiles, IEnumerable<EntityConfig> entityConfigs, bool[,]? cameraBoundary = null,
+        RoomEnvironment environment = RoomEnvironment.Default, float environmentBlend = DefaultEnvironmentBlend)
     {
         Name = name;
+        Environment = environment;
+        if (!(environmentBlend >= 0))
+        {
+            throw new ArgumentException(
+                $"In room '{name}', the environment's blend is {environmentBlend}, not 0 or more.", nameof(environmentBlend));
+        }
+        EnvironmentBlend = environmentBlend;
         _tiles = tiles;
         Origin = origin;
         Size = tiles.Size;
@@ -193,6 +207,18 @@ public sealed class Room : IOffsetTileGrid
 
     /// <summary>The tiles the room covers, in the world's coordinates.</summary>
     public Rect2I Bounds => new(Origin, Size);
+
+    /// <summary>The room's lighting and sky, which the game draws.</summary>
+    public RoomEnvironment Environment { get; }
+
+    /// <summary>The environment blend of a room that isn't given one, such as a text room's, in tiles.</summary>
+    public const float DefaultEnvironmentBlend = 6;
+
+    /// <summary>
+    /// How wide the band across the room's edges is in which its environment blends with its neighbours', in tiles: half
+    /// inside the room and half outside it. Never negative; 0 changes the environment at the edge.
+    /// </summary>
+    public float EnvironmentBlend { get; }
 
     /// <summary>A tile's kind, in the room's coordinates. Everything outside the room is empty.</summary>
     public TileIndex GetTileIndex(int x, int y) => _tiles.GetTileIndex(x, y);

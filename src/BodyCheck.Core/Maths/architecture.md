@@ -2,6 +2,7 @@
 
 Relevant decision records:
 - [057: Tile kinds](../../../docs/decision-records/057-tile-kinds.md)
+- [061: Environments per room](../../../docs/decision-records/061-room-environments.md)
 
 ## What it is
 
@@ -16,5 +17,5 @@ Gameplay rules that happen to be arithmetic, such as a controller's tuning or ho
 - **`Rand`**: random numbers from a string seed that are the same on every run and every .NET version (`057 §2.4`).
 - **`Spring`**: critically damped springs. Their exact motion over a frame of any length, the force that makes a body move as one, and the smoothing time that makes one peak at a given speed. A spring is given by its smoothing time, about the time it takes to cover 60% of the way.
 - **`Smoothing`**: exponential smoothing, the first-order counterpart of a spring, also given by its smoothing time, exact for a frame of any length.
-- **`Boxes`**: distances to axis-aligned boxes, given by their centres and half-sizes.
+- **`Boxes`**: distances to axis-aligned boxes, given by their centres and half-sizes: from outside, and signed, below 0 inside, as in a signed distance field (`061 §2.3`).
 - **`GridSpace`**: physics queries on a grid of unit cells, such as tiles, where a predicate says which cells count: what the engine's space queries do for bodies, with nothing in the scene. So far, casting a ray to the first cell it meets, by Amanatides and Woo's traversal. Casting a moving box and finding the cells a box overlaps would go here too. Moving and sliding, built on those, would be a controller's, and grid algorithms that aren't physics, such as thinning, aren't for it.
