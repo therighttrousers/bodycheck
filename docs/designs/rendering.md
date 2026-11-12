@@ -55,7 +55,7 @@ The camera follows the player with a lag, and its view is centred 3 tiles above 
 
 Vertices aren't snapped to whole pixels. A snap was tried and removed: it was barely noticeable at 320x240, and it needed every material replaced at runtime by a shader that reimplemented it (`038 §1.1`, `§1.2`, `040 §1.1`).
 
-Imported models get nearest filtering from `nearest_textures_import.gd`, a post-import script, since smoothed textures took hardware that the games of the look didn't have. It's the default for new models, in `project.godot`. It reaches only materials embedded in a model: one saved in a file of its own, such as the platform's `body.tres`, has to set nearest filtering itself, and the import warns if it doesn't.
+Imported models get nearest filtering from `nearest_textures_import.gd`, a post-import script, since smoothed textures took hardware that the games of the look didn't have. It's the default for new models, in `project.godot`. It reaches only materials embedded in a model: one saved in a file of its own, such as the platform's `platform_body.tres`, has to set nearest filtering itself, and the import warns if it doesn't.
 
 ## Animation steps
 

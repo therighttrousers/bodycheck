@@ -17,11 +17,11 @@ public class AssetLibrary : IAssetLibrary
 {
     private static readonly Dictionary<TileIndex, string> TilePaths = new()
     {
-        [TileIndex.Ground] = "res://assets/tiles/ground/ground.tscn",
-        [TileIndex.Grass] = "res://assets/tiles/grass/grass.tscn",
+        [TileIndex.Ground] = "res://assets/tiles/ground.tscn",
+        [TileIndex.Grass] = "res://assets/tiles/grass.tscn",
     };
-    private const string BlockPath = "res://assets/portal_cube/scene.tscn";
-    private const string PlatformPath = "res://assets/platform/scene.tscn";
+    private const string BlockPath = "res://assets/entities/block/block.tscn";
+    private const string PlatformPath = "res://assets/entities/platform/platform.tscn";
 
     // How opaque the player's block is: a ghost of a block.
     private const float PlayerBlockAlpha = 0.4f;
@@ -30,8 +30,8 @@ public class AssetLibrary : IAssetLibrary
 
     public Node3D? GetEntityVisual(EntityConfig config) => config.Kind switch
     {
-        EntityKind.Player => InstantiateModel("res://assets/bob_the_robot/scene.tscn"),
-        EntityKind.Robot => InstantiateModel("res://assets/bob_the_robot/robot.tscn"),
+        EntityKind.Player => InstantiateModel("res://assets/entities/player/player.tscn"),
+        EntityKind.Robot => InstantiateModel("res://assets/entities/robot/robot.tscn"),
         EntityKind.Platform => InstantiatePlatform(2 * BodyTuning.Platform(config.MapSize).HalfSize.X),
         EntityKind.Block => InstantiateModel(BlockPath),
         EntityKind.VerticalDoor => InstantiateDoor(config),
@@ -78,8 +78,8 @@ public class AssetLibrary : IAssetLibrary
         var door = new Node3D();
         door.AddChild(GetDebugBoxVisual(config.MapSize, config.MapColor, alpha: 1));
         var sounds = new CueSounds();
-        sounds.AddChild(CueSound(EntityCue.DoorOpened, "res://assets/entity_sfx/door/door_open.wav"));
-        sounds.AddChild(CueSound(EntityCue.DoorClosed, "res://assets/entity_sfx/door/door_close.wav"));
+        sounds.AddChild(CueSound(EntityCue.DoorOpened, "res://assets/entities/door/sounds/door_open.wav"));
+        sounds.AddChild(CueSound(EntityCue.DoorClosed, "res://assets/entities/door/sounds/door_close.wav"));
         door.AddChild(sounds);
         return door;
     }

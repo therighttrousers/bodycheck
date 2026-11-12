@@ -16,12 +16,12 @@ What the game asks of a 3D model, and how code and art meet in it. The models in
 
 - **Made in Blender**, exported as glTF, and imported by Godot. The import settings are in the `.import` file beside the glTF, and the Godot editor changes them in its Import dock.
 - **Godot imports only the glTF**, never a `.blend` file: the project setting `filesystem/import/blender/enabled` is off. Importing a `.blend` runs Blender, so every machine that opens the project would need it installed and configured, CI's included. Where it isn't, the model doesn't load.
-- **A wrapper scene** beside the glTF, a `.tscn` in the model's folder in `game/assets/`, is what the game loads. Its name is free, such as `scene.tscn` or the model's name (`057 §3.1`). It holds what Godot adds to the model: an animation tree, material overrides, and any adjustment to the model's position, size or direction.
+- **A wrapper scene**, a `.tscn` one level up from the model's folder in `game/assets/`, is what the game loads, such as `entities/player/player.tscn` for the model in `entities/player/model/`. It is named for what it draws (`057 §3.1`). It holds what Godot adds to the model: an animation tree, material overrides, and any adjustment to the model's position, size or direction.
 - **The wrapper's layout** (`006 §1.3`): its root is a plain `Node3D` with no transform, which the game moves and turns. The glTF is the root's child, which the artist moves, scales and turns. Its name is free, such as `Model` or the model's name (`057 §3.4`). Code that finds nodes in a wrapper by path has to be kept in step with the names in it: `AssetLibrary` finds the platform's parts at `Model/CapLeft`, `Model/CapRight` and `Model/Center`, so renaming the platform's child or its parts means changing those paths. Each transform has one owner. The child's transform applies first, so the game turns the model about the root's origin, which is the model's base, wherever the glTF's own origin was.
 - **Units:** one unit is one tile. The player is 0.8 tiles wide and 1.8 tall ([movement.md](movement.md)).
 - **The anchor is the origin** (`006 §1.1`, `037 §1.6`). The anchor is a spot on the body's box. For most bodies it is the base, where the model stands on the ground: between a character's feet, or the middle of a block's bottom face. For a hovering platform, which stands on nothing, it is the center. A model made for this game has its anchor at the origin in Blender. A model from elsewhere is adjusted in its wrapper scene until it does.
 - **It faces +Z**, towards the camera. The game turns it to face left or right.
-- **A variant**, such as a robot in the player's shape with another colour, is an inherited scene of the model's wrapper scene, with what differs set in the editor. `robot.tscn` beside Bob's wrapper scene overrides the body's material.
+- **A variant**, such as a robot in the player's shape with another colour, is an inherited scene of the model's wrapper scene, with what differs set in the editor. The robot's `entities/robot/robot.tscn` inherits the player's wrapper scene and overrides the body's material.
 
 ## The platform's model
 
@@ -29,7 +29,7 @@ A platform's model fits any width (`037 §4`). It is the first model in the game
 
 - **Its parts** are separate objects in one `.glb`. `CapLeft` and `CapRight` are 6 pixels wide, with their origins at their outer ends, so `AssetLibrary` puts them at the ends of the body. `Center` is one unit wide, and `AssetLibrary` stretches it between the caps. Its art is only horizontal traces, so stretching doesn't show.
 - **The art** is `platform_traces.png`, an emission map at the game's resolution. The front face, level with the tiles' fronts, is exactly 16 pixels to the tile, so a texel lands on one pixel. Edit its pixels and the game shows them, with no export.
-- **Its material** is `body.tres`, which replaces the glTF's in the `.glb`'s import settings, because Godot ignores a glTF's nearest filtering. The body's color and the glow are set there, not in the `.blend`. Keep its `emission` black: the material adds the map to it.
+- **Its material** is `platform_body.tres`, which replaces the glTF's in the `.glb`'s import settings, because Godot ignores a glTF's nearest filtering. The body's color and the glow are set there, not in the `.blend`. Keep its `emission` black: the material adds the map to it.
 - **The face** is `Eyes`, `MouthSmile`, `MouthStraight` and `MouthFrown`: quads just in front of the front face. A mouth changes by showing one and hiding the others.
 - **A quad's edges run through an empty margin of its art,** and the art on the caps and center repeats one column past each end in the atlas, for the seams between them. This was for MSAA, which dimmed lit pixels on mesh edges (`037 §4.7`), and the game no longer uses it (`038 §1.3`). The platform's art still follows it.
 
@@ -43,7 +43,7 @@ Then wrap it as below, from step 2, using the `.glb` where the steps say `.gltf`
 
 ## Adding a model
 
-1. **Copy the model's folder** into `game/assets/`: the glTF (a `.gltf` with its `.bin`, or a `.glb`), its textures and its licence. Godot imports it when its editor next has focus.
+1. **Copy the model's folder** into `game/assets/`, as `model/` in the folder of what it draws, such as `entities/<kind>/model/`: the glTF (a `.gltf` with its `.bin`, or a `.glb`), its textures and its licence. Godot imports it when its editor next has focus. If the model is someone else's, credit it in [`ACKNOWLEDGEMENTS.md`](../../ACKNOWLEDGEMENTS.md).
 2. **For an animated model, import the rest pose.** Select the `.gltf` in the FileSystem dock, open the **Import** tab, check **Import Rest as RESET** (under Animation), and click **Reimport**.
    - If you don't do this, Godot will make changes to your `.tscn` file whenever the editor plays an animation.
 3. **Make the wrapper scene.** **Scene → New Scene**, and choose **3D Scene** for the root, which makes a plain `Node3D`. Name it after the model.
@@ -51,7 +51,7 @@ Then wrap it as below, from step 2, using the `.glb` where the steps say `.gltf`
 5. **Make its children editable.** Right-click the child and check **Editable Children**. Without it, the nodes inside the glTF can't be selected: the `AnimationPlayer` for the tree, or a mesh to override.
 6. **Place it.** Move, scale and turn the child until its base is on the root's origin, it faces +Z, and its size is right in tiles. Leave the root alone.
 7. **For an animated model, add the tree.** Add an `AnimationTree` as a child of the root, named `AnimationTree`, and set its **Anim Player** to the `AnimationPlayer` inside the child. Build its graph (see [Animation](#animation)).
-8. **Save** it in the model's folder, as `scene.tscn` or the model's name. Right-click it in the FileSystem dock and choose **Copy Path** for the `res://` path that the game loads.
+8. **Save** it one level up from the model's folder, named for what it draws, such as `entities/<kind>/<kind>.tscn`. Right-click it in the FileSystem dock and choose **Copy Path** for the `res://` path that the game loads.
    - This path can be passed to a call to `GD.Load<PackedScene>(path)` in the C# code to load the model and its animations.
 9. **Commit everything in the model's folder**, including the `.import` files Godot generated and the `.tscn` file you made.
 
@@ -110,6 +110,7 @@ A character's sounds are in its wrapper scene, as its animation is: the scene is
 - **Cues.** A controller raises an `EntityCue` on its entity when something happens to it that the scene may react to, such as `PhaseBegan`. To give cues sounds, add a `CueSounds` node to the wrapper scene, and under it an `AudioStreamPlayer3D` for each, named after its cue, on the `Sfx` bus, so that the sound comes from where the character is. A cue with no player plays nothing; so does a misspelt name, silently.
 - **The cues:** `Jumped`, `PhaseBegan`, `PhaseThrown`, `PhaseCancelled` and `SpawnCancelled`, all raised on the player.
 - **When to use which.** A cue says *when* something happens, on the tick it happens. An audio track in a clip says *where in a motion*, and plays only when the animation tree reaches that clip, which may be late or not at all after a transition's blend. So a sound that marks an event, such as a jump, is a cue. A sound that follows a motion is a track: footsteps, which keep time with the run cycle as its speed changes; sounds at points along a long animation, such as a door's creak as it swings or the stages of a death; sounds in an idle's fidgets. A cue can start such an animation, and its tracks then time the sounds within it (`021 §1.2`). A sound that lasts as long as a state, and stops when the state ends however it ends, follows the state: the node that shows the state plays it, as `LaserBeam` plays a node under it named `Sound` while the laser is locked or firing.
+- **Files.** A sound's file is in the `sounds/` folder of what makes it, such as `entities/player/sounds/`, or in `entities/shared/sounds/` if more than one kind uses it. It is named for what it is, such as `jump.wav`, not with the name it was downloaded with. A sound that is someone else's is credited in [`ACKNOWLEDGEMENTS.md`](../../ACKNOWLEDGEMENTS.md), with a link to where it came from.
 - A character's sounds pause with the world. The game pauses half a second after `PhaseBegan`, so its sound lasts 0.5 seconds or less, or it is cut off by the pause (`021 §2.6`, `§4.2`).
 
 ### Adding an audio track to an imported animation
