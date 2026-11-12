@@ -1763,9 +1763,9 @@
 				"__bgPos": null,
 				"externalRelPath": "main/TestingDrop.ldtkl",
 				"fieldInstances": [
-					{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Outside", "__tile": null, "defUid": 286, "realEditorValues": [{
+					{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "DarkCave", "__tile": null, "defUid": 286, "realEditorValues": [{
 						"id": "V_String",
-						"params": ["Outside"]
+						"params": ["DarkCave"]
 					}] },
 					{ "__identifier": "EnvironmentBlend", "__type": "Float", "__value": 6, "__tile": null, "defUid": 287, "realEditorValues": [] }
 				],
