@@ -7,6 +7,7 @@ This README is written for game developers, not players.
 See
 - [docs/designs/high-level-design.md](docs/designs/high-level-design.md) for more high-level details and a table of contents.
 - [docs/designs/architecture.md](docs/designs/architecture.md) for tech details and directory structure, and links down to the docs of each part of the system.
+- [AUTHORS.md](AUTHORS.md) for who made the game, and [ACKNOWLEDGEMENTS.md](ACKNOWLEDGEMENTS.md) for the tools, libraries and assets we use that others made, and the credits their licences ask for.
 
 ## Initial dev setup
 

@@ -9,6 +9,10 @@ Design docs and decision records are in [`docs/`](docs/AGENTS.md). Read that bef
 - Running the game from the command line doesn't build the C# code. Run `dotnet build` first.
 - `dotnet test` runs all the tests, including the ones that run headless inside Godot.
 
+## Acknowledgements
+
+- **Keep [`ACKNOWLEDGEMENTS.md`](ACKNOWLEDGEMENTS.md) current.** In the same change that adopts a tool, adds a library, addon or package, or adds an asset made by someone else, add it there: its name, its author, a link to where it came from, its licence, and how we changed it if the licence asks. Remove its entry when we stop using it.
+
 ## Comments
 
 - **Don't cite decision records in code.** A record is permanent, but a later one can supersede it, and a comment that cites it then goes stale. Where a comment needs the design behind the code, link the design doc that states it, which is kept current; otherwise explain in the comment itself.
