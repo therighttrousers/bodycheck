@@ -114,6 +114,8 @@ Paused, the debug tools still work: the `DebugOverlay`, the `CollisionDebug`, th
 
 ## Open questions
 
+- The default width of an environment's blend, 6 tiles, which every level has for now, was chosen without play; to tune by eye (`061 §3.3`).
+
 - Input across the game's modes (issue #174). The player's input is polled with `Input.IsActionPressed`, which sees a held key whether or not a node handled its press, so a key that closes the menu or the map can reach play on the next played tick. The jump that ends a dialogue doesn't, since the player's controller counts a button held as a cutscene ends as no new press (`050 §4.3`); input that owns its own presses would do that for every mode, and for the camera and scripted input too. Input is read in several places, in two ways.
 
 - The rest of the world as the map (Neil): the map pauses the tree and zooms out, but doesn't yet hide what moves or is expensive to draw, or show only the rooms the player has explored. Rooms already draw their own tiles (`020 §2.1`), so this would be revealing the explored ones, perhaps with a cheaper look each, and it means caching could unload a room's entities and colliders but not its look (`013`, Context). The zoom's tween is linear in distance, which does most of the visible zooming early; an exponential transition may feel more even at the sizes of a whole game, 16x16 to 32x32 rooms.

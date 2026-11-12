@@ -1,6 +1,6 @@
 # 061: Environments per room
 
-Status: open. The default blend's width (§3.3) and fading background layers (§5.1) are still to be settled.
+Status: closed. The default blend's width (§3.3) is in [`game/main/`'s doc](../../game/main/architecture.md)'s open questions, and fading background layers (§5.1) in [rendering.md](../designs/rendering.md)'s, for issue #202.
 
 ## Context
 

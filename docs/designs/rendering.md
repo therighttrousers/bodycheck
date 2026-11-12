@@ -105,6 +105,7 @@ Other ways of choosing colours were tried and set aside: quantising in HSV, a la
 
 ## Open questions
 
+- Background layers (issue #202), and how they fade as environments blend. Each environment's scene could hold its own layers, which already show and hide with it. To fade them by the environments' weights, a dissolve in the colour pass's 2x2 Bayer pattern rather than transparency: it suits Mode X, is cheap, and has no sorting problems (`061 §5.1`).
 - Flat or smooth shading for models and tiles. Flat shading comes from a mesh's normals, so it is a rule for modelling and not a pipeline setting. The "Look" room shows both (`003 §4.1`).
 - Transparency and refraction were not judged on their own (`003 §4.2`).
 - The resolution of game UI. It stays out of the colour pass, whose dither changes even colours taken from the palette. The placeholder menu is drawn at 320x240 on a layer above the colour pass, in the game's viewport, with the default font antialiased; aliased, it looked terrible (`039 §2.1`, `§2.2`). Whether all game UI is drawn this way, or at the window's resolution, is undecided. Text in system fonts at 8 pixels is unreadable at 320x240; a 3x5 pixel font is readable (`008 §2.1`, `§2.6`). The dialogue box is drawn at 320x240 in a pixel font, Fusion Pixel at 10 pixels, aliased (`044 §4.1`).
