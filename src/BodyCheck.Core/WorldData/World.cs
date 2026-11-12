@@ -1,3 +1,5 @@
+using BodyCheck.Core.Maths;
+
 using Godot;
 
 namespace BodyCheck.Core.WorldData;
@@ -184,6 +186,18 @@ public sealed class World
     public string Name { get; }
 
     public IReadOnlyList<Room> Rooms { get; }
+
+    /// <summary>
+    /// The rooms within <paramref name="distance"/> of <paramref name="point"/>, in the world's coordinates, in the
+    /// order of the rooms, each with its signed distance from the point: less than 0 inside the room, by how far the
+    /// point is from its nearest edge.
+    /// </summary>
+    public IEnumerable<(Room Room, float Distance)> RoomsNear(Vector2 point, float distance) =>
+        Rooms
+            .Select(room => (
+                Room: room,
+                Distance: Boxes.SignedDistance(point, room.Origin + (Vector2)room.Size / 2, (Vector2)room.Size / 2)))
+            .Where(near => near.Distance <= distance);
 
     public Vector2I Size { get; }
     public TileIndex GetTileIndex(int x, int y) => _tiles.GetTileIndex(x, y);

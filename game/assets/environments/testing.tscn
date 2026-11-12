@@ -1,0 +1,18 @@
+[gd_scene format=3 uid="uid://d0xaf3lexadxh"]
+
+[sub_resource type="Environment" id="Environment_wwk44"]
+background_mode = 1
+background_color = Color(0.58, 0.052199982, 0.14896335, 1)
+ambient_light_color = Color(0.5019608, 0.5019608, 1, 1)
+ambient_light_energy = 0.1
+
+[node name="Testing" type="Node3D" unique_id=2100789741]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1918718743]
+environment = SubResource("Environment_wwk44")
+
+[node name="Lighting" type="Node3D" parent="." unique_id=362989609]
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="Lighting" unique_id=74878742]
+light_color = Color(0.43529412, 0.6117647, 1, 1)
+light_energy = 2.0

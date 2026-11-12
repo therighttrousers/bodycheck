@@ -10,6 +10,7 @@ Relevant decision records:
 - [049: Doors and their stops](../../../docs/decision-records/049-doors-and-stops.md)
 - [052: The talking door](../../../docs/decision-records/052-talking-door.md)
 - [057: Tile kinds](../../../docs/decision-records/057-tile-kinds.md)
+- [061: Environments per room](../../../docs/decision-records/061-room-environments.md)
 
 ## What it is
 
@@ -21,9 +22,9 @@ Anything that runs: engine nodes, bodies or colliders. Reading files in an edito
 
 ## Worlds and rooms
 
-- A `World` is a name and its `Room`s, which don't overlap, with exactly one player start among them (`013 §2.3`, `§3.2`). It is data only: nothing at run time knows which room a tile or an entity is in (`013 §1.1`). Its tiles are the union of its rooms', over their bounding box, with everything outside a room empty (`020 §1.1`). Worlds come from two sources: the worlds of an LDtk project, one room per level, and a text room, as a world of one room.
+- A `World` is a name and its `Room`s, which don't overlap, with exactly one player start among them (`013 §2.3`, `§3.2`). It is data only: nothing at run time knows which room a tile or an entity is in (`013 §1.1`). It can say which rooms are near a point: `RoomsNear` gives the rooms within a distance of it, each with its signed distance from it, below 0 inside the room, by how far the point is from its nearest edge (`061 §2.3`). Its tiles are the union of its rooms', over their bounding box, with everything outside a room empty (`020 §1.1`). Worlds come from two sources: the worlds of an LDtk project, one room per level, and a text room, as a world of one room.
 - A world holds its rooms' entity configurations in world coordinates, in two lists: `Bodies`, of the entities with bodies, in the order they are built and stepped, and `Controls`, of the control entities. Each is in the order of the rooms, then of each room's own, so that whatever goes through them does so in a known order. `ConfigsById` finds either kind by id (`013 §4.4`, `045 §2.1`, `§2.2`).
-- A `Room` is a name, an origin in the world, in tiles, a tile grid, and a configuration for each entity that starts in it, the player's included. Its tiles and starts are in its own coordinates (`013 §2.1`, `§2.2`).
+- A `Room` is a name, an origin in the world, in tiles, a tile grid, a configuration for each entity that starts in it, the player's included, and its environment, a `RoomEnvironment`: which lighting and sky the game draws it with, and how wide the band across its edges is in which the environment blends with its neighbours', in tiles, which isn't negative. A text room's is `Default`, with a blend of 6 tiles (`061 §2.1`, `§3.4`). Its tiles and starts are in its own coordinates (`013 §2.1`, `§2.2`).
 - A room may also mark tiles as its camera boundary, which the camera keeps out of view; a text room marks none. The world merges the rooms' marks as it does their tiles. Outside the rooms its marks are false: what the camera does there is the camera's to decide (`042 §5.3`).
 - Each tile has a kind, a `TileIndex`. `Empty` is no tile, and every other kind is solid; for now, kinds differ only in looks. The values are those of the LDtk project's `SolidGeometry` layer, and `Count` is last, so that code can loop over the kinds. A text room's `#` is `Ground` (`057 §1.1`, `§1.2`).
 - An entity's configuration is its kind, as an `EntityKind`, its id, unique in its world, where its box is, and whatever else a level says about it. Each kind has its own type of configuration, from which an entity of that kind is built. An entity's box may lie outside its room.

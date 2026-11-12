@@ -11,7 +11,7 @@
 	"iid": "0f346a70-bde0-11f1-b046-ebfce3981aaf",
 	"jsonVersion": "1.5.3",
 	"appBuildId": 473703,
-	"nextUid": 284,
+	"nextUid": 288,
 	"identifierStyle": "Capitalize",
 	"toc": [{
 		"identifier": "PlayerStart",
@@ -22,7 +22,7 @@
 				"levelIid": "6aa1dfc0-bde0-11f1-a170-f914bfc3ae23",
 				"layerIid": "6aa1dfc2-bde0-11f1-a170-8b44d457842c",
 				"entityIid": "9cb9aa60-bde0-11f1-a170-05b3f2bcfd25"
-			}, "worldX": -944, "worldY": 96, "widPx": 16, "heiPx": 32, "fields" : {} },
+			}, "worldX": -992, "worldY": 96, "widPx": 16, "heiPx": 32, "fields" : {} },
 			{ "iids": {
 				"worldIid": "67b6f530-bde0-11f1-9940-abfb4b03d025",
 				"levelIid": "67b71c40-bde0-11f1-9940-6f80f1c6fca9",
@@ -1476,20 +1476,104 @@
 			{ "id": "Touch", "tileRect": null, "color": 12470831 },
 			{ "id": "Interact", "tileRect": null, "color": 14120515 },
 			{ "id": "Start", "tileRect": null, "color": 15389866 }
+		], "iconTilesetUid": null, "externalRelPath": null, "externalFileChecksum": null, "tags": [] },
+		{ "identifier": "Environment", "uid": 285, "values": [
+			{ "id": "Default", "tileRect": null, "color": 14120515 },
+			{ "id": "Testing", "tileRect": null, "color": 15389866 },
+			{ "id": "Outside", "tileRect": null, "color": 12470831 },
+			{ "id": "DarkCave", "tileRect": null, "color": 14984818 }
 		], "iconTilesetUid": null, "externalRelPath": null, "externalFileChecksum": null, "tags": [] }
-	], "externalEnums": [], "levelFields": [] },
+	], "externalEnums": [], "levelFields": [
+		{
+			"identifier": "Environment",
+			"doc": "Which environment to use for this room.",
+			"__type": "LocalEnum.Environment",
+			"uid": 286,
+			"type": "F_Enum(285)",
+			"isArray": false,
+			"canBeNull": false,
+			"arrayMinLength": null,
+			"arrayMaxLength": null,
+			"editorDisplayMode": "Hidden",
+			"editorDisplayScale": 1,
+			"editorDisplayPos": "Above",
+			"editorLinkStyle": "StraightArrow",
+			"editorDisplayColor": null,
+			"editorAlwaysShow": false,
+			"editorShowInWorld": true,
+			"editorCutLongValues": true,
+			"editorTextSuffix": null,
+			"editorTextPrefix": null,
+			"useForSmartColor": false,
+			"exportToToc": false,
+			"searchable": false,
+			"min": null,
+			"max": null,
+			"regex": null,
+			"acceptFileTypes": null,
+			"defaultOverride": {
+				"id": "V_String",
+				"params": ["Default"]
+			},
+			"textLanguageMode": null,
+			"symmetricalRef": false,
+			"autoChainRef": true,
+			"allowOutOfLevelRef": true,
+			"allowedRefs": "OnlySame",
+			"allowedRefsEntityUid": null,
+			"allowedRefTags": [],
+			"tilesetUid": null
+		},
+		{
+			"identifier": "EnvironmentBlend",
+			"doc": "How far this room's environment extends past its boundaries and blended with neighboring rooms' environments, measured in tiles.",
+			"__type": "Float",
+			"uid": 287,
+			"type": "F_Float",
+			"isArray": false,
+			"canBeNull": false,
+			"arrayMinLength": null,
+			"arrayMaxLength": null,
+			"editorDisplayMode": "Hidden",
+			"editorDisplayScale": 1,
+			"editorDisplayPos": "Above",
+			"editorLinkStyle": "StraightArrow",
+			"editorDisplayColor": null,
+			"editorAlwaysShow": false,
+			"editorShowInWorld": true,
+			"editorCutLongValues": true,
+			"editorTextSuffix": null,
+			"editorTextPrefix": null,
+			"useForSmartColor": false,
+			"exportToToc": false,
+			"searchable": false,
+			"min": 0,
+			"max": null,
+			"regex": null,
+			"acceptFileTypes": null,
+			"defaultOverride": { "id": "V_Float", "params": [6] },
+			"textLanguageMode": null,
+			"symmetricalRef": false,
+			"autoChainRef": true,
+			"allowOutOfLevelRef": true,
+			"allowedRefs": "OnlySame",
+			"allowedRefsEntityUid": null,
+			"allowedRefTags": [],
+			"tilesetUid": null
+		}
+	] },
 	"levels": [],
 	"worlds": [
-		{ "iid": "0f349180-bde0-11f1-b046-a5531090d1ba", "identifier": "Main", "defaultLevelWidth": 320, "defaultLevelHeight": 240, "worldGridWidth": 320, "worldGridHeight": 240, "worldLayout": "Free", "levels": [
+		{ "iid": "0f349180-bde0-11f1-b046-a5531090d1ba", "identifier": "Main", "defaultLevelWidth": 320, "defaultLevelHeight": 320, "worldGridWidth": 320, "worldGridHeight": 240, "worldLayout": "Free", "levels": [
 			{
 				"identifier": "Entrance",
 				"iid": "4529bdd0-bde0-11f1-a170-3b125b576337",
 				"uid": 235,
-				"worldX": 0,
-				"worldY": 0,
+				"worldX": -16,
+				"worldY": -16,
 				"worldDepth": 0,
-				"pxWid": 496,
-				"pxHei": 240,
+				"pxWid": 512,
+				"pxHei": 304,
 				"__bgColor": "#696A79",
 				"bgColor": null,
 				"useAutoIdentifier": false,
@@ -1500,7 +1584,13 @@
 				"__smartColor": "#ADADB5",
 				"__bgPos": null,
 				"externalRelPath": "main/Entrance.ldtkl",
-				"fieldInstances": [],
+				"fieldInstances": [
+					{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "DarkCave", "__tile": null, "defUid": 286, "realEditorValues": [{
+						"id": "V_String",
+						"params": ["DarkCave"]
+					}] },
+					{ "__identifier": "EnvironmentBlend", "__type": "Float", "__value": 6, "__tile": null, "defUid": 287, "realEditorValues": [] }
+				],
 				"layerInstances": null,
 				"__neighbours": [{ "levelIid": "6aa1dfc0-bde0-11f1-a170-f914bfc3ae23", "dir": "w" }]
 			},
@@ -1508,11 +1598,11 @@
 				"identifier": "Outside",
 				"iid": "6aa1dfc0-bde0-11f1-a170-f914bfc3ae23",
 				"uid": 236,
-				"worldX": -960,
-				"worldY": 0,
+				"worldX": -1024,
+				"worldY": -16,
 				"worldDepth": 0,
-				"pxWid": 960,
-				"pxHei": 240,
+				"pxWid": 1008,
+				"pxHei": 304,
 				"__bgColor": "#696A79",
 				"bgColor": null,
 				"useAutoIdentifier": false,
@@ -1523,7 +1613,13 @@
 				"__smartColor": "#ADADB5",
 				"__bgPos": null,
 				"externalRelPath": "main/Outside.ldtkl",
-				"fieldInstances": [],
+				"fieldInstances": [
+					{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Outside", "__tile": null, "defUid": 286, "realEditorValues": [{
+						"id": "V_String",
+						"params": ["Outside"]
+					}] },
+					{ "__identifier": "EnvironmentBlend", "__type": "Float", "__value": 2, "__tile": null, "defUid": 287, "realEditorValues": [{ "id": "V_Float", "params": [2] }] }
+				],
 				"layerInstances": null,
 				"__neighbours": [{ "levelIid": "4529bdd0-bde0-11f1-a170-3b125b576337", "dir": "e" }]
 			}
@@ -1548,7 +1644,10 @@
 				"__smartColor": "#ADADB5",
 				"__bgPos": null,
 				"externalRelPath": "main/Level_0.ldtkl",
-				"fieldInstances": [],
+				"fieldInstances": [
+					{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Default", "__tile": null, "defUid": 286, "realEditorValues": [] },
+					{ "__identifier": "EnvironmentBlend", "__type": "Float", "__value": 6, "__tile": null, "defUid": 287, "realEditorValues": [] }
+				],
 				"layerInstances": null,
 				"__neighbours": []
 			}
@@ -1573,7 +1672,10 @@
 				"__smartColor": "#ADADB5",
 				"__bgPos": null,
 				"externalRelPath": "main/TestingEntrance.ldtkl",
-				"fieldInstances": [],
+				"fieldInstances": [
+					{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Default", "__tile": null, "defUid": 286, "realEditorValues": [] },
+					{ "__identifier": "EnvironmentBlend", "__type": "Float", "__value": 6, "__tile": null, "defUid": 287, "realEditorValues": [] }
+				],
 				"layerInstances": null,
 				"__neighbours": [
 					{ "levelIid": "9971ed40-bde0-11f1-a778-ebfea3fcd78b", "dir": "n" },
@@ -1602,7 +1704,10 @@
 				"__smartColor": "#ADADB5",
 				"__bgPos": null,
 				"externalRelPath": "main/TestingClot.ldtkl",
-				"fieldInstances": [],
+				"fieldInstances": [
+					{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Default", "__tile": null, "defUid": 286, "realEditorValues": [] },
+					{ "__identifier": "EnvironmentBlend", "__type": "Float", "__value": 6, "__tile": null, "defUid": 287, "realEditorValues": [] }
+				],
 				"layerInstances": null,
 				"__neighbours": [ { "levelIid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6", "dir": "s" }, { "levelIid": "940919c0-bde0-11f1-b36f-115902cc0d05", "dir": "s" }, { "levelIid": "1971f330-bde0-11f1-a007-1bd4b86a3e1a", "dir": "e" } ]
 			},
@@ -1625,7 +1730,10 @@
 				"__smartColor": "#ADADB5",
 				"__bgPos": null,
 				"externalRelPath": "main/TestingGerald.ldtkl",
-				"fieldInstances": [],
+				"fieldInstances": [
+					{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Default", "__tile": null, "defUid": 286, "realEditorValues": [] },
+					{ "__identifier": "EnvironmentBlend", "__type": "Float", "__value": 6, "__tile": null, "defUid": 287, "realEditorValues": [] }
+				],
 				"layerInstances": null,
 				"__neighbours": [
 					{ "levelIid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6", "dir": "w" },
@@ -1654,7 +1762,13 @@
 				"__smartColor": "#ADADB5",
 				"__bgPos": null,
 				"externalRelPath": "main/TestingDrop.ldtkl",
-				"fieldInstances": [],
+				"fieldInstances": [
+					{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "DarkCave", "__tile": null, "defUid": 286, "realEditorValues": [{
+						"id": "V_String",
+						"params": ["DarkCave"]
+					}] },
+					{ "__identifier": "EnvironmentBlend", "__type": "Float", "__value": 6, "__tile": null, "defUid": 287, "realEditorValues": [] }
+				],
 				"layerInstances": null,
 				"__neighbours": [
 					{ "levelIid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6", "dir": "nw" },
@@ -1683,7 +1797,10 @@
 				"__smartColor": "#ADADB5",
 				"__bgPos": null,
 				"externalRelPath": "main/TestingGaps.ldtkl",
-				"fieldInstances": [],
+				"fieldInstances": [
+					{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Default", "__tile": null, "defUid": 286, "realEditorValues": [] },
+					{ "__identifier": "EnvironmentBlend", "__type": "Float", "__value": 6, "__tile": null, "defUid": 287, "realEditorValues": [] }
+				],
 				"layerInstances": null,
 				"__neighbours": [ { "levelIid": "a19fed30-bde0-11f1-9446-a12c3e5c9621", "dir": "e" }, { "levelIid": "3aec9f20-bde0-11f1-a778-cd4d7eac5ccb", "dir": "n" }, { "levelIid": "2b1fbda0-bde0-11f1-a078-c1bbe61b1c66", "dir": "n" } ]
 			},
@@ -1706,7 +1823,13 @@
 				"__smartColor": "#ADADB5",
 				"__bgPos": null,
 				"externalRelPath": "main/TestingShafts.ldtkl",
-				"fieldInstances": [],
+				"fieldInstances": [
+					{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Testing", "__tile": null, "defUid": 286, "realEditorValues": [{
+						"id": "V_String",
+						"params": ["Testing"]
+					}] },
+					{ "__identifier": "EnvironmentBlend", "__type": "Float", "__value": 6, "__tile": null, "defUid": 287, "realEditorValues": [] }
+				],
 				"layerInstances": null,
 				"__neighbours": [
 					{ "levelIid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6", "dir": "n" },
@@ -1735,7 +1858,13 @@
 				"__smartColor": "#ADADB5",
 				"__bgPos": null,
 				"externalRelPath": "main/TestingOutside.ldtkl",
-				"fieldInstances": [],
+				"fieldInstances": [
+					{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Outside", "__tile": null, "defUid": 286, "realEditorValues": [{
+						"id": "V_String",
+						"params": ["Outside"]
+					}] },
+					{ "__identifier": "EnvironmentBlend", "__type": "Float", "__value": 0, "__tile": null, "defUid": 287, "realEditorValues": [{ "id": "V_Float", "params": [0] }] }
+				],
 				"layerInstances": null,
 				"__neighbours": [ { "levelIid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6", "dir": "e" }, { "levelIid": "4aa45f20-bde0-11f1-9446-ef36bac1f552", "dir": "s" }, { "levelIid": "3aec9f20-bde0-11f1-a778-cd4d7eac5ccb", "dir": "e" } ]
 			},
@@ -1758,7 +1887,10 @@
 				"__smartColor": "#ADADB5",
 				"__bgPos": null,
 				"externalRelPath": "main/TestingTooNarrow.ldtkl",
-				"fieldInstances": [],
+				"fieldInstances": [
+					{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Default", "__tile": null, "defUid": 286, "realEditorValues": [] },
+					{ "__identifier": "EnvironmentBlend", "__type": "Float", "__value": 6, "__tile": null, "defUid": 287, "realEditorValues": [] }
+				],
 				"layerInstances": null,
 				"__neighbours": [ { "levelIid": "9971ed40-bde0-11f1-a778-ebfea3fcd78b", "dir": "w" }, { "levelIid": "940919c0-bde0-11f1-b36f-115902cc0d05", "dir": "w" }, { "levelIid": "a19fed30-bde0-11f1-9446-a12c3e5c9621", "dir": "w" } ]
 			}

@@ -57,6 +57,7 @@ graph BT
     Controllers --> Maths
     Entities --> Tasks
     Levels --> WorldData
+    WorldData --> Maths
     Scripts --> Controllers
     Scripts --> Entities
     Scripts --> Tasks
@@ -74,7 +75,7 @@ An arrow points from a subsystem to one it uses. Every subsystem may use the roo
 - **Entities use tasks** for running an action: the interface that a route's target implements returns a `TickTask`, and is given the `ITick` to run on (`047 §2.2`).
 - **Scripts use entities and tasks** to run actions on their targets, through that interface alone, so a runner can't reach past it to a controller or a body (`043 §3.2`).
 - **Scripts use controllers** for the player's: a script drives the player with input on its controller, in a cutscene, through `IScriptWorld`, what a script sees of the world, which extends what controllers see (`051 §2.4`, `§3.3`).
-- **Controllers and Simulation use maths**, each for a few functions, such as a spring to hold a platform on its line, or the distance to a box. Maths uses no other subsystem.
+- **Controllers, Simulation and WorldData use maths**, each for a few functions, such as a spring to hold a platform on its line, or the distance to a box, which WorldData uses to find the rooms near a point (`061 §2.3`). Maths uses no other subsystem.
 - **Levels produce the world's data.** The world's data knows nothing of where it came from.
 - **Simulation joins the rest.** It builds each entity from the world's data, gives it its controller, and steps it; none of the subsystems it uses know about it. It gives controllers the world itself, as an `IWorldView`, and scripts as an `IScriptWorld`.
 - **Simulation runs the world's tasks** on a scheduler of its own, at its point in the tick.

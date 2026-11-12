@@ -22,8 +22,6 @@ public partial class LookSwitches : Node
     private static readonly Vector2I LowResolution = new(320, 240);
 
     private readonly WorldViewportContainer _worldView;
-    private readonly DirectionalLight3D _light;
-    private readonly Godot.Environment _environment;
     private readonly ColorPass _colorPass;
     private readonly AnimationStepper _animationStepper;
 
@@ -33,14 +31,10 @@ public partial class LookSwitches : Node
 
     public LookSwitches(
         WorldViewportContainer view,
-        DirectionalLight3D light,
-        Godot.Environment environment,
         ColorPass colorPass,
         AnimationStepper animationStepper)
     {
         _worldView = view;
-        _light = light;
-        _environment = environment;
         _colorPass = colorPass;
         _animationStepper = animationStepper;
     }

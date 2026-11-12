@@ -22,13 +22,20 @@ Relevant decision records:
 - [058: A map of where the camera may be](../decision-records/058-camera-map.md)
 - [059: The camera's lead](../decision-records/059-camera-lead.md)
 - [060: The camera's height through a jump](../decision-records/060-camera-height-through-a-jump.md)
+- [061: Environments per room](../docs/decision-records/061-room-environments.md)
 
 The image is Mode X with modern lighting: 320x240 and 256 colours, as on a VGA card in the mid-1990s, drawn with shadows, ambient occlusion, reflections and bloom. Star Fox, Quake and Descent are the references for the geometry, and Mode X for the image (`003`).
+
+## Environments
+
+Each room has an environment, its lighting and its sky, which its LDtk level names (`061 §2.2`). An environment is a scene in `game/assets/environments/`, made and tuned in the editor: a `WorldEnvironment` named `WorldEnvironment`, and a `Node3D` named `Lighting` that holds its lights (`061 §1.1`). Its background is a `ProceduralSkyMaterial` or a colour; anything fancier is for background layers (`061 §1.3`). The game switches on the post effects of [the pipeline](#pipeline) itself, so an environment doesn't (`061 §1.2`).
+
+Where rooms of different environments meet, the game blends them by where the view's centre is, over a band across their edge: the lights fade by their energy, and the environments' settings blend ([`game/main/`](../../game/main/architecture.md#environments)).
 
 ## Pipeline
 
 1. **Low resolution.** `WorldViewportContainer` draws the game into a viewport of its own, 320x240 (`003 §1.1`, `§2.1`). The window's own viewport is the window's size, so what is drawn there, outside the game's viewport, is at full resolution and doesn't go through the colour pass, such as the debug overlay (`008 §2.3`).
-2. **Lighting.** Shadows, ambient occlusion, screen-space reflections and glow, which is the engine's name for bloom. All were chosen by eye at the target size (`003 §4.2`). There is no anti-aliasing (`038 §1.3`).
+2. **Lighting.** Shadows, ambient occlusion, screen-space reflections, screen-space indirect lighting and glow, which is the engine's name for bloom. All but the indirect lighting were chosen by eye at the target size (`003 §4.2`, `061 §1.2`). The lights and the sky are each room's environment's (see [Environments](#environments)). There is no anti-aliasing (`038 §1.3`).
 3. **Colour pass.** `ColorPass` covers the screen with a rectangle whose shader, `game/look/mode_x.gdshader`, reads what is behind it and writes each pixel back as a colour of the palette, with dither (`003 §3.3`, `004 §2.10`).
 4. **Scaling.** `WorldViewportContainer` scales the image to the window by the largest whole number that fits, with nearest-neighbour sampling, and fills the rest with black bars. The window starts at 1280x960, which is 4x.
 
@@ -98,6 +105,7 @@ Other ways of choosing colours were tried and set aside: quantising in HSV, a la
 
 ## Open questions
 
+- Background layers (issue #202), and how they fade as environments blend. Each environment's scene could hold its own layers, which already show and hide with it. To fade them by the environments' weights, a dissolve in the colour pass's 2x2 Bayer pattern rather than transparency: it suits Mode X, is cheap, and has no sorting problems (`061 §5.1`).
 - Flat or smooth shading for models and tiles. Flat shading comes from a mesh's normals, so it is a rule for modelling and not a pipeline setting. The "Look" room shows both (`003 §4.1`).
 - Transparency and refraction were not judged on their own (`003 §4.2`).
 - The resolution of game UI. It stays out of the colour pass, whose dither changes even colours taken from the palette. The placeholder menu is drawn at 320x240 on a layer above the colour pass, in the game's viewport, with the default font antialiased; aliased, it looked terrible (`039 §2.1`, `§2.2`). Whether all game UI is drawn this way, or at the window's resolution, is undecided. Text in system fonts at 8 pixels is unreadable at 320x240; a 3x5 pixel font is readable (`008 §2.1`, `§2.6`). The dialogue box is drawn at 320x240 in a pixel font, Fusion Pixel at 10 pixels, aliased (`044 §4.1`).

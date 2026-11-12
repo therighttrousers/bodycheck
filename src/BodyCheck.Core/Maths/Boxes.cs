@@ -13,4 +13,14 @@ public static class Boxes
     /// </summary>
     public static float Distance(Vector2 point, Vector2 center, Vector2 halfSize) =>
         ((point - center).Abs() - halfSize).Max(Vector2.Zero).Length();
+
+    /// <summary>
+    /// <see cref="Distance"/> outside the box, and inside it, less than 0 by how far <paramref name="point"/> is from
+    /// the nearest edge: so 0 on the edge, and continuous across it.
+    /// </summary>
+    public static float SignedDistance(Vector2 point, Vector2 center, Vector2 halfSize)
+    {
+        Vector2 outside = (point - center).Abs() - halfSize;
+        return outside.Max(Vector2.Zero).Length() + Mathf.Min(Mathf.Max(outside.X, outside.Y), 0);
+    }
 }

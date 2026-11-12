@@ -49,6 +49,7 @@ internal sealed record LdtkLevel
 
     public required string? ExternalRelPath { get; init; }
     public required LdtkLayerInstance[]? LayerInstances { get; init; }
+    public required LdtkFieldInstance[] FieldInstances { get; init; }
 }
 
 internal sealed record LdtkLayerInstance
@@ -179,12 +180,13 @@ internal enum LdtkEntityName
 
 /// <summary>
 /// The code that reads the records, which System.Text.Json's source generator writes at compile time. The types after
-/// the project and the level are those of the values of entities' fields.
+/// the project and the level are those of the values of levels' and entities' fields.
 /// </summary>
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     RespectNullableAnnotations = true,
-    Converters = [typeof(StrictEnumConverter<TriggerAction>), typeof(StrictEnumConverter<TriggerSetOffBy>)])]
+    Converters = [typeof(StrictEnumConverter<TriggerAction>), typeof(StrictEnumConverter<TriggerSetOffBy>),
+        typeof(StrictEnumConverter<RoomEnvironment>)])]
 [JsonSerializable(typeof(LdtkProject))]
 [JsonSerializable(typeof(LdtkLevel))]
 [JsonSerializable(typeof(LdtkPoint))]
@@ -193,6 +195,7 @@ internal enum LdtkEntityName
 [JsonSerializable(typeof(TriggerAction))]
 [JsonSerializable(typeof(TriggerAction[]))]
 [JsonSerializable(typeof(TriggerSetOffBy))]
+[JsonSerializable(typeof(RoomEnvironment))]
 [JsonSerializable(typeof(bool))]
 [JsonSerializable(typeof(float))]
 [JsonSerializable(typeof(string))]
