@@ -10,4 +10,5 @@ public enum RoomEnvironment
     Default,
     Testing,
     Outside,
+    DarkCave,
 }

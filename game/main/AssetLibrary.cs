@@ -20,6 +20,7 @@ public class AssetLibrary : IAssetLibrary
         [RoomEnvironment.Default] = "res://assets/environments/default.tscn",
         [RoomEnvironment.Testing] = "res://assets/environments/testing.tscn",
         [RoomEnvironment.Outside] = "res://assets/environments/outside.tscn",
+        [RoomEnvironment.DarkCave] = "res://assets/environments/dark_cave.tscn",
     };
     private static readonly Dictionary<TileIndex, string> TilePaths = new()
     {

@@ -22,7 +22,7 @@
 				"levelIid": "6aa1dfc0-bde0-11f1-a170-f914bfc3ae23",
 				"layerIid": "6aa1dfc2-bde0-11f1-a170-8b44d457842c",
 				"entityIid": "9cb9aa60-bde0-11f1-a170-05b3f2bcfd25"
-			}, "worldX": -944, "worldY": 96, "widPx": 16, "heiPx": 32, "fields" : {} },
+			}, "worldX": -992, "worldY": 96, "widPx": 16, "heiPx": 32, "fields" : {} },
 			{ "iids": {
 				"worldIid": "67b6f530-bde0-11f1-9940-abfb4b03d025",
 				"levelIid": "67b71c40-bde0-11f1-9940-6f80f1c6fca9",
@@ -1480,7 +1480,8 @@
 		{ "identifier": "Environment", "uid": 285, "values": [
 			{ "id": "Default", "tileRect": null, "color": 14120515 },
 			{ "id": "Testing", "tileRect": null, "color": 15389866 },
-			{ "id": "Outside", "tileRect": null, "color": 12470831 }
+			{ "id": "Outside", "tileRect": null, "color": 12470831 },
+			{ "id": "DarkCave", "tileRect": null, "color": 14984818 }
 		], "iconTilesetUid": null, "externalRelPath": null, "externalFileChecksum": null, "tags": [] }
 	], "externalEnums": [], "levelFields": [
 		{
@@ -1568,10 +1569,10 @@
 				"identifier": "Entrance",
 				"iid": "4529bdd0-bde0-11f1-a170-3b125b576337",
 				"uid": 235,
-				"worldX": 0,
+				"worldX": -16,
 				"worldY": -16,
 				"worldDepth": 0,
-				"pxWid": 496,
+				"pxWid": 512,
 				"pxHei": 304,
 				"__bgColor": "#696A79",
 				"bgColor": null,
@@ -1584,7 +1585,10 @@
 				"__bgPos": null,
 				"externalRelPath": "main/Entrance.ldtkl",
 				"fieldInstances": [
-					{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Default", "__tile": null, "defUid": 286, "realEditorValues": [] },
+					{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "DarkCave", "__tile": null, "defUid": 286, "realEditorValues": [{
+						"id": "V_String",
+						"params": ["DarkCave"]
+					}] },
 					{ "__identifier": "EnvironmentBlend", "__type": "Float", "__value": 6, "__tile": null, "defUid": 287, "realEditorValues": [] }
 				],
 				"layerInstances": null,
@@ -1594,10 +1598,10 @@
 				"identifier": "Outside",
 				"iid": "6aa1dfc0-bde0-11f1-a170-f914bfc3ae23",
 				"uid": 236,
-				"worldX": -976,
+				"worldX": -1024,
 				"worldY": -16,
 				"worldDepth": 0,
-				"pxWid": 976,
+				"pxWid": 1008,
 				"pxHei": 304,
 				"__bgColor": "#696A79",
 				"bgColor": null,
