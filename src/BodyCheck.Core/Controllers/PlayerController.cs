@@ -20,20 +20,14 @@ public sealed class PlayerController : IController<PlayerEntity>
     private readonly SpawnAction _spawn;
     private readonly CornerCorrectionAction _cornerCorrection;
 
-    // Timers count down in game time, except where they say otherwise.
-    private bool _jumpWasHeld;
-    // In real time: how much longer the player counts as on the ground, so that jumping just after running off an edge
-    // jumps.
-    private float _groundTimeLeft;
-    // In real time: how much longer the last press of jump counts, so that pressing it just before landing jumps.
-    private float _jumpBufferLeft;
-    // The direction for phasing: the one held, or the last one held while _directionTimeLeft > 0.
-    private Vector3 _direction;
-    // In real time: how much longer the last direction held still counts for phasing, once let go of, so that letting go
-    // of it just before releasing phase, or with it, still phases that way.
-    private float _directionTimeLeft;
-    private bool _spawnWasHeld;
-    private bool _interactWasHeld;
+    // Each source of input's recent input, both sampled on every tick the controller applies, whatever the game's mode,
+    // so that each one's presses are of its own input: a button the user holds through a cutscene is no new press when
+    // it ends, and a script's first press counts.
+    private RecentInput _recentUserInput;
+    private RecentInput _recentScriptedInput;
+
+    // Forgotten as a cutscene starts, so that nothing pressed before it acts during it.
+    private Leniency _leniency;
 
     // The current time in the air, for telemetry: where the feet were on the last tick on the ground.
     private bool _inAir;
@@ -70,11 +64,11 @@ public sealed class PlayerController : IController<PlayerEntity>
     public PlayerInput ScriptedInput { get; set; }
 
     /// <summary>
-    /// Whether interact was pressed on the controller's last tick of play: held then, and not on the tick before. As
-    /// for every button, one held as a cutscene ends is no new press, so that a cutscene the player starts by
-    /// interacting doesn't start again at once if they hold interact through it.
+    /// Whether interact was pressed on the controller's last tick: held then, and not on the tick before, in the input
+    /// it acts on. As for every button, one the user holds through a cutscene is no new press when it ends, so that a
+    /// cutscene the player starts by interacting doesn't start again at once.
     /// </summary>
-    public bool InteractPressed { get; private set; }
+    public bool InteractJustPressed => ActiveRecentInput.InteractJustPressed;
 
     /// <summary>The phase being aimed, if any: see <see cref="PhaseAction.Aim"/>.</summary>
     public PhaseAction.PhaseAim? Phase => _phase.Aim;
@@ -88,34 +82,33 @@ public sealed class PlayerController : IController<PlayerEntity>
     /// </summary>
     public void ApplyPaused(float realDt, IDefer defer)
     {
-        PlayerInput input = Input;
-        ApplyPhase(input, 0, realDt, defer);
-        _jumpWasHeld = input.JumpHeld;
-        _spawnWasHeld = input.SpawnHeld;
-        _interactWasHeld = input.InteractHeld;
+        SampleInput();
+        ApplyPhase(ActiveRecentInput.Current, 0, realDt, defer);
     }
 
     public void Apply(float gameDt, float realDt, IDefer defer)
     {
-        PlayerInput input = Input;
+        SampleInput();
+        RecentInput recent = ActiveRecentInput;
+        PlayerInput input = recent.Current;
         float move = Math.Clamp(input.XAxis, -1, 1);
 
         if (_entity.OnGround)
         {
-            _groundTimeLeft = Features.TicksToTime(Features.Current.PlayerCoyoteTicks + 1); // +1 to include this tick
+            _leniency.GroundTimeLeft = Features.TicksToTime(Features.Current.PlayerCoyoteTicks + 1); // +1 to include this tick
         }
 
-        if (input.JumpHeld && !_jumpWasHeld)
+        if (recent.JumpJustPressed)
         {
-            _jumpBufferLeft = Features.TicksToTime(Features.Current.PlayerJumpBufferTicks);
+            _leniency.JumpBufferLeft = Features.TicksToTime(Features.Current.PlayerJumpBufferTicks);
         }
 
         if (ApplyPhase(input, gameDt, realDt, defer) is PhaseOutcome.Idle or PhaseOutcome.Cancelled)
         {
-            _spawn.Apply(_world.PlayerBlock, input.SpawnHeld && !_spawnWasHeld, gameDt, defer);
+            _spawn.Apply(_world.PlayerBlock, recent.SpawnJustPressed, gameDt, defer);
 
             // A press buffered in the air jumps on landing even if jump has been let go of since, as a tap.
-            bool jumps = _jumpBufferLeft > 0 && _groundTimeLeft > 0 && !_jump.Thrusting;
+            bool jumps = _leniency.JumpBufferLeft > 0 && _leniency.GroundTimeLeft > 0 && !_jump.Thrusting;
             Vector3 runDeltaV = ApplyRun(move, gameDt, jumps);
             Vector3 jumpDeltaV = ApplyJump(input.JumpHeld, gameDt, jumps);
 
@@ -129,7 +122,7 @@ public sealed class PlayerController : IController<PlayerEntity>
         }
 
         // Set animation variables
-        _entity.IsGrounded = _groundTimeLeft > 0;
+        _entity.IsGrounded = _leniency.GroundTimeLeft > 0;
         _entity.IsMoving = move != 0;
         _entity.IsJumping = _jump.Thrusting;
         // Face forward when in the air; otherwise use movement direction.
@@ -137,12 +130,8 @@ public sealed class PlayerController : IController<PlayerEntity>
 
         Report(gameDt);
 
-        _groundTimeLeft = Math.Max(0, _groundTimeLeft - realDt);
-        _jumpBufferLeft = Math.Max(0, _jumpBufferLeft - realDt);
-        _jumpWasHeld = input.JumpHeld;
-        _spawnWasHeld = input.SpawnHeld;
-        InteractPressed = input.InteractHeld && !_interactWasHeld;
-        _interactWasHeld = input.InteractHeld;
+        _leniency.GroundTimeLeft = Math.Max(0, _leniency.GroundTimeLeft - realDt);
+        _leniency.JumpBufferLeft = Math.Max(0, _leniency.JumpBufferLeft - realDt);
     }
 
     /// <summary>
@@ -150,36 +139,35 @@ public sealed class PlayerController : IController<PlayerEntity>
     /// <see cref="ScriptedInput"/>, which is none unless a script sets it, so that the player comes to rest while the
     /// world runs. Reading it has no side effects, so the camera reads it too.
     /// </summary>
-    public PlayerInput Input =>
-        _world.GameMode is GameMode.Cutscene ? ScriptedInput : UserInputSource?.Invoke() ?? default;
+    public PlayerInput Input => _world.GameMode is GameMode.Cutscene ? ScriptedInput : UserInput;
+
+    private PlayerInput UserInput => UserInputSource?.Invoke() ?? default;
+
+    // The recent input of the source the controller acts on, as Input chooses it.
+    private RecentInput ActiveRecentInput =>
+        _world.GameMode is GameMode.Cutscene ? _recentScriptedInput : _recentUserInput;
+
+    private void SampleInput()
+    {
+        _recentUserInput = _recentUserInput.Next(UserInput);
+        _recentScriptedInput = _recentScriptedInput.Next(ScriptedInput);
+    }
 
     /// <summary>
-    /// At the edges of a cutscene, makes what the controller remembers of the player's input fit the new mode. Entering
-    /// one, it forgets every leniency timer and buffered press, so that nothing pressed before it, such as a direction
-    /// held while aiming a phase, acts during it, and counts no button as held, so that a script's first press counts.
-    /// Leaving one, a button already held is not a new press, so that the jump that ends a dialogue doesn't also jump:
-    /// only presses made after the cutscene count; and the scripted input goes back to none. Only at the edges, so that
-    /// a script that runs and jumps the player during a cutscene keeps its own.
+    /// At the edges of a cutscene. Entering one, it forgets every leniency timer and buffered press, so that nothing
+    /// pressed before it, such as a direction held while aiming a phase, acts during it. Leaving one, the scripted input
+    /// goes back to none, so that a script can't leave the player running. Only at the edges, so that a script that runs
+    /// and jumps the player during a cutscene keeps its own. Which presses are new needs nothing here, since each source
+    /// of input keeps its own.
     /// </summary>
     public void GameModeChanged(GameMode from, GameMode to)
     {
         if (to is GameMode.Cutscene && from is not GameMode.Cutscene)
         {
-            _direction = Vector3.Zero;
-            _directionTimeLeft = 0;
-            _groundTimeLeft = 0;
-            _jumpBufferLeft = 0;
-            _jumpWasHeld = false;
-            _spawnWasHeld = false;
-            _interactWasHeld = false;
+            _leniency = default;
         }
         else if (from is GameMode.Cutscene && to is not GameMode.Cutscene)
         {
-            // The game is already in the new mode, so this is the user's input.
-            PlayerInput input = Input;
-            _jumpWasHeld = input.JumpHeld;
-            _spawnWasHeld = input.SpawnHeld;
-            _interactWasHeld = input.InteractHeld;
             ScriptedInput = default;
         }
     }
@@ -237,9 +225,9 @@ public sealed class PlayerController : IController<PlayerEntity>
         if (outcome is PhaseOutcome.Phased or PhaseOutcome.Cancelled)
         {
             // A phase ends a jump's thrust, coyote time and buffered press, and so does cancelling one: the aim took them.
-            _groundTimeLeft = 0;
+            _leniency.GroundTimeLeft = 0;
             _jump.Interrupt();
-            _jumpBufferLeft = 0;
+            _leniency.JumpBufferLeft = 0;
         }
         return outcome;
     }
@@ -256,24 +244,24 @@ public sealed class PlayerController : IController<PlayerEntity>
         var direction = held.Length() >= DirectionDeadZone ? Vector2.EightWay(held).ToVector3() : Vector3.Zero;
         if (direction != Vector3.Zero)
         {
-            _direction = direction;
-            _directionTimeLeft = Features.TicksToTime(Features.Current.PlayerPhaseDirectionBufferTicks + 1); // +1 to include this tick
+            _leniency.Direction = direction;
+            _leniency.DirectionTimeLeft = Features.TicksToTime(Features.Current.PlayerPhaseDirectionBufferTicks + 1); // +1 to include this tick
         }
         else
         {
-            _directionTimeLeft = Math.Max(0, _directionTimeLeft - realDt);
-            if (_directionTimeLeft == 0)
+            _leniency.DirectionTimeLeft = Math.Max(0, _leniency.DirectionTimeLeft - realDt);
+            if (_leniency.DirectionTimeLeft == 0)
             {
-                _direction = Vector3.Zero;
+                _leniency.Direction = Vector3.Zero;
             }
         }
-        return _direction;
+        return _leniency.Direction;
     }
 
     /// <param name="jumps">Whether the entity jumps on this tick.</param>
     private Vector3 ApplyRun(float move, float gameDt, bool jumps)
     {
-        (Vector3 deltaV, bool slips) = _run.Apply(move, grounded: _groundTimeLeft > 0, jumps, gameDt);
+        (Vector3 deltaV, bool slips) = _run.Apply(move, grounded: _leniency.GroundTimeLeft > 0, jumps, gameDt);
         if (slips)
         {
             _entity.SlipAfterEntitySteps();
@@ -289,9 +277,40 @@ public sealed class PlayerController : IController<PlayerEntity>
         Vector3 deltaV = _jump.Apply(jumps, jumpHeld, gameDt);
         if (jumps)
         {
-            _groundTimeLeft = 0;
-            _jumpBufferLeft = 0;
+            _leniency.GroundTimeLeft = 0;
+            _leniency.JumpBufferLeft = 0;
         }
         return deltaV;
+    }
+
+    /// <summary>
+    /// One source of input on the tick it was last sampled and the tick before, and so which buttons were just pressed:
+    /// held on the one, and not on the other.
+    /// </summary>
+    private readonly record struct RecentInput(PlayerInput Previous, PlayerInput Current)
+    {
+        public bool JumpJustPressed => Current.JumpHeld && !Previous.JumpHeld;
+        public bool SpawnJustPressed => Current.SpawnHeld && !Previous.SpawnHeld;
+        public bool InteractJustPressed => Current.InteractHeld && !Previous.InteractHeld;
+
+        /// <summary>This, a tick later, when the source gives <paramref name="input"/>.</summary>
+        public RecentInput Next(PlayerInput input) => new(Current, input);
+    }
+
+    /// <summary>
+    /// Leniency for the player's fingers, each timer in real time. Coyote time also says when the player runs with its
+    /// forces for the ground.
+    /// </summary>
+    private struct Leniency
+    {
+        // How much longer the player counts as on the ground, so that jumping just after running off an edge jumps.
+        public float GroundTimeLeft;
+        // How much longer the last press of jump counts, so that pressing it just before landing jumps.
+        public float JumpBufferLeft;
+        // The direction for phasing: the one held, or the last one held while DirectionTimeLeft > 0.
+        public Vector3 Direction;
+        // How much longer the last direction held still counts for phasing, once let go of, so that letting go of it
+        // just before releasing phase, or with it, still phases that way.
+        public float DirectionTimeLeft;
     }
 }

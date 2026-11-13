@@ -783,7 +783,7 @@ public partial class WorldNode : Node3D, IScriptWorld
     private void SetOffTriggers()
     {
         bool canInteract = GameMode is GameMode.Playing && Player.OnGround;
-        bool interacts = canInteract && PlayerController.InteractPressed;
+        bool interacts = canInteract && PlayerController.InteractJustPressed;
 
         InteractTrigger = null;
         foreach (TriggerArea trigger in _triggerAreas)
