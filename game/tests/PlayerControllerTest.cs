@@ -58,7 +58,7 @@ public class PlayerControllerTest
         _input = Idle;
         Room frame = room ?? TestRoomLibrary.EmptyFrame(60, height, playerX, playerY);
         _world = WorldNode.Build(new World(frame), new AssetLibrary(), playerBody: body);
-        _world.PlayerInputSource = () => _input;
+        _world.PlayerController.UserInputSource = () => _input;
         Tree.Root.AddChild(_world);
         await Tick(Idle, settleTicks);
     }

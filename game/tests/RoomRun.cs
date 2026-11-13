@@ -29,7 +29,7 @@ public sealed class RoomRun
     public RoomRun(Room room, bool controllersEnabled = true, string? respawnId = null, IScriptLibrary? scripts = null)
     {
         Node = WorldNode.Build(new World(room), new AssetLibrary(), respawnId: respawnId, scripts: scripts);
-        Node.PlayerInputSource = () => _input;
+        Node.PlayerController.UserInputSource = () => _input;
         Node.ControllersEnabled = controllersEnabled;
         Tree.Root.AddChild(Node);
     }

@@ -71,9 +71,6 @@ public partial class WorldNode : Node3D, IScriptWorld
     // Each trigger's area, in the order of the world's controls.
     private readonly List<TriggerArea> _triggerAreas = [];
 
-    // Whether the player held interact when the triggers were last polled, so that only a new press sets one off.
-    private bool _interactWasHeld;
-
     private readonly RunningScripts _runningScripts = new();
 
     // The cutscene holds held, each once, whatever its request: see HoldCutscene.
@@ -587,19 +584,11 @@ public partial class WorldNode : Node3D, IScriptWorld
         public void Dispose() => _world._cutsceneHolds.Remove(this);
     }
 
-    /// <summary>Supplies the player's input, once per tick. The player stands idle if this is null.</summary>
-    public Func<PlayerInput>? PlayerInputSource { get; set; }
-
     /// <summary>Supplies the game's mode. The game is always playing if this is null, as in tests and probes.</summary>
     public Func<GameMode>? GameModeSource { get; set; }
 
     /// <inheritdoc/>
     public GameMode GameMode => GameModeSource?.Invoke() ?? GameMode.Playing;
-
-    /// <summary>
-    /// The player's input this tick, from <see cref="PlayerInputSource"/>, or none if there is no source.
-    /// </summary>
-    public PlayerInput PlayerInput => PlayerInputSource?.Invoke() ?? default;
 
     /// <summary>
     /// The world's tick, for the tasks of what runs in it, such as actions: what awaits it resumes in each played tick,
@@ -782,8 +771,9 @@ public partial class WorldNode : Node3D, IScriptWorld
     /// Sets off each trigger that the player sets off, as of the engine's last step, in the order of the world's
     /// controls. One set off by touch is set off when it holds the player and didn't when it was last asked. A trigger
     /// has held nothing before it is first asked, so a player that starts in one sets it off. One set off by
-    /// interacting is set off when it holds the player, which stands on the ground, and interact has been pressed since
-    /// the last tick, only while playing: in a cutscene, the player acts on no input of its own. One set off at the start
+    /// interacting is set off when it holds the player, which stands on the ground, and the player's controller says
+    /// interact was pressed this tick, only while playing: in a cutscene, the player acts on no input of its own. One
+    /// set off at the start
     /// is set off the first time, if it is on then.
     /// <para>
     /// An area finds what is in it at the end of each step, with no continuous detection, so a body that crosses it
@@ -793,9 +783,7 @@ public partial class WorldNode : Node3D, IScriptWorld
     private void SetOffTriggers()
     {
         bool canInteract = GameMode is GameMode.Playing && Player.OnGround;
-        bool interactHeld = PlayerInput.InteractHeld;
-        bool interacts = canInteract && interactHeld && !_interactWasHeld;
-        _interactWasHeld = interactHeld;
+        bool interacts = canInteract && PlayerController.InteractPressed;
 
         InteractTrigger = null;
         foreach (TriggerArea trigger in _triggerAreas)

@@ -33,6 +33,7 @@ public sealed class PlayerController : IController<PlayerEntity>
     // of it just before releasing phase, or with it, still phases that way.
     private float _directionTimeLeft;
     private bool _spawnWasHeld;
+    private bool _interactWasHeld;
 
     // The current time in the air, for telemetry: where the feet were on the last tick on the ground.
     private bool _inAir;
@@ -53,14 +54,27 @@ public sealed class PlayerController : IController<PlayerEntity>
 
     public PlayerEntity Entity => _entity;
 
-    /// <summary>Keeps the world, which gives the player's input, and the block the player spawns.</summary>
+    /// <summary>Keeps the world, which gives the game's mode and the block the player spawns.</summary>
     public void Ready(IWorldView world) => _world = world;
 
     /// <summary>
-    /// What a script presses for the player, which the controller acts on in a cutscene in place of the player's input.
+    /// Supplies what the user is pressing, whatever the game's mode, read when the controller needs it, so that it keeps
+    /// no copy. The player stands idle if this is null, as in tests and probes that give it no input.
+    /// </summary>
+    public Func<PlayerInput>? UserInputSource { get; set; }
+
+    /// <summary>
+    /// What a script presses for the player, which the controller acts on in a cutscene in place of the user's input.
     /// It goes back to none when a cutscene ends, so that a script can't leave the player running.
     /// </summary>
     public PlayerInput ScriptedInput { get; set; }
+
+    /// <summary>
+    /// Whether interact was pressed on the controller's last tick of play: held then, and not on the tick before. As
+    /// for every button, one held as a cutscene ends is no new press, so that a cutscene the player starts by
+    /// interacting doesn't start again at once if they hold interact through it.
+    /// </summary>
+    public bool InteractPressed { get; private set; }
 
     /// <summary>The phase being aimed, if any: see <see cref="PhaseAction.Aim"/>.</summary>
     public PhaseAction.PhaseAim? Phase => _phase.Aim;
@@ -78,6 +92,7 @@ public sealed class PlayerController : IController<PlayerEntity>
         ApplyPhase(input, 0, realDt, defer);
         _jumpWasHeld = input.JumpHeld;
         _spawnWasHeld = input.SpawnHeld;
+        _interactWasHeld = input.InteractHeld;
     }
 
     public void Apply(float gameDt, float realDt, IDefer defer)
@@ -126,14 +141,17 @@ public sealed class PlayerController : IController<PlayerEntity>
         _jumpBufferLeft = Math.Max(0, _jumpBufferLeft - realDt);
         _jumpWasHeld = input.JumpHeld;
         _spawnWasHeld = input.SpawnHeld;
+        InteractPressed = input.InteractHeld && !_interactWasHeld;
+        _interactWasHeld = input.InteractHeld;
     }
 
     /// <summary>
-    /// The input the controller acts on: the world's <see cref="IWorldView.PlayerInput"/>, or in a cutscene,
+    /// The input the controller acts on: the user's, from <see cref="UserInputSource"/>, or in a cutscene,
     /// <see cref="ScriptedInput"/>, which is none unless a script sets it, so that the player comes to rest while the
     /// world runs. Reading it has no side effects, so the camera reads it too.
     /// </summary>
-    public PlayerInput Input => _world.GameMode is GameMode.Cutscene ? ScriptedInput : _world.PlayerInput;
+    public PlayerInput Input =>
+        _world.GameMode is GameMode.Cutscene ? ScriptedInput : UserInputSource?.Invoke() ?? default;
 
     /// <summary>
     /// At the edges of a cutscene, makes what the controller remembers of the player's input fit the new mode. Entering
@@ -153,12 +171,15 @@ public sealed class PlayerController : IController<PlayerEntity>
             _jumpBufferLeft = 0;
             _jumpWasHeld = false;
             _spawnWasHeld = false;
+            _interactWasHeld = false;
         }
         else if (from is GameMode.Cutscene && to is not GameMode.Cutscene)
         {
-            PlayerInput input = _world.PlayerInput;
+            // The game is already in the new mode, so this is the user's input.
+            PlayerInput input = Input;
             _jumpWasHeld = input.JumpHeld;
             _spawnWasHeld = input.SpawnHeld;
+            _interactWasHeld = input.InteractHeld;
             ScriptedInput = default;
         }
     }

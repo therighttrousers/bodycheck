@@ -108,6 +108,42 @@ public class TouchTest
     }
 
     [TestCase]
+    public async Task Interact_held_through_a_cutscene_is_no_new_press_when_it_ends()
+    {
+        // The same room and trigger, with the game's mode set by the test, as a cutscene the trigger starts would set it.
+        string[] rows =
+        [
+            "##########",
+            "#........#",
+            "#........#",
+            "#........#",
+            "#...P...S#",
+            "##########",
+        ];
+        _run = new RoomRun(RoomWithTrigger(rows, new Vector2I(3, 1), new Vector2I(3, 3), TriggerSetOffBy.Interact));
+        GameMode mode = GameMode.Playing;
+        _run.Node.GameModeSource = () => mode;
+        var setOffs = new List<string>();
+        _run.Node.TriggerSetOff += trigger => setOffs.Add(trigger.Id);
+        var up = new PlayerInput(0, 1, false);
+        await _run.Tick(RoomRun.Idle, 10);
+
+        // A press sets it off, and up stays held through the cutscene and after it.
+        await _run.Tick(up, 1);
+        AssertArray(setOffs).ContainsExactly("Trigger");
+        mode = GameMode.Cutscene;
+        await _run.Tick(up, 10);
+        mode = GameMode.Playing;
+        await _run.Tick(up, 10);
+        AssertArray(setOffs).ContainsExactly("Trigger");
+
+        // A press after the cutscene sets it off again.
+        await _run.Tick(RoomRun.Idle, 1);
+        await _run.Tick(up, 1);
+        AssertArray(setOffs).ContainsExactly("Trigger", "Trigger");
+    }
+
+    [TestCase]
     public async Task A_body_that_crosses_a_trigger_within_a_tick_but_moves_less_than_both_are_wide_sets_it_off()
     {
         // A trigger 1 tile wide, which the player crosses in mid-air.
