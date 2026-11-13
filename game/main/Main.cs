@@ -171,7 +171,7 @@ public partial class Main : Node
         }
 
         LoadWorld(Math.Max(IndexOf(_worlds.Select(world => world.Name), worldName), 0));
-        _world.PlayerInputSource = () => new PlayerInput(
+        _world.PlayerController.UserInputSource = () => new PlayerInput(
             Input.GetAxis("move_left", "move_right"),
             Input.GetAxis("move_down", "move_up"),
             Input.IsActionPressed("jump"),
@@ -358,7 +358,7 @@ public partial class Main : Node
             respawnId: _respawnIds.GetValueOrDefault(world.Name),
             dialogue: _dialogueBox,
             scripts: new ScriptLibrary());
-        _world.PlayerInputSource = old?.PlayerInputSource;
+        _world.PlayerController.UserInputSource = old?.PlayerController.UserInputSource;
         _world.GameModeSource = () => _gameModeManager.GameMode;
         _world.MapMarkers.Visible = _showMapMarkers;
         _world.CurrentRespawnChanged += respawn =>

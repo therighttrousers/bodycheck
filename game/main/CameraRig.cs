@@ -211,7 +211,7 @@ public partial class CameraRig : Node3D
         float lifted = StepHold(_world, player.Y, delta) + Features.Current.CameraLift;
         // A look measures from the player, and eases from the lifted height. Not looking, the look amount is 0, and
         // the framing's spring eases the view back.
-        float looked = player.Y + LookOffset * _world.PlayerInput.YAxis;
+        float looked = player.Y + LookOffset * _world.PlayerController.Input.YAxis;
 
         Vector2 viewport = GetViewport().GetVisibleRect().Size;
         var halfSize = new Vector2(HalfHeight * viewport.X / viewport.Y, HalfHeight);
@@ -230,7 +230,7 @@ public partial class CameraRig : Node3D
     /// </summary>
     private void StepLook(WorldNode world, float delta)
     {
-        if (world.GameMode == GameMode.Playing && world.PlayerInput.CanLook)
+        if (world.GameMode == GameMode.Playing && world.PlayerController.Input.CanLook)
         {
             // While playing, the time scale is the gameplay speed, which is never 0.
             _lookHeldTime += delta / (float)Engine.TimeScale;

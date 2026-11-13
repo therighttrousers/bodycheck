@@ -133,7 +133,7 @@ public static class Probe
                 throw new ArgumentException($"There is no probe named '{name}'.");
         }
 
-        world.PlayerInputSource = () => probe.Input;
+        world.PlayerController.UserInputSource = () => probe.Input;
         return probe;
     }
 }
