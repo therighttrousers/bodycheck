@@ -31,7 +31,7 @@
 			"id": "V_String",
 			"params": ["DarkCave"]
 		}] },
-		{ "__identifier": "EnvironmentBlend", "__type": "Float", "__value": 6, "__tile": null, "defUid": 287, "realEditorValues": [] }
+		{ "__identifier": "EnvironmentBlend", "__type": "Float", "__value": 6, "__tile": null, "defUid": 287, "realEditorValues": [{ "id": "V_Float", "params": [6] }] }
 	],
 	"layerInstances": [
 		{
@@ -779,5 +779,5 @@
 			"entityInstances": []
 		}
 	],
-	"__neighbours": [{ "levelIid": "6aa1dfc0-bde0-11f1-a170-f914bfc3ae23", "dir": "w" }]
+	"__neighbours": [{ "levelIid": "603a8340-bde0-11f1-a8d8-d36e0dd30be6", "dir": "w" }]
 }

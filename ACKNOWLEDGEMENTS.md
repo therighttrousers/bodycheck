@@ -38,6 +38,10 @@ These placeholder sounds, from [Freesound](https://freesound.org/), are in the p
 - Cancelling a phase or a spawn: ["Critical Error"](https://freesound.org/s/844890/), by DAN2008.
 - The robots' laser: ["Electrical Shock (Zap).wav"](https://freesound.org/s/160421/), by BigKahuna360, cut to 1.5 seconds.
 
+These placeholder backdrops are from [OpenGameArt](https://opengameart.org/):
+
+- The outside's mountains and clouds, in `game/assets/environments/clouds_and_mountains/`: [clouds and mountains parallax](https://opengameart.org/content/background-clouds-and-mountains-parallax), by FabinhoSC, in the public domain under [CC0](https://creativecommons.org/publicdomain/zero/1.0/).
+
 The door's opening and closing sounds are one of the many explosion sounds by [Iwan "qubodup" Gabovitch](https://freesound.org/people/qubodup/), heavily bitcrushed. We have lost track of which one.
 
 The music is an arrangement of Johann Sebastian Bach's Invention No. 13 in A minor, BWV 784.

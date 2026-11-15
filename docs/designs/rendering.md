@@ -23,14 +23,17 @@ Relevant decision records:
 - [059: The camera's lead](../decision-records/059-camera-lead.md)
 - [060: The camera's height through a jump](../decision-records/060-camera-height-through-a-jump.md)
 - [061: Environments per room](../docs/decision-records/061-room-environments.md)
+- [062: Background layers](../decision-records/062-background-layers.md)
 
 The image is Mode X with modern lighting: 320x240 and 256 colours, as on a VGA card in the mid-1990s, drawn with shadows, ambient occlusion, reflections and bloom. Star Fox, Quake and Descent are the references for the geometry, and Mode X for the image (`003`).
 
 ## Environments
 
-Each room has an environment, its lighting and its sky, which its LDtk level names (`061 §2.2`). An environment is a scene in `game/assets/environments/`, made and tuned in the editor: a `WorldEnvironment` named `WorldEnvironment`, and a `Node3D` named `Lighting` that holds its lights (`061 §1.1`). Its background is a `ProceduralSkyMaterial` or a colour; anything fancier is for background layers (`061 §1.3`). The game switches on the post effects of [the pipeline](#pipeline) itself, so an environment doesn't (`061 §1.2`).
+Each room has an environment, its lighting and its sky, which its LDtk level names (`061 §2.2`). An environment is a scene in `game/assets/environments/`, made and tuned in the editor: a `WorldEnvironment` named `WorldEnvironment`, and a `Node3D` named `Lighting` that holds its lights (`061 §1.1`). Its background is a `ProceduralSkyMaterial` or a colour; anything fancier is for its backdrop (`061 §1.3`). The game switches on the post effects of [the pipeline](#pipeline) itself, so an environment doesn't (`061 §1.2`).
 
-Where rooms of different environments meet, the game blends them by where the view's centre is, over a band across their edge: the lights fade by their energy, and the environments' settings blend ([`game/main/`](../../game/main/architecture.md#environments)).
+Where rooms of different environments meet, the game blends them by where the view's centre is, over a band across their edge: the lights fade by their energy, the environments' settings blend, and their backdrops fade by transparency ([`game/main/`](../../game/main/architecture.md#environments), `062 §2.4`).
+
+An environment's scene may have a backdrop: a `Node3D` named `Backdrop`, whose layers are flat pictures at depths behind the tiles, such as distant mountains and clouds (`062 §1.1`, `§2.1`). The game moves `Backdrop` to the centre of the box around the environment's rooms, so the scene's origin stands for the middle of its rooms, and layers keep their places when rooms of other environments are added or moved (`062 §2.13`). Each layer is a `BackdropLayer`: a quad, with the mesh's own UVs and an unshaded material with alpha, placed and sized, scaled if need be, to show one copy of its picture where it belongs. A layer says whether its picture repeats across, up and down, both or neither: a horizon, such as mountains, repeats only across, and a single cloud neither. In the game, along each axis on which it repeats, the quad is stretched to cover the view at its depth and moves with the camera, with its UVs set so the picture stays where it was authored, repeated; along the others it stays as authored, with its UVs pulled in by half a texel from each edge, since the texture repeats and a pixel on the quad's edge would otherwise show the picture's opposite edge (`062 §2.11`, `§2.12`, `§2.15`). A picture repeats both ways unless the layer says otherwise. The picture stays fixed in the world, so the camera's perspective gives the parallax: a layer `b` tiles behind the tiles' front faces moves at `16.1 / (16.1 + b)` of their speed. With a perspective camera, Godot sorts transparent things by their straight-line distance from it, which would put a near layer far above or below the view behind a deeper one; each layer offsets its sort to its depth along the view, so layers sort by depth (`062 §2.7`, `§2.8`).
 
 ## Pipeline
 
@@ -105,7 +108,7 @@ Other ways of choosing colours were tried and set aside: quantising in HSV, a la
 
 ## Open questions
 
-- Background layers (issue #202), and how they fade as environments blend. Each environment's scene could hold its own layers, which already show and hide with it. To fade them by the environments' weights, a dissolve in the colour pass's 2x2 Bayer pattern rather than transparency: it suits Mode X, is cheap, and has no sorting problems (`061 §5.1`).
+- Background layers (issue #202), being deliberated in [062](../decision-records/062-background-layers.md): what a cave's backdrop shows when the camera can go anywhere (`062 §2.9`); a procedural back wall; set dressing placed by hand, later.
 - Flat or smooth shading for models and tiles. Flat shading comes from a mesh's normals, so it is a rule for modelling and not a pipeline setting. The "Look" room shows both (`003 §4.1`).
 - Transparency and refraction were not judged on their own (`003 §4.2`).
 - The resolution of game UI. It stays out of the colour pass, whose dither changes even colours taken from the palette. The placeholder menu is drawn at 320x240 on a layer above the colour pass, in the game's viewport, with the default font antialiased; aliased, it looked terrible (`039 §2.1`, `§2.2`). Whether all game UI is drawn this way, or at the window's resolution, is undecided. Text in system fonts at 8 pixels is unreadable at 320x240; a 3x5 pixel font is readable (`008 §2.1`, `§2.6`). The dialogue box is drawn at 320x240 in a pixel font, Fusion Pixel at 10 pixels, aliased (`044 §4.1`).
