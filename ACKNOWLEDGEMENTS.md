@@ -41,7 +41,6 @@ These placeholder sounds, from [Freesound](https://freesound.org/), are in the p
 These placeholder backdrops are from [OpenGameArt](https://opengameart.org/):
 
 - The outside's mountains and clouds, in `game/assets/environments/clouds_and_mountains/`: [clouds and mountains parallax](https://opengameart.org/content/background-clouds-and-mountains-parallax), by FabinhoSC, in the public domain under [CC0](https://creativecommons.org/publicdomain/zero/1.0/).
-- A cave, in `game/assets/environments/cga_2back_dungeon/`: [dungeon and cave parallax](https://opengameart.org/content/2d-backgrounds-for-platformer-game-dungeons-and-cave-parallax-vector-illustration), by CreativeGameAssets.com, under CC BY-SA 4.0.
 
 The door's opening and closing sounds are one of the many explosion sounds by [Iwan "qubodup" Gabovitch](https://freesound.org/people/qubodup/), heavily bitcrushed. We have lost track of which one.
 
