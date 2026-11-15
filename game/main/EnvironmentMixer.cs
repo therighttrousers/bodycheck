@@ -24,6 +24,10 @@ namespace BodyCheck;
 /// weight. A scene with no weight is hidden, so that its lights cost nothing.
 /// </item>
 /// <item>
+/// A scene may have a <c>Backdrop</c> node, which is moved to the centre of the box around the environment's rooms,
+/// and whose geometry, such as each <see cref="BackdropLayer"/>, fades by transparency with the environment's weight.
+/// </item>
+/// <item>
 /// The mixed environment's background is always a <see cref="ProceduralSkyMaterial"/>: an environment's background
 /// must be one, or a colour, which is a sky of that colour throughout.
 /// </item>
@@ -37,6 +41,7 @@ public partial class EnvironmentMixer : Node3D
     private readonly RoomEnvironment[] _kinds;
     private readonly Node3D[] _scenes;
     private readonly (Light3D Light, float Energy)[][] _lights;
+    private readonly GeometryInstance3D[][] _backdrops;
     private readonly PropertyMix _environmentMix;
     private readonly PropertyMix _skyMix;
     private readonly float[] _weights;
@@ -57,6 +62,7 @@ public partial class EnvironmentMixer : Node3D
         var environments = new Godot.Environment[_kinds.Length];
         var skies = new ProceduralSkyMaterial[_kinds.Length];
         _lights = new (Light3D, float)[_kinds.Length][];
+        _backdrops = new GeometryInstance3D[_kinds.Length][];
         for (int i = 0; i < _kinds.Length; i++)
         {
             Node3D scene = _scenes[i];
@@ -66,7 +72,18 @@ public partial class EnvironmentMixer : Node3D
             // Only the mixer's own is in the tree, since a viewport draws only one.
             scene.RemoveChild(worldEnvironment);
             worldEnvironment.Free();
-            _lights[i] = [.. Lights(scene.GetNode("Lighting")).Select(light => (light, light.LightEnergy))];
+            _lights[i] = [.. Descendants<Light3D>(scene.GetNode("Lighting")).Select(light => (light, light.LightEnergy))];
+            if (scene.GetNodeOrNull("Backdrop") is Node3D backdrop)
+            {
+                // Before the scene enters the tree, so that its layers find themselves where they belong when ready.
+                Vector2 anchor = Anchor(world, _kinds[i]);
+                backdrop.Position += new Vector3(anchor.X, anchor.Y, 0);
+                _backdrops[i] = [.. Descendants<GeometryInstance3D>(backdrop)];
+            }
+            else
+            {
+                _backdrops[i] = [];
+            }
             AddChild(scene);
         }
 
@@ -106,6 +123,10 @@ public partial class EnvironmentMixer : Node3D
             foreach ((Light3D light, float energy) in _lights[i])
             {
                 light.LightEnergy = energy * _weights[i];
+            }
+            foreach (GeometryInstance3D layer in _backdrops[i])
+            {
+                layer.Transparency = 1 - _weights[i];
             }
         }
     }
@@ -164,14 +185,26 @@ public partial class EnvironmentMixer : Node3D
         }
     }
 
-    /// <summary>Every light in a tree of nodes.</summary>
-    private static IEnumerable<Light3D> Lights(Node node)
+    /// <summary>
+    /// Where an environment's backdrop is anchored in the world: the centre of the box around every room of the
+    /// environment, so that its layers keep their places when rooms of other environments are added or moved.
+    /// </summary>
+    private static Vector2 Anchor(World world, RoomEnvironment kind)
     {
-        if (node is Light3D light)
+        Room[] rooms = [.. world.Rooms.Where(room => room.Environment == kind)];
+        Vector2 low = new(rooms.Min(room => room.Origin.X), rooms.Min(room => room.Origin.Y));
+        Vector2 high = new(rooms.Max(room => room.Origin.X + room.Size.X), rooms.Max(room => room.Origin.Y + room.Size.Y));
+        return (low + high) / 2;
+    }
+
+    /// <summary>Every node of a type in a tree of nodes, its root included.</summary>
+    private static IEnumerable<T> Descendants<T>(Node node) where T : Node
+    {
+        if (node is T found)
         {
-            yield return light;
+            yield return found;
         }
-        foreach (Light3D child in node.GetChildren().SelectMany(Lights))
+        foreach (T child in node.GetChildren().SelectMany(Descendants<T>))
         {
             yield return child;
         }
