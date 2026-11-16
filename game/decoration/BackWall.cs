@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -9,30 +10,21 @@ using Godot;
 namespace BodyCheck.Decoration;
 
 /// <summary>
-/// A wall behind a room's tiles, with holes in it, that spreads from one kind of tile: it starts as those tiles, then
-/// grows a few times, each tile of it into each of its four neighbours by chance, so that it is densest near them. It
-/// grows only into empty tiles, so that it doesn't spread behind other kinds, such as grass, and stays inside the room. It is drawn with a kind of tile's mesh, darkened, each tile at a random depth, turned by a
-/// random quarter-turn, as one multimesh.
+/// A wall behind a room's tiles, with holes in it: the tiles its growths cover, each of which spreads from one kind of
+/// tile into the empty tiles around it, by chance, so that the wall is densest near those tiles. It is drawn with a kind
+/// of tile's mesh, darkened, each tile at a random depth, turned by a random quarter-turn, as one multimesh.
 /// </summary>
 [GlobalClass]
 public partial class BackWall : RoomDecorator
 {
-    private static readonly Vector2I[] Directions = [Vector2I.Up, Vector2I.Left, Vector2I.Down, Vector2I.Right];
-
-    /// <summary>The kind of tile the wall spreads from.</summary>
-    [Export] public TileIndex SpreadsFrom { get; set; } = TileIndex.Ground;
+    /// <summary>
+    /// What the wall covers: the tiles that any of them does. Several growths can make a wall grow further in some
+    /// directions than others, such as far up and down, and a little across.
+    /// </summary>
+    [Export] public Godot.Collections.Array<BackWallGrowth> Growths { get; set; } = [];
 
     /// <summary>The kind of tile whose mesh the wall is drawn with.</summary>
     [Export] public TileIndex DrawnAs { get; set; } = TileIndex.Ground;
-
-    /// <summary>How many times the wall grows.</summary>
-    [Export(PropertyHint.Range, "0,10")] public int Growths { get; set; } = 3;
-
-    /// <summary>
-    /// The chance that each tile of the wall grows into each of its neighbours, each time it grows. At 1, the wall has
-    /// no holes within <see cref="Growths"/> tiles of the tiles it spreads from.
-    /// </summary>
-    [Export(PropertyHint.Range, "0,1")] public float GrowChance { get; set; } = 0.4f;
 
     /// <summary>How much darker than its tiles the wall is, from 0 to 1.</summary>
     [Export(PropertyHint.Range, "0,1")] public float Darkening { get; set; } = 0.6f;
@@ -48,35 +40,14 @@ public partial class BackWall : RoomDecorator
 
     public override Node3D? Decorate(Room room, IAssetLibrary assets)
     {
-        bool InRoom(Vector2I c) => c.X >= 0 && c.Y >= 0 && c.X < room.Size.X && c.Y < room.Size.Y;
-
         var wall = new HashSet<Vector2I>();
-        for (int y = 0; y < room.Size.Y; y++)
+        foreach (var (i, growth) in Growths.Index())
         {
-            for (int x = 0; x < room.Size.X; x++)
+            if (growth is null)
             {
-                if (room.GetTileIndex(x, y) == SpreadsFrom)
-                {
-                    wall.Add(new Vector2I(x, y));
-                }
+                throw new InvalidOperationException($"{nameof(BackWall)} {ResourcePath}: growth {i} is empty.");
             }
-        }
-
-        for (int i = 0; i < Growths; i++)
-        {
-            foreach (var coord in wall.ToArray())
-            {
-                foreach (var (d, direction) in Directions.Index())
-                {
-                    var next = coord + direction;
-                    if (InRoom(next) &&
-                        room.GetTileIndex(next.X, next.Y) == TileIndex.Empty &&
-                        RandomForTile(room, coord, $"back_wall_grow_{d}") < GrowChance)
-                    {
-                        wall.Add(next);
-                    }
-                }
-            }
+            wall.UnionWith(growth.Grow(room, $"back_wall_{i}"));
         }
 
         if (wall.Count == 0)

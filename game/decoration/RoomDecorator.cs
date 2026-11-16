@@ -28,6 +28,6 @@ public abstract partial class RoomDecorator : Resource
     /// run. It is seeded by the room's name rather than where it is in the world, so that moving a room keeps its
     /// decorations, and anything placed by hand around them.
     /// </summary>
-    protected static float RandomForTile(Room room, Vector2I coord, string salt) =>
+    public static float RandomForTile(Room room, Vector2I coord, string salt) =>
         new Rand($"{room.Name},{coord.X},{coord.Y},{salt}").NextFloat();
 }
