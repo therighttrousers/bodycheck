@@ -1,5 +1,8 @@
 [gd_scene format=3 uid="uid://cj8ogtxwb4141"]
 
+[ext_resource type="Script" uid="uid://dv2chjk60lpwi" path="res://decoration/RoomDecorations.cs" id="1_y7mcl"]
+[ext_resource type="Script" uid="uid://wiuaxcv6wsqp" path="res://decoration/BackWall.cs" id="2_5v2dn"]
+
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_uwuhp"]
 sky_top_color = Color(0.14928326, 0.08219092, 0.015578877, 1)
 sky_horizon_color = Color(0.17, 0.120019995, 0.027200004, 1)
@@ -17,9 +20,16 @@ ambient_light_color = Color(0.5019608, 0.5019608, 1, 1)
 ambient_light_sky_contribution = 0.0
 ambient_light_energy = 0.05
 
+[sub_resource type="Resource" id="Resource_8n35e"]
+script = ExtResource("2_5v2dn")
+
 [node name="DarkCave" type="Node3D" unique_id=2126432301]
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1355080391]
 environment = SubResource("Environment_wwk44")
 
 [node name="Lighting" type="Node3D" parent="." unique_id=2030990213]
+
+[node name="Decorations" type="Node" parent="." unique_id=2132310537]
+script = ExtResource("1_y7mcl")
+Decorators = [SubResource("Resource_8n35e")]

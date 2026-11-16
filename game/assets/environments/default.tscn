@@ -1,10 +1,16 @@
 [gd_scene format=3 uid="uid://d2d6g565o3d0r"]
 
+[ext_resource type="Script" uid="uid://dv2chjk60lpwi" path="res://decoration/RoomDecorations.cs" id="1_0yxiv"]
+[ext_resource type="Script" uid="uid://wiuaxcv6wsqp" path="res://decoration/BackWall.cs" id="2_4ytes"]
+
 [sub_resource type="Environment" id="Environment_wwk44"]
 background_mode = 1
 background_color = Color(0.019607844, 0.019607844, 0.039215688, 1)
 ambient_light_color = Color(0.5019608, 0.5019608, 1, 1)
 ambient_light_energy = 0.1
+
+[sub_resource type="Resource" id="Resource_vttbi"]
+script = ExtResource("2_4ytes")
 
 [node name="Default" type="Node3D" unique_id=739477709]
 
@@ -18,3 +24,7 @@ transform = Transform3D(0.9848078, -0.0996005, 0.14224426, 0, 0.81915206, 0.5735
 light_color = Color(1, 1, 0.9019608, 1)
 light_energy = 0.5
 shadow_enabled = true
+
+[node name="Decorations" type="Node" parent="." unique_id=923600191]
+script = ExtResource("1_0yxiv")
+Decorators = [SubResource("Resource_vttbi")]

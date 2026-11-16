@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 using BodyCheck.Core.Entities;
 using BodyCheck.Core.Simulation;
 using BodyCheck.Core.WorldData;
+using BodyCheck.Decoration;
 
 using Godot;
 
@@ -11,7 +13,7 @@ namespace BodyCheck;
 
 /// <summary>
 /// What the game draws for each kind of entity, a model or a box the size of its body, and for tiles. It loads the
-/// tile's mesh once, and each darkened copy of it once.
+/// tile's mesh once, and each darkened copy of it once. It decorates each room with its environment's decorators.
 /// </summary>
 public class AssetLibrary : IAssetLibrary
 {
@@ -34,6 +36,7 @@ public class AssetLibrary : IAssetLibrary
     private const float PlayerBlockAlpha = 0.4f;
 
     private readonly Dictionary<(TileIndex index, float darkening), (Mesh Mesh, Transform3D Transform)> _tiles = [];
+    private readonly Dictionary<RoomEnvironment, RoomDecorator[]> _decorators = [];
 
     public Node3D? GetEntityVisual(EntityConfig config) => config.Kind switch
     {
@@ -76,6 +79,48 @@ public class AssetLibrary : IAssetLibrary
             tile = _tiles[(index, darkening)] = (darkening == 0 ? mesh : DarkenedMesh(mesh, darkening), transform);
         }
         return tile;
+    }
+
+    public Node3D? GetRoomDecoration(Room room)
+    {
+        if (!_decorators.TryGetValue(room.Environment, out var decorators))
+        {
+            decorators = _decorators[room.Environment] = LoadDecorators(room.Environment);
+        }
+        Node3D? decoration = null;
+        foreach (var decorator in decorators)
+        {
+            if (decorator.Decorate(room, this) is { } node)
+            {
+                decoration ??= new Node3D { Name = "Decoration" };
+                decoration.AddChild(node);
+            }
+        }
+        return decoration;
+    }
+
+    /// <summary>
+    /// The decorators in the <see cref="RoomDecorations"/> named <c>Decorations</c> in an environment's scene, or none if
+    /// it has no <c>Decorations</c>.
+    /// </summary>
+    private static RoomDecorator[] LoadDecorators(RoomEnvironment kind)
+    {
+        string path = EnvironmentPaths[kind];
+        Node3D scene = InstantiateScene(path);
+        try
+        {
+            return scene.GetNodeOrNull("Decorations") switch
+            {
+                null => [],
+                RoomDecorations { Decorators: var decorators } when decorators.All(d => d != null) => [.. decorators],
+                RoomDecorations => throw new InvalidOperationException($"{path}: Decorations has an empty decorator."),
+                _ => throw new InvalidOperationException($"{path}: Decorations isn't a {nameof(RoomDecorations)}."),
+            };
+        }
+        finally
+        {
+            scene.Free();
+        }
     }
 
     public MeshInstance3D GetDebugBoxVisual(Vector2 size, Color color, float alpha = 0.5f)
