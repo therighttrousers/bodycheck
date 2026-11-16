@@ -1,0 +1,22 @@
+[gd_scene format=3 uid="uid://qxwn0pkm5dw5"]
+
+[ext_resource type="PackedScene" uid="uid://cj8ogtxwb4141" path="res://assets/environments/dark_cave.tscn" id="1_jrqwf"]
+[ext_resource type="Script" uid="uid://cinvh5rmi56fo" path="res://decoration/RoomDecorator.cs" id="2_i2uor"]
+[ext_resource type="Script" uid="uid://cxklipv1b6xvr" path="res://decoration/BackWallGrowth.cs" id="3_acr2f"]
+[ext_resource type="Script" uid="uid://wiuaxcv6wsqp" path="res://decoration/BackWall.cs" id="4_xniv2"]
+
+[sub_resource type="Resource" id="Resource_ddbav"]
+script = ExtResource("3_acr2f")
+Directions = 5
+Chance = 1.0
+metadata/_custom_type_script = "uid://cxklipv1b6xvr"
+
+[sub_resource type="Resource" id="Resource_4vav2"]
+script = ExtResource("4_xniv2")
+Growths = Array[ExtResource("3_acr2f")]([SubResource("Resource_ddbav")])
+metadata/_custom_type_script = "uid://wiuaxcv6wsqp"
+
+[node name="OutsideToDarkCave" unique_id=2126432301 instance=ExtResource("1_jrqwf")]
+
+[node name="Decorations" parent="." index="2" unique_id=2132310537]
+Decorators = Array[ExtResource("2_i2uor")]([SubResource("Resource_4vav2")])

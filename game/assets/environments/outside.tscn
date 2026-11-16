@@ -94,15 +94,15 @@ albedo_texture = ExtResource("7_xkwg1")
 material = SubResource("StandardMaterial3D_oo1ob")
 size = Vector2(270, 170)
 
-[sub_resource type="Resource" id="Resource_growth"]
+[sub_resource type="Resource" id="Resource_ddbav"]
 script = ExtResource("20_growth")
 Directions = 5
-Chance = 0.8
+Chance = 1.0
 metadata/_custom_type_script = "uid://cxklipv1b6xvr"
 
-[sub_resource type="Resource" id="Resource_wwk44"]
+[sub_resource type="Resource" id="Resource_5qpxl"]
 script = ExtResource("10_ddbav")
-Growths = Array[ExtResource("20_growth")]([SubResource("Resource_growth")])
+Growths = Array[ExtResource("20_growth")]([SubResource("Resource_ddbav")])
 metadata/_custom_type_script = "uid://wiuaxcv6wsqp"
 
 [node name="Outside" type="Node3D" unique_id=739477709]
@@ -157,5 +157,5 @@ RepeatY = false
 
 [node name="Decorations" type="Node" parent="." unique_id=319759067]
 script = ExtResource("8_w7rti")
-Decorators = Array[ExtResource("9_4vav2")]([SubResource("Resource_wwk44")])
+Decorators = Array[ExtResource("9_4vav2")]([SubResource("Resource_5qpxl")])
 metadata/_custom_type_script = "uid://dv2chjk60lpwi"

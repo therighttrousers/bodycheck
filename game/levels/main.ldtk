@@ -11,7 +11,7 @@
 	"iid": "0f346a70-bde0-11f1-b046-ebfce3981aaf",
 	"jsonVersion": "1.5.3",
 	"appBuildId": 473703,
-	"nextUid": 292,
+	"nextUid": 293,
 	"identifierStyle": "Capitalize",
 	"toc": [{
 		"identifier": "PlayerStart",
@@ -22,7 +22,7 @@
 				"levelIid": "6aa1dfc0-bde0-11f1-a170-f914bfc3ae23",
 				"layerIid": "6aa1dfc2-bde0-11f1-a170-8b44d457842c",
 				"entityIid": "9cb9aa60-bde0-11f1-a170-05b3f2bcfd25"
-			}, "worldX": -1136, "worldY": 96, "widPx": 16, "heiPx": 32, "fields" : {} },
+			}, "worldX": -1360, "worldY": 96, "widPx": 16, "heiPx": 32, "fields" : {} },
 			{ "iids": {
 				"worldIid": "67b6f530-bde0-11f1-9940-abfb4b03d025",
 				"levelIid": "67b71c40-bde0-11f1-9940-6f80f1c6fca9",
@@ -1481,6 +1481,7 @@
 			{ "id": "Default", "tileRect": null, "color": 14120515 },
 			{ "id": "Testing", "tileRect": null, "color": 15389866 },
 			{ "id": "Outside", "tileRect": null, "color": 12470831 },
+			{ "id": "OutsideToDarkCave", "tileRect": null, "color": 7552569 },
 			{ "id": "DarkCave", "tileRect": null, "color": 14984818 }
 		], "iconTilesetUid": null, "externalRelPath": null, "externalFileChecksum": null, "tags": [] }
 	], "externalEnums": [], "levelFields": [
@@ -1592,16 +1593,16 @@
 					{ "__identifier": "EnvironmentBlend", "__type": "Float", "__value": 6, "__tile": null, "defUid": 287, "realEditorValues": [{ "id": "V_Float", "params": [6] }] }
 				],
 				"layerInstances": null,
-				"__neighbours": [{ "levelIid": "603a8340-bde0-11f1-a8d8-d36e0dd30be6", "dir": "w" }]
+				"__neighbours": [{ "levelIid": "25e18940-bde0-11f1-a8d8-b5adac9e5422", "dir": "w" }]
 			},
 			{
 				"identifier": "Outside",
 				"iid": "6aa1dfc0-bde0-11f1-a170-f914bfc3ae23",
 				"uid": 236,
-				"worldX": -1168,
+				"worldX": -1392,
 				"worldY": -48,
 				"worldDepth": 0,
-				"pxWid": 1088,
+				"pxWid": 1056,
 				"pxHei": 336,
 				"__bgColor": "#696A79",
 				"bgColor": null,
@@ -1618,19 +1619,19 @@
 						"id": "V_String",
 						"params": ["Outside"]
 					}] },
-					{ "__identifier": "EnvironmentBlend", "__type": "Float", "__value": 2, "__tile": null, "defUid": 287, "realEditorValues": [{ "id": "V_Float", "params": [2] }] }
+					{ "__identifier": "EnvironmentBlend", "__type": "Float", "__value": 10, "__tile": null, "defUid": 287, "realEditorValues": [{ "id": "V_Float", "params": [10] }] }
 				],
 				"layerInstances": null,
-				"__neighbours": [{ "levelIid": "603a8340-bde0-11f1-a8d8-d36e0dd30be6", "dir": "e" }]
+				"__neighbours": [{ "levelIid": "25e18940-bde0-11f1-a8d8-b5adac9e5422", "dir": "e" }]
 			},
 			{
 				"identifier": "OutsideToEntrance",
-				"iid": "603a8340-bde0-11f1-a8d8-d36e0dd30be6",
-				"uid": 291,
-				"worldX": -80,
+				"iid": "25e18940-bde0-11f1-a8d8-b5adac9e5422",
+				"uid": 292,
+				"worldX": -336,
 				"worldY": -48,
 				"worldDepth": 0,
-				"pxWid": 64,
+				"pxWid": 320,
 				"pxHei": 336,
 				"__bgColor": "#696A79",
 				"bgColor": null,
@@ -1643,11 +1644,11 @@
 				"__bgPos": null,
 				"externalRelPath": "main/OutsideToEntrance.ldtkl",
 				"fieldInstances": [
-					{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "DarkCave", "__tile": null, "defUid": 286, "realEditorValues": [{
+					{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "OutsideToDarkCave", "__tile": null, "defUid": 286, "realEditorValues": [{
 						"id": "V_String",
-						"params": ["DarkCave"]
+						"params": ["OutsideToDarkCave"]
 					}] },
-					{ "__identifier": "EnvironmentBlend", "__type": "Float", "__value": 2, "__tile": null, "defUid": 287, "realEditorValues": [{ "id": "V_Float", "params": [2] }] }
+					{ "__identifier": "EnvironmentBlend", "__type": "Float", "__value": 10, "__tile": null, "defUid": 287, "realEditorValues": [{ "id": "V_Float", "params": [10] }] }
 				],
 				"layerInstances": null,
 				"__neighbours": [ { "levelIid": "4529bdd0-bde0-11f1-a170-3b125b576337", "dir": "e" }, { "levelIid": "6aa1dfc0-bde0-11f1-a170-f914bfc3ae23", "dir": "w" } ]
