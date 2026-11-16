@@ -150,8 +150,7 @@ public partial class WorldNode : Node3D, IScriptWorld
         // Out of the world until the player spawns it: a disabled body is out of the engine's space, and isn't stepped.
         PlayerBlock = new Entity(
             BodyTuning.PlayerBlock,
-            assets.GetPlayerBlockVisual(BodyTuning.PlayerBlock.HalfSize),
-            axisLockAngularZ: false)
+            assets.GetPlayerBlockVisual(BodyTuning.PlayerBlock.HalfSize))
         {
             ProcessMode = ProcessModeEnum.Disabled,
             Visible = false,
@@ -392,7 +391,7 @@ public partial class WorldNode : Node3D, IScriptWorld
 
     private static Entity CreateBlock(EntityConfig.Block config, Node3D? visual)
     {
-        return new Entity(BodyTuning.Block, visual, axisLockAngularZ: false);
+        return new Entity(BodyTuning.Block, visual);
     }
 
     /// <summary>A door, frozen where it starts, open or closed, with its controller.</summary>

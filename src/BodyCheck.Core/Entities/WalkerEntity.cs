@@ -35,7 +35,7 @@ public partial class WalkerEntity : Entity
 
     /// <param name="visual">What to draw for the entity, centered on the middle of its box.</param>
     public WalkerEntity(BodyTuning tuning, Node3D? visual = null)
-        : base(tuning, visual, axisLockAngularZ: true)
+        : base(tuning, visual)
     {
         _grip = Joints.FreeJoint();
         AddChild(_grip);

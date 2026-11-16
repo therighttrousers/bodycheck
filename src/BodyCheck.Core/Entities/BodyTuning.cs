@@ -79,8 +79,12 @@ public sealed record BodyTuning
     /// <summary>Whether the player can phase through this body.</summary>
     public bool CanBePhased { get; init; } = true;
 
-    /// <summary>Whether the engine keeps this body from moving along X, so that nothing pushes it sideways.</summary>
-    public bool LockedOnX { get; init; }
+    /// <summary>Whether the engine keeps this body from moving along X, so that nothing can push it horizontally.</summary>
+    public bool AxisLockLinearX { get; init; }
+    /// <summary>Whether the engine keeps this body from moving along Y, so that nothing can push it vertically.</summary>
+    public bool AxisLockLinearY { get; init; }
+    /// <summary>Whether the engine keeps this body from rotating in the XY plane.</summary>
+    public bool AxisLockAngularZ { get; init; } = true;
 
     public static BodyTuning Player { get; } = new()
     {
@@ -122,7 +126,8 @@ public sealed record BodyTuning
         HalfSize = new(0.5f, 0.5f),
         Mass = () => Features.Current.PlayerBlockMass,
         EngineFriction = () => Features.Current.PlayerBlockEngineFriction,
-        CollisionLayer = PhysicsLayer.Prop
+        CollisionLayer = PhysicsLayer.Prop,
+        AxisLockAngularZ = false,
     };
 
     /// <summary>
@@ -138,7 +143,7 @@ public sealed record BodyTuning
         CollisionMask = PhysicsLayer.EntityCollisionMask | PhysicsLayer.DoorStop,
         CanBeCarried = false,
         CanBePhased = false,
-        LockedOnX = true,
+        AxisLockLinearX = true,
     };
 
     /// <summary>A block, which has no controller: it is only pushed, carried and stood on.</summary>
@@ -147,6 +152,7 @@ public sealed record BodyTuning
         HalfSize = new(0.5f, 0.5f),
         Mass = () => Features.Current.BlockMass,
         EngineFriction = () => Features.Current.BlockEngineFriction,
-        CollisionLayer = PhysicsLayer.Prop
+        CollisionLayer = PhysicsLayer.Prop,
+        AxisLockAngularZ = false,
     };
 }
