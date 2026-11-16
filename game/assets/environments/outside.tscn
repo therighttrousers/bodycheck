@@ -7,6 +7,10 @@
 [ext_resource type="Texture2D" uid="uid://bt41lji4qrihg" path="res://assets/environments/clouds_and_mountains/Cloud02.png" id="5_julqk"]
 [ext_resource type="Texture2D" uid="uid://dxda3pyfpn5n8" path="res://assets/environments/clouds_and_mountains/Cloud03.png" id="6_xu6o7"]
 [ext_resource type="Texture2D" uid="uid://b81oqgcnfqv7t" path="res://assets/environments/clouds_and_mountains/Clouds04.png" id="7_xkwg1"]
+[ext_resource type="Script" uid="uid://dv2chjk60lpwi" path="res://decoration/RoomDecorations.cs" id="8_w7rti"]
+[ext_resource type="Script" uid="uid://cinvh5rmi56fo" path="res://decoration/RoomDecorator.cs" id="9_4vav2"]
+[ext_resource type="Script" uid="uid://wiuaxcv6wsqp" path="res://decoration/BackWall.cs" id="10_ddbav"]
+[ext_resource type="Script" uid="uid://cxklipv1b6xvr" path="res://decoration/BackWallGrowth.cs" id="20_growth"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_ts7x6"]
 sky_top_color = Color(0, 0.74030584, 0.91035265, 1)
@@ -90,6 +94,17 @@ albedo_texture = ExtResource("7_xkwg1")
 material = SubResource("StandardMaterial3D_oo1ob")
 size = Vector2(270, 170)
 
+[sub_resource type="Resource" id="Resource_ddbav"]
+script = ExtResource("20_growth")
+Directions = 5
+Chance = 1.0
+metadata/_custom_type_script = "uid://cxklipv1b6xvr"
+
+[sub_resource type="Resource" id="Resource_5qpxl"]
+script = ExtResource("10_ddbav")
+Growths = Array[ExtResource("20_growth")]([SubResource("Resource_ddbav")])
+metadata/_custom_type_script = "uid://wiuaxcv6wsqp"
+
 [node name="Outside" type="Node3D" unique_id=739477709]
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=76386784]
@@ -139,3 +154,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 40, -250)
 mesh = SubResource("QuadMesh_cw3ln")
 script = ExtResource("2_8u38t")
 RepeatY = false
+
+[node name="Decorations" type="Node" parent="." unique_id=319759067]
+script = ExtResource("8_w7rti")
+Decorators = Array[ExtResource("9_4vav2")]([SubResource("Resource_5qpxl")])
+metadata/_custom_type_script = "uid://dv2chjk60lpwi"

@@ -7,8 +7,9 @@ namespace BodyCheck.Core.Simulation;
 
 /// <summary>
 /// What a room looks like: for each kind of tile, its tiles and a layer of darker tiles behind them, each turned by a
-/// random quarter-turn to hide repetition in the art. Each layer is one multimesh. It has no colliders, which the world
-/// builds for all its rooms at once.
+/// random quarter-turn to hide repetition in the art. Each layer is one multimesh. Then whatever the asset library adds
+/// for the room's environment, such as a back wall. It has no colliders, which the world builds for all its rooms at
+/// once.
 /// </summary>
 public partial class RoomNode : Node3D
 {
@@ -56,6 +57,11 @@ public partial class RoomNode : Node3D
                 AddChild(BuildTilesMesh(backBoxes, assets.GetTileMesh(index, darkening: 0.4f)));
             }
         }
+
+        if (assets.GetRoomDecoration(room) is { } decoration)
+        {
+            AddChild(decoration);
+        }
     }
 
     private static float RandomishForXy(Vector2I worldCoord, string salt)
@@ -63,7 +69,11 @@ public partial class RoomNode : Node3D
         return new Rand($"{worldCoord.X},{worldCoord.Y},{salt}").NextFloat();
     }
 
-    private static MultiMeshInstance3D BuildTilesMesh(
+    /// <summary>
+    /// One multimesh of <paramref name="tile"/>, as <see cref="IAssetLibrary.GetTileMesh"/> gives it, fitted to each box
+    /// and turned about the box's centre by its angle, in radians, about the axis toward the camera.
+    /// </summary>
+    public static MultiMeshInstance3D BuildTilesMesh(
         List<(Aabb Box, float Rot)> boxes, (Mesh Mesh, Transform3D Transform) tile)
     {
         var multimesh = new MultiMesh

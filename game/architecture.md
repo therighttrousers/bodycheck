@@ -7,6 +7,7 @@ Relevant decision records:
 - [044: Dialogue](../docs/decision-records/044-dialogue.md)
 - [051: The scripted run at the spawn](../docs/decision-records/051-scripted-run-at-the-spawn.md)
 - [057: Tile kinds](../docs/decision-records/057-tile-kinds.md)
+- [062: Background layers](../docs/decision-records/062-background-layers.md)
 
 ## What it is
 
@@ -19,6 +20,7 @@ The game's rules: those are Core's, which the game builds on and which knows not
 ## Directories
 
 - [**`main/`**](main/architecture.md): the main scene and what it puts around a world: the camera, the game's modes, sound, the debug tools, and the playtester's controls.
+- **`decoration/`**: the decorators, which add things to each room of an environment, such as a back wall, made procedurally from the room: `RoomDecorator`, their base, a `Resource` whose exported properties are a decorator's settings; `RoomDecorations`, the node named `Decorations` in an environment's scene that lists its decorators; and `BackWall`, with its `BackWallGrowth`s. A decorator is pure and deterministic, depending only on the room, its settings and Core's `IAssetLibrary`'s meshes, never on the scene tree or the game's state, and makes engine nodes in the room's coordinates, so that it could run in the editor to preview a room (`062 §3.6`, `§3.7`). See [rendering.md](../docs/designs/rendering.md#environments).
 - **`look/`**: the low-resolution view, the colour pass and the tools for judging the rendering. See [rendering.md](../docs/designs/rendering.md).
 - [**`probes/`**](probes/architecture.md): scripted measurements, run headless.
 - [**`tests/`**](tests/architecture.md): the tests.
@@ -40,6 +42,7 @@ The game's rules: those are Core's, which the game builds on and which knows not
 
 ```mermaid
 graph BT
+    main --> decoration
     main --> look
     main --> scripts
     main -. Debug .-> probes
@@ -49,6 +52,7 @@ graph BT
 
 An arrow points from a directory to one whose code it uses. Every directory's code may use Core; those arrows aren't drawn.
 
+- **`main/` uses `decoration/`**: the asset library reads each environment's decorators and makes each room's decoration with them.
 - **`main/` uses `look/`** for the view it draws the world in.
 - **`main/` uses `scripts/`** for the script library it gives each world it builds.
 - **`main/` runs probes**, in the editor's build only, when the command line names one.

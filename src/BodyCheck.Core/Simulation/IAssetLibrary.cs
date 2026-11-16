@@ -30,4 +30,10 @@ public interface IAssetLibrary
     /// to a unit cube centred on the origin. Callers share the mesh, so they must not change it.
     /// </summary>
     (Mesh Mesh, Transform3D Transform) GetTileMesh(TileIndex index, float darkening = 0);
+
+    /// <summary>
+    /// Makes what a room's environment adds to the room besides its tiles, such as a back wall, in the room's
+    /// coordinates, or null if it adds nothing. It is called once for each room.
+    /// </summary>
+    Node3D? GetRoomDecoration(Room room);
 }
