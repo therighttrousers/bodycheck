@@ -129,6 +129,26 @@ public sealed class World
             }
         }
 
+        foreach (EntityConfig.Trigger trigger in Controls.OfType<EntityConfig.Trigger>())
+        {
+            if (trigger.MovesWith is not string id)
+            {
+                continue;
+            }
+            if (!ConfigsById.TryGetValue(id, out EntityConfig? entity))
+            {
+                throw new ArgumentException(
+                    $"In world '{name}', {Named(trigger)} moves with '{id}', which isn't in the world.", nameof(rooms));
+            }
+            if (!entity.Kind.HasBody || entity.Kind == EntityKind.Player)
+            {
+                throw new ArgumentException(
+                    $"In world '{name}', {Named(trigger)} moves with {Named(entity)}, which "
+                    + (entity.Kind.HasBody ? "would always be in it." : "has no body."),
+                    nameof(rooms));
+            }
+        }
+
         if (FindCycle() is EntityConfig start)
         {
             throw new ArgumentException(

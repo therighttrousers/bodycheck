@@ -173,7 +173,8 @@
 						{ "__identifier": "SetOffBy", "__type": "LocalEnum.TriggerSetOffBy", "__value": "Start", "__tile": null, "defUid": 272, "realEditorValues": [{
 							"id": "V_String",
 							"params": ["Start"]
-						}] }
+						}] },
+						{ "__identifier": "MovesWith", "__type": "EntityRef", "__value": null, "__tile": null, "defUid": 294, "realEditorValues": [] }
 					],
 					"__worldX": 160,
 					"__worldY": -160

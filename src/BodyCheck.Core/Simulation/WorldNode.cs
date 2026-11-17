@@ -164,6 +164,8 @@ public partial class WorldNode : Node3D, IScriptWorld
             Visible = false,
         };
 
+        // The entities that configurations build, by their ids.
+        var bodies = new Dictionary<string, Entity>();
         foreach (EntityConfig config in world.Bodies)
         {
             Entity entity = config.Kind switch
@@ -188,6 +190,7 @@ public partial class WorldNode : Node3D, IScriptWorld
             AddChild(entity);
             _entities.Add(entity);
             _configs[entity] = config;
+            bodies[config.Id] = entity;
         }
 
         foreach (EntityConfig config in world.Bodies.Concat(world.Controls))
@@ -210,14 +213,13 @@ public partial class WorldNode : Node3D, IScriptWorld
         Player.Controller = PlayerController;
 
         // Last, since a body's controller runs the actions routed to it.
-        Triggers = BuildRoutes(dialogue, scripts);
+        Triggers = BuildRoutes(bodies, dialogue, scripts);
 
         // In the order of the world's controls, so that triggers touched in the same tick are set off in a known order.
         foreach (EntityConfig.Trigger trigger in world.Controls.OfType<EntityConfig.Trigger>())
         {
             var area = new Area3D
             {
-                Position = trigger.MapCenter.ToVector3(),
                 CollisionLayer = (uint)PhysicsLayer.Trigger,
                 // Only the player sets a trigger off, for now, and it is a character.
                 CollisionMask = (uint)PhysicsLayer.Character,
@@ -225,8 +227,12 @@ public partial class WorldNode : Node3D, IScriptWorld
             };
             var size = new Vector3(trigger.MapSize.X, trigger.MapSize.Y, Depth);
             area.AddChild(new CollisionShape3D { Shape = new BoxShape3D { Size = size } });
-            AddChild(area);
-            _triggerAreas.Add(new TriggerArea(trigger, area, Triggers[trigger.Id]));
+            // One that moves with an entity is the entity's child, placed as its box is from where the entity starts,
+            // so that it goes wherever the entity goes, and goes with it when it is removed.
+            Entity? movesWith = trigger.MovesWith is string id ? bodies[id] : null;
+            area.Position = trigger.MapCenter.ToVector3() - (movesWith?.Position ?? Vector3.Zero);
+            (movesWith ?? (Node)this).AddChild(area);
+            _triggerAreas.Add(new TriggerArea(trigger, area, Triggers[trigger.Id], movesWith));
         }
 
         // Last, once the world is built, so that no controller sees it half built. An entity added later is to be given
@@ -239,18 +245,14 @@ public partial class WorldNode : Node3D, IScriptWorld
 
     /// <summary>
     /// Builds what runs each control entity, with each step resolved to what runs its action, and returns the triggers'
-    /// runners, by id. The world has checked that every route's target responds to its action, and that no route leads
+    /// runners, by id. <paramref name="bodies"/> are the entities that configurations build, by their ids. The world has
+    /// checked that every route's target responds to its action, and that no route leads
     /// back to where it started, so each runner is built after its targets. <see cref="Build"/> has checked the world's
     /// dialogues against <paramref name="dialogue"/>, and its scripts against <paramref name="scripts"/>.
     /// </summary>
-    private Dictionary<string, TriggerRunner> BuildRoutes(IDialoguePresenter? dialogue, IScriptLibrary? scripts)
+    private Dictionary<string, TriggerRunner> BuildRoutes(
+        Dictionary<string, Entity> bodies, IDialoguePresenter? dialogue, IScriptLibrary? scripts)
     {
-        var bodies = new Dictionary<string, Entity>();
-        for (int i = 0; i < World.Bodies.Count; i++)
-        {
-            bodies[World.Bodies[i].Id] = _entities[i];
-        }
-
         var targets = new Dictionary<string, IActionTarget>();
 
         Call CallOf(Step step) => new(TargetOf(World.ConfigsById[step.TargetId]), step.Action);
@@ -553,11 +555,24 @@ public partial class WorldNode : Node3D, IScriptWorld
     public event Action<EntityConfig.Trigger>? TriggerSetOff;
 
     /// <summary>
-    /// The trigger that the player can set off by interacting, as of the last tick of play: one that is set off by
+    /// The trigger that the player would set off by interacting, as of the last tick of play: one that is set off by
     /// interacting, is on, and holds the player while it stands on the ground. Null if there is none, or the game
-    /// wasn't playing. If several could, the first in the order of the world's controls.
+    /// wasn't playing. If several could, one that moves with an entity before one that doesn't; among those that do,
+    /// the one whose entity's box is nearest the player's; and otherwise the first in the order of the world's controls.
+    /// Only this one is set off by interacting.
     /// </summary>
-    public EntityConfig.Trigger? InteractTrigger { get; private set; }
+    public EntityConfig.Trigger? InteractTrigger => _interactTrigger?.Config;
+
+    private TriggerArea? _interactTrigger;
+
+    /// <summary>
+    /// The middle of the top of <see cref="InteractTrigger"/>'s area, where it is now, in the world's coordinates, or
+    /// null if there is none, or it has gone with its entity.
+    /// </summary>
+    public Vector2? InteractTriggerTop =>
+        _interactTrigger is { IsLive: true } trigger
+            ? trigger.Area.GlobalPosition.ToVector2() + new Vector2(0, trigger.Config.MapSize.Y / 2f)
+            : null;
 
     /// <summary>The scripts the world is running, in the order they started.</summary>
     public IReadOnlyList<IScript> RunningScripts => _runningScripts.All;
@@ -794,37 +809,66 @@ public partial class WorldNode : Node3D, IScriptWorld
         bool canInteract = GameMode is GameMode.Playing && Player.OnGround;
         bool interacts = canInteract && PlayerController.InteractJustPressed;
 
-        InteractTrigger = null;
         foreach (TriggerArea trigger in _triggerAreas)
         {
-            bool held = trigger.Area.OverlapsBody(Player);
+            trigger.HoldsPlayer = trigger.IsLive && trigger.Area.OverlapsBody(Player);
+        }
+        _interactTrigger = canInteract ? ChooseInteractTrigger() : null;
+
+        foreach (TriggerArea trigger in _triggerAreas)
+        {
             bool setOff = trigger.Config.SetOffBy switch
             {
-                TriggerSetOffBy.Touch => held && !trigger.HeldPlayer,
-                TriggerSetOffBy.Interact => held && interacts,
+                TriggerSetOffBy.Touch => trigger.HoldsPlayer && !trigger.HeldPlayer,
+                TriggerSetOffBy.Interact => interacts && trigger == _interactTrigger,
                 // Only in the first: one that is off then never is.
                 TriggerSetOffBy.Start => !_started,
             };
-            if (trigger.Config.SetOffBy is TriggerSetOffBy.Interact && held && canInteract && trigger.Runner.IsOn)
-            {
-                InteractTrigger ??= trigger.Config;
-            }
             if (setOff && trigger.Runner.IsOn)
             {
                 trigger.Runner.SetOff(_scheduler.Tick);
                 TriggerSetOff?.Invoke(trigger.Config);
             }
-            trigger.HeldPlayer = held;
+            trigger.HeldPlayer = trigger.HoldsPlayer;
         }
         _started = true;
     }
 
-    /// <summary>A trigger's area, what runs it, and whether the area held the player when it was last asked.</summary>
-    private sealed class TriggerArea(EntityConfig.Trigger config, Area3D area, TriggerRunner runner)
+    /// <summary>
+    /// The trigger that interacting would set off, of those that are set off by interacting, are on, and hold the
+    /// player, as <see cref="InteractTrigger"/> says: those that move with an entity first, nearest first, box to box,
+    /// then the others, in the order of the world's controls, which the sort keeps for ties.
+    /// </summary>
+    private TriggerArea? ChooseInteractTrigger() =>
+        _triggerAreas
+            .Where(trigger =>
+                trigger.Config.SetOffBy is TriggerSetOffBy.Interact && trigger.Runner.IsOn && trigger.HoldsPlayer)
+            .OrderBy(trigger => trigger.MovesWith is null)
+            .ThenBy(trigger => trigger.MovesWith is Entity entity ? GapToPlayer(entity) : 0)
+            .FirstOrDefault();
+
+    /// <summary>The distance between the player's box and <paramref name="entity"/>'s, or 0 if they overlap.</summary>
+    private float GapToPlayer(Entity entity) =>
+        Boxes.Distance(Player.Position.ToVector2(), entity.Position.ToVector2(), Player.HalfSize + entity.HalfSize);
+
+    /// <summary>
+    /// A trigger's area, what runs it, the entity it moves with, if any, and whether the area holds the player as of the
+    /// engine's last step, and held it when it was last asked.
+    /// </summary>
+    private sealed class TriggerArea(EntityConfig.Trigger config, Area3D area, TriggerRunner runner, Entity? movesWith)
     {
         public EntityConfig.Trigger Config { get; } = config;
         public Area3D Area { get; } = area;
         public TriggerRunner Runner { get; } = runner;
+        public Entity? MovesWith { get; } = movesWith;
+
+        /// <summary>
+        /// Whether the area is still in the world: not once the entity it moves with is removed, which takes the area
+        /// with it, so that the trigger is never set off again.
+        /// </summary>
+        public bool IsLive => MovesWith?.IsLive() ?? true;
+
+        public bool HoldsPlayer { get; set; }
         public bool HeldPlayer { get; set; }
     }
 

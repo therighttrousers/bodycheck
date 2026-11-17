@@ -171,6 +171,11 @@ public abstract record EntityConfig
         /// <summary>Whether it starts on. One that is off isn't set off.</summary>
         public required bool StartsOn { get; init; }
         public required TriggerSetOffBy SetOffBy { get; init; }
+        /// <summary>
+        /// The id of the entity with a body, not the player, that the area moves with, or null if it stays where it is.
+        /// Its box is where the area is while the entity is where it starts.
+        /// </summary>
+        public string? MovesWith { get; init; }
     }
 
     /// <summary>Runs its steps in turn, each when the one before has finished.</summary>

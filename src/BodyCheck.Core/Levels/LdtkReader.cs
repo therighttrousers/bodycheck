@@ -274,6 +274,7 @@ public static class LdtkReader
                     fields.Read("Action", LdtkJsonContext.Default.TriggerAction)),
                 StartsOn = fields.Read("StartsOn", LdtkJsonContext.Default.Boolean),
                 SetOffBy = fields.Read("SetOffBy", LdtkJsonContext.Default.TriggerSetOffBy),
+                MovesWith = fields.ReadOrNull("MovesWith", LdtkJsonContext.Default.LdtkEntityRef)?.EntityIid,
             },
             LdtkEntityName.Sequence => new EntityConfig.Sequence()
             {
@@ -346,13 +347,20 @@ public static class LdtkReader
             LdtkReader.Invalid(path, $"In level '{level.Identifier}', a {entity.Identifier} {problem}", inner);
 
         /// <summary>Reads the field named <paramref name="field"/>, which must have a value, of the given type.</summary>
-        public T Read<T>(string field, JsonTypeInfo<T> type)
+        public T Read<T>(string field, JsonTypeInfo<T> type) =>
+            ReadOrNull(field, type) ?? throw Invalid($"has no value for {field}.");
+
+        /// <summary>
+        /// Reads the field named <paramref name="field"/>, which the entity must have, of the given type, or null if it
+        /// has no value.
+        /// </summary>
+        public T? ReadOrNull<T>(string field, JsonTypeInfo<T> type)
         {
             LdtkFieldInstance instance = entity.FieldInstances.FirstOrDefault(instance => instance.Identifier == field)
                 ?? throw Invalid($"has no field {field}.");
             try
             {
-                return instance.Value.Deserialize(type) ?? throw Invalid($"has no value for {field}.");
+                return instance.Value.Deserialize(type);
             }
             catch (JsonException e)
             {

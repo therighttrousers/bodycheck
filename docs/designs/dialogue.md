@@ -6,6 +6,7 @@ Relevant decision records:
 - [050: The cutscene mode](../decision-records/050-cutscene-mode.md)
 - [051: The scripted run at the spawn](../decision-records/051-scripted-run-at-the-spawn.md)
 - [052: The talking door](../decision-records/052-talking-door.md)
+- [063: World state, and talking to entities](../docs/decision-records/063-world-state-and-talking-to-entities.md)
 
 How dialogue is written, shown and translated. What the characters say is in [story.md](story.md#dialogue); how the code is put together is in [`game/main/`](../../game/main/architecture.md#the-games-modes).
 
@@ -20,6 +21,9 @@ A level presents dialogue with a `Dialogue` control entity, which names a file, 
 ## Talking to things
 
 The player talks to something by pressing up in a trigger set off by interacting, standing on the ground, while playing; the trigger runs a `Dialogue`. Looking up needs up held for a while, so a press is free (`052 §2.3`, `§2.4`). While the player could set one off, a speech bubble shows over the top of its box (`052 §3.1`).
+
+- **Talking to an entity.** A trigger can move with an entity, through its `MovesWith`: its box in LDtk is where it is while the entity is where it starts, so its size and its place by the entity are drawn in the editor. An entity can have several, such as one to talk to and one for coming near (`063 §2.1`). A door that hides in the ceiling takes a trigger that moves with it out of reach, so it talks only while closed; one that should talk once open has a trigger that stays where it is (`063 §2.6`).
+- **One at a time.** Where several could be set off, the player sets off one: one that moves with an entity before one that doesn't, the nearest entity first, box to box, and otherwise the first in the order of the world's controls. The bubble over it shows which (`063 §2.3`).
 
 - **When it has something to say.** Routes turn the trigger on and off. The door of `Entrance` starts off, and the `Sequence` that shuts it ends by turning it on, so that it says nothing while it is open (`052 §1.3`).
 - **The speaker** is a name in the dialogue file, such as `Door`, with an avatar if there is one by that name (`052 §2.5`).
@@ -52,7 +56,8 @@ The Voice's broken lines are garbled when they are shown, not as written: writer
 
 ## Open questions
 
-- Talking to something that moves, such as a robot: probably an interact trigger whose area moves with a body, with what the robot does while it talks, such as facing the player, to be decided when robots talk (`052 §2.1`).
+- What a robot does while it talks, such as facing the player, to be decided when robots talk (`052 §2.1`).
+- The choice among interact triggers is a starter idea, which may be bettered (`063 §2.3`).
 - The prompt shows while an interact trigger's step runs outside a cutscene, though a press then starts nothing. No interact trigger yet runs a step that isn't a cutscene (`052 §3.3`).
 - The Voice's real avatar, if it gets one.
 - Fonts for other locales: Fusion Pixel's other versions, or others such as Ark Pixel or Unifont; licences and quality to be checked (`044 §4.1`). How many lines a box holds in each locale.
