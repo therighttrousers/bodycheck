@@ -81,6 +81,10 @@ public partial class WorldNode : Node3D, IScriptWorld
     /// hold, and builds the world. It checks first, so that a world that fails builds no nodes: Godot makes a node's
     /// engine object before its constructor's body runs, and nothing would free it.
     /// </summary>
+    /// <param name="worldState">
+    /// The world's state, which the game has filled in from <paramref name="world"/>: what the world's rules read and
+    /// change of it, such as each door's last action.
+    /// </param>
     /// <param name="assets">What to draw for each entity and for tiles.</param>
     /// <param name="respawnId">
     /// The respawn the player starts at, which is then the current one. The player starts where the world says if this is
@@ -172,8 +176,7 @@ public partial class WorldNode : Node3D, IScriptWorld
                 EntityKind.Robot => CreateRobot((EntityConfig.Robot)config, assets.GetEntityVisual(config)),
                 EntityKind.Platform => CreatePlatform((EntityConfig.Platform)config, assets.GetEntityVisual(config)),
                 EntityKind.Block => CreateBlock((EntityConfig.Block)config, assets.GetEntityVisual(config)),
-                EntityKind.VerticalDoor => CreateVerticalDoor(
-                    (EntityConfig.VerticalDoor)config, assets.GetEntityVisual(config), worldState),
+                EntityKind.VerticalDoor => CreateVerticalDoor((EntityConfig.VerticalDoor)config, assets.GetEntityVisual(config)),
 
                 EntityKind.Respawn or EntityKind.Trigger or EntityKind.Sequence or EntityKind.Fanout or EntityKind.Once
                     or EntityKind.Dialogue or EntityKind.Script => throw new UnreachableException($"A {config.Kind} has no body."),
@@ -400,13 +403,10 @@ public partial class WorldNode : Node3D, IScriptWorld
     }
 
     /// <summary>A door, frozen where it starts, open or closed, with its controller.</summary>
-    private static Entity CreateVerticalDoor(EntityConfig.VerticalDoor config, Node3D? visual, IWorldState worldState)
+    private static Entity CreateVerticalDoor(EntityConfig.VerticalDoor config, Node3D? visual)
     {
         var door = new Entity(config.Id, BodyTuning.VerticalDoor(config.MapSize), visual) { Freeze = true };
         door.Controller = new VerticalDoorController(door);
-        var name = $"Door {config.Id[0..4]}";
-        var lastAction = config.StartsClosed() ? OpenableAction.Close : OpenableAction.Open;
-        worldState.AddDoor(config.Id, name, lastAction);
         return door;
     }
 

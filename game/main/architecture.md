@@ -30,6 +30,7 @@ Relevant decision records:
 - [060: The camera's height through a jump](../../docs/decision-records/060-camera-height-through-a-jump.md)
 - [061: Environments per room](../../docs/decision-records/061-room-environments.md)
 - [062: Background layers](../../docs/decision-records/062-background-layers.md)
+- [063: World state, and talking to entities](../../docs/decision-records/063-world-state-and-talking-to-entities.md)
 
 ## What it is
 
@@ -44,6 +45,11 @@ The game's rules, or how the image is made: the low-resolution view and the colo
 `Main` adds the camera, the environments and the game's mode to a `WorldNode`, gives its player's controller the user's input, and switches worlds. Its worlds are the worlds of `levels/main.ldtk`, then a world for each text room in the library; the first plays unless the command line names another, and comma and period switch between them (`009 §4.3`, `011 §3.2`, `013 §4.6`). The game is drawn in a `WorldViewportContainer`, a viewport of its own at low resolution, and `Main`'s other children are drawn at the window's resolution.
 
 `AssetLibrary` is the game's asset library: it makes each kind of entity's visual and gives each kind of tile's mesh, so that Core doesn't know the game's assets (`012 §3.1`, `020 §2.2`). It maps each kind of tile to its wrapper scene in `assets/tiles/`, and loads each kind's mesh, and each darkened copy, once (`057 §3.1`). It also makes each room environment's scene, from `assets/environments/`, with SSR, SSAO, SSIL and glow switched on in code, so that no environment has to remember them (`061 §1.2`). It makes each room's decoration: it reads the decorators in each environment's `Decorations` the first time a room of it is built, from a copy of the scene it then frees, and puts what each makes for the room under one node, which `RoomNode` adds. A scene without `Decorations` has none; one whose `Decorations` isn't a `RoomDecorations`, or lists an empty slot, is an error (`062 §3.4`). `EnvironmentMixer` leaves `Decorations` where it is, since it only holds data.
+
+`WorldState` is the world's state, which the game owns: everything the story, the dialogue and the rules read or change. It implements Core's `IWorldState`, and keeps more beside it that Core never sees, such as each entity's name (`063 §1.1`). `Main` fills one in from each world's data before it builds the world, and the world reads it from then on (`063 §1.4`). For now it lasts as long as the world: nothing is saved, and a world built again starts again (`063 §1.7`).
+
+- **Names.** Every entity with a body has a name, its kind's name and the start of its id, such as `Door a6d1`, as a machine's serial number: at least four characters, and as many more as tell it from every other entity of its kind, as git shortens a commit's hash; the player's is `B-CON`, as the dialogue files name it. Two the same is an error. A kind's name is also what its avatar is named for (`063 §1.5`, `§3.4`).
+- **Two views of one state.** Where Core's rules own a piece, such as a door's `LastAction`, Core's view sets it and the game's reads it only, through an explicit implementation of Core's interface, so that the game changes it only by asking for an action (`063 §1.6`). The player's abilities are the game's, which Core reads.
 
 ## Environments
 
