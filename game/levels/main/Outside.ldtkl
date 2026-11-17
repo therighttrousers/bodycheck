@@ -108,7 +108,8 @@
 						{ "__identifier": "DialogueTitle", "__type": "String", "__value": "Plea1", "__tile": null, "defUid": 247, "realEditorValues": [{
 							"id": "V_String",
 							"params": ["Plea1"]
-						}] }
+						}] },
+						{ "__identifier": "Entities", "__type": "Array<EntityRef>", "__value": [], "__tile": null, "defUid": 295, "realEditorValues": [] }
 					],
 					"__worldX": -976,
 					"__worldY": 0
@@ -163,7 +164,8 @@
 						{ "__identifier": "DialogueTitle", "__type": "String", "__value": "Plea2", "__tile": null, "defUid": 247, "realEditorValues": [{
 							"id": "V_String",
 							"params": ["Plea2"]
-						}] }
+						}] },
+						{ "__identifier": "Entities", "__type": "Array<EntityRef>", "__value": [], "__tile": null, "defUid": 295, "realEditorValues": [] }
 					],
 					"__worldX": -672,
 					"__worldY": 0
@@ -218,7 +220,8 @@
 						{ "__identifier": "DialogueTitle", "__type": "String", "__value": "Plea3", "__tile": null, "defUid": 247, "realEditorValues": [{
 							"id": "V_String",
 							"params": ["Plea3"]
-						}] }
+						}] },
+						{ "__identifier": "Entities", "__type": "Array<EntityRef>", "__value": [], "__tile": null, "defUid": 295, "realEditorValues": [] }
 					],
 					"__worldX": -512,
 					"__worldY": 0

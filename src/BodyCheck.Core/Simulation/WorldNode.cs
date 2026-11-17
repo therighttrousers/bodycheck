@@ -270,7 +270,8 @@ public partial class WorldNode : Node3D, IScriptWorld
                 EntityConfig.Sequence sequence => new SequenceRunner(CallsOf(sequence.Steps)),
                 EntityConfig.Fanout fanout => new FanoutRunner(CallsOf(fanout.Steps)),
                 EntityConfig.Once once => new OnceRunner(CallOf(once.Step)),
-                EntityConfig.Dialogue lines => new DialogueRunner(dialogue!, this, lines.File, lines.Title),
+                EntityConfig.Dialogue lines => new DialogueRunner(
+                    dialogue!, this, lines.File, lines.Title, [.. lines.Entities.Select(id => bodies[id])]),
                 EntityConfig.Script script => new ScriptRunner(
                     scripts!, script.ClassName, [.. script.Entities.Select(id => bodies[id])], this, _runningScripts),
                 // Not yet run: a respawn becomes current by reach.

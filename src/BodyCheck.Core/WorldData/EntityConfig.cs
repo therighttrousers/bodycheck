@@ -212,6 +212,11 @@ public abstract record EntityConfig
         public required string File { get; init; }
         /// <summary>The title in the file to present.</summary>
         public required string Title { get; init; }
+        /// <summary>
+        /// The ids of the entities the dialogue is about, which it can name and ask for actions, in order, each an
+        /// entity with a body.
+        /// </summary>
+        public IReadOnlyList<string> Entities { get; init; } = [];
     }
 
     /// <summary>Runs a script, a new one for each run.</summary>

@@ -6,7 +6,7 @@ Relevant decision records:
 - [050: The cutscene mode](../decision-records/050-cutscene-mode.md)
 - [051: The scripted run at the spawn](../decision-records/051-scripted-run-at-the-spawn.md)
 - [052: The talking door](../decision-records/052-talking-door.md)
-- [063: World state, and talking to entities](../docs/decision-records/063-world-state-and-talking-to-entities.md)
+- [063: World state, and talking to entities](../decision-records/063-world-state-and-talking-to-entities.md)
 
 How dialogue is written, shown and translated. What the characters say is in [story.md](story.md#dialogue); how the code is put together is in [`game/main/`](../../game/main/architecture.md#the-games-modes).
 
@@ -17,6 +17,11 @@ Dialogue is written in Dialogue Manager's files, in `game/dialogue/`, and fetche
 Files are organized by story beat, not by level. Lines shared everywhere, such as "Sleep", go in a common file that others import (`044 §5.1`).
 
 A level presents dialogue with a `Dialogue` control entity, which names a file, without its directory or extension, and a title in it, as strings. Each time it is asked, it presents that title, after any dialogue already waiting, and finishes when the dialogue ends. A world checks, when it is built, that each of its dialogues' files exists and holds its title, and fails to build if not; a test builds every world, so a wrong name fails in CI, not in play (`044 §5.2`).
+
+A `Dialogue`'s `Entities` are the entities it is about, each with a body, as a `Script`'s are (`063 §3.1`). While it is presented, the file sees them through Dialogue Manager's extra game state:
+
+- **`Entities`**, in order, and **`Speaker`**, the first, each with its `Name`, such as `Door a6d1`, and its `Kind`, such as `Door`. A line can be spoken by one by name, as `{{Speaker.Name}}: Hello.` (`063 §1.5`, `§3.2`).
+- **`Act(entity, action)`** asks an entity for an action, by the name of a `TriggerAction`, such as `do Act(Speaker, "Open")`. `do` waits until the action has finished, so the next line comes once the door is open; `do!` doesn't wait. Dialogue Manager runs mutations off the world's tick, so the action starts on the tick after it is asked for, as every action runs on the tick. An action that isn't one, or an entity without a controller, fails the dialogue; a failure of the action itself is reported, and the dialogue goes on (`063 §3.3`).
 
 ## Talking to things
 
@@ -37,7 +42,7 @@ Dialogue plays in a cutscene, a mode of its own, which doesn't pause the game: t
 
 The box is along the bottom of the game's viewport, at 320x240, above the colour pass. It shows the speaker's avatar, the speaker, the line, and the line's responses.
 
-- **Avatars** are 48 by 48 pixels, in a light border on a dark background, beside the speaker's name and the line. Each is a PNG in `game/assets/avatars/`, named for the speaker as the dialogue files name them, before translation, such as `Voice.png`; a speaker without one has none, and the line takes the box's width. The player is `B-CON` in the dialogue files. The Voice's avatar is a big question mark, a placeholder (`044 §2.3`).
+- **Avatars** are 48 by 48 pixels, in a light border on a dark background, beside the speaker's name and the line. Each is a PNG in `game/assets/avatars/`, named for the speaker as the dialogue files name them, before translation, such as `Voice.png`, or, for a speaker that is one of the entities the dialogue is about, for its kind, such as `Door.png` for `Door a6d1` (`063 §3.4`); a speaker without one has none, and the line takes the box's width. The player is `B-CON` in the dialogue files. The Voice's avatar is a big question mark, a placeholder (`044 §2.3`).
 - **Typing.** Each line types out, pausing at punctuation, with Dialogue Manager's `DialogueLabel`, which handles its inline tags, such as waits and speed changes, and runs its inline mutations as it reaches them. Jump skips the typing, running the inline mutations left, and once the line has typed out, goes on. The responses show once it has (`044 §1.5`).
 - **The font** is Fusion Pixel at 10 pixels, proportional, in its Latin version, imported without antialiasing, hinting, subpixel positioning or system fallback (`044 §4.1`). Its family covers Latin, Greek, Cyrillic, kana, Hangul and CJK. Its licence, the SIL Open Font License, is beside it in `game/assets/fonts/fusion_pixel/`.
 - **Fake choices** are writing, not code: responses whose branches meet again, as in the debug dialogue (`044 §5.4`).

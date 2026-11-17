@@ -10,3 +10,11 @@ Voice: Bring us batteries. Five of them.
 B-CON: Got it.
 
 => END
+
+~ act
+
+{{Speaker.Name}}: Opening.
+do Act(Speaker, "Open")
+{{Speaker.Name}}: Open.
+
+=> END

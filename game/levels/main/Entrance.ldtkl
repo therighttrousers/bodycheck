@@ -111,7 +111,8 @@
 						{ "__identifier": "DialogueTitle", "__type": "String", "__value": "BeforeDoorCloses", "__tile": null, "defUid": 247, "realEditorValues": [{
 							"id": "V_String",
 							"params": ["BeforeDoorCloses"]
-						}] }
+						}] },
+						{ "__identifier": "Entities", "__type": "Array<EntityRef>", "__value": [], "__tile": null, "defUid": 295, "realEditorValues": [] }
 					],
 					"__worldX": 32,
 					"__worldY": 0
@@ -315,7 +316,8 @@
 						{ "__identifier": "DialogueTitle", "__type": "String", "__value": "DoorRefusal", "__tile": null, "defUid": 247, "realEditorValues": [{
 							"id": "V_String",
 							"params": ["DoorRefusal"]
-						}] }
+						}] },
+						{ "__identifier": "Entities", "__type": "Array<EntityRef>", "__value": [], "__tile": null, "defUid": 295, "realEditorValues": [] }
 					],
 					"__worldX": 64,
 					"__worldY": 80

@@ -1,12 +1,16 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
 using BodyCheck.Core;
+using BodyCheck.Core.Entities;
 using BodyCheck.Core.Scripts;
 using BodyCheck.Core.Simulation;
 using BodyCheck.Core.Tasks;
 using BodyCheck.Core.WorldData;
+
+using DialogueManagerRuntime;
 
 using GdUnit4;
 
@@ -72,7 +76,7 @@ public class DialogueTest
         bool resumed = false;
         async TickTask Waits(ITick tick)
         {
-            await new DialogueRunner(_box, _run.Node, "debug", "start").Default(tick);
+            await new DialogueRunner(_box, _run.Node, "debug", "start", []).Default(tick);
             resumed = true;
         }
         _ = Waits(_run.Node.Tick);
@@ -97,6 +101,65 @@ public class DialogueTest
     }
 
     [TestCase]
+    public async Task A_dialogue_names_its_speaker_and_waits_for_an_action_it_asks_of_it()
+    {
+        string[] rows =
+        [
+            "##########",
+            "#........#",
+            "#........#",
+            "#........#",
+            "#........#",
+            "#........#",
+            "#........#",
+            "#P.......#",
+            "##########",
+        ];
+        // A door 3 tiles high, closed on the floor, which opens up to its stop 3 tiles above it.
+        Room room = RoomRun.RoomOf(rows);
+        var doorConfig = new EntityConfig.VerticalDoor
+        {
+            Id = "door",
+            MapOrigin = new Vector2I(6, 1),
+            MapSize = new Vector2I(1, 3),
+            MapColor = Colors.White,
+            OpenStop = new Vector2I(6, 7),
+            CloseStop = new Vector2I(6, 0),
+        };
+        _run = new RoomRun(new Room(room.Name, room.Origin, TileGrid.FromText(rows), room.EntityConfigs.Append(doorConfig)));
+        _box = new DialogueBox { WorldState = _run.State };
+        Tree.Root.AddChild(_box);
+        Entity door = _run.Node.EntitiesOf(EntityKind.VerticalDoor).Single();
+        float closed = door.Bottom();
+
+        // Who says each line, and where the door is as it is said.
+        var lines = new List<(string Character, float Bottom)>();
+        void Got(DialogueLine line) => lines.Add((line.Character, door.Bottom()));
+        DialogueManager.GotDialogue += Got;
+        try
+        {
+            TickTask presented = _box.Present(_run.Node.Tick, "debug", "act", [door]);
+            for (int i = 0; i < 600 && _box.IsPresenting; i++)
+            {
+                _box.Advance();
+                await _run.Tick(RoomRun.Idle);
+            }
+            AssertThat(presented.IsFinished).IsTrue();
+        }
+        finally
+        {
+            DialogueManager.GotDialogue -= Got;
+        }
+
+        string name = _run.State.GetEntity("door").Name;
+        AssertThat(lines.Select(line => line.Character)).ContainsExactly(name, name);
+        // The second line waits until the door has opened.
+        AssertFloat(lines[0].Bottom).IsEqualApprox(closed, 0.05f);
+        AssertFloat(lines[1].Bottom).IsEqualApprox(closed + 3, 0.05f);
+        AssertThat(_run.State.GetDoor("door").LastAction).IsEqual(OpenableAction.Open);
+    }
+
+    [TestCase]
     public void Dropping_the_world_drops_its_dialogue_so_that_the_next_world_presents_its_own_at_once()
     {
         _run = new RoomRun(RoomRun.RoomOf(
@@ -106,7 +169,7 @@ public class DialogueTest
         _box = new DialogueBox();
         Tree.Root.AddChild(_box);
 
-        TickTask dropped = _box.Present(_run.Node.Tick, "debug", "start");
+        TickTask dropped = _box.Present(_run.Node.Tick, "debug", "start", []);
         AssertThat(_box.IsPresenting).IsTrue();
         _run.Node.StopAndQueueFree();
         AssertThat(dropped.IsCancelled).IsTrue();
@@ -114,7 +177,7 @@ public class DialogueTest
 
         // As the next world's tick.
         var next = new TickScheduler(Rethrow);
-        _ = _box.Present(next.Tick, "debug", "start");
+        _ = _box.Present(next.Tick, "debug", "start", []);
         AssertThat(_box.IsPresenting).IsTrue();
         next.Stop();
     }

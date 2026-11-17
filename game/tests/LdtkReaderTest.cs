@@ -230,8 +230,9 @@ public class LdtkReaderTest
     private static string Ref(string iid) =>
         $$"""{ "entityIid": "{{iid}}", "layerIid": "l", "levelIid": "v", "worldIid": "w" }""";
 
-    private static readonly string Dialogue = Control("Dialogue", "dialogue", """
-        { "__identifier": "DialogueFile", "__value": "File" }, { "__identifier": "DialogueTitle", "__value": "Title" }
+    private static readonly string Dialogue = Control("Dialogue", "dialogue", $$"""
+        { "__identifier": "DialogueFile", "__value": "File" }, { "__identifier": "DialogueTitle", "__value": "Title" },
+        { "__identifier": "Entities", "__value": [ {{Ref("door")}} ] }
         """);
 
     private const string Door = """
@@ -268,6 +269,7 @@ public class LdtkReaderTest
             new Step("dialogue", TriggerAction.Default), new Step("door", TriggerAction.Close));
         var readDialogue = (EntityConfig.Dialogue)world.ConfigsById["dialogue"];
         AssertThat((readDialogue.File, readDialogue.Title)).IsEqual(("File", "Title"));
+        AssertArray(readDialogue.Entities).ContainsExactly("door");
     }
 
     [TestCase]

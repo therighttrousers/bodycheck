@@ -310,6 +310,7 @@ public static class LdtkReader
                 MapColor = color,
                 File = fields.Read("DialogueFile", LdtkJsonContext.Default.String),
                 Title = fields.Read("DialogueTitle", LdtkJsonContext.Default.String),
+                Entities = fields.References("Entities"),
             },
             LdtkEntityName.Script => new EntityConfig.Script()
             {
