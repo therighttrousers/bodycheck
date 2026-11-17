@@ -139,6 +139,38 @@ public class DoorTest
     }
 
     [TestCase]
+    public async Task A_door_closed_twice_stays_closed_and_a_toggle_then_opens_it()
+    {
+        string[] rows =
+        [
+            "##########",
+            "#........#",
+            "#........#",
+            "#........#",
+            "#........#",
+            "#........#",
+            "#........#",
+            "#P.......#",
+            "##########",
+        ];
+        _run = new RoomRun(RoomWithDoor(rows, new Vector2I(6, 4), new Vector2I(1, 3), openStopY: 7, closeStopY: 0));
+
+        for (int i = 0; i < 2; i++)
+        {
+            _ = DoorController.Close(_run.Node.Tick);
+            await _run.Tick(RoomRun.Idle, Ticks);
+            AssertThat(_run.State.GetDoor("door").LastAction).IsEqual(OpenableAction.Close);
+            AssertFloat(Door.Bottom()).IsEqualApprox(1, 0.05f);
+        }
+
+        // A toggle follows the last action, not a count of them.
+        _ = DoorController.ToggleOpenClose(_run.Node.Tick);
+        await _run.Tick(RoomRun.Idle, Ticks);
+        AssertThat(_run.State.GetDoor("door").LastAction).IsEqual(OpenableAction.Open);
+        AssertFloat(Door.Top()).IsEqualApprox(7, 0.05f);
+    }
+
+    [TestCase]
     public async Task The_player_runs_on_after_riding_a_door_that_unfreezes_and_freezes_again()
     {
         // A door 3 tiles wide and 1 high, with the player standing on it, which closes into the floor's tile.
