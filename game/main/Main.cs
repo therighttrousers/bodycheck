@@ -354,6 +354,7 @@ public partial class Main : Node
         Telemetry.Reset();
         _world = WorldNode.Build(
             world,
+            new WorldState(),
             _assets,
             respawnId: _respawnIds.GetValueOrDefault(world.Name),
             dialogue: _dialogueBox,

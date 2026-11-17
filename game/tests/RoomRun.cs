@@ -28,7 +28,7 @@ public sealed class RoomRun
     /// <param name="scripts">The scripts the room's <c>Script</c> entities run, as <see cref="WorldNode.Build"/> takes them.</param>
     public RoomRun(Room room, bool controllersEnabled = true, string? respawnId = null, IScriptLibrary? scripts = null)
     {
-        Node = WorldNode.Build(new World(room), new AssetLibrary(), respawnId: respawnId, scripts: scripts);
+        Node = WorldNode.Build(new World(room), new WorldState(), new AssetLibrary(), respawnId: respawnId, scripts: scripts);
         Node.PlayerController.UserInputSource = () => _input;
         Node.ControllersEnabled = controllersEnabled;
         Tree.Root.AddChild(Node);

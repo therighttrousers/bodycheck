@@ -1,8 +1,6 @@
 using BodyCheck.Core.Entities;
 using BodyCheck.Core.Tasks;
 
-using Godot;
-
 namespace BodyCheck.Core.Controllers;
 
 /// <summary>
@@ -13,16 +11,16 @@ namespace BodyCheck.Core.Controllers;
 /// </summary>
 public sealed class VerticalDoorController : IController<Entity>
 {
-    private readonly Entity _entity;
-    private bool _closed;
+    private IWorldView _world = null!;
 
-    public VerticalDoorController(Entity entity, bool closed)
+    public VerticalDoorController(Entity entity)
     {
-        _entity = entity;
-        _closed = closed;
+        Entity = entity;
     }
 
-    public Entity Entity => _entity;
+    public void Ready(IWorldView world) => _world = world;
+
+    public Entity Entity { get; }
 
     public void Apply(float gameDt, float realDt, IDefer defer)
     {
@@ -31,34 +29,36 @@ public sealed class VerticalDoorController : IController<Entity>
 
     private readonly ReentrantTask _openCloseReentry = new(Reentry.Queue);
 
-    public TickTask ToggleOpenClose(ITick tick) => _openCloseReentry.Run(() => _closed ? OpenRun(tick) : CloseRun(tick));
+    public TickTask ToggleOpenClose(ITick tick) => _openCloseReentry.Run(() =>
+        _world.WorldState.GetDoor(Entity.Id).LastAction == OpenableAction.Close ? OpenRun(tick) : CloseRun(tick));
     public TickTask Open(ITick tick) => _openCloseReentry.Run(() => OpenRun(tick));
     public TickTask Close(ITick tick) => _openCloseReentry.Run(() => CloseRun(tick));
 
-    private TickTask OpenRun(ITick tick) => OpenOrClose(tick, 1, false, EntityCue.DoorOpened);
+    private TickTask OpenRun(ITick tick) => OpenOrClose(tick, 1, OpenableAction.Open, EntityCue.DoorOpened);
 
-    private TickTask CloseRun(ITick tick) => OpenOrClose(tick, -1, true, EntityCue.DoorClosed);
+    private TickTask CloseRun(ITick tick) => OpenOrClose(tick, -1, OpenableAction.Close, EntityCue.DoorClosed);
 
-    private async TickTask OpenOrClose(ITick tick, float move, bool closing, EntityCue cue)
+    private async TickTask OpenOrClose(ITick tick, float move, OpenableAction action, EntityCue cue)
     {
-        if (_closed == closing) return;
-        tick = tick.Scoped(_entity.IsLive);
+        _world.WorldState.GetDoor(Entity.Id).LastAction = action;
+
+        tick = tick.Scoped(Entity.IsLive);
 
         // Wait until after all entity steps in this tick.
         await tick.NextTick();
         float totalTime = tick.Dt;
 
-        _entity.Freeze = false;
+        Entity.Freeze = false;
 
         bool hadNonzeroVelocity = false;
         while (totalTime < Features.Current.DoorMaxOpenOrCloseTime)
         {
-            _entity.ApplyForce(-move * Features.Current.DoorThrustFrac * _entity.Mass * _entity.GetGravity());
+            Entity.ApplyForce(-move * Features.Current.DoorThrustFrac * Entity.Mass * Entity.GetGravity());
 
             await tick.NextTick();
             totalTime += tick.Dt;
 
-            float speed = _entity.LinearVelocity.Length();
+            float speed = Entity.LinearVelocity.Length();
             if (speed >= 0.001f)
             {
                 hadNonzeroVelocity = true;
@@ -69,12 +69,11 @@ public sealed class VerticalDoorController : IController<Entity>
             }
         }
 
-        _entity.Freeze = true;
-        _closed = closing;
+        Entity.Freeze = true;
 
         if (hadNonzeroVelocity)
         {
-            _entity.RaiseCue(cue);
+            Entity.RaiseCue(cue);
         }
     }
 }

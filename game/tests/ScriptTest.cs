@@ -292,7 +292,7 @@ public class ScriptTest
     public void A_world_doesnt_build_with_a_script_its_library_doesnt_hold(bool hasLibrary)
     {
         var world = new World(RoomWithScript("Missing"));
-        AssertThrown(() => WorldNode.Build(world, new AssetLibrary(), scripts: hasLibrary ? new Library() : null))
+        AssertThrown(() => WorldNode.Build(world, new WorldState(), new AssetLibrary(), scripts: hasLibrary ? new Library() : null))
             .IsInstanceOf<ArgumentException>();
     }
 }

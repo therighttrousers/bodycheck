@@ -96,6 +96,7 @@ public partial class WorldNode : Node3D, IScriptWorld
     /// </exception>
     public static WorldNode Build(
         World world,
+        IWorldState worldState,
         IAssetLibrary assets,
         BodyTuning? playerBody = null,
         string? respawnId = null,
@@ -104,12 +105,13 @@ public partial class WorldNode : Node3D, IScriptWorld
     {
         CheckDialogues(world, dialogue);
         CheckScripts(world, scripts);
-        return new WorldNode(world, assets, playerBody, respawnId, dialogue, scripts);
+        return new WorldNode(world, worldState, assets, playerBody, respawnId, dialogue, scripts);
     }
 
     /// <summary>Builds the world, whose dialogues and scripts <see cref="Build"/> has checked.</summary>
     private WorldNode(
         World world,
+        IWorldState worldState,
         IAssetLibrary assets,
         BodyTuning? playerBody,
         string? respawnId,
@@ -117,6 +119,7 @@ public partial class WorldNode : Node3D, IScriptWorld
         IScriptLibrary? scripts)
     {
         World = world;
+        WorldState = worldState;
         CurrentRespawn = respawnId is null ? null : world.ConfigsById.GetValueOrDefault(respawnId) as EntityConfig.Respawn;
         ProcessPhysicsPriority = PhysicsPriority;
 
@@ -149,6 +152,7 @@ public partial class WorldNode : Node3D, IScriptWorld
 
         // Out of the world until the player spawns it: a disabled body is out of the engine's space, and isn't stepped.
         PlayerBlock = new Entity(
+            "player-block",
             BodyTuning.PlayerBlock,
             assets.GetPlayerBlockVisual(BodyTuning.PlayerBlock.HalfSize))
         {
@@ -168,7 +172,8 @@ public partial class WorldNode : Node3D, IScriptWorld
                 EntityKind.Robot => CreateRobot((EntityConfig.Robot)config, assets.GetEntityVisual(config)),
                 EntityKind.Platform => CreatePlatform((EntityConfig.Platform)config, assets.GetEntityVisual(config)),
                 EntityKind.Block => CreateBlock((EntityConfig.Block)config, assets.GetEntityVisual(config)),
-                EntityKind.VerticalDoor => CreateVerticalDoor((EntityConfig.VerticalDoor)config, assets.GetEntityVisual(config)),
+                EntityKind.VerticalDoor => CreateVerticalDoor(
+                    (EntityConfig.VerticalDoor)config, assets.GetEntityVisual(config), worldState),
 
                 EntityKind.Respawn or EntityKind.Trigger or EntityKind.Sequence or EntityKind.Fanout or EntityKind.Once
                     or EntityKind.Dialogue or EntityKind.Script => throw new UnreachableException($"A {config.Kind} has no body."),
@@ -368,21 +373,21 @@ public partial class WorldNode : Node3D, IScriptWorld
 
     private static PlayerEntity CreatePlayer(EntityConfig.Player config, Node3D? visual, BodyTuning body)
     {
-        var player = new PlayerEntity(body, visual);
+        var player = new PlayerEntity(config.Id, body, visual);
         player.AddChild(new OmniLight3D { OmniRange = 15, ShadowEnabled = true, Position = new Vector3(0, 0, 2) });
         return player;
     }
 
     private RobotEntity CreateRobot(EntityConfig.Robot config, Node3D? visual)
     {
-        var robot = new RobotEntity(BodyTuning.Robot, visual);
+        var robot = new RobotEntity(config.Id, BodyTuning.Robot, visual);
         robot.Controller = new RobotController(robot);
         return robot;
     }
 
     private static PlatformEntity CreatePlatform(EntityConfig.Platform config, Node3D? visual)
     {
-        var platform = new PlatformEntity(BodyTuning.Platform(config.MapSize), visual);
+        var platform = new PlatformEntity(config.Id, BodyTuning.Platform(config.MapSize), visual);
         // The range is two cells, and the platform's center moves between their middles.
         var cellMiddle = new Vector2(0.5f, 0.5f);
         platform.Controller = new PlatformController(platform, config.RangeA + cellMiddle, config.RangeB + cellMiddle);
@@ -391,14 +396,17 @@ public partial class WorldNode : Node3D, IScriptWorld
 
     private static Entity CreateBlock(EntityConfig.Block config, Node3D? visual)
     {
-        return new Entity(BodyTuning.Block, visual);
+        return new Entity(config.Id, BodyTuning.Block, visual);
     }
 
     /// <summary>A door, frozen where it starts, open or closed, with its controller.</summary>
-    private static Entity CreateVerticalDoor(EntityConfig.VerticalDoor config, Node3D? visual)
+    private static Entity CreateVerticalDoor(EntityConfig.VerticalDoor config, Node3D? visual, IWorldState worldState)
     {
-        var door = new Entity(BodyTuning.VerticalDoor(config.MapSize), visual) { Freeze = true };
-        door.Controller = new VerticalDoorController(door, config.StartsClosed());
+        var door = new Entity(config.Id, BodyTuning.VerticalDoor(config.MapSize), visual) { Freeze = true };
+        door.Controller = new VerticalDoorController(door);
+        var name = $"Door {config.Id[0..4]}";
+        var lastAction = config.StartsClosed() ? OpenableAction.Close : OpenableAction.Open;
+        worldState.AddDoor(config.Id, name, lastAction);
         return door;
     }
 
@@ -449,6 +457,8 @@ public partial class WorldNode : Node3D, IScriptWorld
     }
 
     public World World { get; }
+
+    public IWorldState WorldState { get; }
 
     /// <summary>
     /// A box where each entity starts, of the size and colour of its box in LDtk, for comparing the world with its map

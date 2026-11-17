@@ -17,8 +17,8 @@ public partial class PlayerEntity : WalkerEntity
     private bool _slipAfterEntitySteps;
 
     /// <param name="visual">What to draw for the entity, centered on the middle of its box.</param>
-    public PlayerEntity(BodyTuning tuning, Node3D? visual = null)
-        : base(tuning, visual)
+    public PlayerEntity(string id, BodyTuning tuning, Node3D? visual = null)
+        : base(id, tuning, visual)
     {
     }
 

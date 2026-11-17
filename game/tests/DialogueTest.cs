@@ -188,11 +188,11 @@ public class DialogueTest
 
         if (builds)
         {
-            RoomRun.FreeAndFinalize(WorldNode.Build(world, new AssetLibrary(), dialogue: _box));
+            RoomRun.FreeAndFinalize(WorldNode.Build(world, new WorldState(), new AssetLibrary(), dialogue: _box));
         }
         else
         {
-            AssertThrown(() => WorldNode.Build(world, new AssetLibrary(), dialogue: _box)).IsInstanceOf<ArgumentException>();
+            AssertThrown(() => WorldNode.Build(world, new WorldState(), new AssetLibrary(), dialogue: _box)).IsInstanceOf<ArgumentException>();
         }
     }
 }

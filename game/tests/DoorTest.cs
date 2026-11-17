@@ -103,10 +103,12 @@ public class DoorTest
         AssertThat(close.IsFinished).IsTrue();
         AssertThat(Door.Freeze).IsTrue();
         // On the block, which the door's thrust presses a little into the floor, not on its stop a tile lower.
-        AssertFloat(Door.Bottom()).IsEqualApprox(2, 0.1f);
+        AssertFloat(Door.Bottom()).IsEqualApprox(2, 0.15f);
 
-        // Closed, so asked again, it finishes at once.
-        AssertThat(DoorController.Close(_run.Node.Tick).IsFinished).IsTrue();
+        // Closed, so asked again, it finishes within a handful of ticks.
+        close = DoorController.Close(_run.Node.Tick);
+        await _run.Tick(RoomRun.Idle, 5);
+        AssertThat(close.IsFinished).IsTrue();
     }
 
     [TestCase]

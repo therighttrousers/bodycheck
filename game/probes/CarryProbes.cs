@@ -401,7 +401,7 @@ public sealed class CarryChecksProbe : IProbe
                 if (t == MoveTicks)
                 {
                     // A walker without a controller, which the room doesn't step, at the far end of the room.
-                    _spare = new WalkerEntity(BodyTuning.Robot) { Position = new Vector3(30, 1 + BodyTuning.Robot.HalfSize.Y, 0) };
+                    _spare = new WalkerEntity("robot", BodyTuning.Robot) { Position = new Vector3(30, 1 + BodyTuning.Robot.HalfSize.Y, 0) };
                     _player.GetParent().AddChild(_spare);
                     _stacked.Position = _spare.Position + new Vector3(0, _spare.HalfSize.Y + _stacked.HalfSize.Y + 0.05f, 0);
                     _stacked.Rotation = Vector3.Zero;

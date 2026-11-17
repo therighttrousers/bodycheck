@@ -105,7 +105,10 @@ public sealed class PlayerController : IController<PlayerEntity>
 
         if (ApplyPhase(input, gameDt, realDt, defer) is PhaseOutcome.Idle or PhaseOutcome.Cancelled)
         {
-            _spawn.Apply(_world.PlayerBlock, recent.SpawnJustPressed, gameDt, defer);
+            if (_world.WorldState.Player.CanSpawn)
+            {
+                _spawn.Apply(_world.PlayerBlock, recent.SpawnJustPressed, gameDt, defer);
+            }
 
             // A press buffered in the air jumps on landing even if jump has been let go of since, as a tap.
             bool jumps = _leniency.JumpBufferLeft > 0 && _leniency.GroundTimeLeft > 0 && !_jump.Thrusting;
@@ -221,6 +224,10 @@ public sealed class PlayerController : IController<PlayerEntity>
     /// <param name="defer">An object that allows running actions later in the tick.</param>
     private PhaseOutcome ApplyPhase(PlayerInput input, float gameDt, float realDt, IDefer defer)
     {
+        if (!_world.WorldState.Player.CanPhase)
+        {
+            return PhaseOutcome.Idle;
+        }
         PhaseOutcome outcome = _phase.Apply(input.PhaseHeld, DirectionHeld(input, realDt), gameDt, defer);
         if (outcome is PhaseOutcome.Phased or PhaseOutcome.Cancelled)
         {
