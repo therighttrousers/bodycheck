@@ -224,11 +224,14 @@ public sealed class PlayerController : IController<PlayerEntity>
     /// <param name="defer">An object that allows running actions later in the tick.</param>
     private PhaseOutcome ApplyPhase(PlayerInput input, float gameDt, float realDt, IDefer defer)
     {
-        if (!_world.WorldState.Player.CanPhase)
-        {
-            return PhaseOutcome.Idle;
-        }
-        PhaseOutcome outcome = _phase.Apply(input.PhaseHeld, DirectionHeld(input, realDt), gameDt, defer);
+        // Without the ability, phase counts as let go of with no direction, so that losing it while aiming cancels the
+        // aim, rather than leaving the game paused for it.
+        bool canPhase = _world.WorldState.Player.CanPhase;
+        PhaseOutcome outcome = _phase.Apply(
+            canPhase && input.PhaseHeld,
+            canPhase ? DirectionHeld(input, realDt) : Vector3.Zero,
+            gameDt,
+            defer);
         if (outcome is PhaseOutcome.Phased or PhaseOutcome.Cancelled)
         {
             // A phase ends a jump's thrust, coyote time and buffered press, and so does cancelling one: the aim took them.

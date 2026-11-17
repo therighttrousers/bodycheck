@@ -341,6 +341,31 @@ public class PhaseTest
     }
 
     [TestCase]
+    public async Task LosingPhaseWhileAimingCancels()
+    {
+        var (player, robot) = await Start(
+            "####################",
+            "#..................#",
+            "#..................#",
+            "#..PR..............#",
+            "####################");
+        WorldNode world = _run!.Node;
+
+        await _run.Tick(AimRight);
+        AssertBool(world.PauseRequested).IsTrue();
+        Tree.Paused = true;
+        _run.State.Player.CanPhase = false;
+        await _run.PausedTick(AimRight);
+
+        AssertObject(world.PlayerController.Phase).IsNull();
+        AssertBool(world.PauseRequested).IsFalse();
+        Tree.Paused = false;
+        await _run.Tick(AimRight, 5);
+        AssertFloat(player.Position.X).IsLess(robot.Position.X);
+        AssertObject(world.PlayerController.Phase).IsNull();
+    }
+
+    [TestCase]
     public async Task ReleasedWhilePausedRestoresGravity()
     {
         var (player, robot) = await Start(

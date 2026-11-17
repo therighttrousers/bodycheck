@@ -9,12 +9,10 @@ public class WorldState : IWorldState
     private readonly Dictionary<string, DoorState> _doors = [];
     private readonly Dictionary<string, string> _doorNameToId = [];
 
-    public WorldState()
-    {
-        Player = new PlayerState();
-    }
+    /// <summary>The player's abilities.</summary>
+    public PlayerState Player { get; } = new();
 
-    public IWorldState.IPlayerState Player { get; }
+    IWorldState.IPlayerState IWorldState.Player => Player;
 
     public IWorldState.IDoorState AddDoor(string id, string name, OpenableAction lastAction)
     {
@@ -28,10 +26,10 @@ public class WorldState : IWorldState
         return _doorNameToId.TryGetValue(nameOrId, out string? id) ? _doors[id] : _doors[nameOrId];
     }
 
-    private class PlayerState : IWorldState.IPlayerState
+    public class PlayerState : IWorldState.IPlayerState
     {
-        public bool CanPhase => true;
-        public bool CanSpawn => true;
+        public bool CanPhase { get; set; } = true;
+        public bool CanSpawn { get; set; } = true;
     }
 
     private class DoorState(string name) : IWorldState.IDoorState
