@@ -37,3 +37,17 @@ B-CON: I'm not dangerous. I'm here to help.
 Door: Indeed, friend.
 
 => END
+
+~ SecondDoor
+
+{{Speaker.Name}}: Halt, friend. State purpose.
+- I'm here to help.
+    {{Speaker.Name}}: Helper! Helpers pass. Helpers are welcome.
+    do Act(Speaker, "Open")
+    {{Speaker.Name}}: Go well, friend.
+- Who are you?
+    {{Speaker.Name}}: {{Speaker.Name}}. Door, here, always. Ask, and I consider.
+- Never mind.
+    {{Speaker.Name}}: Waiting, then. Doors are good at waiting.
+
+=> END

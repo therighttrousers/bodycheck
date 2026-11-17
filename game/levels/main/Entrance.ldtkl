@@ -321,6 +321,81 @@
 					],
 					"__worldX": 64,
 					"__worldY": 80
+				},
+				{
+					"__identifier": "Trigger",
+					"__grid": [17,11],
+					"__pivot": [0,0],
+					"__tags": ["Control"],
+					"__tile": null,
+					"__smartColor": "#D7CF43",
+					"iid": "f6cfcfaa-e246-11f1-920e-f37e3b865679",
+					"width": 48,
+					"height": 48,
+					"defUid": 237,
+					"px": [272,176],
+					"fieldInstances": [
+						{ "__identifier": "Target", "__type": "EntityRef", "__value": {
+							"entityIid": "f6cfd15c-e246-11f1-9922-898e4641066f",
+							"layerIid": "4529bdd1-bde0-11f1-a170-8da63fa8c4f7",
+							"levelIid": "4529bdd0-bde0-11f1-a170-3b125b576337",
+							"worldIid": "0f349180-bde0-11f1-b046-a5531090d1ba"
+						}, "__tile": null, "defUid": 240, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["f6cfd15c-e246-11f1-9922-898e4641066f"]
+						}] },
+						{ "__identifier": "Action", "__type": "LocalEnum.TriggerAction", "__value": "Default", "__tile": null, "defUid": 242, "realEditorValues": [] },
+						{ "__identifier": "StartsOn", "__type": "Bool", "__value": true, "__tile": null, "defUid": 270, "realEditorValues": [] },
+						{ "__identifier": "SetOffBy", "__type": "LocalEnum.TriggerSetOffBy", "__value": "Interact", "__tile": null, "defUid": 272, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["Interact"]
+						}] },
+						{ "__identifier": "MovesWith", "__type": "EntityRef", "__value": {
+							"entityIid": "a6d11370-bde0-11f1-b4e7-dfcdb52ab3b0",
+							"layerIid": "4529bdd2-bde0-11f1-a170-abf965a8d197",
+							"levelIid": "4529bdd0-bde0-11f1-a170-3b125b576337",
+							"worldIid": "0f349180-bde0-11f1-b046-a5531090d1ba"
+						}, "__tile": null, "defUid": 294, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["a6d11370-bde0-11f1-b4e7-dfcdb52ab3b0"]
+						}] }
+					],
+					"__worldX": 256,
+					"__worldY": 144
+				},
+				{
+					"__identifier": "Dialogue",
+					"__grid": [15,9],
+					"__pivot": [0,0],
+					"__tags": ["Control"],
+					"__tile": null,
+					"__smartColor": "#D77643",
+					"iid": "f6cfd15c-e246-11f1-9922-898e4641066f",
+					"width": 16,
+					"height": 16,
+					"defUid": 244,
+					"px": [240,144],
+					"fieldInstances": [
+						{ "__identifier": "DialogueFile", "__type": "String", "__value": "TheCall", "__tile": null, "defUid": 246, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["TheCall"]
+						}] },
+						{ "__identifier": "DialogueTitle", "__type": "String", "__value": "SecondDoor", "__tile": null, "defUid": 247, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["SecondDoor"]
+						}] },
+						{ "__identifier": "Entities", "__type": "Array<EntityRef>", "__value": [{
+							"entityIid": "a6d11370-bde0-11f1-b4e7-dfcdb52ab3b0",
+							"layerIid": "4529bdd2-bde0-11f1-a170-abf965a8d197",
+							"levelIid": "4529bdd0-bde0-11f1-a170-3b125b576337",
+							"worldIid": "0f349180-bde0-11f1-b046-a5531090d1ba"
+						}], "__tile": null, "defUid": 295, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["a6d11370-bde0-11f1-b4e7-dfcdb52ab3b0"]
+						}] }
+					],
+					"__worldX": 224,
+					"__worldY": 112
 				}
 			]
 		},
