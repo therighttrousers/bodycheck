@@ -388,6 +388,22 @@
 					],
 					"__worldX": -1328,
 					"__worldY": 96
+				},
+				{
+					"__identifier": "Respawn",
+					"__grid": [18,13],
+					"__pivot": [0,0],
+					"__tags": ["Control"],
+					"__tile": null,
+					"__smartColor": "#4399D7",
+					"iid": "0d6f6570-bde0-11f1-a244-e182aabdee93",
+					"width": 16,
+					"height": 32,
+					"defUid": 220,
+					"px": [288,208],
+					"fieldInstances": [],
+					"__worldX": -1104,
+					"__worldY": 176
 				}
 			]
 		},

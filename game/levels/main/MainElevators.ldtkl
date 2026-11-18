@@ -54,7 +54,24 @@
 			"seed": 7938955,
 			"overrideTilesetUid": null,
 			"gridTiles": [],
-			"entityInstances": []
+			"entityInstances": [
+				{
+					"__identifier": "Respawn",
+					"__grid": [3,24],
+					"__pivot": [0,0],
+					"__tags": ["Control"],
+					"__tile": null,
+					"__smartColor": "#4399D7",
+					"iid": "e9dad090-bde0-11f1-a244-5d2cf75732df",
+					"width": 16,
+					"height": 32,
+					"defUid": 220,
+					"px": [48,384],
+					"fieldInstances": [],
+					"__worldX": 352,
+					"__worldY": 160
+				}
+			]
 		},
 		{
 			"__identifier": "Entities",
