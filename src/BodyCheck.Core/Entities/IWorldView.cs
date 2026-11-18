@@ -15,8 +15,8 @@ public interface IWorldView
     /// <summary>What the game is doing.</summary>
     GameMode GameMode { get; }
 
-    /// <summary>BodyCheck.Core's view of the persistent state of the world.</summary>
-    IWorldState WorldState { get; }
+    /// <summary>Core's view of the game's state, which is what is to be saved.</summary>
+    IGameState GameState { get; }
 
     /// <summary>
     /// Removes <paramref name="entity"/> from the world. It can be asked at any point in a tick, by a controller or a

@@ -34,6 +34,7 @@ Anti-goals:
   - What the game's own view holds has types that GDScript and dialogue files can use, so no enums: a door's `LastAction` is a string there.
   - Each class's explicit implementations of Core's view go at the bottom of the class.
   - C#'s visibility says who owns a piece. The player's `CanPhase` is the game's, so the game's class can set it and Core's view only reads it. A door's `LastAction` is Core's, so only the explicit implementation of Core's view can set it, which also hides it from GDScript, which sees only public members. In C#, the game could still cast to Core's view and set it: the convention marks the owner, and doesn't enforce it.
+- [x] 1.11 The state's name. Decision (Neil): `GameState`, and Core's view `IGameState`, renamed from `WorldState` and `IWorldState`, which this record names above: so many things are named for the world already, and the game's state is what is saved and outlives any one world, a connotation of persistence that is welcome in Core too.
 
 ## 2. Triggers that move with entities
 

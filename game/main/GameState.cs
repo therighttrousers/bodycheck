@@ -11,8 +11,8 @@ using Godot;
 namespace BodyCheck;
 
 /// <summary>
-/// The world's state, which the game owns: everything the story, the dialogue and the game's rules read or change. Core
-/// sees part of it, as <see cref="IWorldState"/>, which is where the rules write what they own, such as a door's last
+/// The game's state, which the game owns: everything the story, the dialogue and the game's rules read or change. Core
+/// sees part of it, as <see cref="IGameState"/>, which is where the rules write what they own, such as a door's last
 /// action; the game's own view of those parts lets it read them only, and change them by asking for an action.
 /// <para>
 /// It is filled in from a world's data before the world is built, so that the world finds each entity's state there.
@@ -20,14 +20,14 @@ namespace BodyCheck;
 /// starts again.
 /// </para>
 /// </summary>
-public sealed partial class WorldState : RefCounted, IWorldState
+public sealed partial class GameState : RefCounted, IGameState
 {
     private readonly Dictionary<string, EntityState> _entities = [];
     private readonly Dictionary<string, EntityState> _entitiesByName = [];
 
     /// <summary>The state of <paramref name="world"/>'s entities as its data says they start.</summary>
     /// <exception cref="ArgumentException">Two of its entities have the same name.</exception>
-    public WorldState(World world)
+    public GameState(World world)
     {
         foreach (EntityConfig config in world.Bodies)
         {
@@ -118,9 +118,9 @@ public sealed partial class WorldState : RefCounted, IWorldState
     /// <exception cref="KeyNotFoundException">There is none.</exception>
     public EntityState GetEntityNamed(string name) => _entitiesByName[name];
 
-    IWorldState.IPlayerState IWorldState.Player => Player;
+    IGameState.IPlayerState IGameState.Player => Player;
 
-    T IWorldState.GetEntity<T>(string id) => CastEntity<T>(_entities[id], id);
+    T IGameState.GetEntity<T>(string id) => CastEntity<T>(_entities[id], id);
 
     /// <summary>
     /// What every entity with a body has: its id, its kind's name and its name, for the story and the dialogue, which
@@ -140,13 +140,13 @@ public sealed partial class WorldState : RefCounted, IWorldState
 
     /// <summary>The player's state, whose abilities the game owns and Core reads.</summary>
     public sealed partial class PlayerState(string id, string kindName, string name)
-        : EntityState(id, kindName, name), IWorldState.IPlayerState
+        : EntityState(id, kindName, name), IGameState.IPlayerState
     {
         public bool CanPhase { get; set; } = true;
         public bool CanSpawn { get; set; } = true;
 
-        bool IWorldState.IPlayerState.CanPhase => CanPhase;
-        bool IWorldState.IPlayerState.CanSpawn => CanSpawn;
+        bool IGameState.IPlayerState.CanPhase => CanPhase;
+        bool IGameState.IPlayerState.CanSpawn => CanSpawn;
     }
 
     /// <summary>
@@ -154,11 +154,11 @@ public sealed partial class WorldState : RefCounted, IWorldState
     /// GDScript and dialogue files can't use C# enums.
     /// </summary>
     public sealed partial class DoorState(string id, string kindName, string name, OpenableAction lastAction)
-        : EntityState(id, kindName, name), IWorldState.IDoorState
+        : EntityState(id, kindName, name), IGameState.IDoorState
     {
-        /// <inheritdoc cref="IWorldState.IDoorState.LastAction"/>
-        public string LastAction => ((IWorldState.IDoorState)this).LastAction.ToString();
+        /// <inheritdoc cref="IGameState.IDoorState.LastAction"/>
+        public string LastAction => ((IGameState.IDoorState)this).LastAction.ToString();
 
-        OpenableAction IWorldState.IDoorState.LastAction { get; set; } = lastAction;
+        OpenableAction IGameState.IDoorState.LastAction { get; set; } = lastAction;
     }
 }

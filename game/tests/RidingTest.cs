@@ -37,7 +37,7 @@ public class RidingTest
     {
         _input = Idle;
         var world = new World(TestRoomLibrary.RobotRiding);
-        _world = WorldNode.Build(world, new WorldState(world), new AssetLibrary());
+        _world = WorldNode.Build(world, new GameState(world), new AssetLibrary());
         _world.PlayerController.UserInputSource = () => _input;
         Tree.Root.AddChild(_world);
         await Tick(Idle, 120);

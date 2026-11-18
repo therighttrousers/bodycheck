@@ -105,7 +105,7 @@ public sealed class PlayerController : IController<PlayerEntity>
 
         if (ApplyPhase(input, gameDt, realDt, defer) is PhaseOutcome.Idle or PhaseOutcome.Cancelled)
         {
-            if (_world.WorldState.Player.CanSpawn)
+            if (_world.GameState.Player.CanSpawn)
             {
                 _spawn.Apply(_world.PlayerBlock, recent.SpawnJustPressed, gameDt, defer);
             }
@@ -226,7 +226,7 @@ public sealed class PlayerController : IController<PlayerEntity>
     {
         // Without the ability, phase counts as let go of with no direction, so that losing it while aiming cancels the
         // aim, rather than leaving the game paused for it.
-        bool canPhase = _world.WorldState.Player.CanPhase;
+        bool canPhase = _world.GameState.Player.CanPhase;
         PhaseOutcome outcome = _phase.Apply(
             canPhase && input.PhaseHeld,
             canPhase ? DirectionHeld(input, realDt) : Vector3.Zero,

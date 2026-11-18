@@ -29,7 +29,7 @@ public sealed class RoomRun
     public RoomRun(Room room, bool controllersEnabled = true, string? respawnId = null, IScriptLibrary? scripts = null)
     {
         var world = new World(room);
-        State = new WorldState(world);
+        State = new GameState(world);
         Node = WorldNode.Build(world, State, new AssetLibrary(), respawnId: respawnId, scripts: scripts);
         Node.PlayerController.UserInputSource = () => _input;
         Node.ControllersEnabled = controllersEnabled;
@@ -38,8 +38,8 @@ public sealed class RoomRun
 
     public WorldNode Node { get; }
 
-    /// <summary>The world's state, as the game holds it.</summary>
-    public WorldState State { get; }
+    /// <summary>The game's state, as the game holds it.</summary>
+    public GameState State { get; }
 
     public Entity Player => Node.Player;
 

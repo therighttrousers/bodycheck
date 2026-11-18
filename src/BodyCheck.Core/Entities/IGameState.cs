@@ -8,12 +8,12 @@ public enum OpenableAction
 }
 
 /// <summary>
-/// What Core sees of the world's state, which the game owns and fills in before it builds a world: only what the game's
+/// What Core sees of the game's state, which the game owns and fills in before it builds a world: only what the game's
 /// rules read or change, such as the player's abilities and each door's last action. Each piece has one writer in
 /// Core, which this view lets set it; the game's own view of the same state lets nothing else set it. Like
 /// <see cref="IWorldView"/>, read it when needed, never once and kept.
 /// </summary>
-public interface IWorldState
+public interface IGameState
 {
     /// <summary>The player's state; e.g. its abilities.</summary>
     IPlayerState Player { get; }

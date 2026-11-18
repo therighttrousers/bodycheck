@@ -31,8 +31,8 @@ public class GameWorldsTest
             foreach (World world in LdtkReader.ReadWorlds(path, File.ReadAllText))
             {
                 // Building it checks that its dialogues name titles that their files hold, and its scripts scripts.
-                var state = new WorldState(world);
-                dialogue.WorldState = state;
+                var state = new GameState(world);
+                dialogue.GameState = state;
                 var node = WorldNode.Build(world, state, new AssetLibrary(), dialogue: dialogue, scripts: new ScriptLibrary());
                 dialogue.World = node;
                 try

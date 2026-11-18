@@ -151,10 +151,10 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
     public IScriptWorld? World { get; set; }
 
     /// <summary>
-    /// The state of the world whose dialogues the box presents, which they see, and which gives the states of the
+    /// The game's state for the world whose dialogues the box presents, which they see, and which gives the states of the
     /// entities they are about. <see cref="Main"/> sets it for each world it builds.
     /// </summary>
-    public WorldState? WorldState { get; set; }
+    public GameState? GameState { get; set; }
 
     /// <inheritdoc/>
     public TickTask Present(ITick tick, string file, string title, IReadOnlyList<Entity> entities) =>
@@ -169,14 +169,14 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
     {
         Resource resource = Load(file)
             ?? throw new System.IO.FileNotFoundException($"There is no dialogue file {PathOf(file)}.");
-        WorldState worldState = WorldState
-            ?? throw new InvalidOperationException("WorldState must be set before running a dialogue.");
+        GameState gameState = GameState
+            ?? throw new InvalidOperationException("GameState must be set before running a dialogue.");
         DialogueState dialogueState = new()
         {
             Box = this,
-            Entities = [.. entities.Select(entity => worldState.GetEntity(entity.Id))],
+            Entities = [.. entities.Select(entity => gameState.GetEntity(entity.Id))],
         };
-        Godot.Collections.Array<Variant> states = [dialogueState, worldState];
+        Godot.Collections.Array<Variant> states = [dialogueState, gameState];
         IsPresenting = true;
         UpdateShown();
         try
@@ -228,14 +228,14 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
     }
 
     /// <summary>An action that a dialogue has asked an entity for, and what to complete when it has finished.</summary>
-    private sealed record AskedAction(WorldState.EntityState Entity, string Action, TaskCompletionSource Done);
+    private sealed record AskedAction(GameState.EntityState Entity, string Action, TaskCompletionSource Done);
 
     /// <summary>
     /// Asks <paramref name="entity"/> for the action named <paramref name="action"/>, off the tick, as Dialogue Manager
     /// runs mutations: the presenting method starts it on the tick when it next checks. The task completes when the
     /// action finishes, fails or is cancelled, or the dialogue ends first.
     /// </summary>
-    internal Task Ask(WorldState.EntityState entity, string action)
+    internal Task Ask(GameState.EntityState entity, string action)
     {
         // So that Dialogue Manager goes on when its frames come round, not within the world's tick.
         var done = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -315,7 +315,7 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
         _character.Visible = _line.Character != "";
         // The speaker's own avatar, or if the speaker is one of the entities the dialogue is about, its kind's.
         _avatar.Texture = LoadAvatar(_line.Character)
-            ?? (dialogueState.Entities.FirstOrDefault(entity => entity.Name == _line.Character) is WorldState.EntityState speaker
+            ?? (dialogueState.Entities.FirstOrDefault(entity => entity.Name == _line.Character) is GameState.EntityState speaker
                 ? LoadAvatar(speaker.KindName)
                 : null);
         _avatarBackground.Visible = _avatar.Texture is not null;

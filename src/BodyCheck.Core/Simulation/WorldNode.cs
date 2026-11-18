@@ -81,8 +81,8 @@ public partial class WorldNode : Node3D, IScriptWorld
     /// hold, and builds the world. It checks first, so that a world that fails builds no nodes: Godot makes a node's
     /// engine object before its constructor's body runs, and nothing would free it.
     /// </summary>
-    /// <param name="worldState">
-    /// The world's state, which the game has filled in from <paramref name="world"/>: what the world's rules read and
+    /// <param name="gameState">
+    /// The game's state, which the game has filled in from <paramref name="world"/>: what the world's rules read and
     /// change of it, such as each door's last action.
     /// </param>
     /// <param name="assets">What to draw for each entity and for tiles.</param>
@@ -100,7 +100,7 @@ public partial class WorldNode : Node3D, IScriptWorld
     /// </exception>
     public static WorldNode Build(
         World world,
-        IWorldState worldState,
+        IGameState gameState,
         IAssetLibrary assets,
         BodyTuning? playerBody = null,
         string? respawnId = null,
@@ -109,13 +109,13 @@ public partial class WorldNode : Node3D, IScriptWorld
     {
         CheckDialogues(world, dialogue);
         CheckScripts(world, scripts);
-        return new WorldNode(world, worldState, assets, playerBody, respawnId, dialogue, scripts);
+        return new WorldNode(world, gameState, assets, playerBody, respawnId, dialogue, scripts);
     }
 
     /// <summary>Builds the world, whose dialogues and scripts <see cref="Build"/> has checked.</summary>
     private WorldNode(
         World world,
-        IWorldState worldState,
+        IGameState gameState,
         IAssetLibrary assets,
         BodyTuning? playerBody,
         string? respawnId,
@@ -123,7 +123,7 @@ public partial class WorldNode : Node3D, IScriptWorld
         IScriptLibrary? scripts)
     {
         World = world;
-        WorldState = worldState;
+        GameState = gameState;
         CurrentRespawn = respawnId is null ? null : world.ConfigsById.GetValueOrDefault(respawnId) as EntityConfig.Respawn;
         ProcessPhysicsPriority = PhysicsPriority;
 
@@ -461,7 +461,7 @@ public partial class WorldNode : Node3D, IScriptWorld
 
     public World World { get; }
 
-    public IWorldState WorldState { get; }
+    public IGameState GameState { get; }
 
     /// <summary>
     /// A box where each entity starts, of the size and colour of its box in LDtk, for comparing the world with its map
