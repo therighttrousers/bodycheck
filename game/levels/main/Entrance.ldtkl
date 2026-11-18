@@ -60,16 +60,16 @@
 			"entityInstances": [
 				{
 					"__identifier": "Trigger",
-					"__grid": [8,4],
+					"__grid": [6,5],
 					"__pivot": [0,0],
 					"__tags": ["Control"],
 					"__tile": null,
 					"__smartColor": "#D7CF43",
 					"iid": "c8afb720-bde0-11f1-a170-a7136666a19a",
 					"width": 16,
-					"height": 160,
+					"height": 128,
 					"defUid": 237,
-					"px": [128,64],
+					"px": [96,80],
 					"fieldInstances": [
 						{ "__identifier": "Target", "__type": "EntityRef", "__value": {
 							"entityIid": "b1b142e0-bde0-11f1-addb-296a62addbff",
@@ -88,8 +88,8 @@
 						{ "__identifier": "SetOffBy", "__type": "LocalEnum.TriggerSetOffBy", "__value": "Touch", "__tile": null, "defUid": 272, "realEditorValues": [] },
 						{ "__identifier": "MovesWith", "__type": "EntityRef", "__value": null, "__tile": null, "defUid": 294, "realEditorValues": [] }
 					],
-					"__worldX": 112,
-					"__worldY": 32
+					"__worldX": 80,
+					"__worldY": 48
 				},
 				{
 					"__identifier": "Dialogue",
@@ -199,7 +199,7 @@
 				},
 				{
 					"__identifier": "Trigger",
-					"__grid": [1,9],
+					"__grid": [-1,9],
 					"__pivot": [0,0],
 					"__tags": ["Control"],
 					"__tile": null,
@@ -208,7 +208,7 @@
 					"width": 16,
 					"height": 48,
 					"defUid": 237,
-					"px": [16,144],
+					"px": [-16,144],
 					"fieldInstances": [
 						{ "__identifier": "Target", "__type": "EntityRef", "__value": {
 							"entityIid": "61c1b590-bde0-11f1-b0b6-19d03f80281e",
@@ -227,12 +227,12 @@
 						{ "__identifier": "SetOffBy", "__type": "LocalEnum.TriggerSetOffBy", "__value": "Touch", "__tile": null, "defUid": 272, "realEditorValues": [] },
 						{ "__identifier": "MovesWith", "__type": "EntityRef", "__value": null, "__tile": null, "defUid": 294, "realEditorValues": [] }
 					],
-					"__worldX": 0,
+					"__worldX": -32,
 					"__worldY": 112
 				},
 				{
 					"__identifier": "Once",
-					"__grid": [2,13],
+					"__grid": [0,6],
 					"__pivot": [0,0],
 					"__tags": ["Control"],
 					"__tile": null,
@@ -241,7 +241,7 @@
 					"width": 16,
 					"height": 16,
 					"defUid": 261,
-					"px": [32,208],
+					"px": [0,96],
 					"fieldInstances": [
 						{ "__identifier": "Target", "__type": "EntityRef", "__value": {
 							"entityIid": "ebf94b30-bde0-11f1-a170-874c6cf5f409",
@@ -257,21 +257,21 @@
 							"params": ["Open"]
 						}] }
 					],
-					"__worldX": 16,
-					"__worldY": 176
+					"__worldX": -16,
+					"__worldY": 64
 				},
 				{
 					"__identifier": "Trigger",
-					"__grid": [3,9],
+					"__grid": [0,9],
 					"__pivot": [0,0],
 					"__tags": ["Control"],
 					"__tile": null,
 					"__smartColor": "#D7CF43",
 					"iid": "6dd71b30-bde0-11f1-8bc9-1d7d6df2ad5c",
-					"width": 32,
-					"height": 48,
+					"width": 80,
+					"height": 96,
 					"defUid": 237,
-					"px": [48,144],
+					"px": [0,144],
 					"fieldInstances": [
 						{ "__identifier": "Target", "__type": "EntityRef", "__value": {
 							"entityIid": "7975cea0-bde0-11f1-8bc9-1b150d76c792",
@@ -291,9 +291,17 @@
 							"id": "V_String",
 							"params": ["Interact"]
 						}] },
-						{ "__identifier": "MovesWith", "__type": "EntityRef", "__value": null, "__tile": null, "defUid": 294, "realEditorValues": [] }
+						{ "__identifier": "MovesWith", "__type": "EntityRef", "__value": {
+							"entityIid": "ebf94b30-bde0-11f1-a170-874c6cf5f409",
+							"layerIid": "4529bdd2-bde0-11f1-a170-abf965a8d197",
+							"levelIid": "4529bdd0-bde0-11f1-a170-3b125b576337",
+							"worldIid": "0f349180-bde0-11f1-b046-a5531090d1ba"
+						}, "__tile": null, "defUid": 294, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["ebf94b30-bde0-11f1-a170-874c6cf5f409"]
+						}] }
 					],
-					"__worldX": 32,
+					"__worldX": -16,
 					"__worldY": 112
 				},
 				{
@@ -317,23 +325,31 @@
 							"id": "V_String",
 							"params": ["DoorRefusal"]
 						}] },
-						{ "__identifier": "Entities", "__type": "Array<EntityRef>", "__value": [], "__tile": null, "defUid": 295, "realEditorValues": [] }
+						{ "__identifier": "Entities", "__type": "Array<EntityRef>", "__value": [{
+							"entityIid": "ebf94b30-bde0-11f1-a170-874c6cf5f409",
+							"layerIid": "4529bdd2-bde0-11f1-a170-abf965a8d197",
+							"levelIid": "4529bdd0-bde0-11f1-a170-3b125b576337",
+							"worldIid": "0f349180-bde0-11f1-b046-a5531090d1ba"
+						}], "__tile": null, "defUid": 295, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["ebf94b30-bde0-11f1-a170-874c6cf5f409"]
+						}] }
 					],
 					"__worldX": 64,
 					"__worldY": 80
 				},
 				{
 					"__identifier": "Trigger",
-					"__grid": [17,11],
+					"__grid": [16,11],
 					"__pivot": [0,0],
 					"__tags": ["Control"],
 					"__tile": null,
 					"__smartColor": "#D7CF43",
 					"iid": "f6cfcfaa-e246-11f1-920e-f37e3b865679",
-					"width": 48,
-					"height": 48,
+					"width": 80,
+					"height": 96,
 					"defUid": 237,
-					"px": [272,176],
+					"px": [256,176],
 					"fieldInstances": [
 						{ "__identifier": "Target", "__type": "EntityRef", "__value": {
 							"entityIid": "f6cfd15c-e246-11f1-9922-898e4641066f",
@@ -360,7 +376,7 @@
 							"params": ["a6d11370-bde0-11f1-b4e7-dfcdb52ab3b0"]
 						}] }
 					],
-					"__worldX": 256,
+					"__worldX": 240,
 					"__worldY": 144
 				},
 				{
@@ -436,9 +452,9 @@
 					"defUid": 232,
 					"px": [32,128],
 					"fieldInstances": [
-						{ "__identifier": "OpenStop", "__type": "Point", "__value": { "cx": 2, "cy": 5 }, "__tile": null, "defUid": 267, "realEditorValues": [{
+						{ "__identifier": "OpenStop", "__type": "Point", "__value": { "cx": 2, "cy": 6 }, "__tile": null, "defUid": 267, "realEditorValues": [{
 							"id": "V_String",
-							"params": ["2,5"]
+							"params": ["2,6"]
 						}] },
 						{ "__identifier": "CloseStop", "__type": "Point", "__value": { "cx": 2, "cy": 12 }, "__tile": null, "defUid": 268, "realEditorValues": [{
 							"id": "V_String",
@@ -461,9 +477,9 @@
 					"defUid": 232,
 					"px": [288,176],
 					"fieldInstances": [
-						{ "__identifier": "OpenStop", "__type": "Point", "__value": { "cx": 18, "cy": 7 }, "__tile": null, "defUid": 267, "realEditorValues": [{
+						{ "__identifier": "OpenStop", "__type": "Point", "__value": { "cx": 18, "cy": 8 }, "__tile": null, "defUid": 267, "realEditorValues": [{
 							"id": "V_String",
-							"params": ["18,7"]
+							"params": ["18,8"]
 						}] },
 						{ "__identifier": "CloseStop", "__type": "Point", "__value": { "cx": 18, "cy": 14 }, "__tile": null, "defUid": 268, "realEditorValues": [{
 							"id": "V_String",

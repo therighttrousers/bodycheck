@@ -817,7 +817,7 @@
 				},
 				{
 					"identifier": "MovesWith",
-					"doc": "An entity that the trigger moves with, if any: its box is where it is while the entity is where it starts.",
+					"doc": "If set, this trigger moves whenever the entity does, in precisely the same way. Use it for e.g. dialogue triggers.",
 					"__type": "EntityRef",
 					"uid": 294,
 					"type": "F_EntityRef",
