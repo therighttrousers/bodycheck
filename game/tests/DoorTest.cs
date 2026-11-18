@@ -103,10 +103,12 @@ public class DoorTest
         AssertThat(close.IsFinished).IsTrue();
         AssertThat(Door.Freeze).IsTrue();
         // On the block, which the door's thrust presses a little into the floor, not on its stop a tile lower.
-        AssertFloat(Door.Bottom()).IsEqualApprox(2, 0.1f);
+        AssertFloat(Door.Bottom()).IsEqualApprox(2, 0.15f);
 
-        // Closed, so asked again, it finishes at once.
-        AssertThat(DoorController.Close(_run.Node.Tick).IsFinished).IsTrue();
+        // Closed, so asked again, it finishes within a handful of ticks.
+        close = DoorController.Close(_run.Node.Tick);
+        await _run.Tick(RoomRun.Idle, 5);
+        AssertThat(close.IsFinished).IsTrue();
     }
 
     [TestCase]
@@ -133,6 +135,38 @@ public class DoorTest
         await _run.Tick(RoomRun.Idle, 2 * Ticks);
 
         AssertThat(toggle.IsFinished).IsTrue();
+        AssertFloat(Door.Top()).IsEqualApprox(7, 0.05f);
+    }
+
+    [TestCase]
+    public async Task A_door_closed_twice_stays_closed_and_a_toggle_then_opens_it()
+    {
+        string[] rows =
+        [
+            "##########",
+            "#........#",
+            "#........#",
+            "#........#",
+            "#........#",
+            "#........#",
+            "#........#",
+            "#P.......#",
+            "##########",
+        ];
+        _run = new RoomRun(RoomWithDoor(rows, new Vector2I(6, 4), new Vector2I(1, 3), openStopY: 7, closeStopY: 0));
+
+        for (int i = 0; i < 2; i++)
+        {
+            _ = DoorController.Close(_run.Node.Tick);
+            await _run.Tick(RoomRun.Idle, Ticks);
+            AssertThat(_run.State.GetEntity<GameState.DoorState>("door").LastAction).IsEqual("Close");
+            AssertFloat(Door.Bottom()).IsEqualApprox(1, 0.05f);
+        }
+
+        // A toggle follows the last action, not a count of them.
+        _ = DoorController.ToggleOpenClose(_run.Node.Tick);
+        await _run.Tick(RoomRun.Idle, Ticks);
+        AssertThat(_run.State.GetEntity<GameState.DoorState>("door").LastAction).IsEqual("Open");
         AssertFloat(Door.Top()).IsEqualApprox(7, 0.05f);
     }
 

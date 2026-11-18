@@ -230,8 +230,9 @@ public class LdtkReaderTest
     private static string Ref(string iid) =>
         $$"""{ "entityIid": "{{iid}}", "layerIid": "l", "levelIid": "v", "worldIid": "w" }""";
 
-    private static readonly string Dialogue = Control("Dialogue", "dialogue", """
-        { "__identifier": "DialogueFile", "__value": "File" }, { "__identifier": "DialogueTitle", "__value": "Title" }
+    private static readonly string Dialogue = Control("Dialogue", "dialogue", $$"""
+        { "__identifier": "DialogueFile", "__value": "File" }, { "__identifier": "DialogueTitle", "__value": "Title" },
+        { "__identifier": "Entities", "__value": [ {{Ref("door")}} ] }
         """);
 
     private const string Door = """
@@ -250,7 +251,8 @@ public class LdtkReaderTest
     {
         string trigger = Control("Trigger", "trigger", $$"""
             { "__identifier": "Target", "__value": {{Ref("once")}} }, { "__identifier": "Action", "__value": "Default" },
-            { "__identifier": "StartsOn", "__value": false }, { "__identifier": "SetOffBy", "__value": "Interact" }
+            { "__identifier": "StartsOn", "__value": false }, { "__identifier": "SetOffBy", "__value": "Interact" },
+            { "__identifier": "MovesWith", "__value": {{Ref("door")}} }
             """);
         string once = Control("Once", "once", $$"""
             { "__identifier": "Target", "__value": {{Ref("sequence")}} }, { "__identifier": "Action", "__value": "Default" }
@@ -260,12 +262,14 @@ public class LdtkReaderTest
 
         var readTrigger = (EntityConfig.Trigger)world.ConfigsById["trigger"];
         AssertThat(readTrigger.Step).IsEqual(new Step("once", TriggerAction.Default));
-        AssertThat((readTrigger.StartsOn, readTrigger.SetOffBy)).IsEqual((false, TriggerSetOffBy.Interact));
+        AssertThat((readTrigger.StartsOn, readTrigger.SetOffBy, readTrigger.MovesWith))
+            .IsEqual((false, TriggerSetOffBy.Interact, "door"));
         AssertThat(((EntityConfig.Once)world.ConfigsById["once"]).Step).IsEqual(new Step("sequence", TriggerAction.Default));
         AssertArray(((EntityConfig.Sequence)world.ConfigsById["sequence"]).Steps).ContainsExactly(
             new Step("dialogue", TriggerAction.Default), new Step("door", TriggerAction.Close));
         var readDialogue = (EntityConfig.Dialogue)world.ConfigsById["dialogue"];
         AssertThat((readDialogue.File, readDialogue.Title)).IsEqual(("File", "Title"));
+        AssertArray(readDialogue.Entities).ContainsExactly("door");
     }
 
     [TestCase]

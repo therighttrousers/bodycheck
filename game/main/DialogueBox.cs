@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
 using BodyCheck.Core;
+using BodyCheck.Core.Entities;
 using BodyCheck.Core.Scripts;
 using BodyCheck.Core.Tasks;
 
@@ -32,6 +34,12 @@ namespace BodyCheck;
 /// Manager fetches each line on Godot's frames, with a .NET <c>Task</c>, a frame or more after it is asked, and the
 /// player's input comes off the tick too: the method checks in each tick whether they have come.
 /// </para>
+/// <para>
+/// A dialogue file sees a <see cref="DialogueState"/> while it is presented, as Dialogue Manager's extra game state:
+/// the entities the dialogue is about, by name, and <see cref="DialogueState.Act"/>, which asks one for an action.
+/// Dialogue Manager runs mutations off the tick, so an action asked for waits until the method's next check, which
+/// starts it on the tick.
+/// </para>
 /// </summary>
 public partial class DialogueBox : CanvasLayer, IDialoguePresenter
 {
@@ -43,8 +51,8 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
     /// </summary>
     private const string ThemePath = "res://assets/fonts/dialogue_theme.tres";
     /// <summary>
-    /// Where the speakers' avatars are: each a PNG, 48 by 48 pixels, named for the speaker as the dialogue files name
-    /// them, before translation, as <c>Voice.png</c>.
+    /// Where the speakers' avatars are: each a PNG, 48 by 48 pixels, named for the speaker's kind, untranslated, as
+    /// <c>Voice.png</c> or <c>Door.png</c>.
     /// </summary>
     private const string AvatarDirectory = "res://assets/avatars";
 
@@ -58,6 +66,8 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
     // Whether the line shown has typed out. Not the label's IsTyping, which is false while an inline mutation, such as
     // a wait, is awaited partway through the line: going on then would end the line while the label still types it.
     private bool _typedOut;
+    // The actions the dialogue presented has asked for, off the tick, not yet started on it.
+    private readonly List<AskedAction> _asked = [];
 
     private readonly TextureRect _avatar = new();
     // The avatar's border and background, shown only while the speaker has an avatar.
@@ -121,6 +131,8 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
         row.AddChild(lines);
 
         _character.Modulate = new Color(1, 0.85f, 0.4f);
+        // The speaker's name comes translated, from its state: translating it again would look it up as a message.
+        _character.AutoTranslateMode = AutoTranslateModeEnum.Disabled;
         lines.AddChild(_character);
         lines.AddChild(_text);
         lines.AddChild(_responses);
@@ -134,18 +146,39 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
     /// <summary>Whether a dialogue has started and not yet ended.</summary>
     public bool IsPresenting { get; private set; }
 
-    /// <inheritdoc/>
-    public TickTask Present(ITick tick, string file, string title) =>
-        _presenting.Run(() => Run(tick, file, title));
+    /// <summary>
+    /// The world whose dialogues the box presents, where it finds the entities they ask for actions. <see cref="Main"/>
+    /// sets it for each world it builds.
+    /// </summary>
+    public IScriptWorld? World { get; set; }
 
     /// <summary>
-    /// Presents the dialogue, line by line, until it ends. A missing file, a garble tag that isn't valid, or an error in
-    /// Dialogue Manager fails it. However it ends, even by its tick being stopped, the box drops it.
+    /// The game's state for the world whose dialogues the box presents, which they see, and which gives the states of the
+    /// entities they are about. <see cref="Main"/> sets it for each world it builds.
     /// </summary>
-    private async TickTask Run(ITick tick, string file, string title)
+    public GameState? GameState { get; set; }
+
+    /// <inheritdoc/>
+    public TickTask Present(ITick tick, string file, string title, IReadOnlyList<Entity> entities) =>
+        _presenting.Run(() => Run(tick, file, title, entities));
+
+    /// <summary>
+    /// Presents the dialogue, line by line, until it ends, starting the actions it asks for on the tick. A missing file,
+    /// a garble tag that isn't valid, an action that isn't one, or an error in Dialogue Manager fails it. However it
+    /// ends, even by its tick being stopped, the box drops it.
+    /// </summary>
+    private async TickTask Run(ITick tick, string file, string title, IReadOnlyList<Entity> entities)
     {
         Resource resource = Load(file)
             ?? throw new System.IO.FileNotFoundException($"There is no dialogue file {PathOf(file)}.");
+        GameState gameState = GameState
+            ?? throw new InvalidOperationException("GameState must be set before running a dialogue.");
+        DialogueState dialogueState = new()
+        {
+            Box = this,
+            Entities = [.. entities.Select(entity => gameState.GetEntity(entity.Id))],
+        };
+        Godot.Collections.Array<Variant> states = [dialogueState, gameState];
         IsPresenting = true;
         UpdateShown();
         try
@@ -154,7 +187,9 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
             while (true)
             {
                 _line = null;
-                Task<DialogueLine?> fetching = DialogueManager.GetNextDialogueLine(resource, key);
+                Task<DialogueLine?> fetching = DialogueManager.GetNextDialogueLine(resource, key, states);
+                // A mutation on its own line runs while the next line is fetched, and may wait for an action it asks for.
+                await tick.While(() => !fetching.IsCompleted, () => StartAskedActions(tick));
                 await tick.UntilCompleted(fetching);
                 if (fetching.Result is not DialogueLine line)
                 {
@@ -171,8 +206,9 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
                 _line = line;
                 _response = 0;
                 _next = null;
-                ShowLine();
-                await tick.While(() => _next is null);
+                ShowLine(gameState);
+                // An inline mutation runs as the line types out.
+                await tick.While(() => _next is null, () => StartAskedActions(tick));
                 key = _next!;
             }
         }
@@ -182,8 +218,82 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
             _line = null;
             _next = null;
             _text.DialogueLine = null;
+            // Nothing will start them now, and what waits for them goes on, with nothing to act for.
+            foreach (AskedAction asked in _asked)
+            {
+                asked.Done.TrySetResult();
+            }
+            _asked.Clear();
             ClearResponses();
             UpdateShown();
+        }
+    }
+
+    /// <summary>An action that a dialogue has asked an entity for, and what to complete when it has finished.</summary>
+    private sealed record AskedAction(GameState.EntityState Entity, string Action, TaskCompletionSource Done);
+
+    /// <summary>
+    /// Asks <paramref name="entity"/> for the action named <paramref name="action"/>, off the tick, as Dialogue Manager
+    /// runs mutations: the presenting method starts it on the tick when it next checks. The task completes when the
+    /// action finishes, fails or is cancelled, or the dialogue ends first.
+    /// </summary>
+    internal Task Ask(GameState.EntityState entity, string action)
+    {
+        // So that Dialogue Manager goes on when its frames come round, not within the world's tick.
+        var done = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        if (IsPresenting)
+        {
+            _asked.Add(new AskedAction(entity, action, done));
+        }
+        else
+        {
+            done.SetResult();
+        }
+        return done.Task;
+    }
+
+    /// <summary>Starts the actions asked for since the last check, on <paramref name="tick"/>.</summary>
+    private void StartAskedActions(ITick tick)
+    {
+        if (World is null)
+        {
+            throw new InvalidOperationException("World must be set before running actions in a dialogue.");
+        }
+        List<AskedAction> asked = [.. _asked];
+        _asked.Clear();
+        foreach (AskedAction action in asked)
+        {
+            _ = RunAskedAction(tick, action, World);
+        }
+    }
+
+    /// <summary>
+    /// Runs an action a dialogue asked for, by its <see cref="TriggerAction"/>'s name, on the controller of the entity
+    /// in <paramref name="world"/> with the state's id. One that isn't an action, or an entity that is no longer in the
+    /// world or has no controller, fails the dialogue. A failure of the action itself is the world's, which reports what
+    /// nothing awaits, and the dialogue goes on.
+    /// </summary>
+    private static async TickTask RunAskedAction(ITick tick, AskedAction asked, IScriptWorld world)
+    {
+        try
+        {
+            if (!Enum.TryParse(asked.Action, out TriggerAction action) || !Enum.IsDefined(action))
+            {
+                throw new ArgumentException($"A dialogue asked {asked.Entity.Name} for {asked.Action}, which isn't an action.");
+            }
+            if (!world.Entities.TryGetValue(asked.Entity.Id, out Entity? entity))
+            {
+                throw new ArgumentException($"A dialogue asked {asked.Entity.Name} for {asked.Action}, but an entity couldn't be found.");
+            }
+            if (entity.Controller is null)
+            {
+                throw new ArgumentException($"A dialogue asked {asked.Entity.Name} for {asked.Action}, but the entity has no controller.");
+            }
+            await new Call(entity.Controller, action).Run(tick);
+        }
+        finally
+        {
+            asked.Done.TrySetResult();
         }
     }
 
@@ -201,17 +311,26 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
     }
 
     /// <summary>Shows the line, and starts typing it out. Its responses show once it has.</summary>
-    private void ShowLine()
+    private void ShowLine(GameState gameState)
     {
         _character.Text = _line!.Character;
         _character.Visible = _line.Character != "";
-        string avatar = $"{AvatarDirectory}/{_line.Character}.png";
-        _avatar.Texture = _line.Character != "" && ResourceLoader.Exists(avatar) ? GD.Load<Texture2D>(avatar) : null;
+        // A dialogue file names every speaker through its state, so the name has been translated already.
+        _avatar.Texture = gameState.GetSpeaker(_line.Character) is GameState.CharacterState speaker
+            ? LoadAvatar(speaker.KindName)
+            : null;
         _avatarBackground.Visible = _avatar.Texture is not null;
         _text.DialogueLine = _line;
         ClearResponses();
         _typedOut = false;
         _text.TypeOut();
+    }
+
+    /// <summary>The avatar named <paramref name="name"/>, or null if there is none.</summary>
+    private static Texture2D? LoadAvatar(string name)
+    {
+        string path = $"{AvatarDirectory}/{name}.png";
+        return name != "" && ResourceLoader.Exists(path) ? GD.Load<Texture2D>(path) : null;
     }
 
     private void ClearResponses()

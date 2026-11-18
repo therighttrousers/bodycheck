@@ -70,6 +70,81 @@
 					"fieldInstances": [],
 					"__worldX": 432,
 					"__worldY": 176
+				},
+				{
+					"__identifier": "Trigger",
+					"__grid": [14,11],
+					"__pivot": [0,0],
+					"__tags": ["Control"],
+					"__tile": null,
+					"__smartColor": "#D7CF43",
+					"iid": "3c986f00-bde0-11f1-a0d6-59ba1c999359",
+					"width": 48,
+					"height": 48,
+					"defUid": 237,
+					"px": [224,176],
+					"fieldInstances": [
+						{ "__identifier": "Target", "__type": "EntityRef", "__value": {
+							"entityIid": "45f3e930-bde0-11f1-a0d6-a5805de07369",
+							"layerIid": "139de541-bde0-11f1-b436-e564803729d2",
+							"levelIid": "940919c0-bde0-11f1-b36f-115902cc0d05",
+							"worldIid": "ff931af0-bde0-11f1-a170-b1675c92a117"
+						}, "__tile": null, "defUid": 240, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["45f3e930-bde0-11f1-a0d6-a5805de07369"]
+						}] },
+						{ "__identifier": "Action", "__type": "LocalEnum.TriggerAction", "__value": "Default", "__tile": null, "defUid": 242, "realEditorValues": [] },
+						{ "__identifier": "StartsOn", "__type": "Bool", "__value": true, "__tile": null, "defUid": 270, "realEditorValues": [] },
+						{ "__identifier": "SetOffBy", "__type": "LocalEnum.TriggerSetOffBy", "__value": "Interact", "__tile": null, "defUid": 272, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["Interact"]
+						}] },
+						{ "__identifier": "MovesWith", "__type": "EntityRef", "__value": {
+							"entityIid": "0c1314c0-bde0-11f1-b36f-4db7743d8dea",
+							"layerIid": "940940d0-bde0-11f1-b36f-7d40f446c036",
+							"levelIid": "940919c0-bde0-11f1-b36f-115902cc0d05",
+							"worldIid": "ff931af0-bde0-11f1-a170-b1675c92a117"
+						}, "__tile": null, "defUid": 294, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["0c1314c0-bde0-11f1-b36f-4db7743d8dea"]
+						}] }
+					],
+					"__worldX": 544,
+					"__worldY": 176
+				},
+				{
+					"__identifier": "Dialogue",
+					"__grid": [17,11],
+					"__pivot": [0,0],
+					"__tags": ["Control"],
+					"__tile": null,
+					"__smartColor": "#D77643",
+					"iid": "45f3e930-bde0-11f1-a0d6-a5805de07369",
+					"width": 16,
+					"height": 16,
+					"defUid": 244,
+					"px": [272,176],
+					"fieldInstances": [
+						{ "__identifier": "DialogueFile", "__type": "String", "__value": "Testing", "__tile": null, "defUid": 246, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["Testing"]
+						}] },
+						{ "__identifier": "DialogueTitle", "__type": "String", "__value": "Gerald", "__tile": null, "defUid": 247, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["Gerald"]
+						}] },
+						{ "__identifier": "Entities", "__type": "Array<EntityRef>", "__value": [{
+							"entityIid": "0c1314c0-bde0-11f1-b36f-4db7743d8dea",
+							"layerIid": "940940d0-bde0-11f1-b36f-7d40f446c036",
+							"levelIid": "940919c0-bde0-11f1-b36f-115902cc0d05",
+							"worldIid": "ff931af0-bde0-11f1-a170-b1675c92a117"
+						}], "__tile": null, "defUid": 295, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["0c1314c0-bde0-11f1-b36f-4db7743d8dea"]
+						}] }
+					],
+					"__worldX": 592,
+					"__worldY": 176
 				}
 			]
 		},
@@ -192,14 +267,14 @@
 			"optionalRules": [],
 			"intGridCsv": [
 				1,1,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,
-				0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,
 				0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 				0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 				0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-				0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,
-				0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,
-				0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-				0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,
+				0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+				0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+				0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+				0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+				0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,
 				1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
 			],
 			"autoLayerTiles": [],

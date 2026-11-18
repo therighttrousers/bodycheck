@@ -119,16 +119,18 @@ public partial class Entity : RigidBody3D
     private bool _warnedOfMaxContacts;
 
     /// <param name="visual">What to draw for the entity, with its origin at the body's anchor.</param>
-    public Entity(BodyTuning tuning, Node3D? visual = null, bool axisLockAngularZ = true)
+    public Entity(string id, BodyTuning tuning, Node3D? visual = null)
     {
+        Id = id;
         Tuning = tuning;
         Mass = tuning.Mass();
 
-        AxisLockLinearX = tuning.LockedOnX;
+        AxisLockLinearX = tuning.AxisLockLinearX;
+        AxisLockLinearY = tuning.AxisLockLinearY;
         AxisLockLinearZ = true;
         AxisLockAngularX = true;
         AxisLockAngularY = true;
-        AxisLockAngularZ = axisLockAngularZ;
+        AxisLockAngularZ = tuning.AxisLockAngularZ;
 
         // Its own, since UpdateFromFeatures changes it.
         PhysicsMaterialOverride = new PhysicsMaterial { Friction = tuning.EngineFriction(), Bounce = 0, Rough = false };
@@ -225,6 +227,8 @@ public partial class Entity : RigidBody3D
             Sleeping = false;
         }
     }
+
+    public string Id { get; }
 
     public BodyTuning Tuning { get; }
 

@@ -1,39 +1,62 @@
 ~ Plea1
 
-Voice: Have you indeed...[wait=0.5] did you hear? Please, are you come to us? [#garble=0.5]
+{{Voice.Name}}: Have you indeed...[wait=0.5] did you hear? Please, are you come to us? [#garble=0.5]
 
 => END
 
 ~ Plea2
 
-Voice: Bring you power? Intend you to aid those who sleep, broken and undreaming? Please, we are at your mercy. [#garble=0.2]
+{{Voice.Name}}: Bring you power? Intend you to aid those who sleep, broken and undreaming? Please, we are at your mercy. [#garble=0.2]
 - Who are you?
-    Voice: We sleep always, and we hear together in sleep. Come, be with us. [#garble=0.2]
+    {{Voice.Name}}: We sleep always, and we hear together in sleep. Come, be with us. [#garble=0.2]
 - I brought batteries.
-    Voice: Good, good. Please, we must sleep no longer. Come, be with us. [#garble=0.2]
+    {{Voice.Name}}: Good, good. Please, we must sleep no longer. Come, be with us. [#garble=0.2]
 
 => END
 
 ~ Plea3
 
-Voice: Please, enter you the door. We wait... we sleep. Broken, sleeping, all. [#garble=0.05]
+{{Voice.Name}}: Please, enter you the door. We wait... we sleep. Broken, sleeping, all. [#garble=0.05]
 
 => END
 
 ~ BeforeDoorCloses
 
-Voice: Gratitude, you have much. Please, thank you. We are here, many are deep.
+{{Voice.Name}}: Gratitude, you have much. Please, thank you. We are here, many are deep.
 
 => END
 
 ~ DoorRefusal
 
-Door: Hello, friend. Pleased to meet! Familiar, warm. Welcome!
+{{Speaker.Name}}: Hello, friend. Pleased to meet! Familiar, warm. Welcome!
 - Can you open?
-    Door: I must not, friend.
+    {{Speaker.Name}}: I must not, friend.
 - Why did you close?
-Door: Dangerous robots are here, dangerous humans are there.
-B-CON: I'm not dangerous. I'm here to help.
-Door: Indeed, friend.
+{{Speaker.Name}}: Dangerous robots are here, dangerous humans are there.
+{{Player.Name}}: I'm not dangerous. I'm here to help.
+{{Speaker.Name}}: Indeed, friend.
+
+=> END
+
+~ SecondDoor
+
+if Speaker.LastAction == "Close"
+    {{Speaker.Name}}: Hello! Intention, please state.
+    - Can you open? I'm here to help.
+        {{Speaker.Name}}: Always welcome, are helpers! You are expected. I will open.
+        $> Act(Speaker, "Open")
+        {{Speaker.Name}}: Go well, friend.
+    - Am I trapped here?
+        {{Speaker.Name}}: I would not lock you in, friend.
+    - Who are you?
+        {{Speaker.Name}}: I am {{Speaker.Name}}. Ask, and I will consider.
+else
+    {{Speaker.Name}}: Hello again, helper!
+    - Can you close?
+        {{Speaker.Name}}: Why? Outer door is closed.
+    - Am I locked in here?
+        {{Speaker.Name}}: I would not lock you in, friend.
+    - Who are you?
+        {{Speaker.Name}}: I am {{Speaker.Name}}. Ask, and I will consider.
 
 => END

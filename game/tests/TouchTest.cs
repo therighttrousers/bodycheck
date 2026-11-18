@@ -144,6 +144,60 @@ public class TouchTest
     }
 
     [TestCase]
+    public async Task Interacting_sets_off_a_trigger_that_moves_with_an_entity_before_one_that_doesnt()
+    {
+        // Two interact triggers 3 tiles square around the player: one that stays where it is, first in the room's order,
+        // and one that moves with the block beside the player.
+        string[] rows =
+        [
+            "##########",
+            "#........#",
+            "#........#",
+            "#........#",
+            "#..PB...S#",
+            "##########",
+        ];
+        Room room = RoomRun.RoomOf(rows);
+        EntityConfig respawn = room.EntityConfigs.Single(config => config.Kind == EntityKind.Respawn);
+        EntityConfig block = room.EntityConfigs.Single(config => config.Kind == EntityKind.Block);
+        EntityConfig.Trigger Trigger(string id, Vector2I origin, string? movesWith) => new()
+        {
+            Id = id,
+            MapOrigin = origin,
+            MapSize = new Vector2I(3, 3),
+            MapColor = Colors.White,
+            Step = new Step(respawn.Id, TriggerAction.Default),
+            StartsOn = true,
+            SetOffBy = TriggerSetOffBy.Interact,
+            MovesWith = movesWith,
+        };
+        _run = new RoomRun(new Room(
+            room.Name,
+            room.Origin,
+            TileGrid.FromText(rows),
+            room.EntityConfigs.Append(Trigger("Stays", new Vector2I(2, 1), null)).Append(Trigger("Moves", new Vector2I(3, 1), block.Id))));
+        var setOffs = new List<string>();
+        _run.Node.TriggerSetOff += trigger => setOffs.Add(trigger.Id);
+        Entity blockEntity = _run.Node.EntitiesOf(EntityKind.Block).Single();
+
+        await _run.Tick(RoomRun.Idle, 10);
+        AssertThat(_run.Node.InteractTrigger?.Id).IsEqual("Moves");
+        // The prompt goes over the top of its area, where the block has it.
+        Vector2 top = _run.Node.InteractTriggerTop!.Value;
+        AssertFloat(top.X).IsEqualApprox(blockEntity.Position.X, 0.01f);
+        AssertFloat(top.Y).IsEqualApprox(4, 0.01f);
+        await _run.Tick(new PlayerInput(0, 1, false), 1);
+        AssertArray(setOffs).ContainsExactly("Moves");
+
+        // Its area goes with the block, and the other is set off instead.
+        _run.Node.Remove(blockEntity);
+        await _run.Tick(RoomRun.Idle, 2);
+        AssertThat(_run.Node.InteractTrigger?.Id).IsEqual("Stays");
+        await _run.Tick(new PlayerInput(0, 1, false), 1);
+        AssertArray(setOffs).ContainsExactly("Moves", "Stays");
+    }
+
+    [TestCase]
     public async Task A_body_that_crosses_a_trigger_within_a_tick_but_moves_less_than_both_are_wide_sets_it_off()
     {
         // A trigger 1 tile wide, which the player crosses in mid-air.

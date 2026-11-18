@@ -36,7 +36,8 @@ public class RidingTest
     private async Task Start()
     {
         _input = Idle;
-        _world = WorldNode.Build(new World(TestRoomLibrary.RobotRiding), new AssetLibrary());
+        var world = new World(TestRoomLibrary.RobotRiding);
+        _world = WorldNode.Build(world, new GameState(world), new AssetLibrary());
         _world.PlayerController.UserInputSource = () => _input;
         Tree.Root.AddChild(_world);
         await Tick(Idle, 120);

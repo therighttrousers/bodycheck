@@ -111,21 +111,41 @@ public sealed class World
             }
         }
 
-        foreach (EntityConfig.Script script in Controls.OfType<EntityConfig.Script>())
+        foreach (EntityConfig config in Controls)
         {
-            foreach (string id in script.Entities)
+            foreach (string id in EntitiesGiven(config))
             {
                 if (!ConfigsById.TryGetValue(id, out EntityConfig? entity))
                 {
                     throw new ArgumentException(
-                        $"In world '{name}', {Named(script)} is given '{id}', which isn't in the world.", nameof(rooms));
+                        $"In world '{name}', {Named(config)} is given '{id}', which isn't in the world.", nameof(rooms));
                 }
                 if (!entity.Kind.HasBody)
                 {
                     throw new ArgumentException(
-                        $"In world '{name}', {Named(script)} is given {Named(entity)}, which has no body.",
+                        $"In world '{name}', {Named(config)} is given {Named(entity)}, which has no body.",
                         nameof(rooms));
                 }
+            }
+        }
+
+        foreach (EntityConfig.Trigger trigger in Controls.OfType<EntityConfig.Trigger>())
+        {
+            if (trigger.MovesWith is not string id)
+            {
+                continue;
+            }
+            if (!ConfigsById.TryGetValue(id, out EntityConfig? entity))
+            {
+                throw new ArgumentException(
+                    $"In world '{name}', {Named(trigger)} moves with '{id}', which isn't in the world.", nameof(rooms));
+            }
+            if (!entity.Kind.HasBody || entity.Kind == EntityKind.Player)
+            {
+                throw new ArgumentException(
+                    $"In world '{name}', {Named(trigger)} moves with {Named(entity)}, which "
+                    + (entity.Kind.HasBody ? "would always be in it." : "has no body."),
+                    nameof(rooms));
             }
         }
 
@@ -135,6 +155,14 @@ public sealed class World
                 $"In world '{name}', the routes from {Named(start)} lead back to it.", nameof(rooms));
         }
     }
+
+    /// <summary>The ids of the entities a configuration is given, which must have bodies, if it is given any.</summary>
+    private static IReadOnlyList<string> EntitiesGiven(EntityConfig config) => config switch
+    {
+        EntityConfig.Script script => script.Entities,
+        EntityConfig.Dialogue dialogue => dialogue.Entities,
+        _ => [],
+    };
 
     /// <summary>The steps a configuration runs, if it runs any.</summary>
     private static IReadOnlyList<Step> StepsOf(EntityConfig config) => config switch

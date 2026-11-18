@@ -1,12 +1,16 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
 using BodyCheck.Core;
+using BodyCheck.Core.Entities;
 using BodyCheck.Core.Scripts;
 using BodyCheck.Core.Simulation;
 using BodyCheck.Core.Tasks;
 using BodyCheck.Core.WorldData;
+
+using DialogueManagerRuntime;
 
 using GdUnit4;
 
@@ -62,7 +66,7 @@ public class DialogueTest
             "#####",
             "#.P.#",
             "#####"));
-        _box = new DialogueBox();
+        _box = new DialogueBox { World = _run.Node, GameState = _run.State };
         Tree.Root.AddChild(_box);
         // Added after the world, as the game adds it.
         _manager = new GameModeManager { World = _run.Node };
@@ -72,7 +76,7 @@ public class DialogueTest
         bool resumed = false;
         async TickTask Waits(ITick tick)
         {
-            await new DialogueRunner(_box, _run.Node, "debug", "start").Default(tick);
+            await new DialogueRunner(_box, _run.Node, "debug", "start", []).Default(tick);
             resumed = true;
         }
         _ = Waits(_run.Node.Tick);
@@ -96,6 +100,97 @@ public class DialogueTest
         AssertThat(_manager.GameMode).IsEqual(GameMode.Playing);
     }
 
+    /// <summary>A text room with a door with the id <c>door</c>, 3 tiles high, closed on the floor, which opens up to its stop 3 tiles above it.</summary>
+    private static Room RoomWithDoor()
+    {
+        string[] rows =
+        [
+            "##########",
+            "#........#",
+            "#........#",
+            "#........#",
+            "#........#",
+            "#........#",
+            "#........#",
+            "#P.......#",
+            "##########",
+        ];
+        Room room = RoomRun.RoomOf(rows);
+        var doorConfig = new EntityConfig.VerticalDoor
+        {
+            Id = "door",
+            MapOrigin = new Vector2I(6, 1),
+            MapSize = new Vector2I(1, 3),
+            MapColor = Colors.White,
+            OpenStop = new Vector2I(6, 7),
+            CloseStop = new Vector2I(6, 0),
+        };
+        return new Room(room.Name, room.Origin, TileGrid.FromText(rows), room.EntityConfigs.Append(doorConfig));
+    }
+
+    [TestCase]
+    public void A_name_is_translated_when_it_is_read_from_a_pattern_that_a_translator_can_reorder()
+    {
+        _run = new RoomRun(RoomWithDoor());
+        var translation = new Translation { Locale = "eo" };
+        translation.AddMessage("Door", "Pordo", "kind");
+        translation.AddMessage("B-CON", "B-KON", "kind");
+        translation.AddMessage("{kind} {serial}", "{serial}-{kind}", "entity name");
+        string locale = TranslationServer.GetLocale();
+        TranslationServer.AddTranslation(translation);
+        TranslationServer.SetLocale("eo");
+        try
+        {
+            GameState.EntityState door = _run.State.GetEntity("door");
+            AssertThat(door.Name).IsEqual("door-Pordo");
+            AssertThat(door.UntranslatedName).IsEqual("Door door");
+            AssertThat(_run.State.Player.Name).IsEqual("B-KON");
+            // As a line gives its speaker, translated.
+            AssertThat(_run.State.GetSpeaker("door-Pordo")).IsSame(door);
+        }
+        finally
+        {
+            TranslationServer.SetLocale(locale);
+            TranslationServer.RemoveTranslation(translation);
+        }
+    }
+
+    [TestCase]
+    public async Task A_dialogue_names_its_speaker_and_waits_for_an_action_it_asks_of_it()
+    {
+        _run = new RoomRun(RoomWithDoor());
+        _box = new DialogueBox { World = _run.Node, GameState = _run.State };
+        Tree.Root.AddChild(_box);
+        Entity door = _run.Node.EntitiesOf(EntityKind.VerticalDoor).Single();
+        float closed = door.Bottom();
+
+        // Who says each line, and where the door is as it is said.
+        var lines = new List<(string Character, float Bottom)>();
+        void Got(DialogueLine line) => lines.Add((line.Character, door.Bottom()));
+        DialogueManager.GotDialogue += Got;
+        try
+        {
+            TickTask presented = _box.Present(_run.Node.Tick, "debug", "act", [door]);
+            for (int i = 0; i < 600 && _box.IsPresenting; i++)
+            {
+                _box.Advance();
+                await _run.Tick(RoomRun.Idle);
+            }
+            AssertThat(presented.IsFinished).IsTrue();
+        }
+        finally
+        {
+            DialogueManager.GotDialogue -= Got;
+        }
+
+        string name = _run.State.GetEntity("door").Name;
+        AssertThat(lines.Select(line => line.Character)).ContainsExactly(name, name);
+        // The second line waits until the door has opened.
+        AssertFloat(lines[0].Bottom).IsEqualApprox(closed, 0.05f);
+        AssertFloat(lines[1].Bottom).IsEqualApprox(closed + 3, 0.05f);
+        AssertThat(_run.State.GetEntity<GameState.DoorState>("door").LastAction).IsEqual("Open");
+    }
+
     [TestCase]
     public void Dropping_the_world_drops_its_dialogue_so_that_the_next_world_presents_its_own_at_once()
     {
@@ -103,10 +198,10 @@ public class DialogueTest
             "#####",
             "#.P.#",
             "#####"));
-        _box = new DialogueBox();
+        _box = new DialogueBox { World = _run.Node, GameState = _run.State };
         Tree.Root.AddChild(_box);
 
-        TickTask dropped = _box.Present(_run.Node.Tick, "debug", "start");
+        TickTask dropped = _box.Present(_run.Node.Tick, "debug", "start", []);
         AssertThat(_box.IsPresenting).IsTrue();
         _run.Node.StopAndQueueFree();
         AssertThat(dropped.IsCancelled).IsTrue();
@@ -114,7 +209,7 @@ public class DialogueTest
 
         // As the next world's tick.
         var next = new TickScheduler(Rethrow);
-        _ = _box.Present(next.Tick, "debug", "start");
+        _ = _box.Present(next.Tick, "debug", "start", []);
         AssertThat(_box.IsPresenting).IsTrue();
         next.Stop();
     }
@@ -188,11 +283,11 @@ public class DialogueTest
 
         if (builds)
         {
-            RoomRun.FreeAndFinalize(WorldNode.Build(world, new AssetLibrary(), dialogue: _box));
+            RoomRun.FreeAndFinalize(WorldNode.Build(world, new GameState(world), new AssetLibrary(), dialogue: _box));
         }
         else
         {
-            AssertThrown(() => WorldNode.Build(world, new AssetLibrary(), dialogue: _box)).IsInstanceOf<ArgumentException>();
+            AssertThrown(() => WorldNode.Build(world, new GameState(world), new AssetLibrary(), dialogue: _box)).IsInstanceOf<ArgumentException>();
         }
     }
 }

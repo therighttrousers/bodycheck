@@ -17,8 +17,8 @@ public partial class PlatformEntity : Entity
     #endregion
 
     /// <param name="visual">What to draw for the entity, with its origin at the body's anchor.</param>
-    public PlatformEntity(BodyTuning tuning, Node3D? visual = null)
-        : base(tuning, visual)
+    public PlatformEntity(string id, BodyTuning tuning, Node3D? visual = null)
+        : base(id, tuning, visual)
     {
     }
 }

@@ -171,6 +171,11 @@ public abstract record EntityConfig
         /// <summary>Whether it starts on. One that is off isn't set off.</summary>
         public required bool StartsOn { get; init; }
         public required TriggerSetOffBy SetOffBy { get; init; }
+        /// <summary>
+        /// The id of the entity with a body, not the player, that the area moves with, or null if it stays where it is.
+        /// Its box is where the area is while the entity is where it starts.
+        /// </summary>
+        public string? MovesWith { get; init; }
     }
 
     /// <summary>Runs its steps in turn, each when the one before has finished.</summary>
@@ -207,6 +212,11 @@ public abstract record EntityConfig
         public required string File { get; init; }
         /// <summary>The title in the file to present.</summary>
         public required string Title { get; init; }
+        /// <summary>
+        /// The ids of the entities the dialogue is about, which it can name and ask for actions, in order, each an
+        /// entity with a body.
+        /// </summary>
+        public IReadOnlyList<string> Entities { get; init; } = [];
     }
 
     /// <summary>Runs a script, a new one for each run.</summary>

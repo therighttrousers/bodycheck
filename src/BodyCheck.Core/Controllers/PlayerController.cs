@@ -105,7 +105,10 @@ public sealed class PlayerController : IController<PlayerEntity>
 
         if (ApplyPhase(input, gameDt, realDt, defer) is PhaseOutcome.Idle or PhaseOutcome.Cancelled)
         {
-            _spawn.Apply(_world.PlayerBlock, recent.SpawnJustPressed, gameDt, defer);
+            if (_world.GameState.Player.CanSpawn)
+            {
+                _spawn.Apply(_world.PlayerBlock, recent.SpawnJustPressed, gameDt, defer);
+            }
 
             // A press buffered in the air jumps on landing even if jump has been let go of since, as a tap.
             bool jumps = _leniency.JumpBufferLeft > 0 && _leniency.GroundTimeLeft > 0 && !_jump.Thrusting;
@@ -221,7 +224,14 @@ public sealed class PlayerController : IController<PlayerEntity>
     /// <param name="defer">An object that allows running actions later in the tick.</param>
     private PhaseOutcome ApplyPhase(PlayerInput input, float gameDt, float realDt, IDefer defer)
     {
-        PhaseOutcome outcome = _phase.Apply(input.PhaseHeld, DirectionHeld(input, realDt), gameDt, defer);
+        // Without the ability, phase counts as let go of with no direction, so that losing it while aiming cancels the
+        // aim, rather than leaving the game paused for it.
+        bool canPhase = _world.GameState.Player.CanPhase;
+        PhaseOutcome outcome = _phase.Apply(
+            canPhase && input.PhaseHeld,
+            canPhase ? DirectionHeld(input, realDt) : Vector3.Zero,
+            gameDt,
+            defer);
         if (outcome is PhaseOutcome.Phased or PhaseOutcome.Cancelled)
         {
             // A phase ends a jump's thrust, coyote time and buffered press, and so does cancelling one: the aim took them.

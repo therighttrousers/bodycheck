@@ -38,8 +38,8 @@ public partial class RobotEntity : WalkerEntity
     /// What to draw for the entity, with its origin at the body's anchor. A node in it named "LaserOrigin" says where the
     /// laser starts, as it is in the model's rest pose, facing the camera; see <see cref="LaserOrigin"/>.
     /// </param>
-    public RobotEntity(BodyTuning tuning, Node3D? visual = null)
-        : base(tuning, visual)
+    public RobotEntity(string id, BodyTuning tuning, Node3D? visual = null)
+        : base(id, tuning, visual)
     {
         if (visual is not null && RestPosition(visual, "LaserOrigin") is Vector3 origin)
         {

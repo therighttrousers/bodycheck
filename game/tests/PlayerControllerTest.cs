@@ -57,7 +57,8 @@ public class PlayerControllerTest
         Features.Set(features ?? new());
         _input = Idle;
         Room frame = room ?? TestRoomLibrary.EmptyFrame(60, height, playerX, playerY);
-        _world = WorldNode.Build(new World(frame), new AssetLibrary(), playerBody: body);
+        var world = new World(frame);
+        _world = WorldNode.Build(world, new GameState(world), new AssetLibrary(), playerBody: body);
         _world.PlayerController.UserInputSource = () => _input;
         Tree.Root.AddChild(_world);
         await Tick(Idle, settleTicks);
@@ -628,7 +629,7 @@ public class PlayerControllerTest
                 "#.P.........########",
                 "####################"),
             settleTicks: 40);
-        Entity block = _world!.Entities.Single(entity => entity != Player && entity.Visible);
+        Entity block = _world!.Entities.Values.Single(entity => entity != Player && entity.Visible);
         AssertThat(block.Support).IsEqual(Player);
 
         // Wait until the player's leading edge is within range of the step, which is at x = 12.
@@ -686,7 +687,7 @@ public class PlayerControllerTest
                 "#...#P....#",
                 "###########"),
             settleTicks: 40);
-        Entity block = _world!.Entities.Single(entity => entity != Player && entity.Visible);
+        Entity block = _world!.Entities.Values.Single(entity => entity != Player && entity.Visible);
         AssertThat(block.Support).IsEqual(Player);
 
         // The step's face is at x = 5.

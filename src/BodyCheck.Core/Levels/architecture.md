@@ -18,6 +18,7 @@ Relevant decision records:
 - [052: The talking door](../../../docs/decision-records/052-talking-door.md)
 - [057: Tile kinds](../../../docs/decision-records/057-tile-kinds.md)
 - [061: Environments per room](../../../docs/decision-records/061-room-environments.md)
+- [063: World state, and talking to entities](../../../docs/decision-records/063-world-state-and-talking-to-entities.md)
 
 ## What it is
 
@@ -38,6 +39,6 @@ The game's maps are the worlds of one LDtk project, `levels/main.ldtk` in the ga
 - Each value of the `CameraBoundary` layer is 1 for a tile the camera keeps out of view and 0 for one it doesn't, and the reader rejects any other (`042 §5.3`).
 - Entities are in two layers, `Entities` for those with bodies and `Control` for the control entities, which LDtk keeps apart by their tags. The layers only help the editor show them: the reader reads both alike, and an entity's kind says whether it has a body (`045 §2.3`). LDtk lets the control entities but `Respawn` lie outside their level, to be placed out of the way.
 - Each entity keeps its `iid` as its id, and the place, size and colour of its box in LDtk, which must be whole tiles (`045 §1.1`). The game starts a body with its anchor at the same spot on that box ([models.md](../../../docs/designs/models.md#how-the-game-places-a-model)), and draws the box on the map markers.
-- The fields read are a platform's range (`025 §1.1`); a door's `OpenStop` and `CloseStop` (`049 §1.1`); a `Trigger`'s and a `Once`'s `Target` and `Action`; a `Trigger`'s `StartsOn` and `SetOffBy` (`052 §1.2`, `§2.2`); a `Sequence`'s and a `Fanout`'s `Targets` and `Actions`; a `Dialogue`'s `DialogueFile` and `DialogueTitle` (`043 §1.1`); and a `Script`'s `ClassName` and `Entities` (`056 §2.2`); how garbled a line is, its dialogue file says (`044 §3.7`). An `EntityRef` is read as the `iid` it refers to, and a `TriggerAction` or a `TriggerSetOffBy` by name. The reader pairs `Targets` with `Actions` as steps, and rejects them if they aren't the same length (`043 §1.5`, `045 §3.1`).
+- The fields read are a platform's range (`025 §1.1`); a door's `OpenStop` and `CloseStop` (`049 §1.1`); a `Trigger`'s and a `Once`'s `Target` and `Action`; a `Trigger`'s `StartsOn` and `SetOffBy` (`052 §1.2`, `§2.2`), and its `MovesWith`, which may have no value (`063 §2.1`); a `Sequence`'s and a `Fanout`'s `Targets` and `Actions`; a `Dialogue`'s `DialogueFile`, `DialogueTitle` and `Entities` (`043 §1.1`, `063 §3.1`); and a `Script`'s `ClassName` and `Entities` (`056 §2.2`); how garbled a line is, its dialogue file says (`044 §3.7`). An `EntityRef` is read as the `iid` it refers to, and a `TriggerAction` or a `TriggerSetOffBy` by name. The reader pairs `Targets` with `Actions` as steps, and rejects them if they aren't the same length (`043 §1.5`, `045 §3.1`).
 - What doesn't depend on LDtk is checked by the world's data, which the reader reports as an error in the file: a box's size, a platform's shape, and the routes (`045 §4`).
 - The reader is given a function that reads files, so the game reads through Godot's `FileAccess` and tests through `System.IO`.

@@ -15,6 +15,9 @@ public interface IWorldView
     /// <summary>What the game is doing.</summary>
     GameMode GameMode { get; }
 
+    /// <summary>Core's view of the game's state, which is what is to be saved.</summary>
+    IGameState GameState { get; }
+
     /// <summary>
     /// Removes <paramref name="entity"/> from the world. It can be asked at any point in a tick, by a controller or a
     /// script, even about the entity whose controller or script asks, and more than once. From then on the entity isn't

@@ -1,12 +1,20 @@
 ~ start
 
-Voice: ...can you...[wait=0.5] hear me? [#garble=0.5]
-Voice: [speed=0.5]Please.[/speed] We need your help. This line wraps, to show more than one. [#garble=0.25]
+{{Voice.Name}}: ...can you...[wait=0.5] hear me? [#garble=0.5]
+{{Voice.Name}}: [speed=0.5]Please.[/speed] We need your help. This line wraps, to show more than one. [#garble=0.25]
 - Who is this?
-	Voice: No time to explain.
+	{{Voice.Name}}: No time to explain.
 - I'm listening.
-	Voice: Good.
-Voice: Bring us batteries. Five of them.
-B-CON: Got it.
+	{{Voice.Name}}: Good.
+{{Voice.Name}}: Bring us batteries. Five of them.
+{{Player.Name}}: Got it.
+
+=> END
+
+~ act
+
+{{Speaker.Name}}: Opening.
+do Act(Speaker, "Open")
+{{Speaker.Name}}: Open.
 
 => END

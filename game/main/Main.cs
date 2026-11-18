@@ -244,7 +244,7 @@ public partial class Main : Node
     /// </summary>
     private async TickTask PresentDebugDialogue()
     {
-        await new DialogueRunner(_dialogueBox, _world, "debug", "start").Default(_world.Tick);
+        await new DialogueRunner(_dialogueBox, _world, "debug", "start", []).Default(_world.Tick);
         GD.Print("The debug dialogue has ended.");
     }
 
@@ -352,8 +352,10 @@ public partial class Main : Node
     {
         WorldNode? old = _world;
         Telemetry.Reset();
+        var state = new GameState(world);
         _world = WorldNode.Build(
             world,
+            state,
             _assets,
             respawnId: _respawnIds.GetValueOrDefault(world.Name),
             dialogue: _dialogueBox,
@@ -378,6 +380,8 @@ public partial class Main : Node
         _gameModeManager.World = _world;
         _phaseAimMarker.World = _world;
         _interactPrompt.World = _world;
+        _dialogueBox.World = _world;
+        _dialogueBox.GameState = state;
         ShowTitle();
         old?.StopAndQueueFree();
         return _world;
