@@ -309,7 +309,7 @@
 				},
 				{
 					"__identifier": "Trigger",
-					"__grid": [2,5],
+					"__grid": [2,9],
 					"__pivot": [0,0],
 					"__tags": ["Control"],
 					"__tile": null,
@@ -318,31 +318,31 @@
 					"width": 16,
 					"height": 16,
 					"defUid": 237,
-					"px": [32,80],
+					"px": [32,144],
 					"fieldInstances": [
 						{ "__identifier": "Target", "__type": "EntityRef", "__value": {
-							"entityIid": "16f1e500-bde0-11f1-a315-154ba4d4dfb8",
+							"entityIid": "44f2e130-bde0-11f1-a244-f59350ea27ca",
 							"layerIid": "6aa1dfc1-bde0-11f1-a170-2f753f312d69",
 							"levelIid": "6aa1dfc0-bde0-11f1-a170-f914bfc3ae23",
 							"worldIid": "0f349180-bde0-11f1-b046-a5531090d1ba"
 						}, "__tile": null, "defUid": 240, "realEditorValues": [{
 							"id": "V_String",
-							"params": ["16f1e500-bde0-11f1-a315-154ba4d4dfb8"]
+							"params": ["44f2e130-bde0-11f1-a244-f59350ea27ca"]
 						}] },
 						{ "__identifier": "Action", "__type": "LocalEnum.TriggerAction", "__value": "Default", "__tile": null, "defUid": 242, "realEditorValues": [] },
 						{ "__identifier": "StartsOn", "__type": "Bool", "__value": true, "__tile": null, "defUid": 270, "realEditorValues": [] },
-						{ "__identifier": "SetOffBy", "__type": "LocalEnum.TriggerSetOffBy", "__value": "Start", "__tile": null, "defUid": 272, "realEditorValues": [{
+						{ "__identifier": "SetOffBy", "__type": "LocalEnum.TriggerSetOffBy", "__value": "Touch", "__tile": null, "defUid": 272, "realEditorValues": [{
 							"id": "V_String",
-							"params": ["Start"]
+							"params": ["Touch"]
 						}] },
 						{ "__identifier": "MovesWith", "__type": "EntityRef", "__value": null, "__tile": null, "defUid": 294, "realEditorValues": [] }
 					],
 					"__worldX": -1360,
-					"__worldY": 48
+					"__worldY": 112
 				},
 				{
 					"__identifier": "Script",
-					"__grid": [4,5],
+					"__grid": [4,6],
 					"__pivot": [0,0],
 					"__tags": ["Control"],
 					"__tile": null,
@@ -351,24 +351,59 @@
 					"width": 16,
 					"height": 16,
 					"defUid": 259,
-					"px": [64,80],
+					"px": [64,96],
 					"fieldInstances": [
 						{ "__identifier": "ClassName", "__type": "String", "__value": "RunRightOffLedge", "__tile": null, "defUid": 260, "realEditorValues": [{
 							"id": "V_String",
 							"params": ["RunRightOffLedge"]
 						}] },
-						{ "__identifier": "Entities", "__type": "Array<EntityRef>", "__value": [{
-							"entityIid": "9cb9aa60-bde0-11f1-a170-05b3f2bcfd25",
-							"layerIid": "6aa1dfc2-bde0-11f1-a170-8b44d457842c",
-							"levelIid": "6aa1dfc0-bde0-11f1-a170-f914bfc3ae23",
-							"worldIid": "0f349180-bde0-11f1-b046-a5531090d1ba"
-						}], "__tile": null, "defUid": 273, "realEditorValues": [{
-							"id": "V_String",
-							"params": ["9cb9aa60-bde0-11f1-a170-05b3f2bcfd25"]
-						}] }
+						{ "__identifier": "Entities", "__type": "Array<EntityRef>", "__value": [], "__tile": null, "defUid": 273, "realEditorValues": [] }
 					],
 					"__worldX": -1328,
-					"__worldY": 48
+					"__worldY": 64
+				},
+				{
+					"__identifier": "Once",
+					"__grid": [4,8],
+					"__pivot": [0,0],
+					"__tags": ["Control"],
+					"__tile": null,
+					"__smartColor": "#3E2731",
+					"iid": "44f2e130-bde0-11f1-a244-f59350ea27ca",
+					"width": 16,
+					"height": 16,
+					"defUid": 261,
+					"px": [64,128],
+					"fieldInstances": [
+						{ "__identifier": "Target", "__type": "EntityRef", "__value": {
+							"entityIid": "16f1e500-bde0-11f1-a315-154ba4d4dfb8",
+							"layerIid": "6aa1dfc1-bde0-11f1-a170-2f753f312d69",
+							"levelIid": "6aa1dfc0-bde0-11f1-a170-f914bfc3ae23",
+							"worldIid": "0f349180-bde0-11f1-b046-a5531090d1ba"
+						}, "__tile": null, "defUid": 262, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["16f1e500-bde0-11f1-a315-154ba4d4dfb8"]
+						}] },
+						{ "__identifier": "Action", "__type": "LocalEnum.TriggerAction", "__value": "Default", "__tile": null, "defUid": 263, "realEditorValues": [] }
+					],
+					"__worldX": -1328,
+					"__worldY": 96
+				},
+				{
+					"__identifier": "Respawn",
+					"__grid": [18,13],
+					"__pivot": [0,0],
+					"__tags": ["Control"],
+					"__tile": null,
+					"__smartColor": "#4399D7",
+					"iid": "0d6f6570-bde0-11f1-a244-e182aabdee93",
+					"width": 16,
+					"height": 32,
+					"defUid": 220,
+					"px": [288,208],
+					"fieldInstances": [],
+					"__worldX": -1104,
+					"__worldY": 176
 				}
 			]
 		},
