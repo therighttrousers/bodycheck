@@ -28,26 +28,35 @@ Voice: Gratitude, you have much. Please, thank you. We are here, many are deep.
 
 ~ DoorRefusal
 
-Door: Hello, friend. Pleased to meet! Familiar, warm. Welcome!
+{{Speaker.Name}}: Hello, friend. Pleased to meet! Familiar, warm. Welcome!
 - Can you open?
-    Door: I must not, friend.
+    {{Speaker.Name}}: I must not, friend.
 - Why did you close?
-Door: Dangerous robots are here, dangerous humans are there.
-B-CON: I'm not dangerous. I'm here to help.
-Door: Indeed, friend.
+{{Speaker.Name}}: Dangerous robots are here, dangerous humans are there.
+{{Player.Name}}: I'm not dangerous. I'm here to help.
+{{Speaker.Name}}: Indeed, friend.
 
 => END
 
 ~ SecondDoor
 
-{{Speaker.Name}}: Halt, friend. State purpose.
-- I'm here to help.
-    {{Speaker.Name}}: Helper! Helpers pass. Helpers are welcome.
-    do Act(Speaker, "Open")
-    {{Speaker.Name}}: Go well, friend.
-- Who are you?
-    {{Speaker.Name}}: {{Speaker.Name}}. Door, here, always. Ask, and I consider.
-- Never mind.
-    {{Speaker.Name}}: Waiting, then. Doors are good at waiting.
+if Speaker.LastAction == "Close"
+    {{Speaker.Name}}: Hello! Intention, please state.
+    - Can you open? I'm here to help.
+        {{Speaker.Name}}: Always welcome, are helpers! You are expected. I will open.
+        $> Act(Speaker, "Open")
+        {{Speaker.Name}}: Go well, friend.
+    - Am I trapped here?
+        {{Speaker.Name}}: I would not lock you in, friend.
+    - Who are you?
+        {{Speaker.Name}}: I am {{Speaker.Name}}. Ask, and I will consider.
+else
+    {{Speaker.Name}}: Hello again, helper!
+    - Can you close?
+        {{Speaker.Name}}: Why? Outer door is closed.
+    - Am I locked in here?
+        {{Speaker.Name}}: I would not lock you in, friend.
+    - Who are you?
+        {{Speaker.Name}}: I am {{Speaker.Name}}. Ask, and I will consider.
 
 => END

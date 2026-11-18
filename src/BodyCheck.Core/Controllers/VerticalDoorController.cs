@@ -30,7 +30,7 @@ public sealed class VerticalDoorController : IController<Entity>
     private readonly ReentrantTask _openCloseReentry = new(Reentry.Queue);
 
     public TickTask ToggleOpenClose(ITick tick) => _openCloseReentry.Run(() =>
-        _world.WorldState.GetDoor(Entity.Id).LastAction == OpenableAction.Close ? OpenRun(tick) : CloseRun(tick));
+        _world.WorldState.GetEntity<IWorldState.IDoorState>(Entity.Id).LastAction == OpenableAction.Close ? OpenRun(tick) : CloseRun(tick));
     public TickTask Open(ITick tick) => _openCloseReentry.Run(() => OpenRun(tick));
     public TickTask Close(ITick tick) => _openCloseReentry.Run(() => CloseRun(tick));
 
@@ -40,7 +40,7 @@ public sealed class VerticalDoorController : IController<Entity>
 
     private async TickTask OpenOrClose(ITick tick, float move, OpenableAction action, EntityCue cue)
     {
-        _world.WorldState.GetDoor(Entity.Id).LastAction = action;
+        _world.WorldState.GetEntity<IWorldState.IDoorState>(Entity.Id).LastAction = action;
 
         tick = tick.Scoped(Entity.IsLive);
 

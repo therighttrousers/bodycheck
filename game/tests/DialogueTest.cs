@@ -66,7 +66,7 @@ public class DialogueTest
             "#####",
             "#.P.#",
             "#####"));
-        _box = new DialogueBox();
+        _box = new DialogueBox { World = _run.Node, WorldState = _run.State };
         Tree.Root.AddChild(_box);
         // Added after the world, as the game adds it.
         _manager = new GameModeManager { World = _run.Node };
@@ -127,7 +127,7 @@ public class DialogueTest
             CloseStop = new Vector2I(6, 0),
         };
         _run = new RoomRun(new Room(room.Name, room.Origin, TileGrid.FromText(rows), room.EntityConfigs.Append(doorConfig)));
-        _box = new DialogueBox { WorldState = _run.State };
+        _box = new DialogueBox { World = _run.Node, WorldState = _run.State };
         Tree.Root.AddChild(_box);
         Entity door = _run.Node.EntitiesOf(EntityKind.VerticalDoor).Single();
         float closed = door.Bottom();
@@ -156,7 +156,7 @@ public class DialogueTest
         // The second line waits until the door has opened.
         AssertFloat(lines[0].Bottom).IsEqualApprox(closed, 0.05f);
         AssertFloat(lines[1].Bottom).IsEqualApprox(closed + 3, 0.05f);
-        AssertThat(_run.State.GetDoor("door").LastAction).IsEqual(OpenableAction.Open);
+        AssertThat(_run.State.GetEntity<WorldState.DoorState>("door").LastAction).IsEqual("Open");
     }
 
     [TestCase]
@@ -166,7 +166,7 @@ public class DialogueTest
             "#####",
             "#.P.#",
             "#####"));
-        _box = new DialogueBox();
+        _box = new DialogueBox { World = _run.Node, WorldState = _run.State };
         Tree.Root.AddChild(_box);
 
         TickTask dropped = _box.Present(_run.Node.Tick, "debug", "start", []);

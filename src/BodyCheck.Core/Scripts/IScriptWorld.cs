@@ -28,4 +28,10 @@ public interface IScriptWorld : IWorldView
 
     /// <summary>The world's tick, which what the script awaits resumes on.</summary>
     ITick Tick { get; }
+
+    /// <summary>
+    /// Every entity in the world, by id, until it is taken out at the end of the tick it is removed in, so that what
+    /// knows an entity only by id, such as dialogue, can find it.
+    /// </summary>
+    IReadOnlyDictionary<string, Entity> Entities { get; }
 }

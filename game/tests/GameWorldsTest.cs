@@ -34,6 +34,7 @@ public class GameWorldsTest
                 var state = new WorldState(world);
                 dialogue.WorldState = state;
                 var node = WorldNode.Build(world, state, new AssetLibrary(), dialogue: dialogue, scripts: new ScriptLibrary());
+                dialogue.World = node;
                 try
                 {
                     AssertArray(node.Triggers.Keys).ContainsExactlyInAnyOrder(

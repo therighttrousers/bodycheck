@@ -629,7 +629,7 @@ public class PlayerControllerTest
                 "#.P.........########",
                 "####################"),
             settleTicks: 40);
-        Entity block = _world!.Entities.Single(entity => entity != Player && entity.Visible);
+        Entity block = _world!.Entities.Values.Single(entity => entity != Player && entity.Visible);
         AssertThat(block.Support).IsEqual(Player);
 
         // Wait until the player's leading edge is within range of the step, which is at x = 12.
@@ -687,7 +687,7 @@ public class PlayerControllerTest
                 "#...#P....#",
                 "###########"),
             settleTicks: 40);
-        Entity block = _world!.Entities.Single(entity => entity != Player && entity.Visible);
+        Entity block = _world!.Entities.Values.Single(entity => entity != Player && entity.Visible);
         AssertThat(block.Support).IsEqual(Player);
 
         // The step's face is at x = 5.

@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 using BodyCheck.Core.Entities;
 using BodyCheck.Core.WorldData;
+
+using Godot;
 
 namespace BodyCheck;
 
@@ -17,11 +20,10 @@ namespace BodyCheck;
 /// starts again.
 /// </para>
 /// </summary>
-public sealed class WorldState : IWorldState
+public sealed partial class WorldState : RefCounted, IWorldState
 {
     private readonly Dictionary<string, EntityState> _entities = [];
     private readonly Dictionary<string, EntityState> _entitiesByName = [];
-    private readonly Dictionary<string, DoorState> _doors = [];
 
     /// <summary>The state of <paramref name="world"/>'s entities as its data says they start.</summary>
     /// <exception cref="ArgumentException">Two of its entities have the same name.</exception>
@@ -29,7 +31,15 @@ public sealed class WorldState : IWorldState
     {
         foreach (EntityConfig config in world.Bodies)
         {
-            var entity = new EntityState(config.Id, config.Kind, DefaultName(config, world.Bodies));
+            var kindName = KindName(config.Kind);
+            var name = DefaultName(config, world.Bodies);
+            EntityState entity = config switch
+            {
+                EntityConfig.Player => Player = new PlayerState(config.Id, kindName, name),
+                EntityConfig.VerticalDoor door => new DoorState(config.Id, kindName, name,
+                    door.StartsClosed() ? OpenableAction.Close : OpenableAction.Open),
+                _ => new EntityState(config.Id, kindName, name),
+            };
             if (!_entitiesByName.TryAdd(entity.Name, entity))
             {
                 throw new ArgumentException(
@@ -38,19 +48,16 @@ public sealed class WorldState : IWorldState
                     nameof(world));
             }
             _entities[entity.Id] = entity;
-
-            if (config is EntityConfig.VerticalDoor door)
-            {
-                _doors[door.Id] = new DoorState(door.StartsClosed() ? OpenableAction.Close : OpenableAction.Open);
-            }
         }
+
+        Debug.Assert(Player is not null);
     }
 
     /// <summary>
     /// The name of an entity's kind as a speaker, which its avatar is named for, and which its name starts with if
     /// nothing gives it one: <c>B-CON</c> for the player, as the dialogue files name it.
     /// </summary>
-    public static string KindName(EntityKind kind) => kind switch
+    private static string KindName(EntityKind kind) => kind switch
     {
         EntityKind.Player => "B-CON",
         EntityKind.VerticalDoor => "Door",
@@ -89,44 +96,69 @@ public sealed class WorldState : IWorldState
         return i;
     }
 
-    /// <summary>The player's abilities.</summary>
-    public PlayerState Player { get; } = new();
+    private static T CastEntity<T>(object entity, string id) => entity switch
+    {
+        T value => value,
+        var value => throw new InvalidOperationException($"Entity {id} is a {value.GetType().Name}, not a {typeof(T).Name}."),
+    };
 
-    IWorldState.IPlayerState IWorldState.Player => Player;
+    /// <summary>The player's state; e.g. its abilities.</summary>
+    public PlayerState Player { get; }
 
     /// <summary>The entity with a body whose id is <paramref name="id"/>.</summary>
     /// <exception cref="KeyNotFoundException">There is none.</exception>
     public EntityState GetEntity(string id) => _entities[id];
 
+    /// <summary>The entity with a body whose id is <paramref name="id"/>, as the state of its kind.</summary>
+    /// <exception cref="KeyNotFoundException">There is none.</exception>
+    /// <exception cref="InvalidOperationException">Its state isn't a <typeparamref name="T"/>.</exception>
+    public T GetEntity<T>(string id) where T : EntityState => CastEntity<T>(GetEntity(id), id);
+
     /// <summary>The entity with a body whose name is <paramref name="name"/>.</summary>
     /// <exception cref="KeyNotFoundException">There is none.</exception>
     public EntityState GetEntityNamed(string name) => _entitiesByName[name];
 
-    /// <summary>The state of the door whose id is <paramref name="id"/>.</summary>
-    /// <exception cref="KeyNotFoundException">There is none.</exception>
-    public DoorState GetDoor(string id) => _doors[id];
+    IWorldState.IPlayerState IWorldState.Player => Player;
 
-    IWorldState.IDoorState IWorldState.GetDoor(string id) => GetDoor(id);
+    T IWorldState.GetEntity<T>(string id) => CastEntity<T>(_entities[id], id);
 
-    public sealed class PlayerState : IWorldState.IPlayerState
+    /// <summary>
+    /// What every entity with a body has: its id, its kind's name and its name, for the story and the dialogue, which
+    /// see it as it is. A kind with state of its own extends it.
+    /// </summary>
+    public partial class EntityState(string id, string kindName, string name) : RefCounted
+    {
+        /// <summary>Its configuration's id, which Core finds its state by.</summary>
+        public string Id => id;
+
+        /// <summary>Its kind's name as a speaker, such as <c>Door</c>, which its avatar is named for.</summary>
+        public string KindName => kindName;
+
+        /// <summary>Its name, such as <c>Door a6d1</c>, as a line in a dialogue file can name its speaker.</summary>
+        public string Name => name;
+    }
+
+    /// <summary>The player's state, whose abilities the game owns and Core reads.</summary>
+    public sealed partial class PlayerState(string id, string kindName, string name)
+        : EntityState(id, kindName, name), IWorldState.IPlayerState
     {
         public bool CanPhase { get; set; } = true;
         public bool CanSpawn { get; set; } = true;
+
+        bool IWorldState.IPlayerState.CanPhase => CanPhase;
+        bool IWorldState.IPlayerState.CanSpawn => CanSpawn;
     }
 
-    /// <summary>What every entity with a body has: its id, its kind, and its name, for the story and the dialogue.</summary>
-    public sealed record EntityState(string Id, EntityKind Kind, string Name);
-
-    /// <summary>A door's state, which only its controller sets, through Core's view.</summary>
-    public sealed class DoorState(OpenableAction lastAction) : IWorldState.IDoorState
+    /// <summary>
+    /// A door's state, which only its controller sets, through Core's view; the game reads it only, as a string, since
+    /// GDScript and dialogue files can't use C# enums.
+    /// </summary>
+    public sealed partial class DoorState(string id, string kindName, string name, OpenableAction lastAction)
+        : EntityState(id, kindName, name), IWorldState.IDoorState
     {
         /// <inheritdoc cref="IWorldState.IDoorState.LastAction"/>
-        public OpenableAction LastAction { get; private set; } = lastAction;
+        public string LastAction => ((IWorldState.IDoorState)this).LastAction.ToString();
 
-        OpenableAction IWorldState.IDoorState.LastAction
-        {
-            get => LastAction;
-            set => LastAction = value;
-        }
+        OpenableAction IWorldState.IDoorState.LastAction { get; set; } = lastAction;
     }
 }

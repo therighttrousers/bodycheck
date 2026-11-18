@@ -353,7 +353,6 @@ public partial class Main : Node
         WorldNode? old = _world;
         Telemetry.Reset();
         var state = new WorldState(world);
-        _dialogueBox.WorldState = state;
         _world = WorldNode.Build(
             world,
             state,
@@ -381,6 +380,8 @@ public partial class Main : Node
         _gameModeManager.World = _world;
         _phaseAimMarker.World = _world;
         _interactPrompt.World = _world;
+        _dialogueBox.World = _world;
+        _dialogueBox.WorldState = state;
         ShowTitle();
         old?.StopAndQueueFree();
         return _world;

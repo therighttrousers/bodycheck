@@ -66,8 +66,6 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
     // Whether the line shown has typed out. Not the label's IsTyping, which is false while an inline mutation, such as
     // a wait, is awaited partway through the line: going on then would end the line while the label still types it.
     private bool _typedOut;
-    // What the dialogue presented sees, or null while none is.
-    private DialogueState? _state;
     // The actions the dialogue presented has asked for, off the tick, not yet started on it.
     private readonly List<AskedAction> _asked = [];
 
@@ -147,8 +145,14 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
     public bool IsPresenting { get; private set; }
 
     /// <summary>
-    /// The state of the world whose dialogues the box presents, for the names and kinds of the entities they are about.
-    /// <see cref="Main"/> sets it for each world it builds.
+    /// The world whose dialogues the box presents, where it finds the entities they ask for actions. <see cref="Main"/>
+    /// sets it for each world it builds.
+    /// </summary>
+    public IScriptWorld? World { get; set; }
+
+    /// <summary>
+    /// The state of the world whose dialogues the box presents, which they see, and which gives the states of the
+    /// entities they are about. <see cref="Main"/> sets it for each world it builds.
     /// </summary>
     public WorldState? WorldState { get; set; }
 
@@ -165,8 +169,14 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
     {
         Resource resource = Load(file)
             ?? throw new System.IO.FileNotFoundException($"There is no dialogue file {PathOf(file)}.");
-        _state = new DialogueState { Box = this, Entities = [.. entities.Select(Describe)] };
-        Godot.Collections.Array<Variant> states = [_state];
+        WorldState worldState = WorldState
+            ?? throw new InvalidOperationException("WorldState must be set before running a dialogue.");
+        DialogueState dialogueState = new()
+        {
+            Box = this,
+            Entities = [.. entities.Select(entity => worldState.GetEntity(entity.Id))],
+        };
+        Godot.Collections.Array<Variant> states = [dialogueState, worldState];
         IsPresenting = true;
         UpdateShown();
         try
@@ -194,7 +204,7 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
                 _line = line;
                 _response = 0;
                 _next = null;
-                ShowLine();
+                ShowLine(dialogueState);
                 // An inline mutation runs as the line types out.
                 await tick.While(() => _next is null, () => StartAskedActions(tick));
                 key = _next!;
@@ -206,7 +216,6 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
             _line = null;
             _next = null;
             _text.DialogueLine = null;
-            _state = null;
             // Nothing will start them now, and what waits for them goes on, with nothing to act for.
             foreach (AskedAction asked in _asked)
             {
@@ -218,24 +227,15 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
         }
     }
 
-    /// <summary>What a dialogue sees of an entity it is about: its name and its kind's, from the world's state.</summary>
-    private DialogueEntity Describe(Entity entity)
-    {
-        WorldState state = WorldState
-            ?? throw new InvalidOperationException("A dialogue about entities is presented with no world state to name them.");
-        WorldState.EntityState described = state.GetEntity(entity.Id);
-        return new DialogueEntity { Entity = entity, Name = described.Name, Kind = WorldState.KindName(described.Kind) };
-    }
-
     /// <summary>An action that a dialogue has asked an entity for, and what to complete when it has finished.</summary>
-    private sealed record AskedAction(DialogueEntity Entity, string Action, TaskCompletionSource Done);
+    private sealed record AskedAction(WorldState.EntityState Entity, string Action, TaskCompletionSource Done);
 
     /// <summary>
     /// Asks <paramref name="entity"/> for the action named <paramref name="action"/>, off the tick, as Dialogue Manager
     /// runs mutations: the presenting method starts it on the tick when it next checks. The task completes when the
     /// action finishes, fails or is cancelled, or the dialogue ends first.
     /// </summary>
-    internal Task Ask(DialogueEntity entity, string action)
+    internal Task Ask(WorldState.EntityState entity, string action)
     {
         // So that Dialogue Manager goes on when its frames come round, not within the world's tick.
         var done = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -253,20 +253,25 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
     /// <summary>Starts the actions asked for since the last check, on <paramref name="tick"/>.</summary>
     private void StartAskedActions(ITick tick)
     {
+        if (World is null)
+        {
+            throw new InvalidOperationException("World must be set before running actions in a dialogue.");
+        }
         List<AskedAction> asked = [.. _asked];
         _asked.Clear();
         foreach (AskedAction action in asked)
         {
-            _ = RunAskedAction(tick, action);
+            _ = RunAskedAction(tick, action, World);
         }
     }
 
     /// <summary>
-    /// Runs an action a dialogue asked for, by its <see cref="TriggerAction"/>'s name, on the entity's controller. One
-    /// that isn't an action, or an entity without a controller, fails the dialogue. A failure of the action itself is
-    /// the world's, which reports what nothing awaits, and the dialogue goes on.
+    /// Runs an action a dialogue asked for, by its <see cref="TriggerAction"/>'s name, on the controller of the entity
+    /// in <paramref name="world"/> with the state's id. One that isn't an action, or an entity that is no longer in the
+    /// world or has no controller, fails the dialogue. A failure of the action itself is the world's, which reports what
+    /// nothing awaits, and the dialogue goes on.
     /// </summary>
-    private static async TickTask RunAskedAction(ITick tick, AskedAction asked)
+    private static async TickTask RunAskedAction(ITick tick, AskedAction asked, IScriptWorld world)
     {
         try
         {
@@ -274,9 +279,15 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
             {
                 throw new ArgumentException($"A dialogue asked {asked.Entity.Name} for {asked.Action}, which isn't an action.");
             }
-            IActionTarget target = asked.Entity.Entity.Controller
-                ?? throw new NotSupportedException($"A dialogue asked {asked.Entity.Name}, which has no controller, for {action}.");
-            await new Call(target, action).Run(tick);
+            if (!world.Entities.TryGetValue(asked.Entity.Id, out Entity? entity))
+            {
+                throw new ArgumentException($"A dialogue asked {asked.Entity.Name} for {asked.Action}, but an entity couldn't be found.");
+            }
+            if (entity.Controller is null)
+            {
+                throw new ArgumentException($"A dialogue asked {asked.Entity.Name} for {asked.Action}, but the entity has no controller.");
+            }
+            await new Call(entity.Controller, action).Run(tick);
         }
         finally
         {
@@ -298,14 +309,14 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
     }
 
     /// <summary>Shows the line, and starts typing it out. Its responses show once it has.</summary>
-    private void ShowLine()
+    private void ShowLine(DialogueState dialogueState)
     {
         _character.Text = _line!.Character;
         _character.Visible = _line.Character != "";
         // The speaker's own avatar, or if the speaker is one of the entities the dialogue is about, its kind's.
         _avatar.Texture = LoadAvatar(_line.Character)
-            ?? (_state?.Entities.FirstOrDefault(entity => entity.Name == _line.Character) is DialogueEntity speaker
-                ? LoadAvatar(speaker.Kind)
+            ?? (dialogueState.Entities.FirstOrDefault(entity => entity.Name == _line.Character) is WorldState.EntityState speaker
+                ? LoadAvatar(speaker.KindName)
                 : null);
         _avatarBackground.Visible = _avatar.Texture is not null;
         _text.DialogueLine = _line;

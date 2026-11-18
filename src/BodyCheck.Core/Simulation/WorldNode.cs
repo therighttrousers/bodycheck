@@ -33,10 +33,10 @@ public partial class WorldNode : Node3D, IScriptWorld
     // How far tile colliders extend along Z.
     private const float Depth = 1;
 
-    private readonly List<Entity> _entities = [];
+    private readonly OrderedDictionary<string, Entity> _entities = [];
 
     // What built each entity that a configuration builds: all but the player's block.
-    private readonly Dictionary<Entity, EntityConfig> _configs = [];
+    private readonly OrderedDictionary<string, EntityConfig> _configs = [];
 
     // The entities that have been asked to be removed, and not yet taken out, in the order they were asked.
     private readonly List<Entity> _removed = [];
@@ -188,8 +188,8 @@ public partial class WorldNode : Node3D, IScriptWorld
             EntityConfig startBox = config.Kind == EntityKind.Player && CurrentRespawn is not null ? CurrentRespawn : config;
             entity.Position = StartPosition(entity, startBox);
             AddChild(entity);
-            _entities.Add(entity);
-            _configs[entity] = config;
+            _entities[config.Id] = entity;
+            _configs[config.Id] = config;
             bodies[config.Id] = entity;
         }
 
@@ -203,7 +203,7 @@ public partial class WorldNode : Node3D, IScriptWorld
 
         // Last, since no configuration builds it.
         AddChild(PlayerBlock);
-        _entities.Add(PlayerBlock);
+        _entities[PlayerBlock.Id] = PlayerBlock;
 
         // Redundant but harmless: the `World` constructor also ensures this.
         Debug.Assert(Player is not null);
@@ -237,7 +237,7 @@ public partial class WorldNode : Node3D, IScriptWorld
 
         // Last, once the world is built, so that no controller sees it half built. An entity added later is to be given
         // the world as soon as it is built.
-        foreach (Entity entity in _entities)
+        foreach (Entity entity in _entities.Values)
         {
             entity.Controller?.Ready(this);
         }
@@ -476,18 +476,18 @@ public partial class WorldNode : Node3D, IScriptWorld
     public PlayerController PlayerController { get; } = null!;
 
     /// <summary>
-    /// Every entity in the world, in the order they are stepped: those the world's <see cref="World.Bodies"/> build, in
-    /// their order, then <see cref="PlayerBlock"/>, which no configuration builds, less those taken out. One asked to be
-    /// removed stays until the end of the tick, not <see cref="Entity.IsLive"/>.
+    /// Every entity in the world, by id, in the order they are stepped: those the world's <see cref="World.Bodies"/>
+    /// build, in their order, then <see cref="PlayerBlock"/>, which no configuration builds, less those taken out. One
+    /// asked to be removed stays until the end of the tick, not <see cref="Entity.IsLive"/>.
     /// </summary>
-    public IReadOnlyList<Entity> Entities => _entities;
+    public IReadOnlyDictionary<string, Entity> Entities => _entities;
 
     /// <summary>
     /// The entities of one kind that the world's configurations build, in the order they are stepped, as
     /// <see cref="Entities"/> holds them.
     /// </summary>
     public IEnumerable<Entity> EntitiesOf(EntityKind kind) =>
-        _entities.Where(entity => _configs.TryGetValue(entity, out EntityConfig? config) && config.Kind == kind);
+        _entities.Values.Where(entity => _configs.TryGetValue(entity.Id, out EntityConfig? config) && config.Kind == kind);
 
     /// <inheritdoc/>
     public void Remove(Entity entity)
@@ -496,7 +496,7 @@ public partial class WorldNode : Node3D, IScriptWorld
         {
             throw new ArgumentException("The player and the player's block can't be removed.", nameof(entity));
         }
-        if (!_entities.Contains(entity))
+        if (!_entities.ContainsKey(entity.Id))
         {
             throw new ArgumentException("The entity isn't in this world.", nameof(entity));
         }
@@ -523,11 +523,11 @@ public partial class WorldNode : Node3D, IScriptWorld
             _removed.Clear();
             foreach (Entity entity in removed)
             {
-                _entities.Remove(entity);
-                _configs.Remove(entity);
+                _entities.Remove(entity.Id);
+                _configs.Remove(entity.Id);
                 RemoveChild(entity);
                 entity.QueueFree();
-                foreach (Entity other in _entities)
+                foreach (Entity other in _entities.Values)
                 {
                     other.Forget(entity);
                 }
@@ -652,7 +652,7 @@ public partial class WorldNode : Node3D, IScriptWorld
     /// Whether any entity's controller asks for the game to be paused. Whatever pauses the game for it calls
     /// <see cref="StepPaused"/> each physics tick until nothing asks.
     /// </summary>
-    public bool PauseRequested => _entities.Any(entity => entity.RequestsPause);
+    public bool PauseRequested => _entities.Values.Any(entity => entity.RequestsPause);
 
     /// <summary>
     /// Steps every entity's controller while the game is paused because a controller asked: call once per physics
@@ -674,7 +674,7 @@ public partial class WorldNode : Node3D, IScriptWorld
         try
         {
             NoteGameMode();
-            foreach (Entity entity in _entities)
+            foreach (Entity entity in _entities.Values)
             {
                 if (entity.IsLive())
                 {
@@ -707,7 +707,7 @@ public partial class WorldNode : Node3D, IScriptWorld
             {
                 NoteGameMode();
             }
-            foreach (Entity entity in _entities)
+            foreach (Entity entity in _entities.Values)
             {
                 if (entity.IsLive() && entity.CanProcess())
                 {
@@ -748,7 +748,7 @@ public partial class WorldNode : Node3D, IScriptWorld
         GameMode mode = GameMode;
         if (_steppedGameMode is GameMode from && from != mode)
         {
-            foreach (Entity entity in _entities)
+            foreach (Entity entity in _entities.Values)
             {
                 entity.Controller?.GameModeChanged(from, mode);
             }
@@ -786,7 +786,7 @@ public partial class WorldNode : Node3D, IScriptWorld
             tiles.Friction = Features.Current.TileDefaultFriction;
         }
 
-        foreach (Entity entity in _entities)
+        foreach (Entity entity in _entities.Values)
         {
             entity.UpdateFromFeatures();
         }
