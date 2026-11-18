@@ -83,6 +83,7 @@ Hold the jump button to jump higher.
 Phase goes through the robot, block or platform nearest the player. Holding it with one in reach, or coming within reach of one while holding it, slows the game to a pause, with arrows to aim with; release it while holding a direction to phase that way, or with no direction to cancel.
 
 Debug controls:
+- F1: toggle the camera debug overlay.
 - F2: toggle display of original entity placement and control entities. Pass `--markers` after `--` to start with them on.
 - F3: debug overlay on or off, with measurements for tuning and level design. Pass `--overlay` after `--` to start with it on.
 - F4: collision shapes as wireframes, and contact points, on or off. Pass `--collisions` after `--` to start with them on.
