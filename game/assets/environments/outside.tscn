@@ -31,9 +31,15 @@ sky = SubResource("Sky_3be37")
 ambient_light_color = Color(0.5019608, 0.5019608, 1, 1)
 ambient_light_sky_contribution = 0.0
 ambient_light_energy = 0.25
-volumetric_fog_density = 0.001
-volumetric_fog_albedo = Color(0, 0.3666668, 1, 1)
-volumetric_fog_emission = Color(0.5, 0.5, 1, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_3og3l"]
+transparency = 1
+shading_mode = 0
+albedo_texture = ExtResource("2_8k5fj")
+
+[sub_resource type="QuadMesh" id="QuadMesh_e8kf8"]
+material = SubResource("StandardMaterial3D_3og3l")
+size = Vector2(270, 170)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_e8kf8"]
 transparency = 1
@@ -45,33 +51,14 @@ albedo_texture = ExtResource("1_rxrse")
 material = SubResource("StandardMaterial3D_e8kf8")
 size = Vector2(270, 170)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_3og3l"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_oo1ob"]
 transparency = 1
 shading_mode = 0
-albedo_texture = ExtResource("2_8k5fj")
+albedo_color = Color(0.85499996, 0.85499996, 0.95, 1)
+albedo_texture = ExtResource("7_xkwg1")
 
-[sub_resource type="QuadMesh" id="QuadMesh_e8kf8"]
-material = SubResource("StandardMaterial3D_3og3l")
-size = Vector2(270, 170)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_jblxb"]
-transparency = 1
-shading_mode = 0
-albedo_color = Color(0.48000002, 0.48000002, 0.8, 1)
-albedo_texture = ExtResource("4_8u38t")
-
-[sub_resource type="QuadMesh" id="QuadMesh_uwuhp"]
-material = SubResource("StandardMaterial3D_jblxb")
-size = Vector2(270, 170)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_xu6o7"]
-transparency = 1
-shading_mode = 0
-albedo_color = Color(0.595, 0.595, 0.85, 1)
-albedo_texture = ExtResource("5_julqk")
-
-[sub_resource type="QuadMesh" id="QuadMesh_julqk"]
-material = SubResource("StandardMaterial3D_xu6o7")
+[sub_resource type="QuadMesh" id="QuadMesh_cw3ln"]
+material = SubResource("StandardMaterial3D_oo1ob")
 size = Vector2(270, 170)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_julqk"]
@@ -84,14 +71,24 @@ albedo_texture = ExtResource("6_xu6o7")
 material = SubResource("StandardMaterial3D_julqk")
 size = Vector2(270, 170)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_oo1ob"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_jblxb"]
 transparency = 1
 shading_mode = 0
-albedo_color = Color(0.85499996, 0.85499996, 0.95, 1)
-albedo_texture = ExtResource("7_xkwg1")
+albedo_color = Color(0.595, 0.595, 0.85, 1)
+albedo_texture = ExtResource("4_8u38t")
 
-[sub_resource type="QuadMesh" id="QuadMesh_cw3ln"]
-material = SubResource("StandardMaterial3D_oo1ob")
+[sub_resource type="QuadMesh" id="QuadMesh_uwuhp"]
+material = SubResource("StandardMaterial3D_jblxb")
+size = Vector2(270, 170)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_xu6o7"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0.48000002, 0.48000002, 0.8, 1)
+albedo_texture = ExtResource("5_julqk")
+
+[sub_resource type="QuadMesh" id="QuadMesh_julqk"]
+material = SubResource("StandardMaterial3D_xu6o7")
 size = Vector2(270, 170)
 
 [sub_resource type="Resource" id="Resource_ddbav"]
@@ -119,27 +116,21 @@ shadow_enabled = true
 
 [node name="Backdrop" type="Node3D" parent="." unique_id=1785714554]
 
-[node name="Mountains1" type="MeshInstance3D" parent="Backdrop" unique_id=1048491069]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 8, -200)
-mesh = SubResource("QuadMesh_wwk44")
-script = ExtResource("2_8u38t")
-RepeatY = false
-
 [node name="Mountains2" type="MeshInstance3D" parent="Backdrop" unique_id=864493024]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -150)
 mesh = SubResource("QuadMesh_e8kf8")
 script = ExtResource("2_8u38t")
 RepeatY = false
 
-[node name="Clouds1" type="MeshInstance3D" parent="Backdrop" unique_id=1913485127]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 120, 10, -400)
-mesh = SubResource("QuadMesh_uwuhp")
+[node name="Mountains1" type="MeshInstance3D" parent="Backdrop" unique_id=1048491069]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 8, -200)
+mesh = SubResource("QuadMesh_wwk44")
 script = ExtResource("2_8u38t")
 RepeatY = false
 
-[node name="Clouds2" type="MeshInstance3D" parent="Backdrop" unique_id=1262916951]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80, 20, -350)
-mesh = SubResource("QuadMesh_julqk")
+[node name="Clouds4" type="MeshInstance3D" parent="Backdrop" unique_id=573714919]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 40, -250)
+mesh = SubResource("QuadMesh_cw3ln")
 script = ExtResource("2_8u38t")
 RepeatY = false
 
@@ -149,9 +140,15 @@ mesh = SubResource("QuadMesh_xkwg1")
 script = ExtResource("2_8u38t")
 RepeatY = false
 
-[node name="Clouds4" type="MeshInstance3D" parent="Backdrop" unique_id=573714919]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 40, -250)
-mesh = SubResource("QuadMesh_cw3ln")
+[node name="Clouds1" type="MeshInstance3D" parent="Backdrop" unique_id=1913485127]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 120, 20, -350)
+mesh = SubResource("QuadMesh_uwuhp")
+script = ExtResource("2_8u38t")
+RepeatY = false
+
+[node name="Clouds2" type="MeshInstance3D" parent="Backdrop" unique_id=1262916951]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80, 10, -400)
+mesh = SubResource("QuadMesh_julqk")
 script = ExtResource("2_8u38t")
 RepeatY = false
 
