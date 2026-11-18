@@ -2,15 +2,15 @@
 
 [ext_resource type="Texture2D" uid="uid://cjtaindxeniwh" path="res://assets/environments/clouds_and_mountains/BackgroundMountain_01.png" id="1_rxrse"]
 [ext_resource type="Texture2D" uid="uid://cefktn3mdyoqm" path="res://assets/environments/clouds_and_mountains/BackgroundMuntain02.png" id="2_8k5fj"]
-[ext_resource type="Script" uid="uid://blkix2xkgcg1j" path="res://main/BackdropLayer.cs" id="2_8u38t"]
+[ext_resource type="Script" uid="uid://blkix2xkgcg1j" path="res://bodycheck/environments/BackdropLayer.cs" id="2_8u38t"]
 [ext_resource type="Texture2D" uid="uid://dwqn8si63ghio" path="res://assets/environments/clouds_and_mountains/Cloud01.png" id="4_8u38t"]
 [ext_resource type="Texture2D" uid="uid://bt41lji4qrihg" path="res://assets/environments/clouds_and_mountains/Cloud02.png" id="5_julqk"]
 [ext_resource type="Texture2D" uid="uid://dxda3pyfpn5n8" path="res://assets/environments/clouds_and_mountains/Cloud03.png" id="6_xu6o7"]
 [ext_resource type="Texture2D" uid="uid://b81oqgcnfqv7t" path="res://assets/environments/clouds_and_mountains/Clouds04.png" id="7_xkwg1"]
-[ext_resource type="Script" uid="uid://dv2chjk60lpwi" path="res://decoration/RoomDecorations.cs" id="8_w7rti"]
-[ext_resource type="Script" uid="uid://cinvh5rmi56fo" path="res://decoration/RoomDecorator.cs" id="9_4vav2"]
-[ext_resource type="Script" uid="uid://wiuaxcv6wsqp" path="res://decoration/BackWall.cs" id="10_ddbav"]
-[ext_resource type="Script" uid="uid://cxklipv1b6xvr" path="res://decoration/BackWallGrowth.cs" id="20_growth"]
+[ext_resource type="Script" uid="uid://dv2chjk60lpwi" path="res://bodycheck/decoration/RoomDecorations.cs" id="8_w7rti"]
+[ext_resource type="Script" uid="uid://cinvh5rmi56fo" path="res://bodycheck/decoration/RoomDecorator.cs" id="9_4vav2"]
+[ext_resource type="Script" uid="uid://wiuaxcv6wsqp" path="res://bodycheck/decoration/BackWall.cs" id="10_ddbav"]
+[ext_resource type="Script" uid="uid://cxklipv1b6xvr" path="res://bodycheck/decoration/BackWallGrowth.cs" id="20_growth"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_ts7x6"]
 sky_top_color = Color(0, 0.74030584, 0.91035265, 1)

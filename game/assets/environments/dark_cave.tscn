@@ -1,8 +1,9 @@
 [gd_scene format=3 uid="uid://cj8ogtxwb4141"]
 
-[ext_resource type="Script" uid="uid://dv2chjk60lpwi" path="res://decoration/RoomDecorations.cs" id="1_y7mcl"]
-[ext_resource type="Script" uid="uid://wiuaxcv6wsqp" path="res://decoration/BackWall.cs" id="2_5v2dn"]
-[ext_resource type="Script" uid="uid://cxklipv1b6xvr" path="res://decoration/BackWallGrowth.cs" id="20_growth"]
+[ext_resource type="Script" uid="uid://dv2chjk60lpwi" path="res://bodycheck/decoration/RoomDecorations.cs" id="1_y7mcl"]
+[ext_resource type="Script" uid="uid://wiuaxcv6wsqp" path="res://bodycheck/decoration/BackWall.cs" id="2_5v2dn"]
+[ext_resource type="Script" uid="uid://cinvh5rmi56fo" path="res://bodycheck/decoration/RoomDecorator.cs" id="2_8n35e"]
+[ext_resource type="Script" uid="uid://cxklipv1b6xvr" path="res://bodycheck/decoration/BackWallGrowth.cs" id="20_growth"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_uwuhp"]
 sky_top_color = Color(0.14928326, 0.08219092, 0.015578877, 1)
@@ -38,4 +39,4 @@ environment = SubResource("Environment_wwk44")
 
 [node name="Decorations" type="Node" parent="." unique_id=2132310537]
 script = ExtResource("1_y7mcl")
-Decorators = [SubResource("Resource_8n35e")]
+Decorators = Array[ExtResource("2_8n35e")]([SubResource("Resource_8n35e")])

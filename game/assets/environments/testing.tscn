@@ -1,8 +1,9 @@
 [gd_scene format=3 uid="uid://d0xaf3lexadxh"]
 
-[ext_resource type="Script" uid="uid://dv2chjk60lpwi" path="res://decoration/RoomDecorations.cs" id="1_ggmf2"]
-[ext_resource type="Script" uid="uid://wiuaxcv6wsqp" path="res://decoration/BackWall.cs" id="2_tyo8q"]
-[ext_resource type="Script" uid="uid://cxklipv1b6xvr" path="res://decoration/BackWallGrowth.cs" id="20_growth"]
+[ext_resource type="Script" uid="uid://dv2chjk60lpwi" path="res://bodycheck/decoration/RoomDecorations.cs" id="1_ggmf2"]
+[ext_resource type="Script" uid="uid://wiuaxcv6wsqp" path="res://bodycheck/decoration/BackWall.cs" id="2_tyo8q"]
+[ext_resource type="Script" uid="uid://cinvh5rmi56fo" path="res://bodycheck/decoration/RoomDecorator.cs" id="2_xmykx"]
+[ext_resource type="Script" uid="uid://cxklipv1b6xvr" path="res://bodycheck/decoration/BackWallGrowth.cs" id="20_growth"]
 
 [sub_resource type="Environment" id="Environment_wwk44"]
 background_mode = 1
@@ -31,4 +32,4 @@ light_energy = 2.0
 
 [node name="Decorations" type="Node" parent="." unique_id=1253545025]
 script = ExtResource("1_ggmf2")
-Decorators = [SubResource("Resource_xmykx")]
+Decorators = Array[ExtResource("2_xmykx")]([SubResource("Resource_xmykx")])

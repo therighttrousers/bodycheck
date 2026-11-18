@@ -8,11 +8,11 @@ Relevant decision records:
 - [052: The talking door](../decision-records/052-talking-door.md)
 - [063: World state, and talking to entities](../decision-records/063-world-state-and-talking-to-entities.md)
 
-How dialogue is written, shown and translated. What the characters say is in [story.md](story.md#dialogue); how the code is put together is in [`game/main/`](../../game/main/architecture.md#the-games-modes).
+How dialogue is written, shown and translated. What the characters say is in [story.md](story.md#dialogue); how the code is put together is in [`game/bodycheck/dialogue/`](../../game/bodycheck/dialogue/architecture.md).
 
 ## The backend
 
-Dialogue is written in Dialogue Manager's files, in `game/dialogue/`, and fetched a line at a time through its C# API. Presentation is ours: we use none of its balloons (`044 §1.3`, `§1.4`).
+Dialogue is written in Dialogue Manager's files, in `game/assets/dialogue/`, and fetched a line at a time through its C# API. Presentation is ours: we use none of its balloons (`044 §1.3`, `§1.4`).
 
 Files are organized by story beat, not by level. Lines shared everywhere, such as "Sleep", go in a common file that others import (`044 §5.1`).
 

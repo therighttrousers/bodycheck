@@ -1,8 +1,9 @@
 [gd_scene format=3 uid="uid://d2d6g565o3d0r"]
 
-[ext_resource type="Script" uid="uid://dv2chjk60lpwi" path="res://decoration/RoomDecorations.cs" id="1_0yxiv"]
-[ext_resource type="Script" uid="uid://wiuaxcv6wsqp" path="res://decoration/BackWall.cs" id="2_4ytes"]
-[ext_resource type="Script" uid="uid://cxklipv1b6xvr" path="res://decoration/BackWallGrowth.cs" id="20_growth"]
+[ext_resource type="Script" uid="uid://dv2chjk60lpwi" path="res://bodycheck/decoration/RoomDecorations.cs" id="1_0yxiv"]
+[ext_resource type="Script" uid="uid://wiuaxcv6wsqp" path="res://bodycheck/decoration/BackWall.cs" id="2_4ytes"]
+[ext_resource type="Script" uid="uid://cinvh5rmi56fo" path="res://bodycheck/decoration/RoomDecorator.cs" id="2_vttbi"]
+[ext_resource type="Script" uid="uid://cxklipv1b6xvr" path="res://bodycheck/decoration/BackWallGrowth.cs" id="20_growth"]
 
 [sub_resource type="Environment" id="Environment_wwk44"]
 background_mode = 1
@@ -33,4 +34,4 @@ shadow_enabled = true
 
 [node name="Decorations" type="Node" parent="." unique_id=923600191]
 script = ExtResource("1_0yxiv")
-Decorators = [SubResource("Resource_vttbi")]
+Decorators = Array[ExtResource("2_vttbi")]([SubResource("Resource_vttbi")])

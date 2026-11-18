@@ -4,7 +4,11 @@
     <TargetFramework>net10.0</TargetFramework>
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <Nullable>enable</Nullable>
-    <RootNamespace>BodyCheck</RootNamespace>
+    <!--
+      Empty, so that a namespace matches its directory from the project's root: game/bodycheck/look/ is
+      BodyCheck.Look. The rule that checks it ignores case.
+    -->
+    <RootNamespace></RootNamespace>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -18,7 +22,7 @@
   </ItemGroup>
 
   <!--
-    The tests are in tests/, compiled into the game's assembly, because gdUnit4Net runs them inside Godot, which
+    The tests are in bodycheck/tests/, compiled into the game's assembly, because gdUnit4Net runs them inside Godot, which
     loads only the project's assembly. They and the probes are only for the editor's build, Debug, where Godot
     defines TOOLS; exports leave them out.
   -->
@@ -38,10 +42,10 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(Configuration)' != 'Debug'">
-    <Compile Remove="tests\**" />
+    <Compile Remove="bodycheck\tests\**" />
     <!-- The test adapter's runner, written on each test run. -->
     <Compile Remove="gdunit4_testadapter_v5\**" />
-    <Compile Remove="probes\**" />
+    <Compile Remove="bodycheck\probes\**" />
   </ItemGroup>
 
 </Project>

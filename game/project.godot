@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="Body Check"
-run/main_scene="res://main/Main.tscn"
+run/main_scene="res://scenes/play.tscn"
 config/features=PackedStringArray("4.7", "C#", "Forward Plus")
 run/max_fps=60
 
@@ -26,8 +26,8 @@ DialogueManager="*res://addons/dialogue_manager/dialogue_manager.gd"
 
 [dialogue_manager]
 
-editor/translations/include_characters_in_translatable_strings_list=false
 runtime/advanced/uses_dotnet=true
+editor/translations/include_characters_in_translatable_strings_list=false
 
 [display]
 
@@ -54,12 +54,12 @@ import/blender/enabled=false
 [importer_defaults]
 
 scene={
-"import_script/path": "res://look/nearest_textures_import.gd"
+"import_script/path": "res://bodycheck/look/nearest_textures_import.gd"
 }
 
 [internationalization]
 
-locale/translations_pot_files=PackedStringArray("res://dialogue/debug.dialogue", "res://dialogue/TheCall.dialogue", "res://dialogue/Testing.dialogue")
+locale/translations_pot_files=PackedStringArray("res://assets/dialogue/debug.dialogue", "res://assets/dialogue/TheCall.dialogue", "res://assets/dialogue/Testing.dialogue")
 
 [layer_names]
 
