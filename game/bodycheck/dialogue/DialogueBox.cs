@@ -27,6 +27,8 @@ namespace BodyCheck.Dialogue;
 /// ones before it have ended. It holds no cutscene: what presents a dialogue holds one, as Core's dialogue runner does,
 /// so that the game's modes know nothing of dialogue. Each line types out, and its responses show once it
 /// has. Jump skips the typing, or once a line has typed out, goes on to the next, and up and down choose a response.
+/// A response can be chosen only <see cref="ResponseAllowedWait"/> after the responses show, so that a jump pressed to
+/// skip the typing doesn't also go on with the first.
 /// </para>
 /// <para>
 /// A dialogue is presented by an async method on the tick it is presented on, the world's, which waits for each line
@@ -56,11 +58,19 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
     /// <c>Voice.png</c> or <c>Door.png</c>.
     /// </summary>
     private const string AvatarDirectory = "res://assets/avatars";
+    /// <summary>
+    /// How long, in seconds, a line's responses show before the player can choose one and go on with it.
+    /// </summary>
+    private const double ResponseAllowedWait = 0.5;
 
     // So that one dialogue is presented at a time, and the next starts when the one before has ended.
     private readonly ReentrantTask _presenting = new(Reentry.Queue);
     // The line being shown, or null while the next is being fetched.
     private DialogueLine? _line;
+    // Whether the player can choose one of the line's responses and go on with it: false until the responses have
+    // shown for ResponseAllowedWait.
+    private bool _responseAllowed;
+    // The index of the response chosen from the line's responses.
     private int _response;
     // What the player has gone on to from the line shown: the next line's ID, or null until they go on.
     private string? _next;
@@ -137,11 +147,7 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
         lines.AddChild(_character);
         lines.AddChild(_text);
         lines.AddChild(_responses);
-        _text.FinishedTyping += () =>
-        {
-            _typedOut = true;
-            ShowResponses();
-        };
+        _text.FinishedTyping += () => _typedOut = true;
     }
 
     /// <summary>Whether a dialogue has started and not yet ended.</summary>
@@ -209,6 +215,16 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
                 _next = null;
                 ShowLine(gameState);
                 // An inline mutation runs as the line types out.
+                await tick.While(() => !_typedOut, () => StartAskedActions(tick));
+                if (_line.Responses.Count > 0)
+                {
+                    // Show responses now, but make the player wait to choose in case they're spamming the skip key.
+                    ShowResponses();
+                    var waitEndTime = tick.Time + ResponseAllowedWait;
+                    await tick.While(() => tick.Time < waitEndTime, () => StartAskedActions(tick));
+                    _responseAllowed = true;
+                    ShowResponses();
+                }
                 await tick.While(() => _next is null, () => StartAskedActions(tick));
                 key = _next!;
             }
@@ -218,6 +234,10 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
             IsPresenting = false;
             _line = null;
             _next = null;
+            // Clear IsTyping to ensure the next _text._Process call does nothing. If at this point it's still typing
+            // (e.g. task cancel brought us here), _Process would otherwise try to dereference DialogueLine. Note that
+            // this might fire off a (currently benign) FinishedTyping event.
+            _text.IsTyping = false;
             _text.DialogueLine = null;
             // Nothing will start them now, and what waits for them goes on, with nothing to act for.
             foreach (AskedAction asked in _asked)
@@ -324,6 +344,7 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
         _text.DialogueLine = _line;
         ClearResponses();
         _typedOut = false;
+        _responseAllowed = false;
         _text.TypeOut();
     }
 
@@ -353,14 +374,15 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
         }
         for (int i = 0; i < _line.Responses.Count; i++)
         {
+            bool chosen = _responseAllowed && i == _response;
             _responses.AddChild(new RichTextLabel
             {
                 FitContent = true,
                 BbcodeEnabled = true,
                 Text =
-                    (i == _response ? "> [u]" : "[color=transparent]>[/color] ") +
+                    (chosen ? "> [u]" : "[color=transparent]>[/color] ") +
                     _line.Responses[i].Text +
-                    (i == _response ? "[/u]" : ""),
+                    (chosen ? "[/u]" : ""),
                 Modulate = _line.Responses[i].IsAllowed ? Colors.White : Colors.Gray,
             });
         }
@@ -409,7 +431,7 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
         {
             _next = _line.NextId;
         }
-        else if (_line.Responses[_response].IsAllowed)
+        else if (_responseAllowed && _line.Responses[_response].IsAllowed)
         {
             _next = _line.Responses[_response].NextId;
         }
@@ -418,7 +440,7 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
     /// <summary>Chooses the response <paramref name="step"/> after the chosen one, wrapping around.</summary>
     private void ChooseResponse(int step)
     {
-        if (_line is null || _line.Responses.Count == 0 || !_typedOut)
+        if (_line is null || _line.Responses.Count == 0 || !_responseAllowed)
         {
             return;
         }
