@@ -1,0 +1,105 @@
+using System;
+using System.Threading.Tasks;
+
+using BodyCheck.Core;
+using BodyCheck.Core.Entities;
+using BodyCheck.Core.Scripts;
+using BodyCheck.Core.Simulation;
+using BodyCheck.Core.WorldData;
+using BodyCheck.Library;
+using BodyCheck.State;
+
+using Godot;
+
+namespace BodyCheck.Tests;
+
+/// <summary>
+/// One room, as a world of one room, loaded into the running engine for a test, with the player's input under the test's control.
+/// Free it when the test ends.
+/// </summary>
+public sealed class RoomRun
+{
+    public static readonly PlayerInput Idle = new(0, 0, false);
+    public static readonly PlayerInput Right = new(1, 0, false);
+    public static readonly PlayerInput Left = new(-1, 0, false);
+    public static readonly PlayerInput Jump = new(0, 0, true);
+
+    private PlayerInput _input = Idle;
+
+    /// <param name="respawnId">The respawn the player starts at, as <see cref="WorldNode.Build"/> takes it.</param>
+    /// <param name="scripts">The scripts the room's <c>Script</c> entities run, as <see cref="WorldNode.Build"/> takes them.</param>
+    public RoomRun(Room room, bool controllersEnabled = true, string? respawnId = null, IScriptLibrary? scripts = null)
+    {
+        var world = new World(room);
+        State = new GameState(world);
+        Node = WorldNode.Build(world, State, new AssetLibrary(), respawnId: respawnId, scripts: scripts);
+        Node.PlayerController.UserInputSource = () => _input;
+        Node.ControllersEnabled = controllersEnabled;
+        Tree.Root.AddChild(Node);
+    }
+
+    public WorldNode Node { get; }
+
+    /// <summary>The game's state, as the game holds it.</summary>
+    public GameState State { get; }
+
+    public Entity Player => Node.Player;
+
+    private static SceneTree Tree => (SceneTree)Engine.GetMainLoop();
+
+    /// <summary>A room from text rows, top row first, with the name "Test".</summary>
+    public static Room RoomOf(params string[] rows) => Room.FromText("Test", string.Join('\n', rows));
+
+    /// <summary>Frees the room, with <see cref="FreeAndFinalize"/>.</summary>
+    public void Free() => FreeAndFinalize(Node);
+
+    /// <summary>
+    /// Frees a node, and runs the finalizers of the C# objects it leaves behind, such as the wrappers of its meshes and
+    /// shapes. Godot crashes if a finalizer runs while it shuts down, so none may be left when the last test ends: every
+    /// test that frees a world frees it with this. A world the test has dropped may already be freed.
+    /// </summary>
+    public static void FreeAndFinalize(Node node)
+    {
+        if (GodotObject.IsInstanceValid(node))
+        {
+            node.Free();
+        }
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+    }
+
+    /// <summary>Runs the room for a number of physics ticks with the given input.</summary>
+    /// <param name="eachTick">Called after each tick.</param>
+    public async Task Tick(PlayerInput input, int ticks = 1, Action? eachTick = null)
+    {
+        _input = input;
+        for (int i = 0; i < ticks; i++)
+        {
+            await Tree.ToSignal(Tree, SceneTree.SignalName.PhysicsFrame);
+            eachTick?.Invoke();
+        }
+    }
+
+    /// <summary>
+    /// Runs the room's controllers for a number of physics ticks with the given input, as the game does while it is
+    /// paused because a controller asked. Pause the tree first.
+    /// </summary>
+    public async Task PausedTick(PlayerInput input, int ticks = 1)
+    {
+        _input = input;
+        for (int i = 0; i < ticks; i++)
+        {
+            await Tree.ToSignal(Tree, SceneTree.SignalName.PhysicsFrame);
+            Node.StepPaused();
+        }
+    }
+}
+
+public static class EntityExtensions
+{
+    public static float Left(this Entity node) => node.Position.X - node.HalfSize.X;
+    public static float Right(this Entity node) => node.Position.X + node.HalfSize.X;
+    public static float Bottom(this Entity node) => node.Position.Y - node.HalfSize.Y;
+    public static float Top(this Entity node) => node.Position.Y + node.HalfSize.Y;
+    public static float MomentumX(this Entity node) => node.Mass * node.LinearVelocity.X;
+}

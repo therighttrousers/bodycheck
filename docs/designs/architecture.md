@@ -35,7 +35,7 @@ This is the top of the architecture docs. Each directory with parts of its own h
 ## Layout
 
 - [`src/BodyCheck.Core/`](../../src/BodyCheck.Core/architecture.md): the game's rules, as a C# library.
-- [`game/`](../../game/architecture.md): the Godot project: scenes, node scripts, levels, assets, and the tests.
+- [`game/`](../../game/architecture.md): the Godot project: the game's code in `game/bodycheck/`, with the tests, and its scenes, levels and assets.
 - `docs/`: design docs and decision records.
 - `scripts/`: setup and release builds.
 - `build/`: release builds (not in Git).

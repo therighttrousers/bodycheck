@@ -50,6 +50,14 @@ Core is split into subsystems, one per subdirectory of `src/BodyCheck.Core/`, ea
 - **Put code where its subsystem's `architecture.md` says it belongs.** If nowhere fits, or the code would need a dependency the rules forbid, stop and raise it with the user: the answer may be to change a boundary, move a type, or add a subsystem.
 - **No empty subsystems.** Add a subsystem when there is code for it, with its `architecture.md`, and add it to Core's.
 
+## Parts of the game's code
+
+All of the game's code is in `game/bodycheck/`, split into parts in the same way, one per subdirectory, each in the namespace `BodyCheck.` and the directory's name in Pascal case, such as `BodyCheck.Look` for `game/bodycheck/look/`. Read [the game's code's architecture doc](game/bodycheck/architecture.md) and the relevant parts' before adding code to the game.
+
+- **The rules for Core's subsystems hold for the game's parts**, with `BodyCheck` as the root: no cycles, light references, shared things only in the root, code where its part's doc says, and no empty parts.
+- **Directories are lowercase**, as Godot's are, and the namespaces are their Pascal case.
+- **No scenes in `game/bodycheck/`.** A top-level scene, one that Godot switches between, goes in `game/scenes/`, named for its script in `game/bodycheck/scenes/` in snake case. Every other scene goes in `game/assets/`, beside what it is made of.
+
 ## Git
 
 - `main` is protected: nothing can be pushed to it directly. Changes go through a PR, and CI must pass on the PR's branch.
