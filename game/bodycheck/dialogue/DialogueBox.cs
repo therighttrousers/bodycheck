@@ -137,11 +137,7 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
         lines.AddChild(_character);
         lines.AddChild(_text);
         lines.AddChild(_responses);
-        _text.FinishedTyping += () =>
-        {
-            _typedOut = true;
-            ShowResponses();
-        };
+        _text.FinishedTyping += () => _typedOut = true;
     }
 
     /// <summary>Whether a dialogue has started and not yet ended.</summary>
@@ -209,6 +205,8 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
                 _next = null;
                 ShowLine(gameState);
                 // An inline mutation runs as the line types out.
+                await tick.While(() => !_typedOut, () => StartAskedActions(tick));
+                ShowResponses();
                 await tick.While(() => _next is null, () => StartAskedActions(tick));
                 key = _next!;
             }
@@ -218,6 +216,10 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
             IsPresenting = false;
             _line = null;
             _next = null;
+            // Clear IsTyping to ensure the next _text._Process call does nothing. If at this point it's still typing
+            // (e.g. task cancel brought us here), _Process would otherwise try to dereference DialogueLine. Note that
+            // this might fire off a (currently benign) FinishedTyping event.
+            _text.IsTyping = false;
             _text.DialogueLine = null;
             // Nothing will start them now, and what waits for them goes on, with nothing to act for.
             foreach (AskedAction asked in _asked)
