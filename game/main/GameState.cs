@@ -32,19 +32,19 @@ public sealed partial class GameState : RefCounted, IGameState
         foreach (EntityConfig config in world.Bodies)
         {
             var kindName = KindName(config.Kind);
-            var name = DefaultName(config, world.Bodies);
+            var serial = DefaultSerial(config, world.Bodies);
             EntityState entity = config switch
             {
-                EntityConfig.Player => Player = new PlayerState(config.Id, kindName, name),
-                EntityConfig.VerticalDoor door => new DoorState(config.Id, kindName, name,
+                EntityConfig.Player => Player = new PlayerState(config.Id, kindName),
+                EntityConfig.VerticalDoor door => new DoorState(config.Id, kindName, serial!,
                     door.StartsClosed() ? OpenableAction.Close : OpenableAction.Open),
-                _ => new EntityState(config.Id, kindName, name),
+                _ => new EntityState(config.Id, kindName, serial),
             };
-            if (!_entitiesByName.TryAdd(entity.Name, entity))
+            if (!_entitiesByName.TryAdd(entity.UntranslatedName, entity))
             {
                 throw new ArgumentException(
-                    $"In world '{world.Name}', the entities {_entitiesByName[entity.Name].Id} and {entity.Id} are both "
-                        + $"named '{entity.Name}'.",
+                    $"In world '{world.Name}', the entities {_entitiesByName[entity.UntranslatedName].Id} and {entity.Id} "
+                        + $"are both named '{entity.UntranslatedName}'.",
                     nameof(world));
             }
             _entities[entity.Id] = entity;
@@ -54,34 +54,37 @@ public sealed partial class GameState : RefCounted, IGameState
     }
 
     /// <summary>
-    /// The name of an entity's kind as a speaker, which its avatar is named for, and which its name starts with if
-    /// nothing gives it one: <c>B-CON</c> for the player, as the dialogue files name it.
+    /// The name of an entity's kind as a speaker, untranslated, which its avatar is named for, and which its name
+    /// starts with: <c>B-CON</c> for the player, which in English sounds like "beacon".
     /// </summary>
     private static string KindName(EntityKind kind) => kind switch
     {
-        EntityKind.Player => "B-CON",
-        EntityKind.VerticalDoor => "Door",
+        EntityKind.Player => Translatable.Mark("B-CON", KindContext),
+        EntityKind.VerticalDoor => Translatable.Mark("Door", KindContext),
         _ => kind.ToString(),
     };
 
+    /// <summary>The context of a kind's name, as a speaker, in translation.</summary>
+    private const string KindContext = "kind";
+
     /// <summary>
-    /// An entity's name: the player's is its kind's; any other's is its kind's and the start of its id, such as
-    /// <c>Door a6d1</c>, as a machine's serial number. The start is at least <see cref="ShortIdLength"/> characters, and
-    /// as many more as tell it from every other id of its kind in <paramref name="bodies"/>, as git shortens a commit's
-    /// hash, so that names are unique.
+    /// The serial number in an entity's name, after its kind's, or null for the player, whose name is its kind's: the
+    /// start of its id, such as <c>a6d1</c>, at least <see cref="ShortIdLength"/> characters, and as many more as tell
+    /// it from every other id of its kind in <paramref name="bodies"/>, as git shortens a commit's hash, so that names
+    /// are unique.
     /// </summary>
-    private static string DefaultName(EntityConfig config, IEnumerable<EntityConfig> bodies)
+    private static string? DefaultSerial(EntityConfig config, IEnumerable<EntityConfig> bodies)
     {
         if (config.Kind == EntityKind.Player)
         {
-            return KindName(config.Kind);
+            return null;
         }
         int length = bodies
             .Where(other => other.Kind == config.Kind && other != config)
             .Select(other => CommonPrefixLength(config.Id, other.Id) + 1)
             .Append(ShortIdLength)
             .Max();
-        return $"{KindName(config.Kind)} {config.Id[..Math.Min(length, config.Id.Length)]}";
+        return config.Id[..Math.Min(length, config.Id.Length)];
     }
 
     private const int ShortIdLength = 4;
@@ -105,6 +108,9 @@ public sealed partial class GameState : RefCounted, IGameState
     /// <summary>The player's state; e.g. its abilities.</summary>
     public PlayerState Player { get; }
 
+    /// <summary>The Voice, which calls the player, and speaks with no body.</summary>
+    public CharacterState Voice { get; } = new(Translatable.Mark("Voice", KindContext));
+
     /// <summary>The entity with a body whose id is <paramref name="id"/>.</summary>
     /// <exception cref="KeyNotFoundException">There is none.</exception>
     public EntityState GetEntity(string id) => _entities[id];
@@ -114,33 +120,67 @@ public sealed partial class GameState : RefCounted, IGameState
     /// <exception cref="InvalidOperationException">Its state isn't a <typeparamref name="T"/>.</exception>
     public T GetEntity<T>(string id) where T : EntityState => CastEntity<T>(GetEntity(id), id);
 
-    /// <summary>The entity with a body whose name is <paramref name="name"/>.</summary>
+    /// <summary>The entity with a body whose untranslated name is <paramref name="name"/>, such as <c>Door a6d1</c>.</summary>
     /// <exception cref="KeyNotFoundException">There is none.</exception>
     public EntityState GetEntityNamed(string name) => _entitiesByName[name];
+
+    /// <summary>
+    /// The character whose name, translated, is <paramref name="name"/>, as a dialogue line gives its speaker, or null
+    /// if there is none: the Voice, or an entity with a body.
+    /// </summary>
+    public CharacterState? GetSpeaker(string name) =>
+        Voice.Name == name ? Voice : _entities.Values.FirstOrDefault(entity => entity.Name == name);
 
     IGameState.IPlayerState IGameState.Player => Player;
 
     T IGameState.GetEntity<T>(string id) => CastEntity<T>(_entities[id], id);
 
     /// <summary>
-    /// What every entity with a body has: its id, its kind's name and its name, for the story and the dialogue, which
-    /// see it as it is. A kind with state of its own extends it.
+    /// What every character that can speak has, with a body or without: its kind's name and its name, for the story and
+    /// the dialogue, which see it as it is. Every speaker is a character, so that every name is translated one way.
     /// </summary>
-    public partial class EntityState(string id, string kindName, string name) : RefCounted
+    public partial class CharacterState(string kindName) : RefCounted
+    {
+        /// <summary>
+        /// Its kind's name, untranslated, such as <c>Door</c>, which its avatar is named for, as <c>Door.png</c>.
+        /// </summary>
+        public string KindName => kindName;
+
+        /// <summary>
+        /// Its name in the current locale, translated when it is read, as a line in a dialogue file names its speaker,
+        /// as <c>{{Voice.Name}}:</c>: its kind's name.
+        /// </summary>
+        public virtual string Name => Translatable.Translate(KindName, KindContext);
+
+        /// <summary>Its name before translation, which no two entities share.</summary>
+        public virtual string UntranslatedName => KindName;
+    }
+
+    /// <summary>
+    /// What every entity with a body has: its id, and its name, its kind's and a serial number, if it has one. A kind
+    /// with state of its own extends it.
+    /// </summary>
+    public partial class EntityState(string id, string kindName, string? serial) : CharacterState(kindName)
     {
         /// <summary>Its configuration's id, which Core finds its state by.</summary>
         public string Id => id;
 
-        /// <summary>Its kind's name as a speaker, such as <c>Door</c>, which its avatar is named for.</summary>
-        public string KindName => kindName;
+        /// <summary>Its kind's name, translated, then its serial number, such as <c>Door a6d1</c>, if it has one.</summary>
+        public override string Name => serial is null
+            ? base.Name
+            // TRANSLATORS: An entity's name. {kind} is its kind's name, translated, such as "Door", and {serial} is
+            // the start of its id, such as "a6d1", a serial number, which stays as it is.
+            : Translatable.Translate("{kind} {serial}", "entity name")
+                .Replace("{kind}", base.Name)
+                .Replace("{serial}", serial);
 
-        /// <summary>Its name, such as <c>Door a6d1</c>, as a line in a dialogue file can name its speaker.</summary>
-        public string Name => name;
+        /// <inheritdoc/>
+        public override string UntranslatedName => serial is null ? base.UntranslatedName : $"{KindName} {serial}";
     }
 
     /// <summary>The player's state, whose abilities the game owns and Core reads.</summary>
-    public sealed partial class PlayerState(string id, string kindName, string name)
-        : EntityState(id, kindName, name), IGameState.IPlayerState
+    public sealed partial class PlayerState(string id, string kindName)
+        : EntityState(id, kindName, null), IGameState.IPlayerState
     {
         public bool CanPhase { get; set; } = true;
         public bool CanSpawn { get; set; } = true;
@@ -153,8 +193,8 @@ public sealed partial class GameState : RefCounted, IGameState
     /// A door's state, which only its controller sets, through Core's view; the game reads it only, as a string, since
     /// GDScript and dialogue files can't use C# enums.
     /// </summary>
-    public sealed partial class DoorState(string id, string kindName, string name, OpenableAction lastAction)
-        : EntityState(id, kindName, name), IGameState.IDoorState
+    public sealed partial class DoorState(string id, string kindName, string serial, OpenableAction lastAction)
+        : EntityState(id, kindName, serial), IGameState.IDoorState
     {
         /// <inheritdoc cref="IGameState.IDoorState.LastAction"/>
         public string LastAction => ((IGameState.IDoorState)this).LastAction.ToString();

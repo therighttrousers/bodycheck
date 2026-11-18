@@ -1,6 +1,6 @@
 # 063: World state, and talking to entities
 
-Status: open: the speakers' names in translation (§3.6).
+Status: closed.
 
 ## Context
 
@@ -52,7 +52,15 @@ Anti-goals:
 - [x] 3.3 Acting from dialogue. Decision (Neil): `do Act(Speaker, "Open")`, which asks the entity for the action, by the name of a `TriggerAction`. Dialogue Manager runs mutations off the world's tick, on Godot's frames, so the request is queued, and the dialogue's own run on the tick starts it, so that the action runs on the tick, as every action does (`043 §2.4`). `do` waits for the action to finish before the dialogue goes on, and `do!` doesn't. An action the entity doesn't respond to fails on the tick, as a failure in the world does.
 - [x] 3.4 Avatars by kind (Neil): a line's avatar is the one named for its speaker, as before, or, if the speaker is one of the dialogue's entities, the one named for that entity's kind, so that every door's lines show `Door.png`.
 - [x] 3.5 Whether a door says anything once it is open. Neil: a trigger that starts off is a little nicer than conditional dialogue, though either works. Built (Neil) for the second door: conditional dialogue, on its `LastAction`.
-- [ ] 3.6 Speaker names are extracted for translation, but a name filled in when the line is shown isn't. To be talked about near the end of the PR (Neil).
+- [x] 3.6 Translating names. Found (Claude): Dialogue Manager extracts a line's character as written, with the context `dialogue`, so `{{Speaker.Name}}` is extracted as itself, and translates no character at run time; the box's label translates what it shows, without that context, so it wouldn't find a static name's translation either. Names in a line's text are filled in after the line is translated, and kind names are in C#, which Godot's POT generation doesn't read. Discussed (Claude, Neil):
+  - Every speaker is a state with a `Name` that is translated when it is read, and a `KindName`, its key before translation, which its avatar is named for: entities, and characters without a body, such as the Voice, which the game's state holds too (Claude; Neil first, `GameState.VoiceName`, since the Voice's name will turn up outside dialogue). Dialogue files name every speaker through its state, as `{{Voice.Name}}:`, and the box finds a line's avatar by the state whose `Name` is the line's character. Dialogue Manager's extraction of characters is then turned off.
+  - `B-CON` is translated (Neil): in English it sounds like "Beacon", and a translator may make a pun of their own.
+  - Word order (Neil: learn to do it properly now): a name is made from a translatable pattern with named placeholders, `{kind} {serial}`, with a comment for translators, so that a translator can reorder them or add words. A string's context, the second argument to `Tr`, tells apart the same English word in different roles.
+  - Grammar around a name, such as case or gender, which Godot can't vary: writers put a name where it doesn't inflect, such as as the speaker, a subject or an address, and translators rephrase whole lines around it.
+  - A name given in LDtk, such as Reginald, is translated too, where a translator sees fit (Neil). It is data, so it reaches the POT another way, such as by the reader or a test.
+  - Strings in C# are marked with a no-op, as gettext's `N_()`, which returns its argument, and found by a small translation parser plugin for `.cs` files, so that nothing is kept by hand.
+  - The Interact prompt is the up arrow's glyph, an image that will one day come from the input's binding, and the word, a label in the game's font translated in code, not an image a translator would have to redraw (Neil, Claude). Godot's per-locale remaps are for art that is text, such as a logo.
+  - Built in this PR, so that what is written from now on needs no rework (Neil: something minimal): every speaker a character state, with the Voice in the game's state and every dialogue file naming speakers through states; names translated when read, from the pattern; `Translatable.Mark` and `Translatable.Translate` for text in C#; Dialogue Manager's extraction of characters turned off; avatars found by the speaker's state. Left for later, since it costs no more then: the parser plugin, given names in the POT, and the prompt.
 
 ## 4. The beat
 

@@ -51,8 +51,8 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
     /// </summary>
     private const string ThemePath = "res://assets/fonts/dialogue_theme.tres";
     /// <summary>
-    /// Where the speakers' avatars are: each a PNG, 48 by 48 pixels, named for the speaker as the dialogue files name
-    /// them, before translation, as <c>Voice.png</c>.
+    /// Where the speakers' avatars are: each a PNG, 48 by 48 pixels, named for the speaker's kind, untranslated, as
+    /// <c>Voice.png</c> or <c>Door.png</c>.
     /// </summary>
     private const string AvatarDirectory = "res://assets/avatars";
 
@@ -131,6 +131,8 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
         row.AddChild(lines);
 
         _character.Modulate = new Color(1, 0.85f, 0.4f);
+        // The speaker's name comes translated, from its state: translating it again would look it up as a message.
+        _character.AutoTranslateMode = AutoTranslateModeEnum.Disabled;
         lines.AddChild(_character);
         lines.AddChild(_text);
         lines.AddChild(_responses);
@@ -204,7 +206,7 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
                 _line = line;
                 _response = 0;
                 _next = null;
-                ShowLine(dialogueState);
+                ShowLine(gameState);
                 // An inline mutation runs as the line types out.
                 await tick.While(() => _next is null, () => StartAskedActions(tick));
                 key = _next!;
@@ -309,15 +311,14 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
     }
 
     /// <summary>Shows the line, and starts typing it out. Its responses show once it has.</summary>
-    private void ShowLine(DialogueState dialogueState)
+    private void ShowLine(GameState gameState)
     {
         _character.Text = _line!.Character;
         _character.Visible = _line.Character != "";
-        // The speaker's own avatar, or if the speaker is one of the entities the dialogue is about, its kind's.
-        _avatar.Texture = LoadAvatar(_line.Character)
-            ?? (dialogueState.Entities.FirstOrDefault(entity => entity.Name == _line.Character) is GameState.EntityState speaker
-                ? LoadAvatar(speaker.KindName)
-                : null);
+        // A dialogue file names every speaker through its state, so the name has been translated already.
+        _avatar.Texture = gameState.GetSpeaker(_line.Character) is GameState.CharacterState speaker
+            ? LoadAvatar(speaker.KindName)
+            : null;
         _avatarBackground.Visible = _avatar.Texture is not null;
         _text.DialogueLine = _line;
         ClearResponses();

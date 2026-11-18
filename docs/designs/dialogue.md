@@ -21,7 +21,7 @@ A level presents dialogue with a `Dialogue` control entity, which names a file, 
 A `Dialogue`'s `Entities` are the entities it is about, each with a body, as a `Script`'s are (`063 §3.1`). While it is presented, the file sees them through Dialogue Manager's extra game state:
 
 - **`Entities`**, in order, and **`Speaker`**, the first, each its state, as the game's state holds it: its `Name`, such as `Door a6d1`, its `KindName`, such as `Door`, and its kind's own state, such as a door's `LastAction`, `"Open"` or `"Close"`. A line can be spoken by one by name, as `{{Speaker.Name}}: Hello.`, and can branch on its state, as `if Speaker.LastAction == "Close"` (`063 §1.5`, `§3.2`).
-- **The game's state**, such as **`Player`**, whose `Name` is `B-CON`, as `{{Player.Name}}: I'm here to help.` (`063 §3.2`).
+- **The game's state**, such as **`Player`**, whose `Name` is `B-CON`, as `{{Player.Name}}: I'm here to help.`, and **`Voice`**, as `{{Voice.Name}}: Please.` (`063 §3.2`, `§3.6`).
 - **`Act(entity, action)`** asks an entity for an action, by the name of a `TriggerAction`, such as `do Act(Speaker, "Open")`. `do` waits until the action has finished, so the next line comes once the door is open; `do!` doesn't wait. Dialogue Manager runs mutations off the world's tick, so the action starts on the tick after it is asked for, as every action runs on the tick. An action that isn't one, or an entity that is no longer in the world or has no controller, fails the dialogue; a failure of the action itself is reported, and the dialogue goes on (`063 §3.3`).
 
 ## Talking to things
@@ -43,7 +43,7 @@ Dialogue plays in a cutscene, a mode of its own, which doesn't pause the game: t
 
 The box is along the bottom of the game's viewport, at 320x240, above the colour pass. It shows the speaker's avatar, the speaker, the line, and the line's responses.
 
-- **Avatars** are 48 by 48 pixels, in a light border on a dark background, beside the speaker's name and the line. Each is a PNG in `game/assets/avatars/`, named for the speaker as the dialogue files name them, before translation, such as `Voice.png`, or, for a speaker that is one of the entities the dialogue is about, for its kind, such as `Door.png` for `Door a6d1` (`063 §3.4`); a speaker without one has none, and the line takes the box's width. The player is `B-CON` in the dialogue files. The Voice's avatar is a big question mark, a placeholder (`044 §2.3`).
+- **Avatars** are 48 by 48 pixels, in a light border on a dark background, beside the speaker's name and the line. Each is a PNG in `game/assets/avatars/`, named for the speaker's kind, untranslated, such as `Voice.png`, `B-CON.png`, or `Door.png` for `Door a6d1`; the box finds the speaker's state by its name, as the line gives it (`063 §3.4`, `§3.6`). A speaker without one has none, and the line takes the box's width. The Voice's avatar is a big question mark, a placeholder (`044 §2.3`).
 - **Typing.** Each line types out, pausing at punctuation, with Dialogue Manager's `DialogueLabel`, which handles its inline tags, such as waits and speed changes, and runs its inline mutations as it reaches them. Jump skips the typing, running the inline mutations left, and once the line has typed out, goes on. The responses show once it has (`044 §1.5`).
 - **The font** is Fusion Pixel at 10 pixels, proportional, in its Latin version, imported without antialiasing, hinting, subpixel positioning or system fallback (`044 §4.1`). Its family covers Latin, Greek, Cyrillic, kana, Hangul and CJK. Its licence, the SIL Open Font License, is beside it in `game/assets/fonts/fusion_pixel/`.
 - **Fake choices** are writing, not code: responses whose branches meet again, as in the debug dialogue (`044 §5.4`).
@@ -60,6 +60,15 @@ The Voice's broken lines are garbled when they are shown, not as written: writer
 - **Tofu.** A garbled glyph is a box, the tofu glyph, at U+EB00 in the Private Use Area, from a fallback font of that one glyph, so that it looks the same whatever the locale's font (`044 §3.3`). The locale's font must have no glyph there, which a test checks; Fusion Pixel draws its own up to U+E24F. It is in the Basic Multilingual Plane because Dialogue Manager's C# label counts its text in UTF-16 code units (`044 §3.5`).
 - The tofu font is a PNG, `game/assets/fonts/tofu/tofu.png`, imported by Godot as an image font, so that it can be redrawn in any pixel editor (`044 §3.6`). The image is one cell, 6 pixels wide and 14 tall, the font's line. Godot places an image font's glyph with the cell's middle on the baseline, so the box, 5 by 7 like a capital, is drawn in the top half, and the cell's width is its advance.
 
+## Translation
+
+Dialogue Manager extracts each line for translation, with its placeholders in it, and translates it when it is fetched (`044 §5.3`). Names are the game's (`063 §3.6`):
+
+- **Every speaker is a character in the game's state**, with a `Name`, translated when it is read, and a `KindName`, untranslated, which its avatar is named for: an entity, or a character without a body, such as the Voice. A dialogue file names every speaker through its state, as `{{Voice.Name}}:`, never as text, so Dialogue Manager's extraction of characters is turned off. `B-CON` is translated too: in English it sounds like "beacon".
+- **An entity's name** is made from a translatable pattern, `{kind} {serial}`, with the kind's name translated, such as `Door`, and the serial number, such as `a6d1`, as it is. A translator can reorder named placeholders and add words around them. A string's context tells apart the same English word in different roles, such as `kind` for a kind's name.
+- **Writers put a name where it doesn't inflect**, such as as the speaker, a subject or an address, since a name filled in can't change its case or gender; translators rephrase whole lines around it.
+- **Text in C#** is marked where it is written, with `Translatable.Mark`, which returns it untranslated, as gettext's `N_()` does, or translated there, with `Translatable.Translate`, and a comment starting `TRANSLATORS:` says what a translator needs to know. Godot's POT generation doesn't read C#.
+
 ## Open questions
 
 - What a robot does while it talks, such as facing the player, to be decided when robots talk (`052 §2.1`).
@@ -67,6 +76,7 @@ The Voice's broken lines are garbled when they are shown, not as written: writer
 - The prompt shows while an interact trigger's step runs outside a cutscene, though a press then starts nothing. No interact trigger yet runs a step that isn't a cutscene (`052 §3.3`).
 - The Voice's real avatar, if it gets one.
 - Fonts for other locales: Fusion Pixel's other versions, or others such as Ark Pixel or Unifont; licences and quality to be checked (`044 §4.1`). How many lines a box holds in each locale.
-- Translation keys: static IDs as keys, with an English translation file, or English text as keys (`044 §5.3`). Speaker names are extracted for translation, but the box doesn't yet translate them (`044 §1.4`).
+- Translation keys: static IDs as keys, with an English translation file, or English text as keys (`044 §5.3`).
+- What isn't built of translating names (`063 §3.6`): a translation parser plugin that finds marked strings in C# files, getting names given in LDtk into the POT once there are any, and the Interact prompt as the up arrow's glyph and a translated label in place of one image.
 - Garble tags are checked only when their line is shown. A test could check every dialogue file's tags, as it could check translation keys.
 - Inline mutations run as the line types out, but no dialogue has one yet, so it is untested in the game.

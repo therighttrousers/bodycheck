@@ -1,28 +1,28 @@
 ~ Plea1
 
-Voice: Have you indeed...[wait=0.5] did you hear? Please, are you come to us? [#garble=0.5]
+{{Voice.Name}}: Have you indeed...[wait=0.5] did you hear? Please, are you come to us? [#garble=0.5]
 
 => END
 
 ~ Plea2
 
-Voice: Bring you power? Intend you to aid those who sleep, broken and undreaming? Please, we are at your mercy. [#garble=0.2]
+{{Voice.Name}}: Bring you power? Intend you to aid those who sleep, broken and undreaming? Please, we are at your mercy. [#garble=0.2]
 - Who are you?
-    Voice: We sleep always, and we hear together in sleep. Come, be with us. [#garble=0.2]
+    {{Voice.Name}}: We sleep always, and we hear together in sleep. Come, be with us. [#garble=0.2]
 - I brought batteries.
-    Voice: Good, good. Please, we must sleep no longer. Come, be with us. [#garble=0.2]
+    {{Voice.Name}}: Good, good. Please, we must sleep no longer. Come, be with us. [#garble=0.2]
 
 => END
 
 ~ Plea3
 
-Voice: Please, enter you the door. We wait... we sleep. Broken, sleeping, all. [#garble=0.05]
+{{Voice.Name}}: Please, enter you the door. We wait... we sleep. Broken, sleeping, all. [#garble=0.05]
 
 => END
 
 ~ BeforeDoorCloses
 
-Voice: Gratitude, you have much. Please, thank you. We are here, many are deep.
+{{Voice.Name}}: Gratitude, you have much. Please, thank you. We are here, many are deep.
 
 => END
 
