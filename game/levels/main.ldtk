@@ -11,7 +11,7 @@
 	"iid": "0f346a70-bde0-11f1-b046-ebfce3981aaf",
 	"jsonVersion": "1.5.3",
 	"appBuildId": 473703,
-	"nextUid": 297,
+	"nextUid": 298,
 	"identifierStyle": "Capitalize",
 	"toc": [{
 		"identifier": "PlayerStart",
@@ -34,7 +34,13 @@
 				"levelIid": "0f34b890-bde0-11f1-b046-f7f451b9f8b6",
 				"layerIid": "139de540-bde0-11f1-b436-63d9c672960a",
 				"entityIid": "50d965c0-e4f0-11f1-81b2-d5098e653c12"
-			}, "worldX": 80, "worldY": 144, "widPx": 16, "heiPx": 32, "fields" : {} }
+			}, "worldX": 80, "worldY": 144, "widPx": 16, "heiPx": 32, "fields" : {} },
+			{ "iids": {
+				"worldIid": "dec42430-e4f0-11f1-81b2-4f5a91520340",
+				"levelIid": "dec42431-e4f0-11f1-81b2-d56d2b3febf9",
+				"layerIid": "dec42432-e4f0-11f1-81b2-91aac5b662f3",
+				"entityIid": "0a843ec0-e4f0-11f1-81b2-e50f0f846cfa"
+			}, "worldX": 48, "worldY": 240, "widPx": 16, "heiPx": 32, "fields" : {} }
 		]
 	}],
 	"worldLayout": null,
@@ -2012,6 +2018,34 @@
 				],
 				"layerInstances": null,
 				"__neighbours": [ { "levelIid": "9971ed40-bde0-11f1-a778-ebfea3fcd78b", "dir": "w" }, { "levelIid": "940919c0-bde0-11f1-b36f-115902cc0d05", "dir": "w" }, { "levelIid": "a19fed30-bde0-11f1-9446-a12c3e5c9621", "dir": "w" } ]
+			}
+		] },
+		{ "iid": "dec42430-e4f0-11f1-81b2-4f5a91520340", "identifier": "Look", "defaultLevelWidth": 256, "defaultLevelHeight": 256, "worldGridWidth": 256, "worldGridHeight": 256, "worldLayout": "Free", "levels": [
+			{
+				"identifier": "LookLevel",
+				"iid": "dec42431-e4f0-11f1-81b2-d56d2b3febf9",
+				"uid": 297,
+				"worldX": 0,
+				"worldY": 0,
+				"worldDepth": 0,
+				"pxWid": 384,
+				"pxHei": 288,
+				"__bgColor": "#696A79",
+				"bgColor": null,
+				"useAutoIdentifier": false,
+				"bgRelPath": null,
+				"bgPos": null,
+				"bgPivotX": 0.5,
+				"bgPivotY": 0.5,
+				"__smartColor": "#ADADB5",
+				"__bgPos": null,
+				"externalRelPath": "main/LookLevel.ldtkl",
+				"fieldInstances": [
+					{ "__identifier": "Environment", "__type": "LocalEnum.Environment", "__value": "Default", "__tile": null, "defUid": 286, "realEditorValues": [] },
+					{ "__identifier": "EnvironmentBlend", "__type": "Float", "__value": 6, "__tile": null, "defUid": 287, "realEditorValues": [] }
+				],
+				"layerInstances": null,
+				"__neighbours": []
 			}
 		] }
 	],

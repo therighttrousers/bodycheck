@@ -64,6 +64,9 @@ public partial class Play : Node
     private const string ConfigurationExtension = ".jsonc";
     private const string DefaultConfiguration = "defaults";
 
+    // The world for judging the rendering, which LookProps adds turning shapes to.
+    private const string LookWorldName = "Look";
+
     private readonly GameModeManager _gameModeManager = new();
     private readonly AssetLibrary _assets = new();
     private IReadOnlyList<World> _worlds = null!;
@@ -272,23 +275,23 @@ public partial class Play : Node
     }
 
     /// <summary>
-    /// Reads the LDtk project's worlds, and lists the configurations. If the project has an error, its worlds are left
-    /// out, and the error is shown.
+    /// Reads the LDtk project's worlds, and lists the configurations. If the project has an error, the error is shown,
+    /// and the worlds read before are kept, so that a mistake made while editing a level leaves the game playable; if
+    /// none were read before, the only world is an empty room, since every world is the project's.
     /// </summary>
     private void ReadFiles()
     {
-        IReadOnlyList<World> levels = [];
         _levelsError = null;
         try
         {
-            levels = LdtkReader.ReadWorlds(LevelsPath, ReadFile);
+            _worlds = LdtkReader.ReadWorlds(LevelsPath, ReadFile);
         }
         catch (Exception e) when (e is System.IO.IOException or System.IO.InvalidDataException)
         {
             GD.PushError(e.Message);
             _levelsError = e.Message;
+            _worlds ??= [new World(TestRoomLibrary.EmptyFrame(20, 15))];
         }
-        _worlds = [.. levels, .. RoomLibrary.All.Select(room => new World(room))];
 
         _configurations = [
             DefaultConfiguration,
@@ -376,7 +379,7 @@ public partial class Play : Node
             _respawnIds[world.Name] = respawn.Id;
             ShowTitle();
         };
-        if (world.Rooms.Contains(RoomLibrary.Look))
+        if (world.Name == LookWorldName)
         {
             _world.AddChild(new LookProps(_world.World.Size));
         }

@@ -125,7 +125,7 @@ public static class Probe
                 probe = new JointPlacementProbe(world.EntitiesOf(EntityKind.Block).Single(), world.Player);
                 break;
             case "phase":
-                world = Load(RoomLibrary.Phase);
+                world = Load(TestRoomLibrary.Phase);
                 GD.Print("Phase probe:");
                 probe = new PhaseProbe(world.Player, world.PlayerController, world.EntitiesOf(EntityKind.Robot).First());
                 break;
