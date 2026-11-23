@@ -123,7 +123,7 @@ public class ScriptTest
             MapOrigin = player.MapOrigin,
             MapSize = player.MapSize,
             MapColor = Colors.White,
-            Step = new Step(script.Id, TriggerAction.Default),
+            Step = new Step(script.Id, TriggerAction.Run),
             StartsOn = startsOn,
             SetOffBy = setOffBy,
         };

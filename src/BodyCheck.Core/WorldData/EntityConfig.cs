@@ -23,7 +23,8 @@ public enum EntityKind
 public static class EntityKinds
 {
     private static readonly TriggerAction[] None = [];
-    private static readonly TriggerAction[] Default = [TriggerAction.Default];
+    private static readonly TriggerAction[] Run = [TriggerAction.Run];
+    private static readonly TriggerAction[] Present = [TriggerAction.Present];
     private static readonly TriggerAction[] OnOff = [
         TriggerAction.ToggleOnOff,
         TriggerAction.TurnOn,
@@ -49,17 +50,16 @@ public static class EntityKinds
         };
 
         /// <summary>
-        /// The actions an entity of this kind responds to: <see cref="TriggerAction.Default"/> alone for a kind that
-        /// does one thing, and otherwise actions that don't include it, so that <c>Default</c> never stands for one of
-        /// several.
+        /// The actions an entity of this kind responds to, each of which names what it does.
         /// </summary>
         public IReadOnlyList<TriggerAction> Responses => kind switch
         {
-            EntityKind.Robot or EntityKind.Platform or EntityKind.Block or EntityKind.PlayerStart => None,
+            EntityKind.Robot or EntityKind.Platform or EntityKind.Block or EntityKind.PlayerStart or EntityKind.Respawn
+                => None,
             EntityKind.Trigger => OnOff,
             EntityKind.VerticalDoor => OpenClose,
-            EntityKind.Respawn or EntityKind.Sequence or EntityKind.Fanout or EntityKind.Once or EntityKind.Dialogue
-                or EntityKind.Script => Default,
+            EntityKind.Sequence or EntityKind.Fanout or EntityKind.Once or EntityKind.Script => Run,
+            EntityKind.Dialogue => Present,
         };
     }
 }

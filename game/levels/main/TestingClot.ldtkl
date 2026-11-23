@@ -168,7 +168,10 @@
 							"id": "V_String",
 							"params": ["f66a9aa0-bde0-11f1-a5f5-5fc7618a2b78"]
 						}] },
-						{ "__identifier": "Action", "__type": "LocalEnum.TriggerAction", "__value": "Default", "__tile": null, "defUid": 242, "realEditorValues": [] },
+						{ "__identifier": "Action", "__type": "LocalEnum.TriggerAction", "__value": "Run", "__tile": null, "defUid": 242, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["Run"]
+						}] },
 						{ "__identifier": "StartsOn", "__type": "Bool", "__value": true, "__tile": null, "defUid": 270, "realEditorValues": [] },
 						{ "__identifier": "SetOffBy", "__type": "LocalEnum.TriggerSetOffBy", "__value": "Start", "__tile": null, "defUid": 272, "realEditorValues": [{
 							"id": "V_String",

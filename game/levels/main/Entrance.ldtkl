@@ -80,9 +80,9 @@
 							"id": "V_String",
 							"params": ["b1b142e0-bde0-11f1-addb-296a62addbff"]
 						}] },
-						{ "__identifier": "Action", "__type": "LocalEnum.TriggerAction", "__value": "Default", "__tile": null, "defUid": 242, "realEditorValues": [{
+						{ "__identifier": "Action", "__type": "LocalEnum.TriggerAction", "__value": "Run", "__tile": null, "defUid": 242, "realEditorValues": [{
 							"id": "V_String",
-							"params": ["Default"]
+							"params": ["Run"]
 						}] },
 						{ "__identifier": "StartsOn", "__type": "Bool", "__value": true, "__tile": null, "defUid": 270, "realEditorValues": [] },
 						{ "__identifier": "SetOffBy", "__type": "LocalEnum.TriggerSetOffBy", "__value": "Touch", "__tile": null, "defUid": 272, "realEditorValues": [] },
@@ -159,7 +159,10 @@
 							"id": "V_String",
 							"params": ["6dd71b30-bde0-11f1-8bc9-1d7d6df2ad5c"]
 						} ] },
-						{ "__identifier": "Actions", "__type": "Array<LocalEnum.TriggerAction>", "__value": [ "Default", "Close", "TurnOn" ], "__tile": null, "defUid": 253, "realEditorValues": [ null, {
+						{ "__identifier": "Actions", "__type": "Array<LocalEnum.TriggerAction>", "__value": [ "Present", "Close", "TurnOn" ], "__tile": null, "defUid": 253, "realEditorValues": [ {
+							"id": "V_String",
+							"params": ["Present"]
+						}, {
 							"id": "V_String",
 							"params": ["Close"]
 						}, {
@@ -192,7 +195,10 @@
 							"id": "V_String",
 							"params": ["939c5430-bde0-11f1-a170-bd7380d05d6b"]
 						}] },
-						{ "__identifier": "Action", "__type": "LocalEnum.TriggerAction", "__value": "Default", "__tile": null, "defUid": 263, "realEditorValues": [] }
+						{ "__identifier": "Action", "__type": "LocalEnum.TriggerAction", "__value": "Run", "__tile": null, "defUid": 263, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["Run"]
+						}] }
 					],
 					"__worldX": 96,
 					"__worldY": 0
@@ -219,9 +225,9 @@
 							"id": "V_String",
 							"params": ["61c1b590-bde0-11f1-b0b6-19d03f80281e"]
 						}] },
-						{ "__identifier": "Action", "__type": "LocalEnum.TriggerAction", "__value": "Default", "__tile": null, "defUid": 242, "realEditorValues": [{
+						{ "__identifier": "Action", "__type": "LocalEnum.TriggerAction", "__value": "Run", "__tile": null, "defUid": 242, "realEditorValues": [{
 							"id": "V_String",
-							"params": ["Default"]
+							"params": ["Run"]
 						}] },
 						{ "__identifier": "StartsOn", "__type": "Bool", "__value": true, "__tile": null, "defUid": 270, "realEditorValues": [] },
 						{ "__identifier": "SetOffBy", "__type": "LocalEnum.TriggerSetOffBy", "__value": "Touch", "__tile": null, "defUid": 272, "realEditorValues": [] },
@@ -282,7 +288,10 @@
 							"id": "V_String",
 							"params": ["7975cea0-bde0-11f1-8bc9-1b150d76c792"]
 						}] },
-						{ "__identifier": "Action", "__type": "LocalEnum.TriggerAction", "__value": "Default", "__tile": null, "defUid": 242, "realEditorValues": [] },
+						{ "__identifier": "Action", "__type": "LocalEnum.TriggerAction", "__value": "Present", "__tile": null, "defUid": 242, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["Present"]
+						}] },
 						{ "__identifier": "StartsOn", "__type": "Bool", "__value": false, "__tile": null, "defUid": 270, "realEditorValues": [{
 							"id": "V_Bool",
 							"params": [ false ]
@@ -352,7 +361,10 @@
 							"id": "V_String",
 							"params": ["f6cfd15c-e246-11f1-9922-898e4641066f"]
 						}] },
-						{ "__identifier": "Action", "__type": "LocalEnum.TriggerAction", "__value": "Default", "__tile": null, "defUid": 242, "realEditorValues": [] },
+						{ "__identifier": "Action", "__type": "LocalEnum.TriggerAction", "__value": "Present", "__tile": null, "defUid": 242, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["Present"]
+						}] },
 						{ "__identifier": "StartsOn", "__type": "Bool", "__value": true, "__tile": null, "defUid": 270, "realEditorValues": [] },
 						{ "__identifier": "SetOffBy", "__type": "LocalEnum.TriggerSetOffBy", "__value": "Interact", "__tile": null, "defUid": 272, "realEditorValues": [{
 							"id": "V_String",

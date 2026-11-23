@@ -33,7 +33,7 @@ public class RoutingTest
     /// <summary>A target that logs when its action starts and ends, which takes some ticks.</summary>
     private sealed class Target(string name, int ticks, List<string> log) : IActionTarget
     {
-        public async TickTask Default(ITick tick)
+        public async TickTask Run(ITick tick)
         {
             log.Add($"{name} starts");
             await tick.Wait(ticks * Dt);
@@ -41,7 +41,7 @@ public class RoutingTest
         }
     }
 
-    private Call CallOf(string name, int ticks) => new(new Target(name, ticks, _log), TriggerAction.Default);
+    private Call CallOf(string name, int ticks) => new(new Target(name, ticks, _log), TriggerAction.Run);
 
     private void RunTicks(int ticks)
     {
@@ -56,7 +56,7 @@ public class RoutingTest
     {
         var sequence = new SequenceRunner([CallOf("a", 2), CallOf("b", 1)]);
 
-        TickTask run = sequence.Default(_scheduler.Tick);
+        TickTask run = sequence.Run(_scheduler.Tick);
         AssertThat(_log).ContainsExactly("a starts");
 
         RunTicks(2);
@@ -69,13 +69,13 @@ public class RoutingTest
     }
 
     [TestCase]
-    public void A_sequence_runs_every_Default_alongside_any_in_progress()
+    public void A_sequence_runs_every_Run_alongside_any_in_progress()
     {
         var sequence = new SequenceRunner([CallOf("a", 2)]);
 
-        sequence.Default(_scheduler.Tick);
+        sequence.Run(_scheduler.Tick);
         RunTicks(1);
-        sequence.Default(_scheduler.Tick);
+        sequence.Run(_scheduler.Tick);
         AssertThat(_log).ContainsExactly("a starts", "a starts");
     }
 
@@ -84,7 +84,7 @@ public class RoutingTest
     {
         var fanout = new FanoutRunner([CallOf("a", 2), CallOf("b", 1)]);
 
-        TickTask run = fanout.Default(_scheduler.Tick);
+        TickTask run = fanout.Run(_scheduler.Tick);
         AssertThat(_log).ContainsExactly("a starts", "b starts");
 
         RunTicks(1);
@@ -124,18 +124,18 @@ public class RoutingTest
     }
 
     [TestCase]
-    public void A_once_gives_every_Default_its_first_run()
+    public void A_once_gives_every_Run_its_first_run()
     {
         var once = new OnceRunner(CallOf("a", 2));
 
-        TickTask first = once.Default(_scheduler.Tick);
+        TickTask first = once.Run(_scheduler.Tick);
         RunTicks(1);
         // Asked while it runs, it finishes when the first run does.
-        AssertThat(once.Default(_scheduler.Tick)).IsSame(first);
+        AssertThat(once.Run(_scheduler.Tick)).IsSame(first);
 
         RunTicks(1);
         // Asked after, it finishes at once, and runs nothing.
-        TickTask after = once.Default(_scheduler.Tick);
+        TickTask after = once.Run(_scheduler.Tick);
         AssertThat(after.IsFinished).IsTrue();
         AssertThat(_log).ContainsExactly("a starts", "a ends");
     }

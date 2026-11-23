@@ -104,7 +104,7 @@ public class WorldTest
         Title = "Title",
     };
 
-    private static EntityConfig.Trigger Trigger(string target, TriggerAction action = TriggerAction.Default) => new()
+    private static EntityConfig.Trigger Trigger(string target, TriggerAction action = TriggerAction.Present) => new()
     {
         Id = "trigger",
         MapOrigin = new Vector2I(1, 0),
@@ -115,7 +115,7 @@ public class WorldTest
         SetOffBy = TriggerSetOffBy.Touch,
     };
 
-    private static EntityConfig.Once Once(string target, TriggerAction action = TriggerAction.Default) => new()
+    private static EntityConfig.Once Once(string target, TriggerAction action = TriggerAction.Present) => new()
     {
         Id = "once",
         MapOrigin = new Vector2I(1, 0),
@@ -140,9 +140,9 @@ public class WorldTest
     public void Keeps_bodies_apart_from_control_entities_and_finds_each_by_id()
     {
         World world = WorldOf(
-            Trigger("sequence"),
+            Trigger("sequence", TriggerAction.Run),
             Player,
-            Sequence(new Step("dialogue", TriggerAction.Default), new Step("door", TriggerAction.Close)),
+            Sequence(new Step("dialogue", TriggerAction.Present), new Step("door", TriggerAction.Close)),
             Door,
             Dialogue);
 
@@ -152,32 +152,21 @@ public class WorldTest
         AssertThat(world.ConfigsById["door"].Kind).IsEqual(EntityKind.VerticalDoor);
     }
 
-    [TestCase("missing", TriggerAction.Default)] // Not in the world
-    [TestCase("door", TriggerAction.Default)] // Responds to Close only
-    [TestCase("dialogue", TriggerAction.Close)] // Responds to Default only
-    [TestCase("trigger", TriggerAction.Default)] // Responds to being turned on and off only
-    [TestCase("sequence", TriggerAction.Default)] // Back to the once, through the sequence
+    [TestCase("missing", TriggerAction.Present)] // Not in the world
+    [TestCase("door", TriggerAction.Present)] // Responds to Close only
+    [TestCase("dialogue", TriggerAction.Run)] // Responds to Present only
+    [TestCase("trigger", TriggerAction.Run)] // Responds to being turned on and off only
+    [TestCase("sequence", TriggerAction.Run)] // Back to the once, through the sequence
     public void Refuses_a_route_that_its_target_cant_run(string target, TriggerAction action) =>
         AssertThrown(() => WorldOf(
                 Player, Door, Dialogue, Trigger("dialogue"), Once(target, action),
-                Sequence(new Step("once", TriggerAction.Default))))
+                Sequence(new Step("once", TriggerAction.Run))))
             .IsInstanceOf<ArgumentException>();
 
     [TestCase]
     public void Refuses_two_entities_with_one_id() =>
         AssertThrown(() => WorldOf(Player, Dialogue, Dialogue)).IsInstanceOf<ArgumentException>();
 
-    [TestCase]
-    public void Has_kinds_that_respond_to_Default_only_or_not_at_all()
-    {
-        foreach (EntityKind kind in Enum.GetValues<EntityKind>())
-        {
-            bool defaultOnly = kind.Responses.SequenceEqual([TriggerAction.Default]);
-            AssertThat(defaultOnly || !kind.Responses.Contains(TriggerAction.Default))
-                .OverrideFailureMessage($"{kind} responds to Default and to others.")
-                .IsTrue();
-        }
-    }
 
     [TestCase]
     public void Refuses_an_entity_with_an_empty_box() =>

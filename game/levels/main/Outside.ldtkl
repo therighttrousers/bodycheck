@@ -80,7 +80,10 @@
 							"id": "V_String",
 							"params": ["4ccf7f30-bde0-11f1-addb-713f97a19731"]
 						}] },
-						{ "__identifier": "Action", "__type": "LocalEnum.TriggerAction", "__value": "Default", "__tile": null, "defUid": 242, "realEditorValues": [null] },
+						{ "__identifier": "Action", "__type": "LocalEnum.TriggerAction", "__value": "Run", "__tile": null, "defUid": 242, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["Run"]
+						}] },
 						{ "__identifier": "StartsOn", "__type": "Bool", "__value": true, "__tile": null, "defUid": 270, "realEditorValues": [] },
 						{ "__identifier": "SetOffBy", "__type": "LocalEnum.TriggerSetOffBy", "__value": "Touch", "__tile": null, "defUid": 272, "realEditorValues": [] },
 						{ "__identifier": "MovesWith", "__type": "EntityRef", "__value": null, "__tile": null, "defUid": 294, "realEditorValues": [] }
@@ -136,7 +139,10 @@
 							"id": "V_String",
 							"params": ["611fff50-bde0-11f1-addb-c9cd1872fb67"]
 						}] },
-						{ "__identifier": "Action", "__type": "LocalEnum.TriggerAction", "__value": "Default", "__tile": null, "defUid": 242, "realEditorValues": [] },
+						{ "__identifier": "Action", "__type": "LocalEnum.TriggerAction", "__value": "Run", "__tile": null, "defUid": 242, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["Run"]
+						}] },
 						{ "__identifier": "StartsOn", "__type": "Bool", "__value": true, "__tile": null, "defUid": 270, "realEditorValues": [] },
 						{ "__identifier": "SetOffBy", "__type": "LocalEnum.TriggerSetOffBy", "__value": "Touch", "__tile": null, "defUid": 272, "realEditorValues": [] },
 						{ "__identifier": "MovesWith", "__type": "EntityRef", "__value": null, "__tile": null, "defUid": 294, "realEditorValues": [] }
@@ -192,7 +198,10 @@
 							"id": "V_String",
 							"params": ["69da3070-bde0-11f1-addb-b934cc01db77"]
 						}] },
-						{ "__identifier": "Action", "__type": "LocalEnum.TriggerAction", "__value": "Default", "__tile": null, "defUid": 242, "realEditorValues": [] },
+						{ "__identifier": "Action", "__type": "LocalEnum.TriggerAction", "__value": "Run", "__tile": null, "defUid": 242, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["Run"]
+						}] },
 						{ "__identifier": "StartsOn", "__type": "Bool", "__value": true, "__tile": null, "defUid": 270, "realEditorValues": [] },
 						{ "__identifier": "SetOffBy", "__type": "LocalEnum.TriggerSetOffBy", "__value": "Touch", "__tile": null, "defUid": 272, "realEditorValues": [] },
 						{ "__identifier": "MovesWith", "__type": "EntityRef", "__value": null, "__tile": null, "defUid": 294, "realEditorValues": [] }
@@ -248,7 +257,10 @@
 							"id": "V_String",
 							"params": ["7ea88170-bde0-11f1-a170-59297a4cd950"]
 						}] },
-						{ "__identifier": "Action", "__type": "LocalEnum.TriggerAction", "__value": "Default", "__tile": null, "defUid": 263, "realEditorValues": [] }
+						{ "__identifier": "Action", "__type": "LocalEnum.TriggerAction", "__value": "Present", "__tile": null, "defUid": 263, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["Present"]
+						}] }
 					],
 					"__worldX": -976,
 					"__worldY": 32
@@ -275,7 +287,10 @@
 							"id": "V_String",
 							"params": ["b4c09ea0-bde0-11f1-a170-a3d1ba01deb0"]
 						}] },
-						{ "__identifier": "Action", "__type": "LocalEnum.TriggerAction", "__value": "Default", "__tile": null, "defUid": 263, "realEditorValues": [] }
+						{ "__identifier": "Action", "__type": "LocalEnum.TriggerAction", "__value": "Present", "__tile": null, "defUid": 263, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["Present"]
+						}] }
 					],
 					"__worldX": -672,
 					"__worldY": 32
@@ -302,7 +317,10 @@
 							"id": "V_String",
 							"params": ["cfb0d450-bde0-11f1-a170-2db973f0f1fe"]
 						}] },
-						{ "__identifier": "Action", "__type": "LocalEnum.TriggerAction", "__value": "Default", "__tile": null, "defUid": 263, "realEditorValues": [] }
+						{ "__identifier": "Action", "__type": "LocalEnum.TriggerAction", "__value": "Present", "__tile": null, "defUid": 263, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["Present"]
+						}] }
 					],
 					"__worldX": -512,
 					"__worldY": 32
@@ -329,7 +347,10 @@
 							"id": "V_String",
 							"params": ["44f2e130-bde0-11f1-a244-f59350ea27ca"]
 						}] },
-						{ "__identifier": "Action", "__type": "LocalEnum.TriggerAction", "__value": "Default", "__tile": null, "defUid": 242, "realEditorValues": [] },
+						{ "__identifier": "Action", "__type": "LocalEnum.TriggerAction", "__value": "Run", "__tile": null, "defUid": 242, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["Run"]
+						}] },
 						{ "__identifier": "StartsOn", "__type": "Bool", "__value": true, "__tile": null, "defUid": 270, "realEditorValues": [] },
 						{ "__identifier": "SetOffBy", "__type": "LocalEnum.TriggerSetOffBy", "__value": "Touch", "__tile": null, "defUid": 272, "realEditorValues": [{
 							"id": "V_String",
@@ -384,7 +405,10 @@
 							"id": "V_String",
 							"params": ["16f1e500-bde0-11f1-a315-154ba4d4dfb8"]
 						}] },
-						{ "__identifier": "Action", "__type": "LocalEnum.TriggerAction", "__value": "Default", "__tile": null, "defUid": 263, "realEditorValues": [] }
+						{ "__identifier": "Action", "__type": "LocalEnum.TriggerAction", "__value": "Run", "__tile": null, "defUid": 263, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["Run"]
+						}] }
 					],
 					"__worldX": -1328,
 					"__worldY": 96

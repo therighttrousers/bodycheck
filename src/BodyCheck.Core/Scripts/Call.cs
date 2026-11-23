@@ -15,6 +15,7 @@ public readonly record struct Call(IActionTarget Target, TriggerAction Action)
         TriggerAction.ToggleOpenClose => Target.ToggleOpenClose(tick),
         TriggerAction.Open => Target.Open(tick),
         TriggerAction.Close => Target.Close(tick),
-        TriggerAction.Default => Target.Default(tick),
+        TriggerAction.Run => Target.Run(tick),
+        TriggerAction.Present => Target.Present(tick),
     };
 }

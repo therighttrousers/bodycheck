@@ -757,10 +757,7 @@
 					"max": null,
 					"regex": null,
 					"acceptFileTypes": null,
-					"defaultOverride": {
-						"id": "V_String",
-						"params": ["Default"]
-					},
+					"defaultOverride": null,
 					"textLanguageMode": null,
 					"symmetricalRef": false,
 					"autoChainRef": true,
@@ -987,10 +984,7 @@
 					"max": null,
 					"regex": null,
 					"acceptFileTypes": null,
-					"defaultOverride": {
-						"id": "V_String",
-						"params": ["Default"]
-					},
+					"defaultOverride": null,
 					"textLanguageMode": null,
 					"symmetricalRef": false,
 					"autoChainRef": true,
@@ -1100,10 +1094,7 @@
 					"max": null,
 					"regex": null,
 					"acceptFileTypes": null,
-					"defaultOverride": {
-						"id": "V_String",
-						"params": ["Default"]
-					},
+					"defaultOverride": null,
 					"textLanguageMode": null,
 					"symmetricalRef": false,
 					"autoChainRef": true,
@@ -1470,10 +1461,7 @@
 					"max": null,
 					"regex": null,
 					"acceptFileTypes": null,
-					"defaultOverride": {
-						"id": "V_String",
-						"params": ["Default"]
-					},
+					"defaultOverride": null,
 					"textLanguageMode": null,
 					"symmetricalRef": false,
 					"autoChainRef": true,
@@ -1544,7 +1532,8 @@
 			{ "id": "ToggleOpenClose", "tileRect": null, "color": 7552569 },
 			{ "id": "Open", "tileRect": null, "color": 4073265 },
 			{ "id": "Close", "tileRect": null, "color": 16690740 },
-			{ "id": "Default", "tileRect": null, "color": 12470831 }
+			{ "id": "Run", "tileRect": null, "color": 12470831 },
+			{ "id": "Present", "tileRect": null, "color": 16705377 }
 		], "iconTilesetUid": null, "externalRelPath": null, "externalFileChecksum": null, "tags": [] },
 		{ "identifier": "TriggerSetOffBy", "uid": 271, "values": [
 			{ "id": "Touch", "tileRect": null, "color": 12470831 },
