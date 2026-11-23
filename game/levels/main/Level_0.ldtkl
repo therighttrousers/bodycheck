@@ -54,7 +54,24 @@
 			"seed": 4148394,
 			"overrideTilesetUid": null,
 			"gridTiles": [],
-			"entityInstances": []
+			"entityInstances": [
+				{
+					"__identifier": "PlayerStart",
+					"__grid": [14,12],
+					"__pivot": [0,0],
+					"__tags": ["Control"],
+					"__tile": null,
+					"__smartColor": "#2CE8F5",
+					"iid": "aa063540-bde0-11f1-9940-77551af9208c",
+					"width": 16,
+					"height": 32,
+					"defUid": 202,
+					"px": [224,192],
+					"fieldInstances": [],
+					"__worldX": 224,
+					"__worldY": 192
+				}
+			]
 		},
 		{
 			"__identifier": "Entities",
@@ -94,22 +111,6 @@
 					"px": [128,192],
 					"fieldInstances": [],
 					"__worldX": 128,
-					"__worldY": 192
-				},
-				{
-					"__identifier": "PlayerStart",
-					"__grid": [14,12],
-					"__pivot": [0,0],
-					"__tags": ["Character"],
-					"__tile": null,
-					"__smartColor": "#2CE8F5",
-					"iid": "aa063540-bde0-11f1-9940-77551af9208c",
-					"width": 16,
-					"height": 32,
-					"defUid": 202,
-					"px": [224,192],
-					"fieldInstances": [],
-					"__worldX": 224,
 					"__worldY": 192
 				}
 			]

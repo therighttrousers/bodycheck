@@ -265,9 +265,9 @@ public class DialogueTest
     [TestCase("missing", "start", false)]
     public void A_world_builds_only_if_each_dialogue_names_a_title_its_file_holds(string file, string title, bool builds)
     {
-        var player = new EntityConfig.Player
+        var player = new EntityConfig.PlayerStart
         {
-            Id = "player",
+            Id = "player-start",
             MapOrigin = Vector2I.Zero,
             MapSize = new Vector2I(1, 2),
             MapColor = Colors.White,

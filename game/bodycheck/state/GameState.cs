@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 
+using BodyCheck.Core;
 using BodyCheck.Core.Entities;
 using BodyCheck.Core.WorldData;
 
@@ -29,14 +29,16 @@ public sealed partial class GameState : RefCounted, IGameState
     /// <exception cref="ArgumentException">Two of its entities have the same name.</exception>
     public GameState(World world)
     {
+        Player = new PlayerState(Constants.PlayerId, PlayerKindName);
+        _entitiesByName[Player.UntranslatedName] = Player;
+        _entities[Player.Id] = Player;
         foreach (EntityConfig config in world.Bodies)
         {
             var kindName = KindName(config.Kind);
             var serial = DefaultSerial(config, world.Bodies);
             EntityState entity = config switch
             {
-                EntityConfig.Player => Player = new PlayerState(config.Id, kindName),
-                EntityConfig.VerticalDoor door => new DoorState(config.Id, kindName, serial!,
+                EntityConfig.VerticalDoor door => new DoorState(config.Id, kindName, serial,
                     door.StartsClosed() ? OpenableAction.Close : OpenableAction.Open),
                 _ => new EntityState(config.Id, kindName, serial),
             };
@@ -49,17 +51,20 @@ public sealed partial class GameState : RefCounted, IGameState
             }
             _entities[entity.Id] = entity;
         }
-
-        Debug.Assert(Player is not null);
     }
 
     /// <summary>
+    /// The player's kind's name as a speaker, untranslated, which is its name too: <c>B-CON</c>, which in English
+    /// sounds like "beacon".
+    /// </summary>
+    private static readonly string PlayerKindName = Translatable.Mark("B-CON", KindContext);
+
+    /// <summary>
     /// The name of an entity's kind as a speaker, untranslated, which its avatar is named for, and which its name
-    /// starts with: <c>B-CON</c> for the player, which in English sounds like "beacon".
+    /// starts with.
     /// </summary>
     private static string KindName(EntityKind kind) => kind switch
     {
-        EntityKind.Player => Translatable.Mark("B-CON", KindContext),
         EntityKind.VerticalDoor => Translatable.Mark("Door", KindContext),
         _ => kind.ToString(),
     };
@@ -68,17 +73,12 @@ public sealed partial class GameState : RefCounted, IGameState
     private const string KindContext = "kind";
 
     /// <summary>
-    /// The serial number in an entity's name, after its kind's, or null for the player, whose name is its kind's: the
-    /// start of its id, such as <c>a6d1</c>, at least <see cref="ShortIdLength"/> characters, and as many more as tell
+    /// The serial number in an entity's name, after its kind's: the start of its id, such as <c>a6d1</c>, at least <see cref="ShortIdLength"/> characters, and as many more as tell
     /// it from every other id of its kind in <paramref name="bodies"/>, as git shortens a commit's hash, so that names
     /// are unique.
     /// </summary>
-    private static string? DefaultSerial(EntityConfig config, IEnumerable<EntityConfig> bodies)
+    private static string DefaultSerial(EntityConfig config, IEnumerable<EntityConfig> bodies)
     {
-        if (config.Kind == EntityKind.Player)
-        {
-            return null;
-        }
         int length = bodies
             .Where(other => other.Kind == config.Kind && other != config)
             .Select(other => CommonPrefixLength(config.Id, other.Id) + 1)

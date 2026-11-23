@@ -217,7 +217,7 @@ public static class LdtkReader
 
         return entity.Identifier switch
         {
-            LdtkEntityName.PlayerStart => new EntityConfig.Player()
+            LdtkEntityName.PlayerStart => new EntityConfig.PlayerStart()
             {
                 Id = id,
                 MapOrigin = origin,

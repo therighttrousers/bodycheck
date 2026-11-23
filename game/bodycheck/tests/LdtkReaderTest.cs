@@ -128,7 +128,7 @@ public class LdtkReaderTest
 
         AssertThat(lower.Origin).IsEqual(new Vector2I(20, 0));
         EntityConfig playerConfig = lower.EntityConfigs.Single();
-        AssertThat((playerConfig.Kind, playerConfig.MapOrigin)).IsEqual((EntityKind.Player, new Vector2I(1, 14)));
+        AssertThat((playerConfig.Kind, playerConfig.MapOrigin)).IsEqual((EntityKind.PlayerStart, new Vector2I(1, 14)));
     }
 
     [TestCase]
@@ -172,7 +172,7 @@ public class LdtkReaderTest
             """;
         World world = ReadOne(Project(Level(0, 0, PlayerStart, control: respawn)));
 
-        var read = (EntityConfig.Respawn)world.Controls.Single();
+        var read = world.Controls.OfType<EntityConfig.Respawn>().Single();
         AssertThat((read.Id, read.MapOrigin, read.MapSize)).IsEqual(("a1b2", new Vector2I(2, 0), new Vector2I(1, 2)));
     }
 
@@ -276,13 +276,13 @@ public class LdtkReaderTest
     public void Reads_a_script_by_its_class_name_with_its_entities()
     {
         string script = Control("Script", "script", $$"""
-            { "__identifier": "ClassName", "__value": "RunRight" }, { "__identifier": "Entities", "__value": [ {{Ref("p")}} ] }
+            { "__identifier": "ClassName", "__value": "RunRight" }, { "__identifier": "Entities", "__value": [ {{Ref("door")}} ] }
             """);
-        World world = ReadOne(Project(Level(0, 0, PlayerStart, control: script)));
+        World world = ReadOne(Project(Level(0, 0, PlayerStart + ", " + Door, control: script)));
 
         var config = (EntityConfig.Script)world.ConfigsById["script"];
         AssertThat(config.ClassName).IsEqual("RunRight");
-        AssertThat(config.Entities).ContainsExactly("p");
+        AssertThat(config.Entities).ContainsExactly("door");
     }
 
     public static IEnumerable<string> BadControlEntities =>

@@ -70,6 +70,22 @@
 					"fieldInstances": [],
 					"__worldX": 224,
 					"__worldY": 64
+				},
+				{
+					"__identifier": "PlayerStart",
+					"__grid": [5,9],
+					"__pivot": [0,0],
+					"__tags": ["Control"],
+					"__tile": null,
+					"__smartColor": "#2CE8F5",
+					"iid": "50d965c0-e4f0-11f1-81b2-d5098e653c12",
+					"width": 16,
+					"height": 32,
+					"defUid": 202,
+					"px": [80,144],
+					"fieldInstances": [],
+					"__worldX": 80,
+					"__worldY": 144
 				}
 			]
 		},
@@ -97,22 +113,6 @@
 			"overrideTilesetUid": null,
 			"gridTiles": [],
 			"entityInstances": [
-				{
-					"__identifier": "PlayerStart",
-					"__grid": [5,9],
-					"__pivot": [0,0],
-					"__tags": ["Character"],
-					"__tile": null,
-					"__smartColor": "#2CE8F5",
-					"iid": "b5aa6fb0-bde0-11f1-abb8-395963510d38",
-					"width": 16,
-					"height": 32,
-					"defUid": 202,
-					"px": [80,144],
-					"fieldInstances": [],
-					"__worldX": 80,
-					"__worldY": 144
-				},
 				{
 					"__identifier": "RobotBasic",
 					"__grid": [9,9],

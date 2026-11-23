@@ -14,6 +14,11 @@ public interface IAssetLibrary
     Node3D? GetEntityVisual(EntityConfig config);
 
     /// <summary>
+    /// Makes what to draw for the player, with its origin where its body's anchor goes. It is called once for each world.
+    /// </summary>
+    Node3D? GetPlayerVisual();
+
+    /// <summary>
     /// Makes what to draw for the block the player spawns, with a body of <paramref name="halfSize"/>, with its origin
     /// where its body's anchor goes. It is called once for each world.
     /// </summary>

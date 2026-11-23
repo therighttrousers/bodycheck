@@ -85,7 +85,7 @@ public sealed class World
         Controls = controls;
         ConfigsById = byId;
 
-        int numPlayerStarts = Bodies.Count(c => c.Kind == EntityKind.Player);
+        int numPlayerStarts = Controls.Count(c => c.Kind == EntityKind.PlayerStart);
         if (numPlayerStarts != 1)
         {
             throw new ArgumentException($"World '{name}' has {numPlayerStarts} player starts, not 1.", nameof(rooms));
@@ -140,12 +140,10 @@ public sealed class World
                 throw new ArgumentException(
                     $"In world '{name}', {Named(trigger)} moves with '{id}', which isn't in the world.", nameof(rooms));
             }
-            if (!entity.Kind.HasBody || entity.Kind == EntityKind.Player)
+            if (!entity.Kind.HasBody)
             {
                 throw new ArgumentException(
-                    $"In world '{name}', {Named(trigger)} moves with {Named(entity)}, which "
-                    + (entity.Kind.HasBody ? "would always be in it." : "has no body."),
-                    nameof(rooms));
+                    $"In world '{name}', {Named(trigger)} moves with {Named(entity)}, which has no body.", nameof(rooms));
             }
         }
 
@@ -248,6 +246,9 @@ public sealed class World
     /// as <see cref="Bodies"/>, so that whatever goes through them each tick does so in a known order.
     /// </summary>
     public IReadOnlyList<EntityConfig> Controls { get; }
+
+    /// <summary>Where the player starts in a new game, the one <see cref="EntityKind.PlayerStart"/> in <see cref="Controls"/>.</summary>
+    public EntityConfig.PlayerStart PlayerStart => Controls.OfType<EntityConfig.PlayerStart>().Single();
 
     /// <summary>Every configuration, in <see cref="Bodies"/> and <see cref="Controls"/>, by its id.</summary>
     public IReadOnlyDictionary<string, EntityConfig> ConfigsById { get; }

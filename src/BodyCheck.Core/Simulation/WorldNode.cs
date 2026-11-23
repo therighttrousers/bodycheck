@@ -156,7 +156,7 @@ public partial class WorldNode : Node3D, IScriptWorld
 
         // Out of the world until the player spawns it: a disabled body is out of the engine's space, and isn't stepped.
         PlayerBlock = new Entity(
-            "player-block",
+            Constants.PlayerBlockId,
             BodyTuning.PlayerBlock,
             assets.GetPlayerBlockVisual(BodyTuning.PlayerBlock.HalfSize))
         {
@@ -164,29 +164,29 @@ public partial class WorldNode : Node3D, IScriptWorld
             Visible = false,
         };
 
+        // First, so that it is stepped first, and the same player in every world, which no configuration builds.
+        Player = CreatePlayer(assets.GetPlayerVisual(), playerBody ?? BodyTuning.Player);
+        Player.Position = StartPosition(Player, (EntityConfig?)CurrentRespawn ?? world.PlayerStart);
+        AddChild(Player);
+        _entities[Player.Id] = Player;
+
         // The entities that configurations build, by their ids.
         var bodies = new Dictionary<string, Entity>();
         foreach (EntityConfig config in world.Bodies)
         {
             Entity entity = config.Kind switch
             {
-                EntityKind.Player => Player = CreatePlayer(
-                    (EntityConfig.Player)config,
-                    assets.GetEntityVisual(config),
-                    playerBody ?? BodyTuning.Player),
-
                 EntityKind.Robot => CreateRobot((EntityConfig.Robot)config, assets.GetEntityVisual(config)),
                 EntityKind.Platform => CreatePlatform((EntityConfig.Platform)config, assets.GetEntityVisual(config)),
                 EntityKind.Block => CreateBlock((EntityConfig.Block)config, assets.GetEntityVisual(config)),
                 EntityKind.VerticalDoor => CreateVerticalDoor((EntityConfig.VerticalDoor)config, assets.GetEntityVisual(config)),
 
-                EntityKind.Respawn or EntityKind.Trigger or EntityKind.Sequence or EntityKind.Fanout or EntityKind.Once
-                    or EntityKind.Dialogue or EntityKind.Script => throw new UnreachableException($"A {config.Kind} has no body."),
+                EntityKind.PlayerStart or EntityKind.Respawn or EntityKind.Trigger or EntityKind.Sequence
+                    or EntityKind.Fanout or EntityKind.Once or EntityKind.Dialogue or EntityKind.Script => throw new UnreachableException($"A {config.Kind} has no body."),
             };
 
             Debug.Assert(entity.GetType() == EntityClassOf(config.Kind), "EntityClassOf agrees with what is built.");
-            EntityConfig startBox = config.Kind == EntityKind.Player && CurrentRespawn is not null ? CurrentRespawn : config;
-            entity.Position = StartPosition(entity, startBox);
+            entity.Position = StartPosition(entity, config);
             AddChild(entity);
             _entities[config.Id] = entity;
             _configs[config.Id] = config;
@@ -204,9 +204,6 @@ public partial class WorldNode : Node3D, IScriptWorld
         // Last, since no configuration builds it.
         AddChild(PlayerBlock);
         _entities[PlayerBlock.Id] = PlayerBlock;
-
-        // Redundant but harmless: the `World` constructor also ensures this.
-        Debug.Assert(Player is not null);
 
         // Here and not in CreatePlayer, since only the constructor can set PlayerController.
         PlayerController = new PlayerController(Player);
@@ -355,7 +352,6 @@ public partial class WorldNode : Node3D, IScriptWorld
     /// </summary>
     private static Type EntityClassOf(EntityKind kind) => kind switch
     {
-        EntityKind.Player => typeof(PlayerEntity),
         EntityKind.Robot => typeof(RobotEntity),
         EntityKind.Platform => typeof(PlatformEntity),
         EntityKind.Block or EntityKind.VerticalDoor => typeof(Entity),
@@ -377,9 +373,9 @@ public partial class WorldNode : Node3D, IScriptWorld
     private static Vector3 StartPosition(Entity entity, EntityConfig box) =>
         (box.MapCenter + ((Vector2)box.MapSize - 2 * entity.HalfSize) * entity.Tuning.Anchor).ToVector3();
 
-    private static PlayerEntity CreatePlayer(EntityConfig.Player config, Node3D? visual, BodyTuning body)
+    private static PlayerEntity CreatePlayer(Node3D? visual, BodyTuning body)
     {
-        var player = new PlayerEntity(config.Id, body, visual);
+        var player = new PlayerEntity(Constants.PlayerId, body, visual);
         player.AddChild(new OmniLight3D { OmniRange = 15, ShadowEnabled = true, Position = new Vector3(0, 0, 2) });
         return player;
     }
@@ -469,15 +465,16 @@ public partial class WorldNode : Node3D, IScriptWorld
     /// </summary>
     public Node3D MapMarkers { get; } = new() { Name = "MapMarkers", Visible = false };
 
-    public PlayerEntity Player { get; } = null!;
+    /// <summary>The player, the first of <see cref="Entities"/>, whose id is <see cref="Constants.PlayerId"/>.</summary>
+    public PlayerEntity Player { get; }
 
     /// <summary>The block the player spawns, the last of <see cref="Entities"/>.</summary>
     public Entity PlayerBlock { get; }
     public PlayerController PlayerController { get; } = null!;
 
     /// <summary>
-    /// Every entity in the world, by id, in the order they are stepped: those the world's <see cref="World.Bodies"/>
-    /// build, in their order, then <see cref="PlayerBlock"/>, which no configuration builds, less those taken out. One
+    /// Every entity in the world, by id, in the order they are stepped: <see cref="Player"/>, then those the world's
+    /// <see cref="World.Bodies"/> build, in their order, then <see cref="PlayerBlock"/>, which no configuration builds, less those taken out. One
     /// asked to be removed stays until the end of the tick, not <see cref="Entity.IsLive"/>.
     /// </summary>
     public IReadOnlyDictionary<string, Entity> Entities => _entities;

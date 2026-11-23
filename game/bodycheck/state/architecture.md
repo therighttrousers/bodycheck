@@ -2,6 +2,7 @@
 
 Relevant decision records:
 - [063: World state, and talking to entities](../../../docs/decision-records/063-world-state-and-talking-to-entities.md)
+- [065: Persisted game state](../../../docs/decision-records/065-persisted-game-state.md)
 
 ## What it is
 
@@ -13,7 +14,7 @@ State that only presents something, such as what a dialogue shows now, or state 
 
 ## Names
 
-Every character that speaks is a `CharacterState`, with a name: the Voice, which has no body, and every entity with a body, an `EntityState`, whose name is its kind's name and the start of its id, such as `Door a6d1`, as a machine's serial number: at least four characters, and as many more as tell it from every other entity of its kind, as git shortens a commit's hash; the player's is `B-CON`, its kind's. Two the same is an error. A kind's name, untranslated, is also what its avatar is named for (`063 §1.5`, `§3.4`). A name is translated when it is read, through `Translatable`, from a pattern with named placeholders, so that the game's state holds no translated text and follows the locale ([dialogue.md](../../../docs/designs/dialogue.md#translation), `063 §3.6`).
+Every character that speaks is a `CharacterState`, with a name: the Voice, which has no body, and every entity with a body, an `EntityState`, whose name is its kind's name and the start of its id, such as `Door a6d1`, as a machine's serial number: at least four characters, and as many more as tell it from every other entity of its kind, as git shortens a commit's hash; the player's is `B-CON`, its kind's, and its id is `player` in every world, so that its state is the game's, not a world's (`065 §1.3`). Two the same is an error. A kind's name, untranslated, is also what its avatar is named for (`063 §1.5`, `§3.4`). A name is translated when it is read, through `Translatable`, from a pattern with named placeholders, so that the game's state holds no translated text and follows the locale ([dialogue.md](../../../docs/designs/dialogue.md#translation), `063 §3.6`).
 
 ## Two views of one state
 

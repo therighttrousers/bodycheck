@@ -14,6 +14,15 @@ public static class Constants
     public const int TilePixels = 16;
 
     /// <summary>
+    /// The player's id, the same in every world, since the player is no entity's configuration and is the same
+    /// player wherever it is.
+    /// </summary>
+    public const string PlayerId = "player";
+
+    /// <summary>The id of the block the player spawns, which is no entity's configuration either.</summary>
+    public const string PlayerBlockId = "player-block";
+
+    /// <summary>
     /// The strength of gravity on a body whose gravity scale is 1, in tiles per second squared: the project setting
     /// <c>physics/3d/default_gravity</c>, read when this is first used.
     /// </summary>

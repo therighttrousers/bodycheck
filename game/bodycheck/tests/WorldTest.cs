@@ -61,7 +61,8 @@ public class WorldTest
         AssertThat(world.GetTileIndex(0, 2)).IsEqual(TileIndex.Empty); // Above the left room
 
         AssertArray(world.Bodies.Select(config => (config.Kind, config.MapOrigin))).ContainsExactly(
-            (EntityKind.Player, new Vector2I(1, 0)), (EntityKind.Block, new Vector2I(4, 1)));
+            (EntityKind.Block, new Vector2I(4, 1)));
+        AssertThat(world.PlayerStart.MapOrigin).IsEqual(new Vector2I(1, 0));
     }
 
     [TestCase]
@@ -75,9 +76,9 @@ public class WorldTest
         AssertThat((platform.RangeA, platform.RangeB)).IsEqual((new Vector2I(5, 1), new Vector2I(9, 1)));
     }
 
-    private static EntityConfig.Player Player => new()
+    private static EntityConfig.PlayerStart Player => new()
     {
-        Id = "player",
+        Id = "player-start",
         MapOrigin = Vector2I.Zero,
         MapSize = new Vector2I(1, 2),
         MapColor = Colors.White,
@@ -145,9 +146,9 @@ public class WorldTest
             Door,
             Dialogue);
 
-        AssertArray(world.Bodies.Select(config => config.Kind)).ContainsExactly(EntityKind.Player, EntityKind.VerticalDoor);
+        AssertArray(world.Bodies.Select(config => config.Kind)).ContainsExactly(EntityKind.VerticalDoor);
         AssertArray(world.Controls.Select(config => config.Kind)).ContainsExactly(
-            EntityKind.Trigger, EntityKind.Sequence, EntityKind.Dialogue);
+            EntityKind.Trigger, EntityKind.PlayerStart, EntityKind.Sequence, EntityKind.Dialogue);
         AssertThat(world.ConfigsById["door"].Kind).IsEqual(EntityKind.VerticalDoor);
     }
 
