@@ -136,7 +136,7 @@ public sealed class Room : IOffsetTileGrid
                 EntityConfig? config = rows[row][x] switch
                 {
                     // These colors and sizes should match the colors and sizes of entities in LDtk.
-                    'P' => new EntityConfig.Player()
+                    'P' => new EntityConfig.PlayerStart()
                     {
                         MapOrigin = mapOrigin,
                         MapSize = new Vector2I(1, 2),

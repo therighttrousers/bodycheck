@@ -42,14 +42,15 @@ public class AssetLibrary : IAssetLibrary
 
     public Node3D? GetEntityVisual(EntityConfig config) => config.Kind switch
     {
-        EntityKind.Player => InstantiateScene("res://assets/entities/player/player.tscn"),
         EntityKind.Robot => InstantiateScene("res://assets/entities/robot/robot.tscn"),
         EntityKind.Platform => InstantiatePlatform(2 * BodyTuning.Platform(config.MapSize).HalfSize.X),
         EntityKind.Block => InstantiateScene(BlockPath),
         EntityKind.VerticalDoor => InstantiateDoor(config),
-        EntityKind.Respawn or EntityKind.Trigger or EntityKind.Sequence or EntityKind.Fanout or EntityKind.Once
+        EntityKind.PlayerStart or EntityKind.Respawn or EntityKind.Trigger or EntityKind.Sequence or EntityKind.Fanout or EntityKind.Once
             or EntityKind.Dialogue or EntityKind.Script => null,
     };
+
+    public Node3D? GetPlayerVisual() => InstantiateScene("res://assets/entities/player/player.tscn");
 
     public Node3D GetPlayerBlockVisual(Vector2 halfSize)
     {

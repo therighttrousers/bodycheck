@@ -5,11 +5,11 @@ namespace BodyCheck.Core.WorldData;
 /// <summary>The kinds of entity that can be in a room.</summary>
 public enum EntityKind
 {
-    Player,
     Robot,
     Platform,
     Block,
     VerticalDoor,
+    PlayerStart,
     Respawn,
     Trigger,
     Sequence,
@@ -43,9 +43,8 @@ public static class EntityKinds
         /// </summary>
         public bool HasBody => kind switch
         {
-            EntityKind.Player or EntityKind.Robot or EntityKind.Platform or EntityKind.Block or EntityKind.VerticalDoor
-                => true,
-            EntityKind.Respawn or EntityKind.Trigger or EntityKind.Sequence or EntityKind.Fanout or EntityKind.Once
+            EntityKind.Robot or EntityKind.Platform or EntityKind.Block or EntityKind.VerticalDoor => true,
+            EntityKind.PlayerStart or EntityKind.Respawn or EntityKind.Trigger or EntityKind.Sequence or EntityKind.Fanout or EntityKind.Once
                 or EntityKind.Dialogue or EntityKind.Script => false,
         };
 
@@ -56,7 +55,7 @@ public static class EntityKinds
         /// </summary>
         public IReadOnlyList<TriggerAction> Responses => kind switch
         {
-            EntityKind.Player or EntityKind.Robot or EntityKind.Platform or EntityKind.Block => None,
+            EntityKind.Robot or EntityKind.Platform or EntityKind.Block or EntityKind.PlayerStart => None,
             EntityKind.Trigger => OnOff,
             EntityKind.VerticalDoor => OpenClose,
             EntityKind.Respawn or EntityKind.Sequence or EntityKind.Fanout or EntityKind.Once or EntityKind.Dialogue
@@ -103,11 +102,6 @@ public abstract record EntityConfig
 
     /// <summary>The same configuration, with every place in it moved by <paramref name="offset"/>.</summary>
     public virtual EntityConfig MovedBy(Vector2I offset) => this with { MapOrigin = MapOrigin + offset };
-
-    public sealed record Player : EntityConfig
-    {
-        public override EntityKind Kind => EntityKind.Player;
-    }
 
     public sealed record Robot : EntityConfig
     {
@@ -156,6 +150,16 @@ public abstract record EntityConfig
     }
 
     /// <summary>A place the player can start from, such as after a reload.</summary>
+    /// <summary>
+    /// Where the player starts in a new game, as a respawn is where it starts again. The player itself is no
+    /// entity's configuration: the world builds it, with the id <see cref="Constants.PlayerId"/>, as the same player in
+    /// every world.
+    /// </summary>
+    public sealed record PlayerStart : EntityConfig
+    {
+        public override EntityKind Kind => EntityKind.PlayerStart;
+    }
+
     public sealed record Respawn : EntityConfig
     {
         public override EntityKind Kind => EntityKind.Respawn;

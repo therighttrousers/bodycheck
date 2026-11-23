@@ -309,16 +309,16 @@
 				},
 				{
 					"__identifier": "Trigger",
-					"__grid": [2,9],
+					"__grid": [1,9],
 					"__pivot": [0,0],
 					"__tags": ["Control"],
 					"__tile": null,
 					"__smartColor": "#D7CF43",
 					"iid": "0e223010-bde0-11f1-a315-c15e5d279e84",
-					"width": 16,
+					"width": 48,
 					"height": 16,
 					"defUid": 237,
-					"px": [32,144],
+					"px": [16,144],
 					"fieldInstances": [
 						{ "__identifier": "Target", "__type": "EntityRef", "__value": {
 							"entityIid": "44f2e130-bde0-11f1-a244-f59350ea27ca",
@@ -337,7 +337,7 @@
 						}] },
 						{ "__identifier": "MovesWith", "__type": "EntityRef", "__value": null, "__tile": null, "defUid": 294, "realEditorValues": [] }
 					],
-					"__worldX": -1360,
+					"__worldX": -1376,
 					"__worldY": 112
 				},
 				{
@@ -404,6 +404,22 @@
 					"fieldInstances": [],
 					"__worldX": -1104,
 					"__worldY": 176
+				},
+				{
+					"__identifier": "PlayerStart",
+					"__grid": [2,8],
+					"__pivot": [0,0],
+					"__tags": ["Control"],
+					"__tile": null,
+					"__smartColor": "#2CE8F5",
+					"iid": "17d79620-e4f0-11f1-81b2-53832c5719b4",
+					"width": 16,
+					"height": 32,
+					"defUid": 202,
+					"px": [32,128],
+					"fieldInstances": [],
+					"__worldX": -1360,
+					"__worldY": 96
 				}
 			]
 		},
@@ -430,24 +446,7 @@
 			"seed": 5676302,
 			"overrideTilesetUid": null,
 			"gridTiles": [],
-			"entityInstances": [
-				{
-					"__identifier": "PlayerStart",
-					"__grid": [2,8],
-					"__pivot": [0,0],
-					"__tags": ["Character"],
-					"__tile": null,
-					"__smartColor": "#2CE8F5",
-					"iid": "9cb9aa60-bde0-11f1-a170-05b3f2bcfd25",
-					"width": 16,
-					"height": 32,
-					"defUid": 202,
-					"px": [32,128],
-					"fieldInstances": [],
-					"__worldX": -1360,
-					"__worldY": 96
-				}
-			]
+			"entityInstances": []
 		},
 		{
 			"__identifier": "CameraBoundary",

@@ -57,16 +57,16 @@ public class ScriptTest
         }
     }
 
-    /// <summary>A script that takes the player, and finishes at once.</summary>
-    private sealed class TakesThePlayer(PlayerEntity player) : IScript
+    /// <summary>A script that takes a block, and finishes at once.</summary>
+    private sealed class TakesABlock(Entity block) : IScript
     {
-        public PlayerEntity Player { get; } = player;
+        public Entity Block { get; } = block;
 
         public TickTask Run(IScriptWorld world) => TickTask.Finished;
     }
 
     /// <summary>
-    /// Knows <see cref="RunRight"/>, which takes no entities, and <see cref="TakesThePlayer"/>, by their names, and keeps
+    /// Knows <see cref="RunRight"/>, which takes no entities, and <see cref="TakesABlock"/>, by their names, and keeps
     /// the scripts it makes.
     /// </summary>
     private sealed class Library : IScriptLibrary
@@ -76,13 +76,13 @@ public class ScriptTest
         public bool Holds(string className, IReadOnlyList<Type> entityTypes) => className switch
         {
             nameof(RunRight) => entityTypes.Count == 0,
-            nameof(TakesThePlayer) => entityTypes is [Type type] && type == typeof(PlayerEntity),
+            nameof(TakesABlock) => entityTypes is [Type type] && type == typeof(Entity),
             _ => false,
         };
 
         public IScript Create(string className, IReadOnlyList<Entity> entities)
         {
-            IScript script = className == nameof(RunRight) ? new RunRight() : new TakesThePlayer((PlayerEntity)entities[0]);
+            IScript script = className == nameof(RunRight) ? new RunRight() : new TakesABlock(entities[0]);
             Made.Add(script);
             return script;
         }
@@ -103,11 +103,11 @@ public class ScriptTest
             "##############################",
             "#............................#",
             "#............................#",
-            "#P...........................#",
+            "#P..........................B#",
             "##############################",
         ];
         Room room = RoomRun.RoomOf(rows);
-        EntityConfig player = room.EntityConfigs.Single(config => config.Kind == EntityKind.Player);
+        EntityConfig player = room.EntityConfigs.Single(config => config.Kind == EntityKind.PlayerStart);
         var script = new EntityConfig.Script
         {
             Id = "Script",
@@ -153,12 +153,12 @@ public class ScriptTest
     public async Task A_start_trigger_runs_its_script_once_given_its_entities()
     {
         var library = new Library();
-        // A text room's ids are its name and the cell: the player's 'P' is at 1,3.
-        _run = new RoomRun(RoomWithScript(nameof(TakesThePlayer), TriggerSetOffBy.Start, ["Test 1,3"]), scripts: library);
+        // A text room's ids are its name and the cell: the block's 'B' is at 28,3.
+        _run = new RoomRun(RoomWithScript(nameof(TakesABlock), TriggerSetOffBy.Start, ["Test 28,3"]), scripts: library);
 
         await _run.Tick(RoomRun.Idle, 3);
         AssertThat(library.Made).HasSize(1);
-        AssertThat(((TakesThePlayer)library.Made[0]).Player).IsSame(_run.Node.Player);
+        AssertThat(((TakesABlock)library.Made[0]).Block).IsSame(_run.Node.Entities["Test 28,3"]);
     }
 
     [TestCase]
@@ -235,7 +235,7 @@ public class ScriptTest
         AssertThat(ScriptArguments.Constructor(typeof(RobotThenRest), [typeof(RobotEntity)])).IsNotNull();
         AssertThat(ScriptArguments.Constructor(typeof(RobotThenRest), [typeof(Entity)])).IsNull();
         AssertThat(ScriptArguments.Constructor(typeof(RestThenRobot), robotAndBlocks)).IsNull();
-        AssertThat(ScriptArguments.Constructor(typeof(TakesThePlayer), [typeof(PlayerEntity), typeof(Entity)])).IsNull();
+        AssertThat(ScriptArguments.Constructor(typeof(TakesABlock), [typeof(Entity), typeof(Entity)])).IsNull();
     }
 
     private sealed class RobotThenRest(RobotEntity robot, IReadOnlyList<Entity> rest) : IScript
