@@ -4,6 +4,8 @@ using System.Threading.Tasks;
 
 using BodyCheck.Core;
 using BodyCheck.Core.Entities;
+using BodyCheck.Core.Scripts;
+using BodyCheck.Core.Tasks;
 using BodyCheck.Core.WorldData;
 
 using GdUnit4;
@@ -28,26 +30,51 @@ public class TouchTest
         _run = null;
     }
 
+    /// <summary>A script that does nothing, for a trigger to run, and the library that makes it.</summary>
+    private sealed class Nothing : IScript, IScriptLibrary
+    {
+        public TickTask Run(IScriptWorld world) => TickTask.Finished;
+
+        public bool Holds(string className, IReadOnlyList<System.Type> entityTypes) =>
+            className == nameof(Nothing) && entityTypes.Count == 0;
+
+        public IScript Create(string className, IReadOnlyList<Entity> entities) => this;
+    }
+
+    /// <summary>A <c>Script</c> entity that runs <see cref="Nothing"/>.</summary>
+    private static readonly EntityConfig.Script NothingScript = new()
+    {
+        Id = "Nothing",
+        MapOrigin = Vector2I.Zero,
+        MapSize = Vector2I.One,
+        MapColor = Colors.White,
+        ClassName = nameof(Nothing),
+        Entities = [],
+    };
+
+    /// <summary>A run of <paramref name="room"/>, whose triggers run <see cref="NothingScript"/>.</summary>
+    private static RoomRun RunOf(Room room) => new(room, scripts: new Nothing());
+
     /// <summary>
     /// A text room with a trigger whose box is <paramref name="size"/> tiles with its lower-left tile at
-    /// <paramref name="origin"/>, which makes the room's respawn current.
+    /// <paramref name="origin"/>, which runs a script that does nothing.
     /// </summary>
     private static Room RoomWithTrigger(
         string[] rows, Vector2I origin, Vector2I size, TriggerSetOffBy setOffBy = TriggerSetOffBy.Touch)
     {
         Room room = RoomRun.RoomOf(rows);
-        EntityConfig respawn = room.EntityConfigs.Single(config => config.Kind == EntityKind.Respawn);
         var trigger = new EntityConfig.Trigger
         {
             Id = "Trigger",
             MapOrigin = origin,
             MapSize = size,
             MapColor = Colors.White,
-            Step = new Step(respawn.Id, TriggerAction.Default),
+            Step = new Step(NothingScript.Id, TriggerAction.Run),
             StartsOn = true,
             SetOffBy = setOffBy,
         };
-        return new Room(room.Name, room.Origin, TileGrid.FromText(rows), room.EntityConfigs.Append(trigger));
+        return new Room(
+            room.Name, room.Origin, TileGrid.FromText(rows), room.EntityConfigs.Append(trigger).Append(NothingScript));
     }
 
     [TestCase]
@@ -62,7 +89,7 @@ public class TouchTest
             "#P............S#",
             "################",
         ];
-        _run = new RoomRun(RoomWithTrigger(rows, new Vector2I(6, 1), new Vector2I(3, 2)));
+        _run = RunOf(RoomWithTrigger(rows, new Vector2I(6, 1), new Vector2I(3, 2)));
         var touches = new List<string>();
         _run.Node.TriggerSetOff += trigger => touches.Add(trigger.Id);
 
@@ -86,7 +113,7 @@ public class TouchTest
             "#...P...S#",
             "##########",
         ];
-        _run = new RoomRun(RoomWithTrigger(rows, new Vector2I(3, 1), new Vector2I(3, 3), TriggerSetOffBy.Interact));
+        _run = RunOf(RoomWithTrigger(rows, new Vector2I(3, 1), new Vector2I(3, 3), TriggerSetOffBy.Interact));
         var setOffs = new List<string>();
         _run.Node.TriggerSetOff += trigger => setOffs.Add(trigger.Id);
         var up = new PlayerInput(0, 1, false);
@@ -120,7 +147,7 @@ public class TouchTest
             "#...P...S#",
             "##########",
         ];
-        _run = new RoomRun(RoomWithTrigger(rows, new Vector2I(3, 1), new Vector2I(3, 3), TriggerSetOffBy.Interact));
+        _run = RunOf(RoomWithTrigger(rows, new Vector2I(3, 1), new Vector2I(3, 3), TriggerSetOffBy.Interact));
         GameMode mode = GameMode.Playing;
         _run.Node.GameModeSource = () => mode;
         var setOffs = new List<string>();
@@ -158,24 +185,24 @@ public class TouchTest
             "##########",
         ];
         Room room = RoomRun.RoomOf(rows);
-        EntityConfig respawn = room.EntityConfigs.Single(config => config.Kind == EntityKind.Respawn);
         EntityConfig block = room.EntityConfigs.Single(config => config.Kind == EntityKind.Block);
-        EntityConfig.Trigger Trigger(string id, Vector2I origin, string? movesWith) => new()
+        static EntityConfig.Trigger Trigger(string id, Vector2I origin, string? movesWith) => new()
         {
             Id = id,
             MapOrigin = origin,
             MapSize = new Vector2I(3, 3),
             MapColor = Colors.White,
-            Step = new Step(respawn.Id, TriggerAction.Default),
+            Step = new Step(NothingScript.Id, TriggerAction.Run),
             StartsOn = true,
             SetOffBy = TriggerSetOffBy.Interact,
             MovesWith = movesWith,
         };
-        _run = new RoomRun(new Room(
+        _run = RunOf(new Room(
             room.Name,
             room.Origin,
             TileGrid.FromText(rows),
-            room.EntityConfigs.Append(Trigger("Stays", new Vector2I(2, 1), null)).Append(Trigger("Moves", new Vector2I(3, 1), block.Id))));
+            room.EntityConfigs.Append(Trigger("Stays", new Vector2I(2, 1), null)).Append(Trigger("Moves", new Vector2I(3, 1), block.Id))
+                .Append(NothingScript)));
         var setOffs = new List<string>();
         _run.Node.TriggerSetOff += trigger => setOffs.Add(trigger.Id);
         Entity blockEntity = _run.Node.EntitiesOf(EntityKind.Block).Single();
@@ -213,7 +240,7 @@ public class TouchTest
             "#...........................S#",
             "##############################",
         ];
-        _run = new RoomRun(RoomWithTrigger(rows, new Vector2I(20, 1), new Vector2I(1, 7)));
+        _run = RunOf(RoomWithTrigger(rows, new Vector2I(20, 1), new Vector2I(1, 7)));
         var touches = new List<string>();
         _run.Node.TriggerSetOff += trigger => touches.Add(trigger.Id);
 

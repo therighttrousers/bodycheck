@@ -271,8 +271,6 @@ public partial class WorldNode : Node3D, IScriptWorld
                     dialogue!, this, lines.File, lines.Title, [.. lines.Entities.Select(id => bodies[id])]),
                 EntityConfig.Script script => new ScriptRunner(
                     scripts!, script.ClassName, [.. script.Entities.Select(id => bodies[id])], this, _runningScripts),
-                // Not yet run: a respawn becomes current by reach.
-                EntityConfig.Respawn => FinishesAtOnce.Instance,
                 _ when config.Kind.HasBody => bodies[config.Id].Controller
                     ?? throw new UnreachableException($"A {config.Kind} with no controller responds to an action."),
                 _ => throw new UnreachableException($"A {config.Kind} responds to no action."),
@@ -357,14 +355,6 @@ public partial class WorldNode : Node3D, IScriptWorld
         EntityKind.Block or EntityKind.VerticalDoor => typeof(Entity),
         _ => throw new ArgumentException($"A {kind} has no body.", nameof(kind)),
     };
-
-    /// <summary>What runs an action that does nothing yet, which finishes at once.</summary>
-    private sealed class FinishesAtOnce : IActionTarget
-    {
-        public static FinishesAtOnce Instance { get; } = new();
-
-        public TickTask Default(ITick tick) => TickTask.Finished;
-    }
 
     /// <summary>
     /// Where an entity's center starts, in a box from the map that is usually larger than its body: where its body's

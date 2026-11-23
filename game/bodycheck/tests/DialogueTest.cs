@@ -80,7 +80,7 @@ public class DialogueTest
         bool resumed = false;
         async TickTask Waits(ITick tick)
         {
-            await new DialogueRunner(_box, _run.Node, "debug", "start", []).Default(tick);
+            await new DialogueRunner(_box, _run.Node, "debug", "start", []).Present(tick);
             resumed = true;
         }
         _ = Waits(_run.Node.Tick);

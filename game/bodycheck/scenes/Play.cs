@@ -252,7 +252,7 @@ public partial class Play : Node
     /// </summary>
     private async TickTask PresentDebugDialogue()
     {
-        await new DialogueRunner(_dialogueBox, _world, "debug", "start", []).Default(_world.Tick);
+        await new DialogueRunner(_dialogueBox, _world, "debug", "start", []).Present(_world.Tick);
         GD.Print("The debug dialogue has ended.");
     }
 

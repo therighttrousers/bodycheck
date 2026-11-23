@@ -22,7 +22,8 @@ public interface IActionTarget
     TickTask ToggleOpenClose(ITick tick) => ThrowActionNotSupported(nameof(ToggleOpenClose));
     TickTask Open(ITick tick) => ThrowActionNotSupported(nameof(Open));
     TickTask Close(ITick tick) => ThrowActionNotSupported(nameof(Close));
-    TickTask Default(ITick tick) => ThrowActionNotSupported(nameof(Default));
+    TickTask Run(ITick tick) => ThrowActionNotSupported(nameof(Run));
+    TickTask Present(ITick tick) => ThrowActionNotSupported(nameof(Present));
 
     private TickTask ThrowActionNotSupported(string action) =>
         throw new NotSupportedException($"{GetType().Name} doesn't respond to action {action}.");

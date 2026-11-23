@@ -250,23 +250,23 @@ public class LdtkReaderTest
     public void Reads_routes_as_steps_that_name_their_targets_by_iid()
     {
         string trigger = Control("Trigger", "trigger", $$"""
-            { "__identifier": "Target", "__value": {{Ref("once")}} }, { "__identifier": "Action", "__value": "Default" },
+            { "__identifier": "Target", "__value": {{Ref("once")}} }, { "__identifier": "Action", "__value": "Run" },
             { "__identifier": "StartsOn", "__value": false }, { "__identifier": "SetOffBy", "__value": "Interact" },
             { "__identifier": "MovesWith", "__value": {{Ref("door")}} }
             """);
         string once = Control("Once", "once", $$"""
-            { "__identifier": "Target", "__value": {{Ref("sequence")}} }, { "__identifier": "Action", "__value": "Default" }
+            { "__identifier": "Target", "__value": {{Ref("sequence")}} }, { "__identifier": "Action", "__value": "Run" }
             """);
-        string sequence = Sequence($"{Ref("dialogue")}, {Ref("door")}", "\"Default\", \"Close\"");
+        string sequence = Sequence($"{Ref("dialogue")}, {Ref("door")}", "\"Present\", \"Close\"");
         World world = ReadOne(Project(Level(0, 0, PlayerStart + ", " + Door, control: $"{trigger}, {once}, {sequence}, {Dialogue}")));
 
         var readTrigger = (EntityConfig.Trigger)world.ConfigsById["trigger"];
-        AssertThat(readTrigger.Step).IsEqual(new Step("once", TriggerAction.Default));
+        AssertThat(readTrigger.Step).IsEqual(new Step("once", TriggerAction.Run));
         AssertThat((readTrigger.StartsOn, readTrigger.SetOffBy, readTrigger.MovesWith))
             .IsEqual((false, TriggerSetOffBy.Interact, "door"));
-        AssertThat(((EntityConfig.Once)world.ConfigsById["once"]).Step).IsEqual(new Step("sequence", TriggerAction.Default));
+        AssertThat(((EntityConfig.Once)world.ConfigsById["once"]).Step).IsEqual(new Step("sequence", TriggerAction.Run));
         AssertArray(((EntityConfig.Sequence)world.ConfigsById["sequence"]).Steps).ContainsExactly(
-            new Step("dialogue", TriggerAction.Default), new Step("door", TriggerAction.Close));
+            new Step("dialogue", TriggerAction.Present), new Step("door", TriggerAction.Close));
         var readDialogue = (EntityConfig.Dialogue)world.ConfigsById["dialogue"];
         AssertThat((readDialogue.File, readDialogue.Title)).IsEqual(("File", "Title"));
         AssertArray(readDialogue.Entities).ContainsExactly("door");
@@ -287,10 +287,11 @@ public class LdtkReaderTest
 
     public static IEnumerable<string> BadControlEntities =>
     [
-        Sequence(Ref("dialogue"), "\"Default\", \"Default\""), // More actions than targets
+        Sequence(Ref("dialogue"), "\"Present\", \"Present\""), // More actions than targets
         Sequence(Ref("dialogue"), "\"Shout\""), // Not an action
-        Sequence("null", "\"Default\""), // A target with no value
-        Sequence(Ref("door"), "\"Default\""), // An action the door doesn't respond to
+        Sequence("null", "\"Present\""), // A target with no value
+        Sequence(Ref("dialogue"), "\"Default\""), // Not an action any more
+        Sequence(Ref("door"), "\"Run\""), // An action the door doesn't respond to
     ];
 
     [TestCase]
