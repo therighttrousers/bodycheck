@@ -1,6 +1,8 @@
 using BodyCheck.Core.Entities;
 using BodyCheck.Core.Tasks;
 
+using Godot;
+
 namespace BodyCheck.Core.Controllers;
 
 /// <summary>
@@ -9,18 +11,30 @@ namespace BodyCheck.Core.Controllers;
 /// or whatever it meets, and freezes it again, and the door then counts as opened or closed. Its actions share one
 /// queue, so that one asked while another runs follows it.
 /// </summary>
-public sealed class VerticalDoorController : IController<Entity>
+/// <param name="startAction">The action that the door counts as having last done where the world's data starts it.</param>
+/// <param name="travel">How far, at most, the door moves from one stop to the other.</param>
+public sealed class VerticalDoorController(Entity entity, OpenableAction startAction, float travel) : IController<Entity>
 {
     private IWorldView _world = null!;
 
-    public VerticalDoorController(Entity entity)
-    {
-        Entity = entity;
-    }
-
     public void Ready(IWorldView world) => _world = world;
 
-    public Entity Entity { get; }
+    /// <summary>
+    /// Moves the door straight to the stop of its last action, if that isn't the one it counts as having done where it
+    /// starts, so that a door opened before the world was built again is open. It moves until it meets its stop, or
+    /// whatever is in the way, as an action would, but at once.
+    /// </summary>
+    public void RestoreGameState()
+    {
+        OpenableAction lastAction = _world.GameState.GetEntity<IGameState.IDoorState>(Entity.Id).LastAction;
+        if (lastAction != startAction)
+        {
+            float move = lastAction == OpenableAction.Open ? 1 : -1;
+            Entity.MoveAndCollide(new Vector3(0, move * travel, 0));
+        }
+    }
+
+    public Entity Entity { get; } = entity;
 
     public void Apply(float gameDt, float realDt, IDefer defer)
     {

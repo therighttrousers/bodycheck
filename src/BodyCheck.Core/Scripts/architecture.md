@@ -10,6 +10,7 @@ Relevant decision records:
 - [052: The talking door](../../../docs/decision-records/052-talking-door.md)
 - [056: Scripts for entities](../../../docs/decision-records/056-scripts-for-entities.md)
 - [063: World state, and talking to entities](../../../docs/decision-records/063-world-state-and-talking-to-entities.md)
+- [065: Persisted game state](../../../docs/decision-records/065-persisted-game-state.md)
 - [066: Actions that name what they do](../../../docs/decision-records/066-actions-that-name-what-they-do.md)
 
 ## What it is
@@ -24,14 +25,14 @@ What a body does when an action reaches it: that is its controller's. The script
 
 A runner is given its steps already resolved, as `Call`s, each an action and the `IActionTarget` that runs it, so that running a route is a direct call with nothing looked up, and a runner knows no ids or configurations (`045 §3.3`, `047 §2.3`). `Call` is the one place that turns a `TriggerAction` into the target's method for it. Each runs its steps on the `ITick` it is given, and returns a `TickTask` that finishes as its kind says (`043 §2.3`):
 
-- **`TriggerRunner`**: when set off, runs its step, if it is on, and finishes when the step does. Setting it off while the step runs starts nothing (`043 §1.7`). It responds to `TurnOn`, `TurnOff` and `ToggleOnOff`, which finish at once; turning it off doesn't stop a run in progress. It doesn't respond to `Run`, so a route can switch it but not set it off: only the player does (`047 §1.1`, `052 §1.1`). Whether it is on is in memory, for as long as its world lasts, until the game state saves it.
+- **`TriggerRunner`**: when set off, runs its step, if it is on, and finishes when the step does. Setting it off while the step runs starts nothing (`043 §1.7`). It responds to `TurnOn`, `TurnOff` and `ToggleOnOff`, which finish at once; turning it off doesn't stop a run in progress. It doesn't respond to `Run`, so a route can switch it but not set it off: only the player does (`047 §1.1`, `052 §1.1`). Whether it is on is its `ISwitchState` in the game's state, which it is the only writer of, and which outlives its world (`065 §1.6`).
 - **`SequenceRunner`**: on `Run`, runs each step in turn, each when the one before has finished, and finishes when the last does.
 - **`FanoutRunner`**: on `Run`, starts every step, in order, and finishes when all have.
-- **`OnceRunner`**: on the first `Run`, runs its step, and every `Run` gets that first run, so one asked while it runs finishes when it does, and one asked after finishes at once (`047 §1.2`). It remembers this in memory, for as long as its world lasts, until the game state saves it.
+- **`OnceRunner`**: on `Run`, runs its step, if it is on, and turns itself off when the step finishes, so that one asked while it runs finishes when it does, and one asked after finishes at once (`047 §1.2`). It turns off at the end, not the start, so that a world built again while its step runs runs the step again from its start, rather than leaving a beat half done. Like a trigger, it responds to `TurnOn`, `TurnOff` and `ToggleOnOff`, so a route can arm it again; and whether it is on is its `ISwitchState` in the game's state (`065 §1.6`).
 - **`DialogueRunner`**: on `Present`, presents its title of its dialogue file, about the entities it is given, holding a cutscene while it does, as a script would, and finishes when the dialogue ends (`043 §2.3`, `050 §1.4`, `051 §3.5`). Every `Present` presents it again, after any dialogue already waiting.
 - **`ScriptRunner`**: on `Run`, runs a new instance of its script, and finishes when the script does. Every `Run` runs one, alongside any run in progress (`043 §1.7`).
 
-A `Sequence`, a `Fanout` or a `Script` runs every `Run`, alongside any run in progress, since what it runs comes down to controllers, which decide for themselves what a second request does (`043 §1.7`). A runner that does something else when asked again says so with a `ReentrantTask`, in one line: a `Trigger` joins, and a `Once` runs once. Each runner implements only the actions it responds to: `IActionTarget.Run`, `IActionTarget.Present`, or a `Trigger`'s switching.
+A `Sequence`, a `Fanout` or a `Script` runs every `Run`, alongside any run in progress, since what it runs comes down to controllers, which decide for themselves what a second request does (`043 §1.7`). A runner that does something else when asked again says so with a `ReentrantTask`, in one line: a `Trigger` and a `Once` join. Each runner implements only the actions it responds to: `IActionTarget.Run`, `IActionTarget.Present`, or switching.
 
 What a runner holds is only what its kind needs to decide whether to run: what an action changes belongs to the controller that responds to it (`043 §1.9`).
 
@@ -56,4 +57,3 @@ A script is a class that implements `IScript`: a new one is made for each run an
 
 - Helpers for writing scripts: a `Promise`-like fluent interface, or a small async library over what scripts and async actions see, so that a wait such as "until the player is on the ground" is one line. To be shaped by writing scripts (`051 §1.5`).
 
-- When a `Once` counts as having run, for saving: at the start of its run, so that a save in the middle of it never finishes it after a load, or at its end, so that the same save runs it again, with a third state, running, apart from having run (`047 §1.4`).

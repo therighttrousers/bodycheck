@@ -9,7 +9,8 @@ public enum OpenableAction
 
 /// <summary>
 /// What Core sees of the game's state, which the game owns and fills in before it builds a world: only what the game's
-/// rules read or change, such as the player's abilities and each door's last action. Each piece has one writer in
+/// rules read or change, such as the player's abilities, each door's last action, and whether each trigger and once is
+/// on. It outlives the world, which is built from its data and this state. Each piece has one writer in
 /// Core, which this view lets set it; the game's own view of the same state lets nothing else set it. Like
 /// <see cref="IWorldView"/>, read it when needed, never once and kept.
 /// </summary>
@@ -31,6 +32,16 @@ public interface IGameState
     {
         bool CanPhase { get; }
         bool CanSpawn { get; }
+    }
+
+    /// <summary>
+    /// The state of a control entity that can be switched on and off: a trigger, which is set off only while it is on,
+    /// and a once, which runs its step only while it is on, and turns itself off when its step finishes. What runs it is
+    /// its only writer.
+    /// </summary>
+    interface ISwitchState : IEntityState
+    {
+        bool IsOn { get; set; }
     }
 
     /// <summary>A door's state. Its controller is its only writer.</summary>

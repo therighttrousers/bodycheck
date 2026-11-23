@@ -83,6 +83,36 @@ public class DoorTest
     }
 
     [TestCase]
+    public async Task A_door_closed_before_its_world_is_built_again_is_closed_in_the_new_world()
+    {
+        string[] rows =
+        [
+            "##########",
+            "#........#",
+            "#........#",
+            "#........#",
+            "#........#",
+            "#........#",
+            "#........#",
+            "#P.......#",
+            "##########",
+        ];
+        // A door 3 tiles high, which starts against its open stop.
+        Room room = RoomWithDoor(rows, new Vector2I(6, 4), new Vector2I(1, 3), openStopY: 7, closeStopY: 0);
+        _run = new RoomRun(room);
+        DoorController.Close(_run.Node.Tick);
+        await _run.Tick(RoomRun.Idle, Ticks);
+        GameState state = _run.State;
+        _run.Free();
+
+        // Built again with the same state, it is put on its close stop in the first tick, before anything steps.
+        _run = new RoomRun(room, state: state);
+        await _run.Tick(RoomRun.Idle);
+        AssertThat(Door.Freeze).IsTrue();
+        AssertFloat(Door.Bottom()).IsEqualApprox(1, 0.05f);
+    }
+
+    [TestCase]
     public async Task A_door_that_meets_something_stops_there_and_counts_as_closed()
     {
         string[] rows =

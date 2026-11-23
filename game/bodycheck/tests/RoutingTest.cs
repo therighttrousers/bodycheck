@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 using BodyCheck.Core;
@@ -98,7 +99,7 @@ public class RoutingTest
     [TestCase]
     public void A_trigger_touched_while_its_step_runs_starts_nothing()
     {
-        var trigger = new TriggerRunner(CallOf("a", 2), startsOn: true);
+        var trigger = new TriggerRunner(CallOf("a", 2), SwitchOf(true));
 
         TickTask first = trigger.SetOff(_scheduler.Tick);
         RunTicks(1);
@@ -113,7 +114,7 @@ public class RoutingTest
     [TestCase]
     public void A_trigger_that_is_off_starts_nothing_until_turned_on()
     {
-        var trigger = new TriggerRunner(CallOf("a", 1), startsOn: false);
+        var trigger = new TriggerRunner(CallOf("a", 1), SwitchOf(false));
 
         AssertThat(trigger.SetOff(_scheduler.Tick).IsFinished).IsTrue();
         AssertThat(_log).IsEmpty();
@@ -124,19 +125,38 @@ public class RoutingTest
     }
 
     [TestCase]
-    public void A_once_gives_every_Run_its_first_run()
+    public void A_once_turns_off_when_its_step_finishes_and_runs_again_once_turned_on()
     {
-        var once = new OnceRunner(CallOf("a", 2));
+        var state = new Switch { IsOn = true };
+        var once = new OnceRunner(CallOf("a", 2), () => state);
 
         TickTask first = once.Run(_scheduler.Tick);
         RunTicks(1);
-        // Asked while it runs, it finishes when the first run does.
+        // Asked while it runs, it finishes when the first run does, and it is still on until then.
         AssertThat(once.Run(_scheduler.Tick)).IsSame(first);
+        AssertThat(state.IsOn).IsTrue();
 
         RunTicks(1);
         // Asked after, it finishes at once, and runs nothing.
-        TickTask after = once.Run(_scheduler.Tick);
-        AssertThat(after.IsFinished).IsTrue();
+        AssertThat(state.IsOn).IsFalse();
+        AssertThat(once.Run(_scheduler.Tick).IsFinished).IsTrue();
         AssertThat(_log).ContainsExactly("a starts", "a ends");
+
+        // Turned on again, it runs again.
+        once.TurnOn(_scheduler.Tick);
+        once.Run(_scheduler.Tick);
+        AssertThat(_log).ContainsExactly("a starts", "a ends", "a starts");
+    }
+
+    /// <summary>A trigger's or a once's switch, as the game's state would hold it.</summary>
+    private sealed class Switch : IGameState.ISwitchState
+    {
+        public bool IsOn { get; set; }
+    }
+
+    private static Func<IGameState.ISwitchState> SwitchOf(bool isOn)
+    {
+        var state = new Switch { IsOn = isOn };
+        return () => state;
     }
 }
