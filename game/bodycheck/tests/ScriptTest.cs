@@ -154,7 +154,7 @@ public class ScriptTest
     {
         var library = new Library();
         // A text room's ids are its name and the cell: the block's 'B' is at 28,3.
-        _run = new RoomRun(RoomWithScript(nameof(TakesABlock), TriggerSetOffBy.Start, ["Test 28,3"]), scripts: library);
+        _run = new RoomRun(RoomWithScript(nameof(TakesABlock), TriggerSetOffBy.WorldStart, ["Test 28,3"]), scripts: library);
 
         await _run.Tick(RoomRun.Idle, 3);
         AssertThat(library.Made).HasSize(1);
@@ -219,8 +219,8 @@ public class ScriptTest
     }
 
     [TestCase]
-    public void A_room_rejects_a_start_trigger_that_starts_off() =>
-        AssertThrown(() => RoomWithScript(nameof(RunRight), TriggerSetOffBy.Start, startsOn: false))
+    public void A_room_rejects_a_world_start_trigger_that_starts_off() =>
+        AssertThrown(() => RoomWithScript(nameof(RunRight), TriggerSetOffBy.WorldStart, startsOn: false))
             .IsInstanceOf<ArgumentException>();
 
     [TestCase]

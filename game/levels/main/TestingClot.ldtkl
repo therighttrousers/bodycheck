@@ -173,9 +173,9 @@
 							"params": ["Run"]
 						}] },
 						{ "__identifier": "StartsOn", "__type": "Bool", "__value": true, "__tile": null, "defUid": 270, "realEditorValues": [] },
-						{ "__identifier": "SetOffBy", "__type": "LocalEnum.TriggerSetOffBy", "__value": "Start", "__tile": null, "defUid": 272, "realEditorValues": [{
+						{ "__identifier": "SetOffBy", "__type": "LocalEnum.TriggerSetOffBy", "__value": "WorldStart", "__tile": null, "defUid": 272, "realEditorValues": [{
 							"id": "V_String",
-							"params": ["Start"]
+							"params": ["WorldStart"]
 						}] },
 						{ "__identifier": "MovesWith", "__type": "EntityRef", "__value": null, "__tile": null, "defUid": 294, "realEditorValues": [] }
 					],
