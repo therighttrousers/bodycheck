@@ -40,7 +40,9 @@
 
 ~ SecondDoor
 
-if Speaker.LastAction == "Close"
+# This door starts closed and will never close again.
+
+if Speaker.LastAction == "None"
     {{Speaker.Name}}: Hello! Intention, please state.
     - Can you open? I'm here to help.
         {{Speaker.Name}}: Always welcome, are helpers! You are expected. I will open.
@@ -49,7 +51,7 @@ if Speaker.LastAction == "Close"
     - Am I trapped here?
         {{Speaker.Name}}: I would not lock you in, friend.
     - Who are you?
-        {{Speaker.Name}}: I am {{Speaker.Name}}. Ask, and I will consider.
+        {{Speaker.Name}}: {{Speaker.Name}}. Ask, and I will consider.
 else
     {{Speaker.Name}}: Hello again, helper!
     - Can you close?

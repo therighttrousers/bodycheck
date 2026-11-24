@@ -24,6 +24,17 @@ public interface IController<out TEntity> : IActionTarget where TEntity : Entity
     }
 
     /// <summary>
+    /// Called once, at the start of the world's first tick, after <see cref="Ready"/> and before anything steps, with
+    /// the world in the engine's space: where a controller makes its entity agree with the game's state, which outlives
+    /// the world, such as a door that was opened before the world was built again, which the world's data puts where
+    /// it started. A world is built from its data and the game's state, so what the state says has happened is put
+    /// back, not replayed.
+    /// </summary>
+    public void RestoreGameState()
+    {
+    }
+
+    /// <summary>
     /// Called on the tick, before the controller steps, when the game's mode differs from the one the world last stepped
     /// its controllers in: where a controller changes state that would mean something else in the new mode, such as
     /// input it remembers. A trip to the menu or the map and back is no change, since no controller runs meanwhile. It

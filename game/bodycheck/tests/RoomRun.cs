@@ -28,10 +28,17 @@ public sealed class RoomRun
 
     /// <param name="respawnId">The respawn the player starts at, as <see cref="WorldNode.Build"/> takes it.</param>
     /// <param name="scripts">The scripts the room's <c>Script</c> entities run, as <see cref="WorldNode.Build"/> takes them.</param>
-    public RoomRun(Room room, bool controllersEnabled = true, string? respawnId = null, IScriptLibrary? scripts = null)
+    /// <param name="state">The game's state, filled in for the room, as a world built again is given it; a new game's if null.</param>
+    public RoomRun(
+        Room room,
+        bool controllersEnabled = true,
+        string? respawnId = null,
+        IScriptLibrary? scripts = null,
+        GameState? state = null)
     {
         var world = new World(room);
-        State = new GameState(world);
+        State = state ?? new GameState();
+        State.Fill(world);
         Node = WorldNode.Build(world, State, new AssetLibrary(), respawnId: respawnId, scripts: scripts);
         Node.PlayerController.UserInputSource = () => _input;
         Node.ControllersEnabled = controllersEnabled;

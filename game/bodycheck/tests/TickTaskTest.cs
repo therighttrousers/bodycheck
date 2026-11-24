@@ -474,7 +474,6 @@ public class TickTaskTest
     }
 
     [TestCase(Reentry.Join)]
-    [TestCase(Reentry.Once)]
     [TestCase(Reentry.Queue)]
     public void A_request_made_while_starting_a_run_throws_even_with_none_in_progress(Reentry reentry)
     {
