@@ -448,6 +448,10 @@
 					"defUid": 232,
 					"px": [32,128],
 					"fieldInstances": [
+						{ "__identifier": "Name", "__type": "String", "__value": "Door ebf9", "__tile": null, "defUid": 297, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["Door ebf9"]
+						}] },
 						{ "__identifier": "OpenStop", "__type": "Point", "__value": { "cx": 2, "cy": 6 }, "__tile": null, "defUid": 267, "realEditorValues": [{
 							"id": "V_String",
 							"params": ["2,6"]
@@ -473,6 +477,10 @@
 					"defUid": 232,
 					"px": [288,176],
 					"fieldInstances": [
+						{ "__identifier": "Name", "__type": "String", "__value": "Door a6d1", "__tile": null, "defUid": 297, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["Door a6d1"]
+						}] },
 						{ "__identifier": "OpenStop", "__type": "Point", "__value": { "cx": 18, "cy": 8 }, "__tile": null, "defUid": 267, "realEditorValues": [{
 							"id": "V_String",
 							"params": ["18,8"]

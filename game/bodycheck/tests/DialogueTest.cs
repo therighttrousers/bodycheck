@@ -104,8 +104,11 @@ public class DialogueTest
         AssertThat(_manager.GameMode).IsEqual(GameMode.Playing);
     }
 
-    /// <summary>A text room with a door with the id <c>door</c>, 3 tiles high, closed on the floor, which opens up to its stop 3 tiles above it.</summary>
-    private static Room RoomWithDoor()
+    /// <summary>
+    /// A text room with a door with the id <c>door</c> and the name <paramref name="name"/>, if any, 3 tiles high,
+    /// closed on the floor, which opens up to its stop 3 tiles above it.
+    /// </summary>
+    private static Room RoomWithDoor(string? name = null)
     {
         string[] rows =
         [
@@ -123,6 +126,7 @@ public class DialogueTest
         var doorConfig = new EntityConfig.VerticalDoor
         {
             Id = "door",
+            Name = name,
             MapOrigin = new Vector2I(6, 1),
             MapSize = new Vector2I(1, 3),
             MapColor = Colors.White,
@@ -133,24 +137,25 @@ public class DialogueTest
     }
 
     [TestCase]
-    public void A_name_is_translated_when_it_is_read_from_a_pattern_that_a_translator_can_reorder()
+    public void A_name_is_translated_when_it_is_read_and_one_given_in_data_finds_its_entity()
     {
-        _run = new RoomRun(RoomWithDoor());
+        _run = new RoomRun(RoomWithDoor(name: "Gate"));
         var translation = new Translation { Locale = "eo" };
-        translation.AddMessage("Door", "Pordo", "kind");
+        translation.AddMessage("Gate", "Pordego", "entity name");
         translation.AddMessage("B-CON", "B-KON", "kind");
-        translation.AddMessage("{kind} {serial}", "{serial}-{kind}", "entity name");
         string locale = TranslationServer.GetLocale();
         TranslationServer.AddTranslation(translation);
         TranslationServer.SetLocale("eo");
         try
         {
             GameState.EntityState door = _run.State.GetEntity("door");
-            AssertThat(door.Name).IsEqual("door-Pordo");
-            AssertThat(door.UntranslatedName).IsEqual("Door door");
+            AssertThat(door.Name).IsEqual("Pordego");
+            AssertThat(door.UntranslatedName).IsEqual("Gate");
+            AssertThat(_run.State.GetEntityNamed("Gate")).IsSame(door);
             AssertThat(_run.State.Player.Name).IsEqual("B-KON");
+            AssertThat(_run.State.GetEntityNamed("B-CON")).IsSame(_run.State.Player);
             // As a line gives its speaker, translated.
-            AssertThat(_run.State.GetSpeaker("door-Pordo")).IsSame(door);
+            AssertThat(_run.State.GetSpeaker("Pordego")).IsSame(door);
         }
         finally
         {

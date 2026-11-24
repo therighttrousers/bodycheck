@@ -93,6 +93,7 @@
 					"defUid": 204,
 					"px": [80,304],
 					"fieldInstances": [
+						{ "__identifier": "Name", "__type": "String", "__value": null, "__tile": null, "defUid": 298, "realEditorValues": [] },
 						{ "__identifier": "RangeA", "__type": "Point", "__value": { "cx": 6, "cy": 8 }, "__tile": null, "defUid": 228, "realEditorValues": [{
 							"id": "V_String",
 							"params": ["6,8"]

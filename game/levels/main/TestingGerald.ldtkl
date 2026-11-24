@@ -187,7 +187,10 @@
 					"height": 32,
 					"defUid": 203,
 					"px": [240,192],
-					"fieldInstances": [],
+					"fieldInstances": [{ "__identifier": "Name", "__type": "String", "__value": "Gerald", "__tile": null, "defUid": 299, "realEditorValues": [{
+						"id": "V_String",
+						"params": ["Gerald"]
+					}] }],
 					"__worldX": 560,
 					"__worldY": 192
 				},
@@ -204,6 +207,7 @@
 					"defUid": 204,
 					"px": [144,144],
 					"fieldInstances": [
+						{ "__identifier": "Name", "__type": "String", "__value": null, "__tile": null, "defUid": 298, "realEditorValues": [] },
 						{ "__identifier": "RangeA", "__type": "Point", "__value": { "cx": 10, "cy": 6 }, "__tile": null, "defUid": 228, "realEditorValues": [{
 							"id": "V_String",
 							"params": ["10,6"]

@@ -97,6 +97,12 @@ public abstract record EntityConfig
     /// </summary>
     public required string Id { get; init; }
 
+    /// <summary>
+    /// Its name, untranslated, which the game shows and finds it by, and which no other entity in the game has; or null,
+    /// if it has none, and is known by its kind's name.
+    /// </summary>
+    public string? Name { get; init; }
+
     /// <summary>The lower-left tile in the map editor, in tiles. (0,0) is the lower-left tile in the level.</summary>
     public required Vector2I MapOrigin { get; init; }
     /// <summary>The size of the entity in the map editor, in tiles.</summary>

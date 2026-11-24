@@ -30,7 +30,7 @@ Anything that runs: engine nodes, bodies or colliders. Reading files in an edito
 - A `Room` is a name, an origin in the world, in tiles, a tile grid, a configuration for each entity that starts in it, and its environment, a `RoomEnvironment`: which lighting and sky the game draws it with, and how wide the band across its edges is in which the environment blends with its neighbours', in tiles, which isn't negative. A text room's is `Default`, with a blend of 6 tiles (`061 §2.1`, `§3.4`). Its tiles and starts are in its own coordinates (`013 §2.1`, `§2.2`).
 - A room may also mark tiles as its camera boundary, which the camera keeps out of view; a text room marks none. The world merges the rooms' marks as it does their tiles. Outside the rooms its marks are false: what the camera does there is the camera's to decide (`042 §5.3`).
 - Each tile has a kind, a `TileIndex`. `Empty` is no tile, and every other kind is solid; for now, kinds differ only in looks. The values are those of the LDtk project's `SolidGeometry` layer, and `Count` is last, so that code can loop over the kinds. A text room's `#` is `Ground` (`057 §1.1`, `§1.2`).
-- An entity's configuration is its kind, as an `EntityKind`, its id, unique in its world, where its box is, and whatever else a level says about it. Each kind has its own type of configuration, from which an entity of that kind is built. An entity's box may lie outside its room.
+- An entity's configuration is its kind, as an `EntityKind`, its id, unique in its world, its name, untranslated, if it has one, where its box is, and whatever else a level says about it. Each kind has its own type of configuration, from which an entity of that kind is built. An entity's box may lie outside its room.
 
 ## Routes
 

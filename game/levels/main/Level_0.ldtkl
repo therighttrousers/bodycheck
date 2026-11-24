@@ -109,7 +109,7 @@
 					"height": 32,
 					"defUid": 203,
 					"px": [128,192],
-					"fieldInstances": [],
+					"fieldInstances": [{ "__identifier": "Name", "__type": "String", "__value": null, "__tile": null, "defUid": 299, "realEditorValues": [] }],
 					"__worldX": 128,
 					"__worldY": 192
 				}

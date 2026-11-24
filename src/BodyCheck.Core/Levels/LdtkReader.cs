@@ -14,7 +14,8 @@ namespace BodyCheck.Core.Levels;
 /// <c>SolidGeometry</c>, an IntGrid in which every value but 0 is a solid tile; <c>CameraBoundary</c>, an IntGrid in
 /// which 1 is a tile the camera keeps out of view and 0 one it doesn't; and <c>Entities</c> and <c>Control</c>,
 /// whose entities are read alike: the layers only help the editor show them. Each entity keeps its <c>iid</c>, and the
-/// place, size and colour of its box in LDtk, which must be whole tiles. Routes name their targets by <c>iid</c>.
+/// place, size and colour of its box in LDtk, which must be whole tiles, and its <c>Name</c>, if it has one, which no
+/// other entity in the project has. Routes name their targets by <c>iid</c>.
 /// </summary>
 public static class LdtkReader
 {
@@ -43,7 +44,10 @@ public static class LdtkReader
         }
 
         string directory = projectPath[..(projectPath.LastIndexOfAny(['/', '\\']) + 1)];
-        return [.. project.Worlds.Select(world => ReadWorld(projectPath, directory, world, readFile))];
+        IReadOnlyList<World> worlds =
+            [.. project.Worlds.Select(world => ReadWorld(projectPath, directory, world, readFile))];
+        CheckNamesAreUnique(projectPath, worlds);
+        return worlds;
     }
 
     private static World ReadWorld(string projectPath, string directory, LdtkWorld world, Func<string, string> readFile)
@@ -214,8 +218,9 @@ public static class LdtkReader
         var size = new Vector2I(entity.Width, entity.Height) / Constants.TilePixels;
         var color = new Color(entity.SmartColor);
         string id = entity.Iid;
+        string? name = fields.Name();
 
-        return entity.Identifier switch
+        EntityConfig config = entity.Identifier switch
         {
             LdtkEntityName.PlayerStart => new EntityConfig.PlayerStart()
             {
@@ -322,6 +327,28 @@ public static class LdtkReader
                 Entities = fields.References("Entities"),
             },
         };
+        return config with { Name = name };
+    }
+
+    /// <summary>
+    /// Checks that no two entities in <paramref name="worlds"/> have the same name, so that a name finds an entity in
+    /// any of them, as the game's dialogue, which isn't any one world's, does.
+    /// </summary>
+    private static void CheckNamesAreUnique(string projectPath, IReadOnlyList<World> worlds)
+    {
+        var named = new Dictionary<string, (string World, EntityConfig Config)>();
+        foreach (World world in worlds)
+        {
+            foreach (EntityConfig config in world.Bodies.Concat(world.Controls))
+            {
+                if (config.Name is string name && !named.TryAdd(name, (world.Name, config)))
+                {
+                    (string firstWorld, EntityConfig first) = named[name];
+                    throw Invalid(projectPath, $"A {first.Kind} in world '{firstWorld}' and a {config.Kind} in world "
+                        + $"'{world.Name}' are both named '{name}'.");
+                }
+            }
+        }
     }
 
     /// <summary>Reads the level's field named <paramref name="field"/>, which must have a value, of the given type.</summary>
@@ -367,6 +394,25 @@ public static class LdtkReader
             {
                 throw Invalid($"has a {field} that isn't a {typeof(T).Name}: {e.Message}", e);
             }
+        }
+
+        /// <summary>
+        /// Reads the entity's <c>Name</c>, or null if it has none. Every kind may have one, so, unlike every other field,
+        /// an entity may leave it out, as one of a kind whose definition hasn't been given it does, and a test's. A name
+        /// mustn't be blank, or start or end with white space.
+        /// </summary>
+        public string? Name()
+        {
+            if (!entity.FieldInstances.Any(instance => instance.Identifier == "Name"))
+            {
+                return null;
+            }
+            string? name = ReadOrNull("Name", LdtkJsonContext.Default.String);
+            if (name is not null && (name.Trim() != name || name == ""))
+            {
+                throw Invalid($"has a Name, '{name}', that is blank, or starts or ends with white space.");
+            }
+            return name;
         }
 
         /// <summary>Reads a Point field as its cell, in the room's coordinates.</summary>

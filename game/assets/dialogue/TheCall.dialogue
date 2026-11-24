@@ -55,10 +55,10 @@ if Speaker.LastAction == "None"
 else
     {{Speaker.Name}}: Hello again, helper!
     - Can you close?
-        {{Speaker.Name}}: Why? Outer door is closed.
+        {{Speaker.Name}}: [if GetEntityNamed("Door ebf9").LastAction == "Close"]Why? Outer door is closed.[else]I do not wish to.[/if]
     - Am I locked in here?
         {{Speaker.Name}}: I would not lock you in, friend.
     - Who are you?
-        {{Speaker.Name}}: I am {{Speaker.Name}}. Ask, and I will consider.
+        {{Speaker.Name}}: {{Speaker.Name}}. Ask, and I will consider.
 
 => END
