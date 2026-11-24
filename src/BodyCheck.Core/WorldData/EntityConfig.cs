@@ -30,6 +30,12 @@ public static class EntityKinds
         TriggerAction.TurnOn,
         TriggerAction.TurnOff
     ];
+    private static readonly TriggerAction[] RunOnOff = [
+        TriggerAction.Run,
+        TriggerAction.ToggleOnOff,
+        TriggerAction.TurnOn,
+        TriggerAction.TurnOff
+    ];
     private static readonly TriggerAction[] OpenClose = [
         TriggerAction.ToggleOpenClose,
         TriggerAction.Open,
@@ -58,7 +64,8 @@ public static class EntityKinds
                 => None,
             EntityKind.Trigger => OnOff,
             EntityKind.VerticalDoor => OpenClose,
-            EntityKind.Sequence or EntityKind.Fanout or EntityKind.Once or EntityKind.Script => Run,
+            EntityKind.Sequence or EntityKind.Fanout or EntityKind.Script => Run,
+            EntityKind.Once => RunOnOff,
             EntityKind.Dialogue => Present,
         };
     }

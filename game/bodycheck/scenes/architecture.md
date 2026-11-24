@@ -10,6 +10,7 @@ Relevant decision records:
 - [031: Tests in the game's project](../../../docs/decision-records/031-tests-in-the-game-project.md)
 - [053: Cancelling tasks](../../../docs/decision-records/053-cancelling-tasks.md)
 - [063: World state, and talking to entities](../../../docs/decision-records/063-world-state-and-talking-to-entities.md)
+- [065: Persisted game state](../../../docs/decision-records/065-persisted-game-state.md)
 
 ## What it is
 
@@ -34,7 +35,7 @@ Anything a top-level scene uses that could be built and tested without it, such 
 A playtester plays from a clone of the repository, started by `play.cmd`, which builds the game and runs it, or by `godot-editor.cmd`, which builds it and opens the Godot editor, whose Game tab has a toolbar that changes the game's speed, and edits maps in LDtk and configurations in a text editor (`017`).
 
 - A *configuration* is a set of features: the defaults, or a JSONC file (JSON with comments and trailing commas) in `game/configurations/`, named after the file, that names only the features it changes. `Play` plays one, the defaults unless the command line names another with `--configuration=`; '[' and ']' switch between them without restarting the world, reading each file as it is switched to. The window's title names the world and the configuration.
-- F5 reads the LDtk project and the list of configurations again, puts the current configuration in effect again, and restarts the current world, keeping both by name, with the player at the world's current respawn: the last one the player came within 2 tiles of, box to box, the feature `PlayerRespawnReach`. ';' and "'" restart the world at its previous and next respawn, in its levels' order. `Play` remembers each world's current respawn by its LDtk `iid`, which survives edits to the map; if it is gone, the player starts at the world's player start (`024 §5.1`).
+- F5 reads the LDtk project and the list of configurations again, puts the current configuration in effect again, and restarts the current world, keeping both by name, with the player at the world's current respawn: the last one the player came within 2 tiles of, box to box, the feature `PlayerRespawnReach`. ';' and "'" restart the world at its previous and next respawn, in its levels' order. The game's state remembers each world's current respawn by its LDtk `iid`, which survives edits to the map; if it is gone, the player starts at the world's `PlayerStart` (`024 §5.1`). Each of these keeps the game's state, and so does switching worlds, so a restart is as a respawn will be; Ctrl+F5 does what F5 does with a new game's state, as a browser's hard refresh: with no world in it yet, it starts in the first, `Main` (`065 §4.1`).
 - An error in a file doesn't stop play: the error overlay shows it, and the game goes on without the project's worlds, or with the features it had.
 - `Play` also has the debug keys, which [`debugging/`](../debugging/architecture.md) describes.
 

@@ -13,12 +13,6 @@ public enum Reentry
     Join,
 
     /// <summary>
-    /// Only the first request starts a run, and every request gets that run: one made while it runs finishes when it
-    /// does, and one made after finishes at once.
-    /// </summary>
-    Once,
-
-    /// <summary>
     /// A request while a run is in progress starts a run once the last run asked for has finished, so that runs follow
     /// one another in the order they were asked for, and gets that run. One made when none is in progress starts a run.
     /// </summary>
@@ -62,7 +56,6 @@ public sealed class ReentrantTask(Reentry reentry)
         return reentry switch
         {
             Reentry.Join => _run is { IsFinished: false } ? _run : _run = Start(start),
-            Reentry.Once => _run ??= Start(start),
             Reentry.Queue => _run = _run is { IsFinished: false } last ? After(last, start) : Start(start),
         };
     }

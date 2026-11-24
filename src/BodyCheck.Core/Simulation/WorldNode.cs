@@ -55,6 +55,9 @@ public partial class WorldNode : Node3D, IScriptWorld
     // body has contacts and no area holds anything, so triggers aren't set off and the scheduler doesn't run.
     private bool _stepped;
 
+    // Whether the controllers have made their entities agree with the game's state, in the world's first tick.
+    private bool _restored;
+
     // Whether the triggers have been asked whether they are set off, in a played tick: Start triggers are set off the
     // first time.
     private bool _started;
@@ -253,6 +256,8 @@ public partial class WorldNode : Node3D, IScriptWorld
         var targets = new Dictionary<string, IActionTarget>();
 
         Call CallOf(Step step) => new(TargetOf(World.ConfigsById[step.TargetId]), step.Action);
+        Func<IGameState.ISwitchState> SwitchStateOf(EntityConfig config) =>
+            () => GameState.GetEntity<IGameState.ISwitchState>(config.Id);
         Call[] CallsOf(IReadOnlyList<Step> steps) => [.. steps.Select(CallOf)];
 
         IActionTarget TargetOf(EntityConfig config)
@@ -263,10 +268,10 @@ public partial class WorldNode : Node3D, IScriptWorld
             }
             target = config switch
             {
-                EntityConfig.Trigger trigger => new TriggerRunner(CallOf(trigger.Step), trigger.StartsOn),
+                EntityConfig.Trigger trigger => new TriggerRunner(CallOf(trigger.Step), SwitchStateOf(trigger)),
                 EntityConfig.Sequence sequence => new SequenceRunner(CallsOf(sequence.Steps)),
                 EntityConfig.Fanout fanout => new FanoutRunner(CallsOf(fanout.Steps)),
-                EntityConfig.Once once => new OnceRunner(CallOf(once.Step)),
+                EntityConfig.Once once => new OnceRunner(CallOf(once.Step), SwitchStateOf(once)),
                 EntityConfig.Dialogue lines => new DialogueRunner(
                     dialogue!, this, lines.File, lines.Title, [.. lines.Entities.Select(id => bodies[id])]),
                 EntityConfig.Script script => new ScriptRunner(
@@ -395,7 +400,10 @@ public partial class WorldNode : Node3D, IScriptWorld
     private static Entity CreateVerticalDoor(EntityConfig.VerticalDoor config, Node3D? visual)
     {
         var door = new Entity(config.Id, BodyTuning.VerticalDoor(config.MapSize), visual) { Freeze = true };
-        door.Controller = new VerticalDoorController(door);
+        door.Controller = new VerticalDoorController(
+            door,
+            startsClosed: config.StartsClosed(),
+            travel: Math.Abs(config.OpenStop.Y - config.CloseStop.Y) - config.MapSize.Y);
         return door;
     }
 
@@ -650,6 +658,7 @@ public partial class WorldNode : Node3D, IScriptWorld
         // Run the last tick's post-physics-step deferred actions.
         _defer.DrainAfterPhysicsStepActions();
         UpdateFromFeatures();
+        RestoreGameState();
 
         if (!ControllersEnabled)
         {
@@ -685,6 +694,7 @@ public partial class WorldNode : Node3D, IScriptWorld
         // Run the last tick's post-physics-step deferred actions.
         _defer.DrainAfterPhysicsStepActions();
         UpdateFromFeatures();
+        RestoreGameState();
 
         // Start with a clean slate, in case some post-entity-steps deferred actions sneaked in somehow.
         _defer.Clear();
@@ -725,6 +735,23 @@ public partial class WorldNode : Node3D, IScriptWorld
         TakeOutRemoved();
 
         UpdateCurrentRespawn();
+    }
+
+    /// <summary>
+    /// Has every controller make its entity agree with the game's state, once, in the world's first tick, whichever way
+    /// it steps, when the world is in the engine's space, so that what has happened is put back before anything moves.
+    /// </summary>
+    private void RestoreGameState()
+    {
+        if (_restored)
+        {
+            return;
+        }
+        _restored = true;
+        foreach (Entity entity in _entities.Values)
+        {
+            entity.Controller?.RestoreGameState();
+        }
     }
 
     /// <summary>

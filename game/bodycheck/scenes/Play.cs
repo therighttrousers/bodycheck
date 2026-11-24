@@ -89,8 +89,8 @@ public partial class Play : Node
     private bool _showMapMarkers;
     private bool _showCameraDebug;
     private CameraDebug _cameraDebug = null!;
-    // Each world's current respawn, by the world's name and the respawn's id, to start its player at when it restarts.
-    private readonly Dictionary<string, string> _respawnIds = [];
+    // The game's state, which every world built is given, and which only a new game replaces.
+    private GameState _gameState = new();
     private readonly PhaseAimMarker _phaseAimMarker = new();
     private readonly InteractPrompt _interactPrompt = new();
 #if TOOLS
@@ -221,6 +221,12 @@ public partial class Play : Node
         {
             SwitchConfiguration(_configurationIndex - 1);
         }
+        // Before reload, since Ctrl+F5 is F5 too.
+        else if (Input.IsActionJustPressed("new_game"))
+        {
+            _gameState = new GameState();
+            Reload();
+        }
         else if (Input.IsActionJustPressed("reload"))
         {
             Reload();
@@ -261,11 +267,11 @@ public partial class Play : Node
 
     /// <summary>
     /// Reads the LDtk project and the configurations again, puts the current configuration in effect again, and restarts the
-    /// current world. Both are kept by name, or are the first if they are gone.
+    /// current world, with the game's state as it is. Both are kept by name, or are the first if they are gone.
     /// </summary>
     private void Reload()
     {
-        string worldName = _worlds[_worldIndex].Name;
+        string? worldName = _gameState.WorldName;
         string configurationName = _configurations[_configurationIndex];
         ReadFiles();
         // Kept even if it has an error now, so that the title names it, since its features stay in effect.
@@ -356,19 +362,21 @@ public partial class Play : Node
 
     /// <summary>
     /// Replaces the current world, if there is one, and has the camera follow the new one's player, with the old one's
-    /// input. The old world is dropped once the new one is in place, so that what runs in it cleans up, and the game is
-    /// whole even if its cleanup throws.
+    /// input. The new one is built from its data and the game's state, which it fills in first, at its current respawn.
+    /// The old world is dropped once the new one is in place, so that what runs in it cleans up, and the game is whole
+    /// even if its cleanup throws.
     /// </summary>
     private WorldNode LoadWorld(World world)
     {
         WorldNode? old = _world;
         Telemetry.Reset();
-        var state = new GameState(world);
+        _gameState.Fill(world);
+        _gameState.WorldName = world.Name;
         _world = WorldNode.Build(
             world,
-            state,
+            _gameState,
             _assets,
-            respawnId: _respawnIds.GetValueOrDefault(world.Name),
+            respawnId: _gameState.GetRespawnId(world.Name),
             dialogue: _dialogueBox,
             scripts: new ScriptLibrary());
         _world.PlayerController.UserInputSource = old?.PlayerController.UserInputSource;
@@ -376,7 +384,7 @@ public partial class Play : Node
         _world.MapMarkers.Visible = _showMapMarkers;
         _world.CurrentRespawnChanged += respawn =>
         {
-            _respawnIds[world.Name] = respawn.Id;
+            _gameState.SetRespawnId(world.Name, respawn.Id);
             ShowTitle();
         };
         if (world.Name == LookWorldName)
@@ -392,7 +400,7 @@ public partial class Play : Node
         _phaseAimMarker.World = _world;
         _interactPrompt.World = _world;
         _dialogueBox.World = _world;
-        _dialogueBox.GameState = state;
+        _dialogueBox.GameState = _gameState;
         ShowTitle();
         old?.StopAndQueueFree();
         return _world;
@@ -415,7 +423,7 @@ public partial class Play : Node
         {
             current = 0;
         }
-        _respawnIds[_world.World.Name] = respawns[Mathf.PosMod(current + step, respawns.Length)].Id;
+        _gameState.SetRespawnId(_world.World.Name, respawns[Mathf.PosMod(current + step, respawns.Length)].Id);
         LoadWorld(_worldIndex);
     }
 
@@ -498,6 +506,7 @@ public partial class Play : Node
         AddAction("map_markers", new InputEventKey { PhysicalKeycode = Key.F2 });
         AddAction("debug_dialogue", new InputEventKey { PhysicalKeycode = Key.Key2 });
         AddAction("reload", new InputEventKey { PhysicalKeycode = Key.F5 });
+        AddAction("new_game", new InputEventKey { PhysicalKeycode = Key.F5, CtrlPressed = true });
         AddAction("previous_configuration", new InputEventKey { PhysicalKeycode = Key.Bracketleft });
         AddAction("next_configuration", new InputEventKey { PhysicalKeycode = Key.Bracketright });
         AddAction("previous_respawn", new InputEventKey { PhysicalKeycode = Key.Semicolon });
