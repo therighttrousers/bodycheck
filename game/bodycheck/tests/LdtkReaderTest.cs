@@ -285,6 +285,43 @@ public class LdtkReaderTest
         AssertThat(config.Entities).ContainsExactly("door");
     }
 
+    /// <summary>A respawn with this iid, and a Name field with this value, as JSON.</summary>
+    private static string NamedRespawn(string iid, string name) =>
+        Control("Respawn", iid, $$"""{ "__identifier": "Name", "__value": {{name}} }""");
+
+    [TestCase]
+    public void Reads_an_entitys_name_if_it_has_one()
+    {
+        World world = ReadOne(Project(
+            Level(0, 0, PlayerStart, control: $"{NamedRespawn("gate", "\"Gate\"")}, {NamedRespawn("other", "null")}")));
+
+        AssertThat(world.ConfigsById["gate"].Name).IsEqual("Gate");
+        AssertThat(world.ConfigsById["other"].Name).IsNull();
+        AssertThat(world.ConfigsById["p"].Name).IsNull(); // With no Name field
+    }
+
+    [TestCase]
+    public void Rejects_two_entities_with_the_same_name_even_in_different_worlds()
+    {
+        var e = Thrown<InvalidDataException>(() => LdtkReader.ReadWorlds("test.ldtk", Project(
+        [
+            ("First", Level(0, 0, PlayerStart, control: NamedRespawn("a", "\"Gate\""))),
+            ("Second", Level(0, 0, PlayerStart, control: NamedRespawn("b", "\"Gate\""))),
+        ])));
+        AssertThat(e.Message).StartsWith("test.ldtk: ").Contains("'Gate'");
+    }
+
+    [TestCase("\"\"")]
+    [TestCase("\" \"")]
+    [TestCase("\" Gate\"")]
+    [TestCase("\"Gate \"")]
+    public void Rejects_a_blank_name_or_one_with_white_space_at_an_end(string name)
+    {
+        var e = Thrown<InvalidDataException>(
+            () => ReadOne(Project(Level(0, 0, PlayerStart, control: NamedRespawn("gate", name)))));
+        AssertThat(e.Message).StartsWith("test.ldtk: ");
+    }
+
     public static IEnumerable<string> BadControlEntities =>
     [
         Sequence(Ref("dialogue"), "\"Present\", \"Present\""), // More actions than targets

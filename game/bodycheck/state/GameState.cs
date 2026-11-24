@@ -23,74 +23,70 @@ namespace BodyCheck.State;
 /// </summary>
 public sealed partial class GameState : RefCounted, IGameState
 {
-    // Every entity with a body that a world filled in has had, by id.
+    // Every entity that a world filled in has had, with a body or without, and the player, by id.
     private readonly Dictionary<string, EntityState> _entities = [];
 
-    // Every trigger's and once's switch, by id.
-    private readonly Dictionary<string, SwitchState> _switches = [];
+    // Every entity with a name given in its data, and the player, by that name.
+    private readonly Dictionary<string, EntityState> _entitiesByName = [];
 
     // Each world's current respawn's id, by the world's name.
     private readonly Dictionary<string, string> _respawnIds = [];
-
-    // The entities with bodies of the world last filled in, by their names before translation, which are unique in it.
-    private Dictionary<string, EntityState> _entitiesByName;
 
     /// <summary>A new game's state, with no world's entities in it yet.</summary>
     public GameState()
     {
         Player = new PlayerState(Constants.PlayerId, PlayerKindName);
         _entities[Player.Id] = Player;
-        _entitiesByName = new() { [Player.UntranslatedName] = Player };
+        _entitiesByName[Player.UntranslatedName] = Player;
     }
 
     /// <summary>A new game's state, filled in for <paramref name="world"/>.</summary>
-    /// <exception cref="ArgumentException">Two of its entities have the same name.</exception>
+    /// <exception cref="ArgumentException">One of its entities is named as the player is.</exception>
     public GameState(World world) : this() => Fill(world);
 
     /// <summary>
     /// Fills in the states that <paramref name="world"/>'s entities lack, as its data says they start, and keeps those
-    /// it has, before the world is built. Names are worked out again from the world's data each time, since adding an
-    /// entity to a level can lengthen another's, and must be unique in the world.
+    /// it has, before the world is built. Each entity's name is taken from its data again, since a level may have been
+    /// edited since. No two entities in the data have the same name, so a name that another entity's state still has
+    /// was that entity's before an edit, and goes to this one.
     /// </summary>
-    /// <exception cref="ArgumentException">Two of its entities have the same name.</exception>
+    /// <exception cref="ArgumentException">One of its entities is named as the player is.</exception>
     public void Fill(World world)
     {
-        var byName = new Dictionary<string, EntityState> { [Player.UntranslatedName] = Player };
-        foreach (EntityConfig config in world.Bodies)
+        foreach (EntityConfig config in world.Bodies.Concat(world.Controls))
         {
             if (!_entities.TryGetValue(config.Id, out EntityState? entity))
             {
                 var kindName = KindName(config.Kind);
                 entity = config switch
                 {
-                    EntityConfig.VerticalDoor door => new DoorState(config.Id, kindName),
+                    EntityConfig.VerticalDoor => new DoorState(config.Id, kindName),
+                    EntityConfig.Trigger trigger => new SwitchState(config.Id, kindName, trigger.StartsOn),
+                    EntityConfig.Once => new SwitchState(config.Id, kindName, true),
                     _ => new EntityState(config.Id, kindName),
                 };
                 _entities[config.Id] = entity;
             }
-            entity.Serial = DefaultSerial(config, world.Bodies);
-            if (!byName.TryAdd(entity.UntranslatedName, entity))
-            {
-                throw new ArgumentException(
-                    $"In world '{world.Name}', the entities {byName[entity.UntranslatedName].Id} and {entity.Id} "
-                        + $"are both named '{entity.UntranslatedName}'.",
-                    nameof(world));
-            }
+            Rename(entity, config.Name);
         }
-        foreach (EntityConfig config in world.Controls)
+    }
+
+    /// <summary>Gives <paramref name="entity"/> the name <paramref name="name"/>, or none, to be found by.</summary>
+    private void Rename(EntityState entity, string? name)
+    {
+        if (entity.GivenName is string old && _entitiesByName.GetValueOrDefault(old) == entity)
         {
-            bool? startsOn = config switch
-            {
-                EntityConfig.Trigger trigger => trigger.StartsOn,
-                EntityConfig.Once => true,
-                _ => null,
-            };
-            if (startsOn is bool isOn)
-            {
-                _switches.TryAdd(config.Id, new SwitchState(config.Id, isOn));
-            }
+            _entitiesByName.Remove(old);
         }
-        _entitiesByName = byName;
+        if (name is not null && _entitiesByName.GetValueOrDefault(name) == Player)
+        {
+            throw new ArgumentException($"Entity {entity.Id} is named '{name}', as the player is.", nameof(name));
+        }
+        entity.GivenName = name;
+        if (name is not null)
+        {
+            _entitiesByName[name] = entity;
+        }
     }
 
     /// <summary>The name of the world being played, which the game sets when it builds one, or null before any.</summary>
@@ -115,8 +111,8 @@ public sealed partial class GameState : RefCounted, IGameState
     private static readonly string PlayerKindName = Translatable.Mark("B-CON", KindContext);
 
     /// <summary>
-    /// The name of an entity's kind as a speaker, untranslated, which its avatar is named for, and which its name
-    /// starts with.
+    /// The name of an entity's kind as a speaker, untranslated, which its avatar is named for, and which is its name if
+    /// its data gives it none.
     /// </summary>
     private static string KindName(EntityKind kind) => kind switch
     {
@@ -127,32 +123,8 @@ public sealed partial class GameState : RefCounted, IGameState
     /// <summary>The context of a kind's name, as a speaker, in translation.</summary>
     private const string KindContext = "kind";
 
-    /// <summary>
-    /// The serial number in an entity's name, after its kind's: the start of its id, such as <c>a6d1</c>, at least
-    /// <see cref="ShortIdLength"/> characters, and as many more as tell it from every other id of its kind in
-    /// <paramref name="bodies"/>, as git shortens a commit's hash, so that names are unique in a world.
-    /// </summary>
-    private static string DefaultSerial(EntityConfig config, IEnumerable<EntityConfig> bodies)
-    {
-        int length = bodies
-            .Where(other => other.Kind == config.Kind && other != config)
-            .Select(other => CommonPrefixLength(config.Id, other.Id) + 1)
-            .Append(ShortIdLength)
-            .Max();
-        return config.Id[..Math.Min(length, config.Id.Length)];
-    }
-
-    private const int ShortIdLength = 4;
-
-    private static int CommonPrefixLength(string a, string b)
-    {
-        int i = 0;
-        while (i < a.Length && i < b.Length && a[i] == b[i])
-        {
-            i++;
-        }
-        return i;
-    }
+    /// <summary>The context of a name that an entity's data gives it, in translation.</summary>
+    private const string NameContext = "entity name";
 
     private static T CastEntity<T>(object entity, string id) => entity switch
     {
@@ -166,38 +138,34 @@ public sealed partial class GameState : RefCounted, IGameState
     /// <summary>The Voice, which calls the player, and speaks with no body.</summary>
     public CharacterState Voice { get; } = new(Translatable.Mark("Voice", KindContext));
 
-    /// <summary>The entity with a body whose id is <paramref name="id"/>.</summary>
+    /// <summary>The entity whose id is <paramref name="id"/>.</summary>
     /// <exception cref="KeyNotFoundException">There is none.</exception>
     public EntityState GetEntity(string id) => _entities[id];
 
-    /// <summary>The entity with a body whose id is <paramref name="id"/>, as the state of its kind.</summary>
+    /// <summary>The entity whose id is <paramref name="id"/>, as the state of its kind.</summary>
     /// <exception cref="KeyNotFoundException">There is none.</exception>
     /// <exception cref="InvalidOperationException">Its state isn't a <typeparamref name="T"/>.</exception>
     public T GetEntity<T>(string id) where T : EntityState => CastEntity<T>(GetEntity(id), id);
 
     /// <summary>
-    /// The entity with a body in the world last filled in whose untranslated name is <paramref name="name"/>, such as
-    /// <c>Door a6d1</c>.
+    /// The entity whose name, untranslated, as its data gives it, is <paramref name="name"/>, such as
+    /// <c>Bridge trigger</c>, in any world filled in so far; or the player, as <c>B-CON</c>. An entity whose data gives
+    /// it no name can't be found by name.
     /// </summary>
     /// <exception cref="KeyNotFoundException">There is none.</exception>
     public EntityState GetEntityNamed(string name) => _entitiesByName[name];
 
     /// <summary>
     /// The character whose name, translated, is <paramref name="name"/>, as a dialogue line gives its speaker, or null
-    /// if there is none: the Voice, or an entity with a body in the world last filled in.
+    /// if there is none: the Voice, or an entity in any world filled in so far. Entities that have no names of their
+    /// own share their kind's, and so their avatar, so any one of them will do.
     /// </summary>
     public CharacterState? GetSpeaker(string name) =>
-        Voice.Name == name ? Voice : _entitiesByName.Values.FirstOrDefault(entity => entity.Name == name);
-
-    /// <summary>The switch of the trigger or once whose id is <paramref name="id"/>.</summary>
-    /// <exception cref="KeyNotFoundException">There is none.</exception>
-    public SwitchState GetSwitch(string id) => _switches[id];
+        Voice.Name == name ? Voice : _entities.Values.FirstOrDefault(entity => entity.Name == name);
 
     IGameState.IPlayerState IGameState.Player => Player;
 
-    T IGameState.GetEntity<T>(string id) => _entities.TryGetValue(id, out EntityState? entity)
-        ? CastEntity<T>(entity, id)
-        : CastEntity<T>(_switches[id], id);
+    T IGameState.GetEntity<T>(string id) => CastEntity<T>(_entities[id], id);
 
     /// <summary>
     /// What every character that can speak has, with a body or without: its kind's name and its name, for the story and
@@ -216,13 +184,13 @@ public sealed partial class GameState : RefCounted, IGameState
         /// </summary>
         public virtual string Name => Translatable.Translate(KindName, KindContext);
 
-        /// <summary>Its name before translation, which no two entities in a world share.</summary>
+        /// <summary>Its name before translation.</summary>
         public virtual string UntranslatedName => KindName;
     }
 
     /// <summary>
-    /// What every entity with a body has: its id, and its name, its kind's and a serial number, if it has one. A kind
-    /// with state of its own extends it.
+    /// What every entity has, with a body or without: its id, and its name, the one its data gives it, or else its
+    /// kind's. A kind with state of its own extends it. Every entity is a character, so that any can be made to speak.
     /// </summary>
     public partial class EntityState(string id, string kindName) : CharacterState(kindName)
     {
@@ -230,22 +198,16 @@ public sealed partial class GameState : RefCounted, IGameState
         public string Id => id;
 
         /// <summary>
-        /// The serial number in its name, worked out from its world's data each time the world is filled in, or null
-        /// for the player, whose name is its kind's.
+        /// The name its data gives it, untranslated, taken from its data again each time its world is filled in; or
+        /// null, if it has none, and is known by its kind's name.
         /// </summary>
-        internal string? Serial { get; set; }
+        internal string? GivenName { get; set; }
 
-        /// <summary>Its kind's name, translated, then its serial number, such as <c>Door a6d1</c>, if it has one.</summary>
-        public override string Name => Serial is null
-            ? base.Name
-            // TRANSLATORS: An entity's name. {kind} is its kind's name, translated, such as "Door", and {serial} is
-            // the start of its id, such as "a6d1", a serial number, which stays as it is.
-            : Translatable.Translate("{kind} {serial}", "entity name")
-                .Replace("{kind}", base.Name)
-                .Replace("{serial}", Serial);
+        /// <summary>Its name, translated, such as <c>Bridge trigger</c>, or, if its data gives it none, its kind's.</summary>
+        public override string Name => GivenName is null ? base.Name : Translatable.Translate(GivenName, NameContext);
 
         /// <inheritdoc/>
-        public override string UntranslatedName => Serial is null ? base.UntranslatedName : $"{KindName} {Serial}";
+        public override string UntranslatedName => GivenName ?? base.UntranslatedName;
     }
 
     /// <summary>The player's state, whose abilities the game owns and Core reads.</summary>
@@ -273,14 +235,12 @@ public sealed partial class GameState : RefCounted, IGameState
     }
 
     /// <summary>
-    /// The switch of a trigger or a once, which says whether it is on, and has no name, since a control entity isn't a
-    /// character. What runs it is its only writer, through Core's view; the game reads it only.
+    /// The state of a trigger or a once, which says whether it is on. What runs it is its only writer, through Core's
+    /// view; the game reads it only.
     /// </summary>
-    public sealed partial class SwitchState(string id, bool isOn) : RefCounted, IGameState.ISwitchState
+    public sealed partial class SwitchState(string id, string kindName, bool isOn)
+        : EntityState(id, kindName), IGameState.ISwitchState
     {
-        /// <summary>Its configuration's id, which Core finds its state by.</summary>
-        public string Id => id;
-
         /// <inheritdoc cref="IGameState.ISwitchState.IsOn"/>
         public bool IsOn => ((IGameState.ISwitchState)this).IsOn;
 

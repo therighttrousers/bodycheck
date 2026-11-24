@@ -113,6 +113,7 @@
 					"defUid": 204,
 					"px": [48,288],
 					"fieldInstances": [
+						{ "__identifier": "Name", "__type": "String", "__value": null, "__tile": null, "defUid": 298, "realEditorValues": [] },
 						{ "__identifier": "RangeA", "__type": "Point", "__value": { "cx": 4, "cy": 7 }, "__tile": null, "defUid": 228, "realEditorValues": [{
 							"id": "V_String",
 							"params": ["4,7"]
@@ -138,6 +139,7 @@
 					"defUid": 204,
 					"px": [240,224],
 					"fieldInstances": [
+						{ "__identifier": "Name", "__type": "String", "__value": null, "__tile": null, "defUid": 298, "realEditorValues": [] },
 						{ "__identifier": "RangeA", "__type": "Point", "__value": { "cx": 9, "cy": 14 }, "__tile": null, "defUid": 228, "realEditorValues": [{
 							"id": "V_String",
 							"params": ["9,14"]
@@ -163,6 +165,7 @@
 					"defUid": 204,
 					"px": [208,96],
 					"fieldInstances": [
+						{ "__identifier": "Name", "__type": "String", "__value": null, "__tile": null, "defUid": 298, "realEditorValues": [] },
 						{ "__identifier": "RangeA", "__type": "Point", "__value": { "cx": 13, "cy": 6 }, "__tile": null, "defUid": 228, "realEditorValues": [{
 							"id": "V_String",
 							"params": ["13,6"]
