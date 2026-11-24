@@ -78,8 +78,11 @@ public enum TriggerSetOffBy
     Touch,
     /// <summary>The player pressing up in its area, on the ground, while playing.</summary>
     Interact,
-    /// <summary>The world starting: once, in its first played tick, if the trigger is on then.</summary>
-    Start,
+    /// <summary>
+    /// The world starting: once, in its first played tick, if the trigger is on then. Every time a world is built is
+    /// its start, whether for a new game, a switch between worlds, a restart, a death or a load.
+    /// </summary>
+    WorldStart,
 }
 
 /// <summary>One step of a route: an action, and the id of the entity to run it on.</summary>

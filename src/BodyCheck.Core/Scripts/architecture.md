@@ -10,6 +10,7 @@ Relevant decision records:
 - [052: The talking door](../../../docs/decision-records/052-talking-door.md)
 - [056: Scripts for entities](../../../docs/decision-records/056-scripts-for-entities.md)
 - [063: World state, and talking to entities](../../../docs/decision-records/063-world-state-and-talking-to-entities.md)
+- [064: Starting again at a respawn](../../../docs/decision-records/064-starting-again-at-a-respawn.md)
 - [065: Persisted game state](../../../docs/decision-records/065-persisted-game-state.md)
 - [066: Actions that name what they do](../../../docs/decision-records/066-actions-that-name-what-they-do.md)
 
@@ -56,4 +57,4 @@ A script is a class that implements `IScript`: a new one is made for each run an
 ## Open questions
 
 - Helpers for writing scripts: a `Promise`-like fluent interface, or a small async library over what scripts and async actions see, so that a wait such as "until the player is on the ground" is one line. To be shaped by writing scripts (`051 §1.5`).
-
+- Whether anything beyond a script's own timeout keeps a cutscene from being held forever. For now each script that waits for something it can't tell won't happen guards itself with a timeout, as `RunRightOffLedge` does. Options: nothing more; a timeout on every hold, given when it is taken, such as in `CutsceneRequest`; a debug key that cancels every script; a warning in debug builds when a hold lasts too long (`064 §1.2`, `§3.1`).

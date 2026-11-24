@@ -74,8 +74,9 @@ public sealed class Room : IOffsetTileGrid
         EntityConfig.Platform platform when platform.RangeA == platform.RangeB => "has its two ends in the same cell",
         EntityConfig.VerticalDoor door => DoorProblem(door),
         EntityConfig.Sequence { Steps.Count: 0 } or EntityConfig.Fanout { Steps.Count: 0 } => "has no steps",
-        // Never set off, since it is set off only at the start, if it is on then.
-        EntityConfig.Trigger { SetOffBy: TriggerSetOffBy.Start, StartsOn: false } => "set off at the start starts off",
+        // Never set off, since it is set off only at the world's start, if it is on then.
+        EntityConfig.Trigger { SetOffBy: TriggerSetOffBy.WorldStart, StartsOn: false } =>
+            "set off at the world's start starts off",
         _ => null,
     };
 

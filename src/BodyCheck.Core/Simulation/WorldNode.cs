@@ -58,8 +58,8 @@ public partial class WorldNode : Node3D, IScriptWorld
     // Whether the controllers have made their entities agree with the game's state, in the world's first tick.
     private bool _restored;
 
-    // Whether the triggers have been asked whether they are set off, in a played tick: Start triggers are set off the
-    // first time.
+    // Whether the triggers have been asked whether they are set off, in a played tick: WorldStart triggers are set off
+    // the first time.
     private bool _started;
 
     // A route or script that a scope's ending cut short, with nothing awaiting it, shows as a warning, so that a beat
@@ -837,7 +837,7 @@ public partial class WorldNode : Node3D, IScriptWorld
                 TriggerSetOffBy.Touch => trigger.HoldsPlayer && !trigger.HeldPlayer,
                 TriggerSetOffBy.Interact => interacts && trigger == _interactTrigger,
                 // Only in the first: one that is off then never is.
-                TriggerSetOffBy.Start => !_started,
+                TriggerSetOffBy.WorldStart => !_started,
             };
             if (setOff && trigger.Runner.IsOn)
             {

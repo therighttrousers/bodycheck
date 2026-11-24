@@ -1,6 +1,6 @@
 # 064: Starting again at a respawn
 
-Status: open. Settled and built: the fix for the intro's run (§1). Settled, not yet built: `GameStart` and `WorldStart` (§2.2), a `Once` per game (§2.3), worlds in the game state (§2.5). Open: whether a debug restart keeps the game state (§2.4), the test worlds' state (§2.6), and `GameStart` outside the first world (§2.7). Deferred: §3.
+Status: closed. Settled and built: the fix for the intro's run (§1), the ways a world is built (§2.1), a `Once` per game (§2.3), worlds in the game state (§2.5), and `WorldStart` without `GameStart` (§2.8), which settles §2.2's question in place of its decision; §2.4 and §2.6 settled by `065`, and §2.7 moot. Deferred: §3, a script that never ends, now an open question in [Core's Scripts](../../src/BodyCheck.Core/Scripts/architecture.md#open-questions).
 
 ## Context
 
@@ -49,16 +49,24 @@ Framing (Neil): treat several worlds as a feature of the shipped game, which has
   - (c) Two values of `SetOffBy`, such as `WorldStart` and `GameStart`, or `Start` with a field saying which. Says both, at the cost of a word in the level designers' language.
   - Decision (Neil): (c), as `GameStart` and `WorldStart`, at least: until §1.1 the main world had one of each, the intro's run and, through `056`, scripts about entities. `Start` becomes `WorldStart`, as it behaves now; `GameStart` is set off only at the game's start (§2.1).
 - [x] 2.3 Whether a `Once` outlives a world. Decision (Neil): yes. Every `Once` so far is for once in a game, so the game state keeps whether each has run. If something needs once per respawn or load, `Once` can gain a field, or a new control entity can say it. Whether a trigger is on outlives a world too, under `063 §1.7`, but nothing has decided it yet.
-- [~] 2.4 Whether the debug restarts keep the game state. Now each world the game builds has a new one, so a restart is a new game at a respawn, a combination no player can reach. Options: (a) keep it, so that a restart is as a respawn after a death will be; (b) keep it for `;`, `'` and a restart, with a key for a fresh one; (c) a new one, as now. Leaning (Neil): (a), as more useful, though Neil could be persuaded otherwise.
+- [x] 2.4 Whether the debug restarts keep the game state. Now each world the game builds has a new one, so a restart is a new game at a respawn, a combination no player can reach. Options: (a) keep it, so that a restart is as a respawn after a death will be; (b) keep it for `;`, `'` and a restart, with a key for a fresh one; (c) a new one, as now. Leaning (Neil): (a), as more useful, though Neil could be persuaded otherwise.
+  Settled in `065 §4.1`: (a), with Ctrl+F5 for a new game.
 - [x] 2.5 Worlds in the game state, from the framing above. Decision (Neil):
   - Which world is loaded is in the game state.
   - The world named `Main` in LDtk is special only in being the one a new game's state starts in.
   - Switching between worlds resets none of the game state.
-- [ ] 2.6 The test worlds' state. Under §2.5, the state of the test worlds, such as the library's rooms, and of the main world mix in one game state, which Neil doesn't like. Options are to be found.
-- [ ] 2.7 A `GameStart` trigger in a world other than the first of a new game, which under §2.1 is never set off. Options: (a) the reader rejects it, as it rejects a `Start` trigger that starts off (`056 §1.4`); (b) it is set off the first time the game enters that world, which a `WorldStart` trigger through a `Once` already says (§2.3); (c) it is allowed and never set off. Claude: (a), since (b) has a way to say it already.
+- [x] 2.6 The test worlds' state. Under §2.5, the state of the test worlds, such as the library's rooms, and of the main world mix in one game state, which Neil doesn't like. Options are to be found.
+  Settled in `065 §1.7`: the library's rooms are gone, and every world the game plays is from LDtk.
+- [x] 2.7 A `GameStart` trigger in a world other than the first of a new game, which under §2.1 is never set off. Options: (a) the reader rejects it, as it rejects a `Start` trigger that starts off (`056 §1.4`); (b) it is set off the first time the game enters that world, which a `WorldStart` trigger through a `Once` already says (§2.3); (c) it is allowed and never set off. Claude: (a), since (b) has a way to say it already.
+  Moot: there is no `GameStart` (§2.8).
 
 ## 3. A script that never ends
 
 Deferred (Neil): more design than this record needs now. §1.2 has each script guard itself for now.
 
 - [ ] 3.1 Whether anything beyond a script's own timeout (§1.2) keeps a cutscene from being held forever. Options: (a) nothing, each script is responsible; (b) a timeout on every hold, given when it is taken, such as in `CutsceneRequest`; (c) a debug key that cancels every script; (d) a warning in debug builds when a hold lasts longer than some time.
+- [x] 2.8 Building §2.2 (Neil, Claude, 2026-11-24): no use for `GameStart` turned up. It used to have one, the intro's run, but since `065 §1.3` the `PlayerStart` isn't the player, and a trigger on it, through a `Once`, starts what happens at the game's start (§1.1). Found:
+  - What a `GameStart` trigger could start far from the player: work that keeps running, such as a patrol, which is lost when the world is built again and never started again, so it belongs to `WorldStart`, or to state kept in the game state; or work that finishes and leaves state, such as a door opened, which the level's data can usually say directly.
+  - A choice once per playthrough, such as which door is locked, is state the data can't say. Neil: it can be made lazily, by a trigger that runs a `Once` that runs a `Script`, near where the player sees it.
+  - Claude: a `GameStart` that is set off only once in a game would leave its work half done if the world is built again while it runs, by a restart or a save written then, which breaks `065`'s goal that nothing is halfway; a `Once`, which turns off only when its step finishes, replays the whole beat.
+  Decision (Neil, as Claude suggested): no `GameStart`, which supersedes §2.2's decision; §2.7 is moot. `Start` is renamed `WorldStart`, as it behaves, since Neil likes what is about lifetimes named precisely. This settles §2.2's question.
