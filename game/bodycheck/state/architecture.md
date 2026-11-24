@@ -24,4 +24,4 @@ Where Core's rules own a piece, such as a door's `LastAction`, Core's view sets 
 
 ## Conventions
 
-What the game's own view holds has types that GDScript and dialogue files can use, so no enums: a door's `LastAction` is `"Open"` or `"Close"` there. Each class's explicit implementation of Core's view goes at the bottom of the class (`063 §1.10`).
+What the game's own view holds has types that GDScript and dialogue files can use, so no enums: a door's `LastAction` is `"None"`, `"Open"` or `"Close"` there. Each class's explicit implementation of Core's view goes at the bottom of the class (`063 §1.10`).

@@ -78,8 +78,8 @@ Anti-goals:
 ## 5. Built in the second PR
 
 - [x] 5.1 Found while building (Claude), and built so:
-  - A door is put back only when its `LastAction` isn't the action its place in the world's data counts as, which is what its state starts as (`StartsClosed`). A door that the data starts between its stops stays there until something asks it to move, as before; one closed and opened again since counts as open where it starts, if it starts nearer its open stop.
+  - A door is put back only when something has asked it to open or close since the game started. Built first (Claude): only when its `LastAction` differs from the action its place in the data counts as (`StartsClosed`). Found in play (Neil): the first door the player meets starts half open and must stay so until it is first asked, whichever stop it is nearer. Changed (Neil): `OpenableAction.None`, a door's `LastAction` until it is first asked, which supersedes `063 §1.2`'s start from the data's place. `StartsClosed` now only says which way a door's first toggle goes. `LastAction` says what was last asked, not whether the door is open, since something in the way may have stopped it. Dialogue and scripts have one more value to check, but learn more: whether a door has ever been asked.
   - `RestoreGameState` runs at the start of the world's first tick, on either path, played or paused, rather than when the world is built, since `MoveAndCollide` needs the world in the engine's space.
-  - Ctrl+F5 does what F5 does, with a new game's state, in the current world, which a new game's state has no respawn for, so the player starts at its `PlayerStart`. A new game for players, in `Main` (`064 §2.5`), is for the in-game menu.
+  - Ctrl+F5 does what F5 does, with a new game's state, which has no world yet, so it starts in the first world, `Main`, at its `PlayerStart`, as a new game does (`064 §2.5`).
   - A dialogue's speakers are found among the Voice and the entities of the world last filled in, since names are unique only in a world (§1.10).
   - `Reentry.Once` is gone (§1.6): a `Once` joins, as a trigger does, and its switch says whether it runs.

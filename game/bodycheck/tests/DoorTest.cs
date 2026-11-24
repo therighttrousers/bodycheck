@@ -100,8 +100,9 @@ public class DoorTest
         // A door 3 tiles high, which starts against its open stop.
         Room room = RoomWithDoor(rows, new Vector2I(6, 4), new Vector2I(1, 3), openStopY: 7, closeStopY: 0);
         _run = new RoomRun(room);
-        DoorController.Close(_run.Node.Tick);
+        TickTask close = DoorController.Close(_run.Node.Tick);
         await _run.Tick(RoomRun.Idle, Ticks);
+        AssertThat(close.IsFinished).IsTrue();
         GameState state = _run.State;
         _run.Free();
 

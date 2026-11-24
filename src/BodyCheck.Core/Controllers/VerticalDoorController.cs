@@ -11,23 +11,24 @@ namespace BodyCheck.Core.Controllers;
 /// or whatever it meets, and freezes it again, and the door then counts as opened or closed. Its actions share one
 /// queue, so that one asked while another runs follows it.
 /// </summary>
-/// <param name="startAction">The action that the door counts as having last done where the world's data starts it.</param>
+/// <param name="startsClosed">Whether the door starts nearer its close stop than its open stop.</param>
 /// <param name="travel">How far, at most, the door moves from one stop to the other.</param>
-public sealed class VerticalDoorController(Entity entity, OpenableAction startAction, float travel) : IController<Entity>
+public sealed class VerticalDoorController(Entity entity, bool startsClosed, float travel) : IController<Entity>
 {
     private IWorldView _world = null!;
 
     public void Ready(IWorldView world) => _world = world;
 
     /// <summary>
-    /// Moves the door straight to the stop of its last action, if that isn't the one it counts as having done where it
-    /// starts, so that a door opened before the world was built again is open. It moves until it meets its stop, or
-    /// whatever is in the way, as an action would, but at once.
+    /// Moves the door straight to the stop of its last action, if it has been asked for one since the game started, so
+    /// that a door opened before the world was built again is open; one that hasn't stays where the world's data puts
+    /// it, even between its stops. It moves until it meets its stop, or whatever is in the way, as an action would, but
+    /// at once.
     /// </summary>
     public void RestoreGameState()
     {
         OpenableAction lastAction = _world.GameState.GetEntity<IGameState.IDoorState>(Entity.Id).LastAction;
-        if (lastAction != startAction)
+        if (lastAction != OpenableAction.None)
         {
             float move = lastAction == OpenableAction.Open ? 1 : -1;
             Entity.MoveAndCollide(new Vector3(0, move * travel, 0));
@@ -44,12 +45,16 @@ public sealed class VerticalDoorController(Entity entity, OpenableAction startAc
     private readonly ReentrantTask _openCloseReentry = new(Reentry.Queue);
 
     public TickTask ToggleOpenClose(ITick tick) => _openCloseReentry.Run(() =>
-        _world.GameState.GetEntity<IGameState.IDoorState>(Entity.Id).LastAction == OpenableAction.Close ? OpenRun(tick) : CloseRun(tick));
+    {
+        var lastAction = _world.GameState.GetEntity<IGameState.IDoorState>(Entity.Id).LastAction;
+        var closed = lastAction == OpenableAction.None ? startsClosed : lastAction == OpenableAction.Close;
+        return closed ? OpenRun(tick) : CloseRun(tick);
+    });
+
     public TickTask Open(ITick tick) => _openCloseReentry.Run(() => OpenRun(tick));
     public TickTask Close(ITick tick) => _openCloseReentry.Run(() => CloseRun(tick));
 
     private TickTask OpenRun(ITick tick) => OpenOrClose(tick, 1, OpenableAction.Open, EntityCue.DoorOpened);
-
     private TickTask CloseRun(ITick tick) => OpenOrClose(tick, -1, OpenableAction.Close, EntityCue.DoorClosed);
 
     private async TickTask OpenOrClose(ITick tick, float move, OpenableAction action, EntityCue cue)

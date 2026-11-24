@@ -63,8 +63,7 @@ public sealed partial class GameState : RefCounted, IGameState
                 var kindName = KindName(config.Kind);
                 entity = config switch
                 {
-                    EntityConfig.VerticalDoor door => new DoorState(config.Id, kindName,
-                        door.StartsClosed() ? OpenableAction.Close : OpenableAction.Open),
+                    EntityConfig.VerticalDoor door => new DoorState(config.Id, kindName),
                     _ => new EntityState(config.Id, kindName),
                 };
                 _entities[config.Id] = entity;
@@ -264,13 +263,13 @@ public sealed partial class GameState : RefCounted, IGameState
     /// A door's state, which only its controller sets, through Core's view; the game reads it only, as a string, since
     /// GDScript and dialogue files can't use C# enums.
     /// </summary>
-    public sealed partial class DoorState(string id, string kindName, OpenableAction lastAction)
+    public sealed partial class DoorState(string id, string kindName)
         : EntityState(id, kindName), IGameState.IDoorState
     {
         /// <inheritdoc cref="IGameState.IDoorState.LastAction"/>
         public string LastAction => ((IGameState.IDoorState)this).LastAction.ToString();
 
-        OpenableAction IGameState.IDoorState.LastAction { get; set; } = lastAction;
+        OpenableAction IGameState.IDoorState.LastAction { get; set; } = OpenableAction.None;
     }
 
     /// <summary>

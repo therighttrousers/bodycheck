@@ -402,7 +402,7 @@ public partial class WorldNode : Node3D, IScriptWorld
         var door = new Entity(config.Id, BodyTuning.VerticalDoor(config.MapSize), visual) { Freeze = true };
         door.Controller = new VerticalDoorController(
             door,
-            startAction: config.StartsClosed() ? OpenableAction.Close : OpenableAction.Open,
+            startsClosed: config.StartsClosed(),
             travel: Math.Abs(config.OpenStop.Y - config.CloseStop.Y) + config.MapSize.Y);
         return door;
     }

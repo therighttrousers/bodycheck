@@ -1,8 +1,13 @@
 namespace BodyCheck.Core.Entities;
 
-/// <summary>The last of a pair of opposite actions that something that opens and closes was asked for.</summary>
+/// <summary>
+/// The last of a pair of opposite actions that something that opens and closes was asked for, or neither, since the
+/// game started.
+/// </summary>
 public enum OpenableAction
 {
+    /// <summary>Nothing has asked it to open or close since the game started, so it is where the world's data puts it.</summary>
+    None,
     Open,
     Close,
 }
@@ -49,7 +54,8 @@ public interface IGameState
     {
         /// <summary>
         /// What the door was last asked to do, set when it starts to, so that toggling it reverses what was asked even
-        /// if something blocked it.
+        /// if something blocked it; or <see cref="OpenableAction.None"/>, if nothing has asked it since the game started.
+        /// It says what was asked, not whether the door is open: something in the way may have stopped it.
         /// </summary>
         OpenableAction LastAction { get; set; }
     }
