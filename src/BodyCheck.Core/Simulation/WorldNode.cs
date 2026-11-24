@@ -403,7 +403,7 @@ public partial class WorldNode : Node3D, IScriptWorld
         door.Controller = new VerticalDoorController(
             door,
             startsClosed: config.StartsClosed(),
-            travel: Math.Abs(config.OpenStop.Y - config.CloseStop.Y) + config.MapSize.Y);
+            travel: Math.Abs(config.OpenStop.Y - config.CloseStop.Y) - config.MapSize.Y);
         return door;
     }
 
