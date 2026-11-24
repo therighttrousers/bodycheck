@@ -43,7 +43,7 @@ The control entities are a small language for wiring story beats, described in `
 
 ## Text rooms
 
-Test rooms are a library of named rooms, described as text, each played as a world of one room (`013 §2.4`). `RoomLibrary` has the ones to play in; `TestRoomLibrary` has the ones that tests and probes measure in. Design docs and tests refer to them by name.
+Test rooms are a library of named rooms, described as text, each a world of one room (`013 §2.4`), in `TestRoomLibrary`, which tests and probes measure in. None is played: every world the game plays is the LDtk project's, so that one game state serves them all (`065 §1.7`). Design docs and tests refer to them by name.
 
 ## Open questions
 

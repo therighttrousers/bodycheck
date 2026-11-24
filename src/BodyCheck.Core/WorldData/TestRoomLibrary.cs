@@ -7,6 +7,33 @@ namespace BodyCheck.Core.WorldData;
 /// </summary>
 public static class TestRoomLibrary
 {
+    /// <summary>
+    /// Things to phase through and throw, for the phase probe: robots, blocks and a platform. A ledge on the left that only a phase
+    /// up through something reaches, a pit to throw a robot into, a wall that a phase can't cross, and a pile of
+    /// blocks on the right. Bumps keep the robots in their pens.
+    /// </summary>
+    public static readonly Room Phase = Room.FromText("Phase", """
+        ######################################
+        #....................................#
+        #....................................#
+        #....................................#
+        #....................................#
+        #....................................#
+        #....................................#
+        #....................................#
+        #..................H.........#########
+        #.................................####
+        #####...........................B..###
+        #..............................BB...##
+        #..............................BB...##
+        #.....................#.......BBBB...#
+        #........#......#.....#.......BBBB...#
+        #...R....#.P....#..R..#...R..BBBBBB..#
+        #############...######################
+        #############...######################
+        ######################################
+        """);
+
     /// <summary>A long flat floor with a high ceiling, for sliding a body over many tile seams.</summary>
     public static readonly Room Seams = Room.FromText("Seams", string.Join('\n',
     [
