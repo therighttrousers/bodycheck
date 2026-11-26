@@ -2,6 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Text.Json.Serialization.Metadata;
 
 using BodyCheck.Core;
 using BodyCheck.Core.Entities;
@@ -89,13 +92,14 @@ public class SaveTest
         core.GetEntity<IGameState.ISwitchState>("trigger").IsOn = false;
         state.SetRespawnId(world.Name, "respawn");
         state.Player.CanPhase = false;
+        state.Story.TheCall.InnerDoorWontCloseReason = 2;
+        SaveData saved = state.ToSave(DateTimeOffset.Now);
         // As if from a world not filled in yet.
-        SaveData saved = state.ToSave(DateTimeOffset.Now) with
+        saved = saved with
         {
-            Doors = new Dictionary<string, OpenableAction>
+            Entities = new Dictionary<string, EntityData>(saved.Entities)
             {
-                ["door"] = OpenableAction.Open,
-                ["elsewhere"] = OpenableAction.Close,
+                ["elsewhere"] = new DoorData { LastAction = OpenableAction.Close },
             },
         };
         _store.Save(SaveStore.DefaultSlot, saved);
@@ -107,12 +111,74 @@ public class SaveTest
         AssertThat(loaded.WorldName).IsEqual(world.Name);
         AssertThat(loaded.GetRespawnId(world.Name)).IsEqual("respawn");
         AssertThat(loaded.Player.CanPhase).IsFalse();
-        AssertThat(loaded.GetEntity<GameState.DoorState>("door").LastAction).IsEqual("Open");
-        AssertThat(loaded.GetEntity<GameState.SwitchState>("trigger").IsOn).IsFalse();
-        AssertThat(loaded.ToSave(DateTimeOffset.Now).Doors["elsewhere"]).IsEqual(OpenableAction.Close);
+        AssertThat(loaded.Story.TheCall.InnerDoorWontCloseReason).IsEqual(2);
+        AssertThat(loaded.GetEntity<DoorState>("door").LastAction).IsEqual("Open");
+        AssertThat(loaded.GetEntity<SwitchState>("trigger").IsOn).IsFalse();
+        AssertThat(loaded.ToSave(DateTimeOffset.Now).Entities["elsewhere"]).IsEqual(new DoorData { LastAction = OpenableAction.Close });
+    }
+
+    [TestCase]
+    public void Everything_a_save_holds_is_plain_and_reads_from_a_file_without_it()
+    {
+        List<string> problems = [];
+        HashSet<Type> seen = [];
+        void Check(Type type)
+        {
+            if (!seen.Add(type))
+            {
+                return;
+            }
+            if (typeof(GodotObject).IsAssignableFrom(type))
+            {
+                problems.Add($"{type.Name} is a Godot object.");
+            }
+            JsonTypeInfo info = SaveJsonContext.Default.GetTypeInfo(type)!;
+            foreach (JsonPropertyInfo property in info.Properties)
+            {
+                if (property.AttributeProvider is PropertyInfo { SetMethod: MethodInfo set } member
+                    && set.ReturnParameter.GetRequiredCustomModifiers().Contains(typeof(IsExternalInit))
+                    && !property.IsRequired)
+                {
+                    problems.Add($"{type.Name}.{member.Name} is init without required.");
+                }
+                Check(property.PropertyType);
+            }
+            foreach (JsonDerivedType derived in info.PolymorphismOptions?.DerivedTypes ?? [])
+            {
+                Check(derived.DerivedType);
+            }
+            if (info.ElementType is Type element)
+            {
+                Check(element);
+            }
+        }
+
+        Check(typeof(SaveData));
+
+        AssertThat(problems).IsEmpty();
+        AssertThat(seen).Contains(typeof(TheCallData), typeof(SwitchData));
+    }
+
+    [TestCase]
+    public void A_save_without_a_field_added_since_gets_the_fields_default()
+    {
+        Directory.CreateDirectory(_directory);
+        File.WriteAllText(Path.Combine(_directory, SaveStore.DefaultSlot + ".json"), """
+            { "version": 1, "started": "2026-11-26T00:00:00+00:00", "saved": "2026-11-26T00:00:00+00:00",
+              "worldName": null, "respawnIds": {},
+              "entities": { "player": { "kind": "player", "canPhase": false }, "door": { "kind": "door" } } }
+            """);
+
+        SaveData save = _store.Load(SaveStore.DefaultSlot)!;
+
+        AssertThat(save.Entities["player"]).IsEqual(new PlayerData { CanPhase = false, CanSpawn = true });
+        AssertThat(save.Entities["door"]).IsEqual(new DoorData { LastAction = OpenableAction.None });
+        AssertThat(save.Story).IsEqual(new StoryData());
+        AssertThat(new GameState(save).Story.TheCall.InnerDoorWontCloseReason).IsEqual(0);
     }
 
     [TestCase("{")]
+    [TestCase("""{ "version": 1, "started": "2026-11-26T00:00:00+00:00", "saved": "2026-11-26T00:00:00+00:00", "respawnIds": {}, "entities": { "t": { "kind": "switch" } } }""")]
     [TestCase("null")]
     [TestCase("""{ "version": 1 }""")]
     public void A_save_that_cant_be_read_is_kept_aside_so_that_the_next_game_starts_new(string text)

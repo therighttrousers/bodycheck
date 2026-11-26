@@ -191,14 +191,14 @@ public class DoorTest
         {
             _ = DoorController.Close(_run.Node.Tick);
             await _run.Tick(RoomRun.Idle, Ticks);
-            AssertThat(_run.State.GetEntity<GameState.DoorState>("door").LastAction).IsEqual("Close");
+            AssertThat(_run.State.GetEntity<DoorState>("door").LastAction).IsEqual("Close");
             AssertFloat(Door.Bottom()).IsEqualApprox(1, 0.05f);
         }
 
         // A toggle follows the last action, not a count of them.
         _ = DoorController.ToggleOpenClose(_run.Node.Tick);
         await _run.Tick(RoomRun.Idle, Ticks);
-        AssertThat(_run.State.GetEntity<GameState.DoorState>("door").LastAction).IsEqual("Open");
+        AssertThat(_run.State.GetEntity<DoorState>("door").LastAction).IsEqual("Open");
         AssertFloat(Door.Top()).IsEqualApprox(7, 0.05f);
     }
 

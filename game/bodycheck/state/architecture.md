@@ -6,7 +6,7 @@ Relevant decision records:
 
 ## What it is
 
-`GameState`, the game's state, which the game owns: everything the story, the dialogue and the rules read or change. It implements Core's `IGameState`, and keeps more beside it that Core never sees, such as each entity's name (`063 §1.1`). It holds an `EntityState` for every entity, with a body or without, with its id, its kind's name and its name, or, for a kind with state of its own, a subclass, such as `DoorState`, or `SwitchState`, whether a trigger or a once is on, all found by id in one way, by the game and by Core (`063 §1.9`, `065 §1.8`). It also holds which world is being played, and each world's current respawn.
+`GameState`, the game's state, which the game owns: everything the story, the dialogue and the rules read or change. It implements Core's `IGameState`, and keeps more beside it that Core never sees, such as each entity's name (`063 §1.1`). It holds an `EntityState` for every entity, with a body or without, with its id, its kind's name and its name, or, for a kind with state of its own, a subclass, such as `DoorState`, or `SwitchState`, whether a trigger or a once is on, or `PlayerState`, all found by id in one way, by the game and by Core (`063 §1.9`, `065 §1.8`). It also holds which world is being played, each world's current respawn, and the story, a `StoryState`, with a state for each beat, such as `TheCallBeat`, whose properties the dialogue reads and sets, as `Story.TheCall.InnerDoorWontCloseReason`.
 
 It outlives worlds. A new game makes one, and every world built is given it, so that a restart, or a switch to another world and back, keeps what has happened, and a world is built from its data and the state (`065 §1.1`). It is filled in lazily: before a world is built, `Fill` adds the states its entities lack, as its data says they start, and keeps those it has, which serves a new game, a world entered for the first time, a level edited and read again, and a save loaded alike (`065 §1.2`).
 
@@ -20,10 +20,20 @@ Every character is a `CharacterState`, with a name: the Voice, which has no body
 
 ## Saves
 
-A save is a `SaveData`, a plain record that holds only what the levels' data can't make again: which world is being played, each world's current respawn, the player's abilities, and each door's last action and each switch's state, in a map per kind, by id; names and kinds come from the data. It also holds its format's version, 1, and when the game was started and last saved, which a menu of saves would show. It is JSON, by `System.Text.Json`'s source generator, with nothing unknown allowed (`065 §3.2`).
+A save is a `SaveData`, a plain record that holds only what the levels' data can't make again: which world is being played, each world's current respawn, the story, as a `StoryData`, and an `EntityData` for each entity with state of its own, the player's included, by id; names come from the data. It also holds its format's version, 1, and when the game was started and last saved, which a menu of saves would show. It is JSON, by `System.Text.Json`'s source generator, with nothing unknown allowed, and each entity's record says its kind, such as `"kind": "door"`, so that one map holds every kind (`065 §3.2`).
+
+- **A state is its record.** Each kind with state of its own has a state class, such as `DoorState`, and a record of what is saved of it, such as `DoorData`, in one file, named for the state; so does each beat of the story, such as `TheCallBeat` and `TheCallData`. The state holds the record as all it has besides its id and its name, and its properties read and write the record's, so that what is saved and what the game and Core see can't drift apart. The state is a Godot object, so that the dialogue and GDScript can see it; the record is plain C#, so that the serializer writes only what it holds.
+- **A record's properties are `{ get; set; }`, with how a new game starts as the initializer,** so that a save written before a property was added reads, with no new version; or `required`, if the start comes from the levels' data, as a switch's does. Never `init` without `required`: the source generator gives such a property that a file lacks its type's default, such as null, not its initializer, and the save then fails to write. `SaveTest` checks every type a save holds for both rules.
 
 - **Loading is lazy.** A `GameState` made from a save makes no entity's state itself: `Fill` makes each from the save's value for its id, if there is one, or else from the data. A saved value no world has filled in yet is kept, and written again as it is, so a save keeps the worlds not entered this session; one whose id is in no level is never used, and stays (`065 §3.3`).
 - **`SaveStore`** reads and writes saves, a file for each slot, `{slot}.json`, in one directory, the game's being `user://saves`, with one slot, `default`, for now (`065 §3.4`, `§3.5`). It writes to a temporary file and renames it over the old one, so that a crash while writing leaves the last save whole. A file that can't be read, doesn't parse or is of another version is renamed aside, to `{slot}.bad.json`, and its loading throws, so that a new game doesn't write over it.
+
+## Keeping track of something new
+
+- **A field of a kind that has state:** add it to the kind's record, such as `DoorData`, with how the kind starts as its initializer, and a property on its state that reads and writes it, such as `DoorState.LastAction`: public and settable if the game owns it, or read-only, with an explicit implementation of Core's view to set it, if Core's rules own it. Nothing else changes: saving, loading and old saves follow from the record.
+- **A flag of the story:** add it to its beat's record, such as `TheCallData`, and a property on the beat's state that reads and writes it, such as `TheCallBeat.InnerDoorWontCloseReason`. Nothing else changes.
+- **A beat of the story:** a file named for its state, such as `TheCallBeat.cs`, holding the state, a `RefCounted` made from its record, and the record; and a line for each in `StoryState.cs`, a property of `StoryData` and one of `StoryState`, made from it.
+- **A kind with state of its own:** a file named for its state, holding the state, which extends `EntityState` and overrides `Saved` to give its record, and the record, which extends `EntityData`; a `[JsonDerivedType]` line for the record in `EntityData.cs`, with the name its save gives its kind, which must never change once saves exist; and a case in `GameState.Fill`, which makes the state from its saved record, or else from its configuration.
 
 ## Two views of one state
 
@@ -31,4 +41,4 @@ Where Core's rules own a piece, such as a door's `LastAction`, Core's view sets 
 
 ## Conventions
 
-What the game's own view holds has types that GDScript and dialogue files can use, so no enums: a door's `LastAction` is `"None"`, `"Open"` or `"Close"` there. Each class's explicit implementation of Core's view goes at the bottom of the class (`063 §1.10`).
+What the game's own view holds has types that GDScript and dialogue files can use, so no enums: a door's `LastAction` is `"None"`, `"Open"` or `"Close"` there. Each class's explicit implementation of Core's view goes at the bottom of the class (`063 §1.10`). A kind's state class and its record go in one file, the record first.

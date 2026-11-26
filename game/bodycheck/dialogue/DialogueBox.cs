@@ -251,14 +251,14 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
     }
 
     /// <summary>An action that a dialogue has asked an entity for, and what to complete when it has finished.</summary>
-    private sealed record AskedAction(GameState.EntityState Entity, string Action, TaskCompletionSource Done);
+    private sealed record AskedAction(EntityState Entity, string Action, TaskCompletionSource Done);
 
     /// <summary>
     /// Asks <paramref name="entity"/> for the action named <paramref name="action"/>, off the tick, as Dialogue Manager
     /// runs mutations: the presenting method starts it on the tick when it next checks. The task completes when the
     /// action finishes, fails or is cancelled, or the dialogue ends first.
     /// </summary>
-    internal Task Ask(GameState.EntityState entity, string action)
+    internal Task Ask(EntityState entity, string action)
     {
         // So that Dialogue Manager goes on when its frames come round, not within the world's tick.
         var done = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -337,7 +337,7 @@ public partial class DialogueBox : CanvasLayer, IDialoguePresenter
         _character.Text = _line!.Character;
         _character.Visible = _line.Character != "";
         // A dialogue file names every speaker through its state, so the name has been translated already.
-        _avatar.Texture = gameState.GetSpeaker(_line.Character) is GameState.CharacterState speaker
+        _avatar.Texture = gameState.GetSpeaker(_line.Character) is CharacterState speaker
             ? LoadAvatar(speaker.KindName)
             : null;
         _avatarBackground.Visible = _avatar.Texture is not null;

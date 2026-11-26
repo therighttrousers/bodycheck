@@ -148,7 +148,7 @@ public class DialogueTest
         TranslationServer.SetLocale("eo");
         try
         {
-            GameState.EntityState door = _run.State.GetEntity("door");
+            EntityState door = _run.State.GetEntity("door");
             AssertThat(door.Name).IsEqual("Pordego");
             AssertThat(door.UntranslatedName).IsEqual("Gate");
             AssertThat(_run.State.GetEntityNamed("Gate")).IsSame(door);
@@ -197,7 +197,7 @@ public class DialogueTest
         // The second line waits until the door has opened.
         AssertFloat(lines[0].Bottom).IsEqualApprox(closed, 0.05f);
         AssertFloat(lines[1].Bottom).IsEqualApprox(closed + 3, 0.05f);
-        AssertThat(_run.State.GetEntity<GameState.DoorState>("door").LastAction).IsEqual("Open");
+        AssertThat(_run.State.GetEntity<DoorState>("door").LastAction).IsEqual("Open");
     }
 
     [TestCase]
