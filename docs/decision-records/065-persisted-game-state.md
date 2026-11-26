@@ -1,6 +1,6 @@
 # 065: Persisted game state
 
-Status: open. Settled: the split into PRs (§0), the player with a constant id (§1.3), the game state outlives worlds (§1.1) and is filled in lazily (§1.2), what moves into it (§1.4), one state for a `Once` and a trigger (§1.6), the test worlds (§1.7), switch states in Core's view (§1.9), names worked out per world (§1.10), putting a door back (§2.3), debug restarts (§4.1), names from LDtk, for every entity (§1.5, §1.8), save points (§2.1), and saving (§3). Open: what a death restores (§2.2), and the playtester's controls (§4.2).
+Status: open. Settled: the split into PRs (§0), the player with a constant id (§1.3), the game state outlives worlds (§1.1) and is filled in lazily (§1.2), what moves into it (§1.4), one state for a `Once` and a trigger (§1.6), the test worlds (§1.7), switch states in Core's view (§1.9), names worked out per world (§1.10), putting a door back (§2.3), debug restarts (§4.1), names from LDtk, for every entity (§1.5, §1.8), save points (§2.1), saving (§3), and the playtester's controls (§4.2). Open: what a death restores (§2.2), to be settled once there is death, or else to become an open question when the record is closed.
 
 ## Context
 
@@ -86,7 +86,9 @@ Anti-goals:
 ## 4. Debug restarts and new games
 
 - [x] 4.1 `064 §2.4`, leaning (a): F5, `;` and `'` keep the game state. Then a key for a new game is needed, and, once there is a save, one to drop it. Decision (Neil): they keep it, which settles `064 §2.4` as (a), and F5, which reads the levels again, too, with what changed filled in lazily (§1.2). Ctrl+F5 starts a new game, as a browser's hard refresh does; it is mostly something for an in-game menu to have.
-- [ ] 4.2 What the playtester's controls do with saves, so a playtest of a puzzle starts from a known state (`017`).
+- [x] 4.2 What the playtester's controls do with saves, so a playtest of a puzzle starts from a known state (`017`).
+  Neil: snapshots would restore more finely, but are a lot of extra work; a save is the finest restore there is. Claude: a save is a known state already, since one is written only at a save point, so it starts a puzzle at its respawn with the world as it was then; and it outlives edits to the level, since the state is filled in lazily by id, where a snapshot would go stale.
+  Decision (Neil, Claude): saves are the playtest's checkpoints, with no snapshots. The playtester gets fine control of save slots, named ones too, and starting from a checkpoint copies it into the slot being played, so that playing doesn't overwrite it, and a checkpoint changes only when it is saved on purpose. A slot's name is checked, so that it stays in the saves' folder and clashes with nothing the store writes, such as a slot's file kept aside. This needs a way in, which waits for an in-game developer menu, rather than a console, which would need a language of commands. Until then, a slot's file can be copied by hand.
 
 ## 5. Built in the second PR
 
