@@ -15,7 +15,7 @@ Content: scenes, resources, models, sounds, levels, dialogue files and configura
 ## Its parts and how they relate
 
 - [**`scenes/`**](scenes/architecture.md): the top-level scenes' scripts, which put the other parts together: for now `Play`, and the playtester's controls.
-- [**`state/`**](state/architecture.md): the game's state, which the game owns and Core sees a view of.
+- [**`state/`**](state/architecture.md): the game's state, which the game owns and Core sees a view of, and its saves.
 - [**`modes/`**](modes/architecture.md): the game's mode, its pauses and slowdowns, and how each sounds.
 - [**`camera/`**](camera/architecture.md): the camera, its framing of the player, and the map of where its view may be.
 - [**`dialogue/`**](dialogue/architecture.md): the dialogue presenter and its text box.
