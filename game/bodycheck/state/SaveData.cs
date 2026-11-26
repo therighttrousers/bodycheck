@@ -58,7 +58,8 @@ internal sealed partial class SaveJsonContext : JsonSerializerContext;
 /// <summary>
 /// How a save is read and written: with the options of every file the game reads, <see cref="JsonFiles.Options"/>, by
 /// <see cref="SaveJsonContext"/>'s generated code, but of a Godot object, only what the game declares, not the
-/// engine's members, such as its <c>NativeInstance</c>.
+/// engine's members, such as its <c>NativeInstance</c>. A property the game no longer has is skipped, not an error,
+/// so that removing one doesn't lose a save: only the game writes saves, so it is no typo.
 /// </summary>
 internal static class SaveJson
 {
@@ -67,6 +68,7 @@ internal static class SaveJson
     private static JsonTypeInfo<SaveData> Make()
     {
         JsonSerializerOptions options = JsonFiles.Options();
+        options.UnmappedMemberHandling = JsonUnmappedMemberHandling.Skip;
         options.TypeInfoResolver = SaveJsonContext.Default.WithAddedModifier(SkipEngineMembers);
         return (JsonTypeInfo<SaveData>)options.GetTypeInfo(typeof(SaveData));
     }

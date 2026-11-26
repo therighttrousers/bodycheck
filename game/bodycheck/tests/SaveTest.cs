@@ -188,6 +188,21 @@ public class SaveTest
         AssertThat(new GameState(save).Story.TheCall.InnerDoorWontCloseReason).IsEqual(0);
     }
 
+    [TestCase]
+    public void A_property_removed_since_a_save_was_written_is_skipped()
+    {
+        Directory.CreateDirectory(_directory);
+        File.WriteAllText(Path.Combine(_directory, SaveStore.DefaultSlot + ".json"), """
+            { "Version": 1, "Started": "2026-11-26T00:00:00+00:00", "Saved": "2026-11-26T00:00:00+00:00",
+              "Gone": 1, "RespawnIds": {}, "Story": { "TheCall": { "Gone": true } },
+              "Entities": { "door": { "Kind": "Door", "LastAction": "Open", "Gone": [] } } }
+            """);
+
+        SaveData save = _store.Load(SaveStore.DefaultSlot)!;
+
+        AssertThat(save.Entities["door"]).IsEqual(new DoorData { LastAction = OpenableAction.Open });
+    }
+
     [TestCase("{")]
     [TestCase("""{ "Version": 1, "Started": "2026-11-26T00:00:00+00:00", "Saved": "2026-11-26T00:00:00+00:00", "RespawnIds": {}, "Entities": { "t": { "Kind": "Switch" } } }""")]
     [TestCase("null")]
