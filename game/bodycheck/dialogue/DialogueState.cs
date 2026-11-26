@@ -21,14 +21,14 @@ public sealed partial class DialogueState : RefCounted
     internal DialogueBox Box { get; init; } = null!;
 
     /// <summary>The states of the entities the dialogue is about, in order, such as a door's, with its last action.</summary>
-    public Array<GameState.EntityState> Entities { get; init; } = [];
+    public Array<EntityState> Entities { get; init; } = [];
 
     /// <summary>The first of <see cref="Entities"/>, the one that speaks, as in <c>{{Speaker.Name}}: Hello.</c></summary>
-    public GameState.EntityState? Speaker => Entities.Count > 0 ? Entities[0] : null;
+    public EntityState? Speaker => Entities.Count > 0 ? Entities[0] : null;
 
     /// <summary>
     /// Asks <paramref name="entity"/> for the action <paramref name="action"/>, a <see cref="TriggerAction"/> by name, as
     /// <c>do Act(Speaker, "Open")</c>, which waits until the action has finished; <c>do!</c> doesn't wait.
     /// </summary>
-    public Task Act(GameState.EntityState entity, string action) => Box.Ask(entity, action);
+    public Task Act(EntityState entity, string action) => Box.Ask(entity, action);
 }

@@ -18,7 +18,15 @@ namespace BodyCheck.State;
 /// It outlives worlds: a new game makes one, and every world built is given it, so that a restart, or a switch to
 /// another world and back, keeps what has happened. It is filled in lazily: before a world is built, <see cref="Fill"/>
 /// adds the states its entities lack, as its data says they start, and keeps those it has, so that one path serves a
-/// new game, a world entered for the first time, and a level edited and read again. Nothing is saved yet.
+/// new game, a world entered for the first time, a level edited and read again, and a save loaded.
+/// </para>
+/// <para>
+/// A save holds only what the levels' data can't make again, as a <see cref="SaveData"/>. Each entity's state keeps
+/// what is saved of it in a record of its own, an <see cref="EntityData"/>, which is all it holds besides its id and its
+/// name, so that what is saved and what the game sees can't drift apart; a kind's state and its record are in one
+/// file, named for the state. Loading a save fills in nothing itself:
+/// <see cref="Fill"/> makes each state an entity lacks from the save's record for it, if there is one, and from the
+/// data if not, and the records for worlds not filled in yet are kept, and written again as they are.
 /// </para>
 /// </summary>
 public sealed partial class GameState : RefCounted, IGameState
@@ -32,23 +40,79 @@ public sealed partial class GameState : RefCounted, IGameState
     // Each world's current respawn's id, by the world's name.
     private readonly Dictionary<string, string> _respawnIds = [];
 
+    // The loaded save's records of entities that no world filled in has had yet, by id.
+    private readonly Dictionary<string, EntityData> _saved = [];
+
     /// <summary>A new game's state, with no world's entities in it yet.</summary>
-    public GameState()
-    {
-        Player = new PlayerState(Constants.PlayerId, PlayerKindName);
-        _entities[Player.Id] = Player;
-        _entitiesByName[Player.UntranslatedName] = Player;
-    }
+    public GameState() : this(DateTimeOffset.Now, story: null, player: null) { }
 
     /// <summary>A new game's state, filled in for <paramref name="world"/>.</summary>
     /// <exception cref="ArgumentException">One of its entities is named as the player is.</exception>
     public GameState(World world) : this() => Fill(world);
 
+    /// <summary>The state that <paramref name="save"/> holds, with no world's entities in it yet.</summary>
+    public GameState(SaveData save)
+        : this(save.Started, save.Story, save.Entities.GetValueOrDefault(Constants.PlayerId) as PlayerData)
+    {
+        WorldName = save.WorldName;
+        foreach ((string worldName, string respawnId) in save.RespawnIds)
+        {
+            _respawnIds[worldName] = respawnId;
+        }
+        foreach ((string id, EntityData data) in save.Entities)
+        {
+            if (id != Constants.PlayerId)
+            {
+                _saved[id] = data;
+            }
+        }
+    }
+
+    private GameState(DateTimeOffset started, StoryState? story, PlayerData? player)
+    {
+        Started = started;
+        Story = story ?? new();
+        Player = new PlayerState(Constants.PlayerId, PlayerKindName, player ?? new());
+        _entities[Player.Id] = Player;
+        _entitiesByName[Player.UntranslatedName] = Player;
+    }
+
+    /// <summary>When the game was started.</summary>
+    public DateTimeOffset Started { get; }
+
     /// <summary>
-    /// Fills in the states that <paramref name="world"/>'s entities lack, as its data says they start, and keeps those
-    /// it has, before the world is built. Each entity's name is taken from its data again, since a level may have been
-    /// edited since. No two entities in the data have the same name, so a name that another entity's state still has
-    /// was that entity's before an edit, and goes to this one.
+    /// What a save of the state holds, saved at <paramref name="saved"/>: what has happened in every world filled in,
+    /// and what the loaded save, if any, held for the worlds not filled in yet. It shares its records with the state,
+    /// so write it at once.
+    /// </summary>
+    public SaveData ToSave(DateTimeOffset saved)
+    {
+        var entities = new Dictionary<string, EntityData>(_saved);
+        foreach (EntityState entity in _entities.Values)
+        {
+            if (entity.Saved is EntityData data)
+            {
+                entities[entity.Id] = data;
+            }
+        }
+        return new SaveData
+        {
+            Version = SaveData.CurrentVersion,
+            Started = Started,
+            Saved = saved,
+            WorldName = WorldName,
+            Story = Story,
+            RespawnIds = new Dictionary<string, string>(_respawnIds),
+            Entities = entities,
+        };
+    }
+
+    /// <summary>
+    /// Fills in the states that <paramref name="world"/>'s entities lack, as the loaded save, if any, says they are, or
+    /// else as its data says they start, and keeps those it has, before the world is built. A saved record of the wrong
+    /// kind is ignored. Each entity's name is taken from its data again, since a level may have been edited since. No
+    /// two entities in the data have the same name, so a name that another entity's state still has was that entity's
+    /// before an edit, and goes to this one.
     /// </summary>
     /// <exception cref="ArgumentException">One of its entities is named as the player is.</exception>
     public void Fill(World world)
@@ -58,11 +122,13 @@ public sealed partial class GameState : RefCounted, IGameState
             if (!_entities.TryGetValue(config.Id, out EntityState? entity))
             {
                 var kindName = KindName(config.Kind);
+                _saved.Remove(config.Id, out EntityData? saved);
                 entity = config switch
                 {
-                    EntityConfig.VerticalDoor => new DoorState(config.Id, kindName),
-                    EntityConfig.Trigger trigger => new SwitchState(config.Id, kindName, trigger.StartsOn),
-                    EntityConfig.Once => new SwitchState(config.Id, kindName, true),
+                    EntityConfig.VerticalDoor => new DoorState(config.Id, kindName, saved as DoorData ?? new()),
+                    EntityConfig.Trigger trigger =>
+                        new SwitchState(config.Id, kindName, saved as SwitchData ?? new() { IsOn = trigger.StartsOn }),
+                    EntityConfig.Once => new SwitchState(config.Id, kindName, saved as SwitchData ?? new() { IsOn = true }),
                     _ => new EntityState(config.Id, kindName),
                 };
                 _entities[config.Id] = entity;
@@ -91,6 +157,9 @@ public sealed partial class GameState : RefCounted, IGameState
 
     /// <summary>The name of the world being played, which the game sets when it builds one, or null before any.</summary>
     public string? WorldName { get; set; }
+
+    /// <summary>What has happened in the story, beat by beat, which the dialogue reads and sets.</summary>
+    public StoryState Story { get; }
 
     /// <summary>
     /// The id of the current respawn of the world named <paramref name="worldName"/>, or null if it has none yet, so
@@ -121,10 +190,10 @@ public sealed partial class GameState : RefCounted, IGameState
     };
 
     /// <summary>The context of a kind's name, as a speaker, in translation.</summary>
-    private const string KindContext = "kind";
+    internal const string KindContext = "kind";
 
     /// <summary>The context of a name that an entity's data gives it, in translation.</summary>
-    private const string NameContext = "entity name";
+    internal const string NameContext = "entity name";
 
     private static T CastEntity<T>(object entity, string id) => entity switch
     {
@@ -166,84 +235,4 @@ public sealed partial class GameState : RefCounted, IGameState
     IGameState.IPlayerState IGameState.Player => Player;
 
     T IGameState.GetEntity<T>(string id) => CastEntity<T>(_entities[id], id);
-
-    /// <summary>
-    /// What every character that can speak has, with a body or without: its kind's name and its name, for the story and
-    /// the dialogue, which see it as it is. Every speaker is a character, so that every name is translated one way.
-    /// </summary>
-    public partial class CharacterState(string kindName) : RefCounted
-    {
-        /// <summary>
-        /// Its kind's name, untranslated, such as <c>Door</c>, which its avatar is named for, as <c>Door.png</c>.
-        /// </summary>
-        public string KindName => kindName;
-
-        /// <summary>
-        /// Its name in the current locale, translated when it is read, as a line in a dialogue file names its speaker,
-        /// as <c>{{Voice.Name}}:</c>: its kind's name.
-        /// </summary>
-        public virtual string Name => Translatable.Translate(KindName, KindContext);
-
-        /// <summary>Its name before translation.</summary>
-        public virtual string UntranslatedName => KindName;
-    }
-
-    /// <summary>
-    /// What every entity has, with a body or without: its id, and its name, the one its data gives it, or else its
-    /// kind's. A kind with state of its own extends it. Every entity is a character, so that any can be made to speak.
-    /// </summary>
-    public partial class EntityState(string id, string kindName) : CharacterState(kindName)
-    {
-        /// <summary>Its configuration's id, which Core finds its state by.</summary>
-        public string Id => id;
-
-        /// <summary>
-        /// The name its data gives it, untranslated, taken from its data again each time its world is filled in; or
-        /// null, if it has none, and is known by its kind's name.
-        /// </summary>
-        internal string? GivenName { get; set; }
-
-        /// <summary>Its name, translated, such as <c>Bridge trigger</c>, or, if its data gives it none, its kind's.</summary>
-        public override string Name => GivenName is null ? base.Name : Translatable.Translate(GivenName, NameContext);
-
-        /// <inheritdoc/>
-        public override string UntranslatedName => GivenName ?? base.UntranslatedName;
-    }
-
-    /// <summary>The player's state, whose abilities the game owns and Core reads.</summary>
-    public sealed partial class PlayerState(string id, string kindName)
-        : EntityState(id, kindName), IGameState.IPlayerState
-    {
-        public bool CanPhase { get; set; } = true;
-        public bool CanSpawn { get; set; } = true;
-
-        bool IGameState.IPlayerState.CanPhase => CanPhase;
-        bool IGameState.IPlayerState.CanSpawn => CanSpawn;
-    }
-
-    /// <summary>
-    /// A door's state, which only its controller sets, through Core's view; the game reads it only, as a string, since
-    /// GDScript and dialogue files can't use C# enums.
-    /// </summary>
-    public sealed partial class DoorState(string id, string kindName)
-        : EntityState(id, kindName), IGameState.IDoorState
-    {
-        /// <inheritdoc cref="IGameState.IDoorState.LastAction"/>
-        public string LastAction => ((IGameState.IDoorState)this).LastAction.ToString();
-
-        OpenableAction IGameState.IDoorState.LastAction { get; set; } = OpenableAction.None;
-    }
-
-    /// <summary>
-    /// The state of a trigger or a once, which says whether it is on. What runs it is its only writer, through Core's
-    /// view; the game reads it only.
-    /// </summary>
-    public sealed partial class SwitchState(string id, string kindName, bool isOn)
-        : EntityState(id, kindName), IGameState.ISwitchState
-    {
-        /// <inheritdoc cref="IGameState.ISwitchState.IsOn"/>
-        public bool IsOn => ((IGameState.ISwitchState)this).IsOn;
-
-        bool IGameState.ISwitchState.IsOn { get; set; } = isOn;
-    }
 }

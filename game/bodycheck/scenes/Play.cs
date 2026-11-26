@@ -28,19 +28,21 @@ namespace BodyCheck.Scenes;
 
 /// <summary>
 /// Plays one world, drawn as gray boxes: a world of the LDtk project at <see cref="LevelsPath"/>, with one room per
-/// level, or a room from the <see cref="RoomLibrary"/> library, as a world of one room. It adds the camera, the environments and the player's input to a <see cref="WorldNode"/>,
+/// level. It adds the camera, the environments and the player's input to a <see cref="WorldNode"/>,
 /// and the rendering pipeline's switches (see <see cref="LookSwitches"/>). The game is drawn in a <see cref="WorldViewportContainer"/>, and the overlay over
 /// it at the window's full resolution.
 /// <para>
-/// The worlds are the LDtk project's first, in its order, then the library's. The first world plays
-/// unless one is named. Comma and period switch to the previous and next world.
+/// The worlds are the LDtk project's, in its order. The game continues the save in its slot, in the save's world, or
+/// starts a new game, in the first world, if there is none; a world named on the command line plays instead. It is
+/// saved at save points, when the current respawn changes, once no cutscene is held. Comma and period switch to the
+/// previous and next world.
 /// </para>
 /// <para>
 /// The game plays with a configuration of <see cref="Features"/>: the defaults, or one of the files in
 /// <see cref="ConfigurationsDirectory"/>, named after the file. The defaults are used unless one is named. '[' and ']'
 /// switch to the previous and next configuration, without restarting the world. F5 reads the LDtk project and the
-/// configurations again, and restarts the world, with the player at the world's current respawn, if it has one. Each
-/// world's current respawn is remembered while the game runs. ';' and "'" restart the world at its previous and next
+/// configurations again, and restarts the world, with the game's state as it is, and the player at the world's current
+/// respawn, if it has one; Ctrl+F5 does the same with a new game, and saves it. ';' and "'" restart the world at its previous and next
 /// respawn, in the order of its levels. An error in a file is shown, and play goes on without it.
 /// </para>
 /// <para>
@@ -91,6 +93,15 @@ public partial class Play : Node
     private CameraDebug _cameraDebug = null!;
     // The game's state, which every world built is given, and which only a new game replaces.
     private GameState _gameState = new();
+    // Where the game is saved, and the slot it is saved in, which a new game is in too.
+    private readonly SaveStore _saves = new(SaveStore.GameDirectory);
+    private const string Slot = SaveStore.DefaultSlot;
+    // Whether the game is loaded from and saved to its slot, which a probe's isn't, so that it measures the same each
+    // time.
+    private bool _saving;
+    // Whether the current respawn, a save point, has changed since the game was last saved. Saving waits until no
+    // cutscene is held, so that it doesn't catch a beat halfway.
+    private bool _savePending;
     private readonly PhaseAimMarker _phaseAimMarker = new();
     private readonly InteractPrompt _interactPrompt = new();
 #if TOOLS
@@ -181,7 +192,9 @@ public partial class Play : Node
 #endif
         }
 
-        LoadWorld(Math.Max(IndexOf(_worlds.Select(world => world.Name), worldName), 0));
+        _saving = true;
+        _gameState = LoadGame();
+        LoadWorld(Math.Max(IndexOf(_worlds.Select(world => world.Name), worldName ?? _gameState.WorldName), 0));
         _world.PlayerController.UserInputSource = () => new PlayerInput(
             Input.GetAxis("move_left", "move_right"),
             Input.GetAxis("move_down", "move_up"),
@@ -205,51 +218,63 @@ public partial class Play : Node
         }
 #endif
 
-        if (Input.IsActionJustPressed("next_world"))
+        if (_savePending && _world.CutsceneRequest is null)
+        {
+            SaveGame();
+        }
+
+        // Exactly match all hotkeys, so modified keys don't register as unmodified keys;
+        // e.g. so Ctrl+F5 doesn't register as F5.
+
+        if (Input.IsActionJustPressed("next_world", exactMatch: true))
         {
             LoadWorld(_worldIndex + 1);
         }
-        else if (Input.IsActionJustPressed("previous_world"))
+        else if (Input.IsActionJustPressed("previous_world", exactMatch: true))
         {
             LoadWorld(_worldIndex - 1);
         }
-        else if (Input.IsActionJustPressed("next_configuration"))
+        else if (Input.IsActionJustPressed("next_configuration", exactMatch: true))
         {
             SwitchConfiguration(_configurationIndex + 1);
         }
-        else if (Input.IsActionJustPressed("previous_configuration"))
+        else if (Input.IsActionJustPressed("previous_configuration", exactMatch: true))
         {
             SwitchConfiguration(_configurationIndex - 1);
         }
-        // Before reload, since Ctrl+F5 is F5 too.
-        else if (Input.IsActionJustPressed("new_game"))
+        else if (Input.IsActionJustPressed("reload", exactMatch: true))
+        {
+            Reload();
+        }
+        else if (Input.IsActionJustPressed("new_game", exactMatch: true))
         {
             _gameState = new GameState();
             Reload();
+            // A state known to be good, so that quitting now doesn't bring back the old game.
+            if (_saving)
+            {
+                SaveGame();
+            }
         }
-        else if (Input.IsActionJustPressed("reload"))
-        {
-            Reload();
-        }
-        else if (Input.IsActionJustPressed("next_respawn"))
+        else if (Input.IsActionJustPressed("next_respawn", exactMatch: true))
         {
             CycleRespawn(1);
         }
-        else if (Input.IsActionJustPressed("previous_respawn"))
+        else if (Input.IsActionJustPressed("previous_respawn", exactMatch: true))
         {
             CycleRespawn(-1);
         }
-        else if (Input.IsActionJustPressed("camera_debug"))
+        else if (Input.IsActionJustPressed("camera_debug", exactMatch: true))
         {
             _showCameraDebug = !_showCameraDebug;
             _cameraDebug.Visible = _showCameraDebug;
         }
-        else if (Input.IsActionJustPressed("map_markers"))
+        else if (Input.IsActionJustPressed("map_markers", exactMatch: true))
         {
             _showMapMarkers = !_showMapMarkers;
             _world.MapMarkers.Visible = _showMapMarkers;
         }
-        else if (Input.IsActionJustPressed("debug_dialogue"))
+        else if (Input.IsActionJustPressed("debug_dialogue", exactMatch: true))
         {
             _ = PresentDebugDialogue();
         }
@@ -385,6 +410,7 @@ public partial class Play : Node
         _world.CurrentRespawnChanged += respawn =>
         {
             _gameState.SetRespawnId(world.Name, respawn.Id);
+            _savePending = _saving;
             ShowTitle();
         };
         if (world.Name == LookWorldName)
@@ -425,6 +451,36 @@ public partial class Play : Node
         }
         _gameState.SetRespawnId(_world.World.Name, respawns[Mathf.PosMod(current + step, respawns.Length)].Id);
         LoadWorld(_worldIndex);
+    }
+
+    /// <summary>
+    /// The game in its slot, or a new game if there is none, or if its save can't be read, which is shown as an error.
+    /// </summary>
+    private GameState LoadGame()
+    {
+        try
+        {
+            return _saves.Load(Slot) is SaveData save ? new GameState(save) : new GameState();
+        }
+        catch (System.IO.InvalidDataException e)
+        {
+            GD.PushError(e.Message);
+            return new GameState();
+        }
+    }
+
+    /// <summary>Saves the game to its slot, at a save point. A save that can't be written is shown as an error.</summary>
+    private void SaveGame()
+    {
+        _savePending = false;
+        try
+        {
+            _saves.Save(Slot, _gameState.ToSave(DateTimeOffset.Now));
+        }
+        catch (Exception e) when (e is System.IO.IOException or UnauthorizedAccessException)
+        {
+            GD.PushError($"The game can't be saved: {e.Message}");
+        }
     }
 
     private static string ReadFile(string path)
