@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 
 using BodyCheck.Core;
@@ -105,8 +106,8 @@ public class SaveTest
         };
         _store.Save(SaveStore.DefaultSlot, saved);
         string file = File.ReadAllText(Path.Combine(_directory, SaveStore.DefaultSlot + ".json"));
-        AssertThat(JsonNode.Parse(file)!["story"]!.ToJsonString())
-            .IsEqual("""{"theCall":{"innerDoorWontCloseReason":2}}""");
+        AssertThat(JsonNode.Parse(file)!["Story"]!.ToJsonString())
+            .IsEqual("""{"TheCall":{"InnerDoorWontCloseReason":2}}""");
 
         var loaded = new GameState(_store.Load(SaveStore.DefaultSlot)!);
         loaded.Fill(world);
@@ -131,6 +132,11 @@ public class SaveTest
             if (!seen.Add(type))
             {
                 return;
+            }
+            if (type.IsEnum && type.GetCustomAttribute<JsonConverterAttribute>()?.ConverterType
+                != typeof(StrictEnumConverter<>).MakeGenericType(type))
+            {
+                problems.Add($"{type.Name} isn't read by name only.");
             }
             JsonTypeInfo info = SaveJson.Info.Options.GetTypeInfo(type);
             foreach (JsonPropertyInfo property in info.Properties)
@@ -161,7 +167,7 @@ public class SaveTest
         Check(typeof(SaveData));
 
         AssertThat(problems).IsEmpty();
-        AssertThat(seen).Contains(typeof(TheCallBeat), typeof(SwitchData));
+        AssertThat(seen).Contains(typeof(TheCallBeat), typeof(SwitchData), typeof(OpenableAction));
     }
 
     [TestCase]
@@ -169,9 +175,10 @@ public class SaveTest
     {
         Directory.CreateDirectory(_directory);
         File.WriteAllText(Path.Combine(_directory, SaveStore.DefaultSlot + ".json"), """
-            { "version": 1, "started": "2026-11-26T00:00:00+00:00", "saved": "2026-11-26T00:00:00+00:00",
-              "worldName": null, "respawnIds": {},
-              "entities": { "player": { "kind": "player", "canPhase": false }, "door": { "kind": "door" } } }
+            { "Version": 1, "Started": "2026-11-26T00:00:00+00:00", "Saved": "2026-11-26T00:00:00+00:00",
+              "WorldName": null, "RespawnIds": {},
+              // A comment, and a trailing comma, as in a file edited by hand.
+              "Entities": { "player": { "Kind": "Player", "CanPhase": false }, "door": { "Kind": "Door" }, }, }
             """);
 
         SaveData save = _store.Load(SaveStore.DefaultSlot)!;
@@ -182,9 +189,10 @@ public class SaveTest
     }
 
     [TestCase("{")]
-    [TestCase("""{ "version": 1, "started": "2026-11-26T00:00:00+00:00", "saved": "2026-11-26T00:00:00+00:00", "respawnIds": {}, "entities": { "t": { "kind": "switch" } } }""")]
+    [TestCase("""{ "Version": 1, "Started": "2026-11-26T00:00:00+00:00", "Saved": "2026-11-26T00:00:00+00:00", "RespawnIds": {}, "Entities": { "t": { "Kind": "Switch" } } }""")]
     [TestCase("null")]
-    [TestCase("""{ "version": 1 }""")]
+    [TestCase("""{ "Version": 1 }""")]
+    [TestCase("""{ "Version": 1, "Started": "2026-11-26T00:00:00+00:00", "Saved": "2026-11-26T00:00:00+00:00", "RespawnIds": {}, "Entities": { "d": { "Kind": "Door", "LastAction": 1 } } }""")]
     public void A_save_that_cant_be_read_is_kept_aside_so_that_the_next_game_starts_new(string text)
     {
         Directory.CreateDirectory(_directory);

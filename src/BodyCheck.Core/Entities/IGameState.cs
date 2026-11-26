@@ -1,9 +1,12 @@
+using System.Text.Json.Serialization;
+
 namespace BodyCheck.Core.Entities;
 
 /// <summary>
 /// The last of a pair of opposite actions that something that opens and closes was asked for, or neither, since the
 /// game started.
 /// </summary>
+[JsonConverter(typeof(StrictEnumConverter<OpenableAction>))]
 public enum OpenableAction
 {
     /// <summary>Nothing has asked it to open or close since the game started, so it is where the world's data puts it.</summary>

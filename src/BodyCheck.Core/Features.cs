@@ -63,8 +63,7 @@ public sealed record Features
     /// <summary>Puts every feature back to its default.</summary>
     public static void Reset() => Set(new());
 
-    private static readonly JsonDocumentOptions ReadOptions =
-        new() { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true };
+    private static readonly FeaturesJsonContext Json = new(JsonFiles.Options());
 
     /// <summary>
     /// Reads a configuration: a JSON object that names features by their properties' names and gives their values. A
@@ -82,15 +81,15 @@ public sealed record Features
         {
             // Reading checks the text, but the source generator's code gives a feature the text doesn't name 0, not its
             // default. So the features it names are laid over the defaults, and the whole is read again.
-            _ = JsonSerializer.Deserialize(json, FeaturesJsonContext.Default.Features)
+            _ = JsonSerializer.Deserialize(json, Json.Features)
                 ?? throw new InvalidDataException($"{path}: The file holds null.");
-            JsonObject features = JsonSerializer.SerializeToNode(new Features(), FeaturesJsonContext.Default.Features)!
+            JsonObject features = JsonSerializer.SerializeToNode(new Features(), Json.Features)!
                 .AsObject();
-            foreach ((string name, JsonNode? value) in JsonNode.Parse(json, documentOptions: ReadOptions)!.AsObject())
+            foreach ((string name, JsonNode? value) in JsonNode.Parse(json, documentOptions: JsonFiles.DocumentOptions)!.AsObject())
             {
                 features[name] = value?.DeepClone();
             }
-            return features.Deserialize(FeaturesJsonContext.Default.Features)!;
+            return features.Deserialize(Json.Features)!;
         }
         catch (JsonException e)
         {
@@ -478,11 +477,9 @@ public sealed record Features
     #endregion
 }
 
-/// <summary>The code that reads configurations, which System.Text.Json's source generator writes at compile time.</summary>
-[JsonSourceGenerationOptions(
-    RespectNullableAnnotations = true,
-    UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
-    ReadCommentHandling = JsonCommentHandling.Skip,
-    AllowTrailingCommas = true)]
+/// <summary>
+/// The code that reads configurations, which System.Text.Json's source generator writes at compile time, made with
+/// <see cref="JsonFiles.Options"/>.
+/// </summary>
 [JsonSerializable(typeof(Features))]
 internal sealed partial class FeaturesJsonContext : JsonSerializerContext;

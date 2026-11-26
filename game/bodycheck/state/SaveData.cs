@@ -5,6 +5,8 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 
+using BodyCheck.Core;
+
 using Godot;
 
 namespace BodyCheck.State;
@@ -50,26 +52,24 @@ public sealed record SaveData
     public required IReadOnlyDictionary<string, EntityData> Entities { get; init; }
 }
 
-[JsonSourceGenerationOptions(
-    RespectNullableAnnotations = true,
-    UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
-    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
-    UseStringEnumConverter = true,
-    WriteIndented = true)]
 [JsonSerializable(typeof(SaveData))]
 internal sealed partial class SaveJsonContext : JsonSerializerContext;
 
 /// <summary>
-/// How a save is read and written: as <see cref="SaveJsonContext"/>'s generated code says, but of a Godot object, only
-/// what the game declares, not the engine's members, such as its <c>NativeInstance</c>.
+/// How a save is read and written: with the options of every file the game reads, <see cref="JsonFiles.Options"/>, by
+/// <see cref="SaveJsonContext"/>'s generated code, but of a Godot object, only what the game declares, not the
+/// engine's members, such as its <c>NativeInstance</c>.
 /// </summary>
 internal static class SaveJson
 {
-    public static JsonTypeInfo<SaveData> Info { get; } = (JsonTypeInfo<SaveData>)new JsonSerializerOptions(
-        SaveJsonContext.Default.Options)
+    public static JsonTypeInfo<SaveData> Info { get; } = Make();
+
+    private static JsonTypeInfo<SaveData> Make()
     {
-        TypeInfoResolver = SaveJsonContext.Default.WithAddedModifier(SkipEngineMembers),
-    }.GetTypeInfo(typeof(SaveData));
+        JsonSerializerOptions options = JsonFiles.Options();
+        options.TypeInfoResolver = SaveJsonContext.Default.WithAddedModifier(SkipEngineMembers);
+        return (JsonTypeInfo<SaveData>)options.GetTypeInfo(typeof(SaveData));
+    }
 
     private static void SkipEngineMembers(JsonTypeInfo info)
     {

@@ -9,8 +9,8 @@ namespace BodyCheck.State;
 /// before a field was added reads. Each kind's record is listed here, with the name its save gives its kind, so that a
 /// save can hold every kind in one map.
 /// </summary>
-[JsonPolymorphic(TypeDiscriminatorPropertyName = "kind")]
-[JsonDerivedType(typeof(PlayerData), "player")]
-[JsonDerivedType(typeof(DoorData), "door")]
-[JsonDerivedType(typeof(SwitchData), "switch")]
+[JsonPolymorphic(TypeDiscriminatorPropertyName = "Kind")]
+[JsonDerivedType(typeof(PlayerData), "Player")]
+[JsonDerivedType(typeof(DoorData), "Door")]
+[JsonDerivedType(typeof(SwitchData), "Switch")]
 public abstract record EntityData;
