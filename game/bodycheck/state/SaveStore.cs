@@ -36,7 +36,7 @@ public sealed class SaveStore(string directory)
         }
         try
         {
-            SaveData save = JsonSerializer.Deserialize(File.ReadAllText(path), SaveJsonContext.Default.SaveData)
+            SaveData save = JsonSerializer.Deserialize(File.ReadAllText(path), SaveJson.Info)
                 ?? throw new InvalidDataException("The file holds null.");
             return save.Version == SaveData.CurrentVersion
                 ? save
@@ -60,7 +60,7 @@ public sealed class SaveStore(string directory)
         string path = PathOf(slot);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         string temporary = path + ".tmp";
-        File.WriteAllText(temporary, JsonSerializer.Serialize(save, SaveJsonContext.Default.SaveData));
+        File.WriteAllText(temporary, JsonSerializer.Serialize(save, SaveJson.Info));
         File.Move(temporary, path, overwrite: true);
     }
 }

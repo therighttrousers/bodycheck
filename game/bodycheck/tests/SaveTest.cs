@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization.Metadata;
 
 using BodyCheck.Core;
@@ -103,6 +104,9 @@ public class SaveTest
             },
         };
         _store.Save(SaveStore.DefaultSlot, saved);
+        string file = File.ReadAllText(Path.Combine(_directory, SaveStore.DefaultSlot + ".json"));
+        AssertThat(JsonNode.Parse(file)!["story"]!.ToJsonString())
+            .IsEqual("""{"theCall":{"innerDoorWontCloseReason":2}}""");
 
         var loaded = new GameState(_store.Load(SaveStore.DefaultSlot)!);
         loaded.Fill(world);
@@ -118,7 +122,7 @@ public class SaveTest
     }
 
     [TestCase]
-    public void Everything_a_save_holds_is_plain_and_reads_from_a_file_without_it()
+    public void Everything_a_save_holds_is_the_games_own_and_reads_from_a_file_without_it()
     {
         List<string> problems = [];
         HashSet<Type> seen = [];
@@ -128,13 +132,14 @@ public class SaveTest
             {
                 return;
             }
-            if (typeof(GodotObject).IsAssignableFrom(type))
-            {
-                problems.Add($"{type.Name} is a Godot object.");
-            }
-            JsonTypeInfo info = SaveJsonContext.Default.GetTypeInfo(type)!;
+            JsonTypeInfo info = SaveJson.Info.Options.GetTypeInfo(type);
             foreach (JsonPropertyInfo property in info.Properties)
             {
+                if ((property.AttributeProvider as MemberInfo)?.DeclaringType?.Assembly != typeof(SaveData).Assembly
+                    && info.Kind == JsonTypeInfoKind.Object)
+                {
+                    problems.Add($"{type.Name}.{property.Name} isn't the game's own.");
+                }
                 if (property.AttributeProvider is PropertyInfo { SetMethod: MethodInfo set } member
                     && set.ReturnParameter.GetRequiredCustomModifiers().Contains(typeof(IsExternalInit))
                     && !property.IsRequired)
@@ -156,7 +161,7 @@ public class SaveTest
         Check(typeof(SaveData));
 
         AssertThat(problems).IsEmpty();
-        AssertThat(seen).Contains(typeof(TheCallData), typeof(SwitchData));
+        AssertThat(seen).Contains(typeof(TheCallBeat), typeof(SwitchData));
     }
 
     [TestCase]
@@ -173,7 +178,6 @@ public class SaveTest
 
         AssertThat(save.Entities["player"]).IsEqual(new PlayerData { CanPhase = false, CanSpawn = true });
         AssertThat(save.Entities["door"]).IsEqual(new DoorData { LastAction = OpenableAction.None });
-        AssertThat(save.Story).IsEqual(new StoryData());
         AssertThat(new GameState(save).Story.TheCall.InnerDoorWontCloseReason).IsEqual(0);
     }
 

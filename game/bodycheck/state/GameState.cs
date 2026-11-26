@@ -68,10 +68,10 @@ public sealed partial class GameState : RefCounted, IGameState
         }
     }
 
-    private GameState(DateTimeOffset started, StoryData? story, PlayerData? player)
+    private GameState(DateTimeOffset started, StoryState? story, PlayerData? player)
     {
         Started = started;
-        Story = new StoryState(story ?? new());
+        Story = story ?? new();
         Player = new PlayerState(Constants.PlayerId, PlayerKindName, player ?? new());
         _entities[Player.Id] = Player;
         _entitiesByName[Player.UntranslatedName] = Player;
@@ -101,7 +101,7 @@ public sealed partial class GameState : RefCounted, IGameState
             Started = Started,
             Saved = saved,
             WorldName = WorldName,
-            Story = Story.Saved,
+            Story = Story,
             RespawnIds = new Dictionary<string, string>(_respawnIds),
             Entities = entities,
         };

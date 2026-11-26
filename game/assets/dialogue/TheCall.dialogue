@@ -55,7 +55,17 @@ if Speaker.LastAction == "None"
 else
     {{Speaker.Name}}: Hello again, helper!
     - Can you close?
-        {{Speaker.Name}}: [if GetEntityNamed("Door ebf9").LastAction == "Close"]Why? Outer door is closed.[else]I do not wish to.[/if]
+        if GetEntityNamed("Door ebf9").LastAction != "Close"
+            {{Speaker.Name}}: I do not wish to.
+        elif Story.TheCall.InnerDoorWontCloseReason == 0
+            {{Speaker.Name}}: Why? Outer door is closed.
+            $> Story.TheCall.InnerDoorWontCloseReason = 1
+        elif Story.TheCall.InnerDoorWontCloseReason == 1
+            {{Speaker.Name}}: I should not waste power you have so generously returned to us.
+            $> Story.TheCall.InnerDoorWontCloseReason = 2
+        else
+            {{Speaker.Name}}: Assuredly, friend, I will consider it.
+            $> Story.TheCall.InnerDoorWontCloseReason = 0
     - Am I locked in here?
         {{Speaker.Name}}: I would not lock you in, friend.
     - Who are you?
