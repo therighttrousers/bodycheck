@@ -1,0 +1,37 @@
+namespace BodyCheck.Core.Controllers;
+
+/// <summary>
+/// The thresholds for a <see cref="StallDetector"/>. They are functions, read each time they are needed, so they can change while the game runs.
+/// </summary>
+public sealed record StallTuning
+{
+    /// <summary>The speed below which a body counts as slow.</summary>
+    public required Func<float> MinSpeed { get; init; }
+
+    /// <summary>How long, in game seconds, a body may stay slow before it counts as stalled.</summary>
+    public required Func<float> MaxTime { get; init; }
+}
+
+/// <summary>
+/// Detects a stall: a body that stays slower than <see cref="StallTuning.MinSpeed"/> for <see cref="StallTuning.MaxTime"/>.
+/// </summary>
+internal sealed class StallDetector(StallTuning tuning)
+{
+    // Game seconds spent slow in a row.
+    private float _slowTime;
+
+    /// <summary>
+    /// Forgets the time spent slow, so a stall needs a full <see cref="StallTuning.MaxTime"/> again.
+    /// </summary>
+    public void Reset() => _slowTime = 0;
+
+    /// <summary>
+    /// Adds this frame's time to the slow time while <paramref name="speed"/> is below the minimum, and clears it otherwise.
+    /// </summary>
+    /// <returns>True once the body has been slow for long enough to count as stalled.</returns>
+    public bool Update(float speed, float gameDt)
+    {
+        _slowTime = speed < tuning.MinSpeed() ? _slowTime + gameDt : 0;
+        return _slowTime >= tuning.MaxTime();
+    }
+}

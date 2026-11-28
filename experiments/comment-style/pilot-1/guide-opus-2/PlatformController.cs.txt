@@ -1,0 +1,147 @@
+using BodyCheck.Core.Entities;
+using BodyCheck.Core.Maths;
+
+using Godot;
+
+namespace BodyCheck.Core.Controllers;
+
+/// <summary>
+/// What moves a hovering platform back and forth along a line between two points, in any direction. It moves the
+/// platform with three thrusts, each for one job: one that cancels its own weight; a drive along the line toward a
+/// target speed, which falls near the end it is heading for, so that it brakes there; and a critically damped spring
+/// that holds it on the line, and lets it sag under a load. The drive and the hold are capped, so that enough load
+/// overpowers them, and nothing caps what cancels its weight, so that the caps resist only what pushes it around. It
+/// turns around just before each end, and when something stops it on the way.
+/// </summary>
+public sealed class PlatformController : IController<PlatformEntity>
+{
+    private readonly PlatformEntity _entity;
+
+    // The ends of the platform's line, where its center goes.
+    private readonly Vector2 _rangeA;
+    private readonly Vector2 _rangeB;
+
+    // The length of the line, and unit vectors along it, from A to B, and across it.
+    private readonly float _length;
+    private readonly Vector2 _along;
+    private readonly Vector2 _across;
+
+    // Whether the platform is heading for B, or else for A.
+    private bool _towardB = true;
+    private readonly StallDetector _stall = new(new StallTuning
+    {
+        MinSpeed = () => Features.Current.PlatformStallSpeed,
+        MaxTime = () => Features.Current.PlatformStallTime,
+    });
+
+    // The last tick's drive, heading, velocity and length, from which the next tick finds how much of the drive went to
+    // fighting something, rather than to moving the platform.
+    private float _lastDrive;
+    private Vector2 _lastHeading;
+    private Vector2 _lastVelocity;
+    private float _lastDt;
+
+    /// <param name="entity">The platform, which the controller controls.</param>
+    /// <param name="rangeA">One end of the platform's line, where it heads from first.</param>
+    /// <param name="rangeB">The other end of its line, which it heads for first. It must not be the same as A.</param>
+    public PlatformController(PlatformEntity entity, Vector2 rangeA, Vector2 rangeB)
+    {
+        _entity = entity;
+        _rangeA = rangeA;
+        _rangeB = rangeB;
+        _length = rangeA.DistanceTo(rangeB);
+        _along = (rangeB - rangeA) / _length;
+        _across = _along.Orthogonal();
+    }
+
+    public PlatformEntity Entity => _entity;
+
+    public void Apply(float gameDt, float realDt, IDefer defer)
+    {
+        Features features = Features.Current;
+        var position = new Vector2(_entity.Position.X, _entity.Position.Y);
+        var velocity = new Vector2(_entity.LinearVelocity.X, _entity.LinearVelocity.Y);
+
+        // How far along its line the platform is, from 0 at A to 1 at B, and where it turns around near each end.
+        float fraction = (position - _rangeA).Dot(_along) / _length;
+        float turnFraction = features.PlatformTurnDistance / _length;
+        bool atEnd = _towardB ? fraction >= 1 - turnFraction : fraction <= turnFraction;
+
+        // Turn around when stalled only between the places where it turns: beyond them, the end it is heading for is the
+        // way back to its line, so turning would take it further off.
+        bool between = fraction > turnFraction && fraction < 1 - turnFraction;
+        bool stalled = _stall.Update(velocity.Dot(_towardB ? _along : -_along), gameDt);
+
+        if (atEnd || (stalled && between))
+        {
+            _towardB = !_towardB;
+            _stall.Reset();
+        }
+
+        // The platform's weight under unscaled gravity, so that its caps don't assume gravity is normal, and don't
+        // change while something scales it, such as a grab.
+        float unscaledWeight = _entity.Mass * Constants.Gravity;
+
+        // The caps, as a fraction of its weight. Both mass and capacity are per tile of width, so every width
+        // accelerates alike.
+        float maxThrustFrac = features.PlatformCapacityPerTile / features.PlatformMassPerTile;
+
+        // The drive: toward a target speed that falls near the end, as the speed from which braking at the planned rate
+        // would stop it just past the end, so that it still moves when it gets to where it turns around.
+        Vector2 heading = _towardB ? _along : -_along;
+        float distanceLeft = ((_towardB ? _rangeB : _rangeA) - position).Dot(heading);
+        float braking = features.PlatformBrakeFrac * maxThrustFrac * Constants.Gravity;
+        float targetSpeed = MathF.Min(
+            features.PlatformTopSpeed,
+            MathF.Sqrt(2 * braking * MathF.Max(0, distanceLeft + features.PlatformTurnDistance)));
+        float maxThrust = maxThrustFrac * unscaledWeight;
+        float drive = Math.Clamp(
+            _entity.Mass * features.PlatformDriveGain * (targetSpeed - velocity.Dot(heading)), -maxThrust, maxThrust);
+
+        // The hold, back onto the line.
+        float hold = Math.Clamp(
+            Spring.CriticallyDampedForce(
+                position.Dot(_across),
+                velocity.Dot(_across),
+                goal: _rangeA.Dot(_across),
+                features.PlatformSmoothTime,
+                _entity.Mass),
+            -maxThrust,
+            maxThrust);
+
+        // Both, and what cancels the platform's own weight under the gravity it feels now.
+        Vector2 thrust = drive * heading + hold * _across;
+        _entity.ApplyCentralForce(new Vector3(thrust.X, thrust.Y, 0) - _entity.Mass * _entity.GetGravity());
+
+        // Strain: how hard the platform works against what pushes it around, as the larger of the hold and the drive
+        // that fights something, over the cap. Moving itself along its line doesn't count, nor does a load that carries
+        // it the way it is going. It is smoothed, since the animation tree only looks at it when animations step, and
+        // would miss a rise that lasts a tick.
+        float strain = MathF.Min(1, MathF.Max(MathF.Abs(hold), DriveFought(velocity)) / maxThrust);
+        _entity.Strain = Smoothing.Exponential(_entity.Strain, strain, features.PlatformStrainTime, gameDt);
+        _lastDrive = drive;
+        _lastHeading = heading;
+        _lastVelocity = velocity;
+        _lastDt = gameDt;
+
+        // Report the strain the player puts on it, for tuning.
+        if (_entity.Above.Any(e => e is PlayerEntity))
+        {
+            Telemetry.Report(Metric.PlatformStrain, _entity.Strain);
+        }
+    }
+
+    // How much of the last tick's drive went to fighting something: the drive, less what the platform's own acceleration
+    // the way it was heading used, and only while it pushes the way it was heading. A drive takes effect in the step
+    // after the tick that applies it, so it is measured a tick late, from the velocity it made. Before the first tick,
+    // or after one that took no time, there is no acceleration to measure, and it counts none.
+    private float DriveFought(Vector2 velocity)
+    {
+        if (_lastDt == 0)
+        {
+            return 0;
+        }
+        float acceleration = (velocity - _lastVelocity).Dot(_lastHeading) / _lastDt;
+        return MathF.Max(0, _lastDrive - _entity.Mass * acceleration);
+    }
+}

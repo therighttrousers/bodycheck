@@ -1,0 +1,71 @@
+namespace BodyCheck.Core.Tasks;
+
+/// <summary>
+/// An <see cref="ITick"/> whose waits last only while a condition holds. It passes the condition to the scheduler with
+/// every wait, so a task that waits through it stops when the condition fails instead of running on.
+/// </summary>
+/// <param name="scheduler">The scheduler that runs the waits.</param>
+/// <param name="condition">The condition the waits depend on, or null for waits that always last.</param>
+internal sealed class ScopedTick(TickScheduler scheduler, Func<bool>? condition) : ITick
+{
+    public TickTask NextTick() => Wait(0);
+
+    public TickTask Wait(float seconds) => scheduler.Wait(seconds, condition);
+
+    // Scopes nest: the new one's waits last only while both its condition and this one's hold.
+    public ITick Scoped(Func<bool> inner) =>
+        new ScopedTick(scheduler, condition is null ? inner : () => condition() && inner());
+
+    public async TickTask While(Func<bool> condition)
+    {
+        while (condition())
+        {
+            await NextTick();
+        }
+    }
+
+    public async TickTask While(Func<bool> condition, Action body)
+    {
+        while (condition())
+        {
+            body();
+            await NextTick();
+        }
+    }
+
+    public async TickTask While(Func<bool> condition, Func<TickTask> body)
+    {
+        while (condition())
+        {
+            double time = Time;
+            await body();
+            // A body that finishes without waiting would otherwise loop forever within one tick.
+            if (Time == time)
+            {
+                await NextTick();
+            }
+        }
+    }
+
+    public async TickTask UntilCompleted(Task task)
+    {
+        await While(() => !task.IsCompleted);
+        // Rethrows the task's exception, if it failed, unwrapped from the AggregateException that Task.Wait would give.
+        task.GetAwaiter().GetResult();
+    }
+
+    public async TickTask All(IEnumerable<TickTask> tasks)
+    {
+        // Enumerate the tasks before awaiting any, so they all start and run together. Awaiting them in turn then
+        // finishes when the last of them does.
+        List<TickTask> taskList = [.. tasks];
+        foreach (var task in taskList)
+        {
+            await task;
+        }
+    }
+
+    public float Dt => scheduler.Dt;
+
+    public double Time => scheduler.Time;
+}

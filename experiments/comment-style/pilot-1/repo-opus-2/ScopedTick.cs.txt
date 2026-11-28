@@ -1,0 +1,72 @@
+namespace BodyCheck.Core.Tasks;
+
+/// <summary>
+/// Every <see cref="ITick"/>: one that makes its waits on its scheduler, each carrying its scope's condition, so that
+/// every tick of a scheduler is the same scheduler to its tasks, whatever its scope.
+/// </summary>
+/// <param name="scheduler">The scheduler the tick's waits are made on.</param>
+/// <param name="condition">
+/// What the tick's scope lasts while, or null if it has none, and its waits last as long as the scheduler runs.
+/// </param>
+internal sealed class ScopedTick(TickScheduler scheduler, Func<bool>? condition) : ITick
+{
+    public TickTask NextTick() => Wait(0);
+
+    public TickTask Wait(float seconds) => scheduler.Wait(seconds, condition);
+
+    // The outer condition is checked first, so that it can guard the inner one.
+    public ITick Scoped(Func<bool> inner) =>
+        new ScopedTick(scheduler, condition is null ? inner : () => condition() && inner());
+
+    public async TickTask While(Func<bool> condition)
+    {
+        while (condition())
+        {
+            await NextTick();
+        }
+    }
+
+    public async TickTask While(Func<bool> condition, Action body)
+    {
+        while (condition())
+        {
+            body();
+            await NextTick();
+        }
+    }
+
+    public async TickTask While(Func<bool> condition, Func<TickTask> body)
+    {
+        while (condition())
+        {
+            double time = Time;
+            await body();
+            // A body that let no time pass would otherwise loop again in the same run, and could spin.
+            if (Time == time)
+            {
+                await NextTick();
+            }
+        }
+    }
+
+    public async TickTask UntilCompleted(Task task)
+    {
+        await While(() => !task.IsCompleted);
+        // Throws the task's exception, if it failed, or cancels, if it was cancelled.
+        task.GetAwaiter().GetResult();
+    }
+
+    public async TickTask All(IEnumerable<TickTask> tasks)
+    {
+        // Enumerate first, so that a sequence that starts the tasks as it goes starts them all before any is awaited.
+        List<TickTask> taskList = [.. tasks];
+        foreach (var task in taskList)
+        {
+            await task;
+        }
+    }
+
+    public float Dt => scheduler.Dt;
+
+    public double Time => scheduler.Time;
+}
