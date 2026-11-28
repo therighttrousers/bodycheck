@@ -8,6 +8,8 @@ Tools for the experiments in [decision record 067](../../docs/decision-records/0
 - [`Measure-CommentStyle.ps1`](Measure-CommentStyle.ps1): counts rough markers of the style in C# comments, or in a compiled XML doc file for a baseline.
 - [`Measure-Trials.ps1`](Measure-Trials.ps1): scores trials' workspaces, one row each, and checks that each changed only comments.
 - [`New-PairSheet.ps1`](New-PairSheet.ps1): writes a blind sheet of choices between two versions of one comment at a time, with its key.
+- [`New-Rewrite.ps1`](New-Rewrite.ps1): prepares an isolated rewrite of some files' comments, and copies it back, for the process in record 067 §3.6.
+- [`rewrite-scripts/`](rewrite-scripts/): the review notes and Haiku's first draft from the rewrite of Core's `Scripts` subsystem.
 - [`pilot-1/`](pilot-1/) and [`pilot-2/`](pilot-2/): the experiments' outputs, one directory per trial, with each file saved as `.cs.txt` so that the build ignores it, pilot 1's blind rating sheet, and pilot 2's pair sheet, each with its key.
 
 Workspaces are large, so put them outside the repository, such as in `$env:TEMP`. To score them:

@@ -1,0 +1,19 @@
+using BodyCheck.Core.Entities;
+
+namespace BodyCheck.Core.Scripts;
+
+/// <summary>Makes the scripts that a world runs, by class name.</summary>
+public interface IScriptLibrary
+{
+    /// <summary>
+    /// Whether the class is a script that takes entities of these types, in this order. Use this to check a script before
+    /// the world runs it.
+    /// </summary>
+    bool Holds(string className, IReadOnlyList<Type> entityTypes);
+
+    /// <summary>Makes a new script of the class, for the entities. Returns a new script on each call.</summary>
+    /// <remarks>
+    /// Check the class and the entities with <see cref="Holds"/> first.
+    /// </remarks>
+    IScript Create(string className, IReadOnlyList<Entity> entities);
+}

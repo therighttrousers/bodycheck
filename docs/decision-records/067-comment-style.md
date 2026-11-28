@@ -74,6 +74,8 @@ Tools for the experiments are in [`experiments/comment-style/`](../../experiment
 
   He took nothing else from the files as they are. This supports 2.1(a) more strongly than the markers do, and suggests that a cheaper model, working without the repository's prose, writes comments closer to what Neil wants.
 
+- [~] 2.5 Drift (Neil, 2026-11-27). The style seems to be mostly drift: each session imitates what earlier ones wrote, so a style compounds once it is common in the repository. Claude: the Isolated runs still use the general-purpose verbs far more than Godot's docs do, so drift seems to amplify a smaller trained tendency, 2.1(b), rather than to start from nothing.
+
 ## 3. Mitigations
 
 - [ ] 3.1 Options, from the issue; they can be combined:
@@ -126,8 +128,27 @@ Tools for the experiments are in [`experiments/comment-style/`](../../experiment
   - Once the style is gone, what remains is mostly accuracy and terminology. Neil's notes are about a term that differs from the code's ("pull" for "thrust", "units"), a wrong impression (that the Voice is no character, or that `ToSave` writes a file), a doc that mentions what callers don't need (the range's ends, characters that aren't entities), and a doc so short that it confuses until the code is read. These need someone who understands the code, so they are a matter for review more than for a style guideline.
   - Haiku did at least as well as Opus, so a cheap model could do the rewriting, as 3.1(e) proposes.
 
+  Neil (2026-11-27): guideline 2 may matter more than the pilots show. If training pulls a model slightly toward this style, and recursion magnifies the pull (2.5), then an instruction that pulls slightly the other way is what recursion should magnify instead. Leaning: adopt it, in some form, in `AGENTS.md`, alongside the rewrites, even though it can't outweigh the repository's prose while that prose is still in the style.
+- [~] 3.6 First real rewrite (2026-11-27): Core's `Scripts` subsystem, chosen for having the most markers per comment line of the subsystems and parts with more than a few comments. [`New-Rewrite.ps1`](../../experiments/comment-style/New-Rewrite.ps1) prepares a workspace with the C# code of Core and the game, every whole-line comment removed, and an `AGENTS.md` that contains only guideline 2. Then:
+  1. Haiku wrote the 14 files' comments in the workspace.
+  2. Opus, in the repository, checked them against the code and the old comments, and wrote [notes](../../experiments/comment-style/rewrite-scripts/review.md) on what was wrong or missing, without proposing wording. It found 50 problems. Most were facts that the old comments stated and callers need: requirements, ordering and timing, what happens on a second call, and why an interface exists. A few were wrong statements, such as calling a runner "a step", or saying that a dialogue's first entity is the speaker, which only the game's implementation assumes.
+  3. Haiku fixed every problem in the workspace, in its own words.
+  4. Claude fixed one `<see cref>` that didn't resolve, and rewrapped lines at 120 characters.
+
+  Haiku's first draft is kept beside the notes. No code changed. With doc generation turned on, the subsystem has no doc errors, against eight before. Rates per 100 comment words, for the 14 files:
+
+  | Version | Words | Words per sentence | General-purpose verbs | Stranded auxiliaries | Starts with "What" |
+  | --- | --- | --- | --- | --- | --- |
+  | Before | 1,270 | 16.1 | 1.89 | 0.71 | 0.79 |
+  | Haiku's first draft | 1,190 | 9.6 | 1.34 | 0.84 | 0.17 |
+  | After the review | 1,996 | 12.0 | 1.45 | 0.60 | 0.10 |
+
+  The comments are longer than before, because they state what callers need instead of compressing it. Some of the style remains where it comes from the API's own names, such as "holds the title" for `IDialoguePresenter.Holds` and "while any hold is held" for `IScriptWorld.HoldCutscene`. Renaming those is out of this record's scope.
+
+  Neil's review: much improved. He changed "take" to "receive" where it means receiving an argument, since "take" suggests removing from a collection, which isn't happening; changed "hold" to "contain" where it means containing; and cut "never once and kept". He also changed an error message to match, which a rewrite of comments shouldn't do, though he may do it again by hand. He isn't sure that the guideline should name the overused "keep", "hold" and "take".
+
 ## 4. Rewriting what exists
 
 - [ ] 4.1 Code comments and architecture docs: rewrite them one subsystem or part at a time, each in its own PR, once a mitigation is chosen.
 - [ ] 4.2 Design docs: as 4.1.
-- [ ] 4.3 Decision records. Their rules allow a correction that makes a record more precise, which might cover rewriting their prose, but a rewrite could change what a settled item says. To decide after the pilot shows how much what sessions read affects what they write.
+- [~] 4.3 Decision records. Their rules allow a correction that makes a record more precise, which might cover rewriting their prose, but a rewrite could change what a settled item says. Neil (2026-11-27): the pilots show that precedent carries this much weight, so the records must be reworded too, although they are agents' memories and should be protected more strongly than the code. Each reworded record says so in one sentence under its status line. Leaning (Claude): "Reworded on YYYY-MM-DD, keeping its meaning and numbering, to steer agents away from a prose style that had drifted into these records (067 §4.3)." Rewording keeps each item's number and decision, so the three protections in [the records' rules](AGENTS.md) still apply, but the rules need a line that allows it. A reviewer should check each reworded record against the original for any change of meaning.

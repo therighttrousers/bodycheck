@@ -4,12 +4,14 @@ using BodyCheck.Core.Tasks;
 namespace BodyCheck.Core.Scripts;
 
 /// <summary>
-/// What runs a sequence: on <c>Run</c>, it runs each of its steps in turn, each when the one before has finished,
-/// and finishes when the last does. Every <c>Run</c> runs the steps, alongside any run in progress.
+/// The action target that runs a <c>Sequence</c> control entity. It runs its steps in turn, each one after the one
+/// before finishes. A second <see cref="Run"/> while one is in progress starts the steps again from the first,
+/// alongside the run in progress. Compare <see cref="FanoutRunner"/>, which runs its steps together.
 /// </summary>
-/// <param name="steps">The steps, at least one.</param>
+/// <param name="steps">The steps to run, in order.</param>
 public sealed class SequenceRunner(IReadOnlyList<Call> steps) : IActionTarget
 {
+    /// <summary>Runs the steps in order. Returns the task that finishes after the last step does.</summary>
     public async TickTask Run(ITick tick)
     {
         foreach (Call step in steps)

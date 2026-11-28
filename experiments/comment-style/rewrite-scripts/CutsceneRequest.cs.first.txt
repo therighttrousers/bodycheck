@@ -1,0 +1,18 @@
+namespace BodyCheck.Core.Scripts;
+
+/// <summary>
+/// What a cutscene asks of the game while it is held. Hold a cutscene with <see cref="IScriptWorld.HoldCutscene"/>.
+/// </summary>
+/// <param name="BlackBars">Whether to show black bars at the top and bottom of the screen.</param>
+public sealed record CutsceneRequest(bool BlackBars = false)
+{
+    /// <summary>Combines this request with <paramref name="other"/>. The result asks for black bars if either request does.</summary>
+    /// <param name="other">The request to combine with this one.</param>
+    public CutsceneRequest Join(CutsceneRequest other) => new(BlackBars: BlackBars || other.BlackBars);
+
+    /// <summary>
+    /// Combines the requests into one, as <see cref="Join"/> does. Returns a request with no effects when there are none.
+    /// </summary>
+    public static CutsceneRequest JoinAll(IEnumerable<CutsceneRequest> requests) =>
+        requests.Aggregate(new CutsceneRequest(), (joined, request) => joined.Join(request));
+}

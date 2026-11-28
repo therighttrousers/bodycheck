@@ -1,0 +1,23 @@
+using BodyCheck.Core.Entities;
+using BodyCheck.Core.Tasks;
+
+namespace BodyCheck.Core.Scripts;
+
+/// <summary>Shows dialogue on screen, for a <see cref="DialogueRunner"/>.</summary>
+public interface IDialoguePresenter
+{
+    /// <summary>
+    /// Shows a dialogue from its title. Returns the task that finishes when the dialogue ends.
+    /// </summary>
+    /// <remarks>
+    /// Check the file and title with <see cref="Holds"/> before calling this.
+    /// </remarks>
+    /// <param name="tick">The tick that the dialogue waits on.</param>
+    /// <param name="file">The dialogue file.</param>
+    /// <param name="title">The title where the dialogue starts.</param>
+    /// <param name="entities">The entities in the dialogue. The first one is the speaker.</param>
+    TickTask Present(ITick tick, string file, string title, IReadOnlyList<Entity> entities);
+
+    /// <summary>Whether the dialogue file holds the title. Use this to check a dialogue before it is presented.</summary>
+    bool Holds(string file, string title);
+}

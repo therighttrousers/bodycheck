@@ -1,0 +1,25 @@
+using BodyCheck.Core.Controllers;
+using BodyCheck.Core.Entities;
+using BodyCheck.Core.Tasks;
+
+namespace BodyCheck.Core.Scripts;
+
+/// <summary>The world that a script runs in, with what a script needs from it.</summary>
+public interface IScriptWorld : IWorldView
+{
+    /// <summary>The player's controller. Set its <c>ScriptedInput</c> to move the player from a script.</summary>
+    PlayerController PlayerController { get; }
+
+    /// <summary>
+    /// Holds a cutscene until the returned object is disposed. Requests from several holds combine, so each option applies
+    /// if any hold asks for it.
+    /// </summary>
+    /// <param name="request">What the cutscene asks for. The default asks for no extra effects.</param>
+    IDisposable HoldCutscene(CutsceneRequest? request = null);
+
+    /// <summary>The world's tick, which a script waits on to pass time.</summary>
+    ITick Tick { get; }
+
+    /// <summary>The world's entities, by id.</summary>
+    IReadOnlyDictionary<string, Entity> Entities { get; }
+}
