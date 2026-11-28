@@ -129,7 +129,7 @@ Tools for the experiments are in [`experiments/comment-style/`](../../experiment
   - Haiku did at least as well as Opus, so a cheap model could do the rewriting, as 3.1(e) proposes.
 
   Neil (2026-11-27): guideline 2 may matter more than the pilots show. If training pulls a model slightly toward this style, and recursion magnifies the pull (2.5), then an instruction that pulls slightly the other way is what recursion should magnify instead. Leaning: adopt it, in some form, in `AGENTS.md`, alongside the rewrites, even though it can't outweigh the repository's prose while that prose is still in the style.
-- [~] 3.6 First real rewrite (2026-11-27): Core's `Scripts` subsystem, chosen for having the most markers per comment line of the subsystems and parts with more than a few comments. [`New-Rewrite.ps1`](../../experiments/comment-style/New-Rewrite.ps1) prepares a workspace with the C# code of Core and the game, every whole-line comment removed, and an `AGENTS.md` that contains only guideline 2. Then:
+- [~] 3.6 First real rewrite (2026-11-27): Core's `Scripts` subsystem, chosen for having the most markers per comment line of the subsystems and parts with more than a few comments. `New-Rewrite.ps1`, now in the [`rewrite-prose`](../../.agents/skills/rewrite-prose/SKILL.md) skill, prepares a workspace with the C# code of Core and the game, every whole-line comment removed, and an `AGENTS.md` that contains only guideline 2. Then:
   1. Haiku wrote the 14 files' comments in the workspace.
   2. Opus, in the repository, checked them against the code and the old comments, and wrote [notes](../../experiments/comment-style/rewrite-scripts/review.md) on what was wrong or missing, without proposing wording. It found 50 problems. Most were facts that the old comments stated and callers need: requirements, ordering and timing, what happens on a second call, and why an interface exists. A few were wrong statements, such as calling a runner "a step", or saying that a dialogue's first entity is the speaker, which only the game's implementation assumes.
   3. Haiku fixed every problem in the workspace, in its own words.
@@ -146,6 +146,13 @@ Tools for the experiments are in [`experiments/comment-style/`](../../experiment
   The comments are longer than before, because they state what callers need instead of compressing it. Some of the style remains where it comes from the API's own names, such as "holds the title" for `IDialoguePresenter.Holds` and "while any hold is held" for `IScriptWorld.HoldCutscene`. Renaming those is out of this record's scope.
 
   Neil's review: much improved. He changed "take" to "receive" where it means receiving an argument, since "take" suggests removing from a collection, which isn't happening; changed "hold" to "contain" where it means containing; and cut "never once and kept". He also changed an error message to match, which a rewrite of comments shouldn't do, though he may do it again by hand. He isn't sure that the guideline should name the overused "keep", "hold" and "take".
+- [~] 3.7 Rewriting a doc (2026-11-27): `Scripts/architecture.md`. A doc states design decisions and their reasons, which the code can't show, so its writer can't work from the code alone. Instead:
+  1. Opus extracted the old doc's facts into a list of 170, in plain sentences of its own, each with its citations.
+  2. Haiku wrote the doc in the isolated workspace, from the facts, the code with its rewritten comments, and the rules for the doc's format. Its first draft copied the facts one to a bullet, 245 lines of them, so the prompt now tells it to explain the design in short paragraphs, and how a doc for a directory with no parts is organized. The second draft read well.
+  3. Opus reviewed the draft against the old doc and the code, and found 7 problems: lost backticks on every citation, citations on the wrong facts, a lost fact, and two records, 045 and 054, that the old doc cited but didn't list. Claude added notes on two habits of the draft: the same citation on every sentence of a paragraph, and about a dozen sentences that start "The reason is that". The guideline now covers both.
+  4. Haiku fixed every problem.
+
+  The [`rewrite-prose`](../../.agents/skills/rewrite-prose/SKILL.md) skill now gives this process for docs, beside the one for comments.
 
 ## 4. Rewriting what exists
 
