@@ -1,0 +1,127 @@
+using BodyCheck.Core.Entities;
+
+namespace BodyCheck.Core.Controllers;
+
+/// <summary>
+/// How a <see cref="PatrolBehaviour"/> is tuned. Each value is a function that reads it from the features in effect
+/// when it is used, so that a change to them takes effect at once.
+/// </summary>
+public sealed record PatrolTuning
+{
+    /// <summary>The speed in the direction it walks below which the walker is slow.</summary>
+    public required Func<float> StallSpeed { get; init; }
+    /// <summary>How long, in game time, the walker must be slow to stall, and turn round.</summary>
+    public required Func<float> StallTime { get; init; }
+    /// <summary>How much heat each stall adds.</summary>
+    public required Func<float> StallHeat { get; init; }
+    /// <summary>The heat at which the walker overheats, and stands still until its heat is back to 0.</summary>
+    public required Func<float> StallMaxHeat { get; init; }
+    /// <summary>How quickly heat is shed, in heat per game-time second.</summary>
+    public required Func<float> StallCooldownRate { get; init; }
+
+    /// <summary>A robot's patrol.</summary>
+    public static PatrolTuning Robot { get; } = new()
+    {
+        StallSpeed = () => Features.Current.RobotStallSpeed,
+        StallTime = () => Features.Current.RobotStallTime,
+        StallHeat = () => Features.Current.RobotStallHeat,
+        StallMaxHeat = () => Features.Current.RobotStallMaxHeat,
+        StallCooldownRate = () => Features.Current.RobotStallCooldownRate,
+    };
+}
+
+/// <summary>What a patrol decides on a tick.</summary>
+/// <param name="Move">The way to walk: -1, 1, or 0 to stand still.</param>
+/// <param name="Facing">The way to face: -1 or 1, or 0, toward the camera.</param>
+public readonly record struct PatrolIntent(float Move, float Facing);
+
+/// <summary>
+/// Decides a walker's patrol: it walks one way until it stalls, as when something is in its way, then turns round,
+/// never walking toward a side it touches. Each stall adds heat, and one that stalls too often overheats and stands
+/// still, facing the camera, until it has cooled down, so that one that can't get anywhere doesn't turn round over and
+/// over. It patrols only while it stands on tiles. It only reads its entity: the controller acts on what it decides.
+/// See docs/designs/movement.md.
+/// </summary>
+/// <param name="entity">The walker, which patrols.</param>
+/// <param name="tuning">How the patrol is tuned.</param>
+public sealed class PatrolBehaviour(WalkerEntity entity, PatrolTuning tuning)
+{
+    // The way it walks first, when it faces neither way and touches nothing on either side.
+    private const float ArbitraryFirstMove = 1;
+
+    // The way it walks: -1, 1, or 0 while it stands still, after which it chooses a way afresh.
+    private float _move;
+    private readonly StallDetector _stall = new(new StallTuning { MinSpeed = tuning.StallSpeed, MaxTime = tuning.StallTime });
+    private readonly OverheatDetector _stallHeat = new(new OverheatTuning
+    {
+        HeatPerEvent = tuning.StallHeat,
+        MaxHeat = tuning.StallMaxHeat,
+        CooldownRate = tuning.StallCooldownRate,
+    });
+
+    /// <summary>
+    /// Decides which way to walk and face on this tick, after <paramref name="gameDt"/> more game time.
+    /// </summary>
+    /// <param name="patrols">
+    /// Whether the controller lets it patrol. If not, it stands still and keeps its facing, as the controller may set it.
+    /// </param>
+    /// <param name="facing">The way it faces now: -1 or 1, or 0, toward the camera.</param>
+    public PatrolIntent Apply(bool patrols, float facing, float gameDt)
+    {
+        // It cools down whatever it does, so that standing still for another reason also rests it.
+        _stallHeat.CoolDown(gameDt);
+
+        if (!patrols)
+        {
+            _move = 0;
+            _stall.Reset();
+            return new PatrolIntent(0, facing);
+        }
+
+        // In the air, or on anything but tiles, such as a block, a platform or another robot, it stands still, facing
+        // the camera.
+        if (!entity.OnGround || entity.Support is not null)
+        {
+            _move = 0;
+            _stall.Reset();
+            return new PatrolIntent(0, 0);
+        }
+
+        bool contactLeft = entity.Contacts.HasFlag(Contacts.Left);
+        bool contactRight = entity.Contacts.HasFlag(Contacts.Right);
+
+        // Its speed in the way it walks.
+        bool stalled = _stall.Update(entity.LinearVelocity.X * _move, gameDt);
+
+        if (stalled)
+        {
+            _stallHeat.HeatUp();
+        }
+
+        if (_stallHeat.Overheated)
+        {
+            // Stand still, facing the camera, until it has cooled down.
+            facing = _move = 0;
+            _stall.Reset();
+        }
+        else if (_move == 0)
+        {
+            // Start walking: away from a side it touches, or nowhere if it touches both; else the way it faces, or, if
+            // it faces neither way, the first way.
+            facing = _move = contactLeft ? (contactRight ? 0 : 1) : contactRight ? -1 : facing != 0 ? facing : ArbitraryFirstMove;
+            _stall.Reset();
+        }
+        else if (_move < 0 && stalled)
+        {
+            // Turn round, unless something touches it on the other side too.
+            facing = _move = contactRight ? 0 : 1;
+            _stall.Reset();
+        }
+        else if (_move > 0 && stalled)
+        {
+            facing = _move = contactLeft ? 0 : -1;
+            _stall.Reset();
+        }
+        return new PatrolIntent(_move, facing);
+    }
+}

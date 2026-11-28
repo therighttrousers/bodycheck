@@ -5,33 +5,36 @@ using BodyCheck.Core.Tasks;
 namespace BodyCheck.Core.Scripts;
 
 /// <summary>
-/// What a script can see and do in the world it runs in: what controllers see, and also the player's controller, to
-/// drive the player with input in a cutscene, holding a cutscene, and the world's tick. The simulation implements it.
-/// Like <see cref="IWorldView"/>, read it when needed, never once and kept, so that what a script sees is current.
+/// The world that a script runs in. It adds to <see cref="IWorldView"/> the player's controller, which controllers
+/// don't get, so only scripts can drive the player; holding a cutscene; the world's tick; and every entity by id. The
+/// simulation implements it. As with <see cref="IWorldView"/>, read its members each time they are needed, so that what
+/// a script sees is current.
 /// </summary>
 public interface IScriptWorld : IWorldView
 {
     /// <summary>
-    /// The player's controller, whose <see cref="PlayerController.ScriptedInput"/> the player acts on in a cutscene.
+    /// The player's controller. Set its <see cref="PlayerController.ScriptedInput"/> to move the player from a script.
+    /// The player acts on it only while a cutscene is held.
     /// </summary>
     PlayerController PlayerController { get; }
 
     /// <summary>
-    /// Asks for a cutscene, until the handle returned is disposed: the game plays one while any is held. Hold it with
-    /// <c>using</c>, so that the cutscene ends when the script does, even if it fails. The game's mode changes after
-    /// the world's tick, so controllers see the cutscene from the next tick.
+    /// Holds a cutscene until the returned object is disposed. The game plays a cutscene while any hold is held.
+    /// Controllers first see the cutscene on the next tick, since the game's mode changes after the world's tick. Hold
+    /// it in a <c>using</c> block, so the cutscene ends when the caller ends, even if it fails.
     /// </summary>
     /// <param name="request">
-    /// How the cutscene is to be presented, which the world joins with every other hold's: by default, with nothing more.
+    /// What the cutscene asks for, joined with the other holds' requests by <see cref="CutsceneRequest.Join"/>. The
+    /// default asks for no extra effects.
     /// </param>
     IDisposable HoldCutscene(CutsceneRequest? request = null);
 
-    /// <summary>The world's tick, which what the script awaits resumes on.</summary>
+    /// <summary>The world's tick, which a script waits on to pass time.</summary>
     ITick Tick { get; }
 
     /// <summary>
-    /// Every entity in the world, by id, until it is taken out at the end of the tick it is removed in, so that what
-    /// knows an entity only by id, such as dialogue, can find it.
+    /// Every entity in the world, by id. An entity that has been removed stays until the end of the tick in which it
+    /// was removed. Code that knows an entity only by its id, such as dialogue, uses this to find it.
     /// </summary>
     IReadOnlyDictionary<string, Entity> Entities { get; }
 }

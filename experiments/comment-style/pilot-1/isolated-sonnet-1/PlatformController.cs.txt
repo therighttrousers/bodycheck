@@ -1,0 +1,131 @@
+using BodyCheck.Core.Entities;
+using BodyCheck.Core.Maths;
+
+using Godot;
+
+namespace BodyCheck.Core.Controllers;
+
+/// <summary>
+/// Drives a platform back and forth between two points with thrust that is limited by its capacity, so a heavy load slows it, and it can
+/// stall and strain. It also holds the platform on its line, and applies force to cancel gravity.
+/// </summary>
+public sealed class PlatformController : IController<PlatformEntity>
+{
+    private readonly PlatformEntity _entity;
+    // The ends of the route.
+    private readonly Vector2 _rangeA;
+    private readonly Vector2 _rangeB;
+    private readonly float _length;
+    // Unit vectors along the route, from A to B, and across it.
+    private readonly Vector2 _along;
+    private readonly Vector2 _across;
+    private bool _towardB = true;
+
+    // A platform that is blocked mid-route turns around.
+    private readonly StallDetector _stall = new(new StallTuning
+    {
+        MinSpeed = () => Features.Current.PlatformStallSpeed,
+        MaxTime = () => Features.Current.PlatformStallTime,
+    });
+    // The last update's drive and motion, to work out how much of the drive went into accelerating the platform.
+    private float _lastDrive;
+    private Vector2 _lastHeading;
+    private Vector2 _lastVelocity;
+    private float _lastDt;
+
+    /// <summary>Makes a controller for <paramref name="entity"/>, which patrols the line from <paramref name="rangeA"/> to <paramref name="rangeB"/>.</summary>
+    public PlatformController(PlatformEntity entity, Vector2 rangeA, Vector2 rangeB)
+    {
+        _entity = entity;
+        _rangeA = rangeA;
+        _rangeB = rangeB;
+        _length = rangeA.DistanceTo(rangeB);
+        _along = (rangeB - rangeA) / _length;
+        _across = _along.Orthogonal();
+    }
+
+    public PlatformEntity Entity => _entity;
+
+    public void Apply(float gameDt, float realDt, IDefer defer)
+    {
+        Features features = Features.Current;
+        // Platforms move in the plane only.
+        var position = new Vector2(_entity.Position.X, _entity.Position.Y);
+        var velocity = new Vector2(_entity.LinearVelocity.X, _entity.LinearVelocity.Y);
+
+        float fraction = (position - _rangeA).Dot(_along) / _length;
+        float turnFraction = features.PlatformTurnDistance / _length;
+        // Turn a little before the end, so it doesn't have to stop dead there.
+        bool atEnd = _towardB ? fraction >= 1 - turnFraction : fraction <= turnFraction;
+
+        // A platform blocked near an end is just arriving, not stalled.
+        bool between = fraction > turnFraction && fraction < 1 - turnFraction;
+        bool stalled = _stall.Update(velocity.Dot(_towardB ? _along : -_along), gameDt);
+
+        if (atEnd || (stalled && between))
+        {
+            _towardB = !_towardB;
+            _stall.Reset();
+        }
+
+        // The thrust available is a fraction of the platform's weight, and the fraction is the same however loaded it is, so a
+        // load makes it heavier but no stronger. The platform's weight is used rather than its scaled mass.
+        float unscaledWeight = _entity.Mass * Constants.Gravity;
+
+        float maxThrustFrac = features.PlatformCapacityPerTile / features.PlatformMassPerTile;
+
+        // Aim for a speed that lets it brake to a stop at the end, using only a fraction of its thrust to do so, capped at top speed.
+        Vector2 heading = _towardB ? _along : -_along;
+        float distanceLeft = ((_towardB ? _rangeB : _rangeA) - position).Dot(heading);
+        float braking = features.PlatformBrakeFrac * maxThrustFrac * Constants.Gravity;
+        float targetSpeed = MathF.Min(
+            features.PlatformTopSpeed,
+            MathF.Sqrt(2 * braking * MathF.Max(0, distanceLeft + features.PlatformTurnDistance)));
+        // The gain makes drive a proportional controller on speed.
+        float maxThrust = maxThrustFrac * unscaledWeight;
+        float drive = Math.Clamp(
+            _entity.Mass * features.PlatformDriveGain * (targetSpeed - velocity.Dot(heading)), -maxThrust, maxThrust);
+
+        // Hold the platform on its route's line with a spring, so a load's weight or a push doesn't drift it off.
+        float hold = Math.Clamp(
+            Spring.CriticallyDampedForce(
+                position.Dot(_across),
+                velocity.Dot(_across),
+                goal: _rangeA.Dot(_across),
+                features.PlatformSmoothTime,
+                _entity.Mass),
+            -maxThrust,
+            maxThrust);
+
+        // Gravity is cancelled out so the platform floats, and only the thrust moves it.
+        Vector2 thrust = drive * heading + hold * _across;
+        _entity.ApplyCentralForce(new Vector3(thrust.X, thrust.Y, 0) - _entity.Mass * _entity.GetGravity());
+
+        // Strain is how much of its thrust it is using, smoothed so it doesn't flicker. Drive that was only spent fighting
+        // something, not accelerating, counts, and so does holding to the line.
+        float strain = MathF.Min(1, MathF.Max(MathF.Abs(hold), DriveFought(velocity)) / maxThrust);
+        _entity.Strain = Smoothing.Exponential(_entity.Strain, strain, features.PlatformStrainTime, gameDt);
+        _lastDrive = drive;
+        _lastHeading = heading;
+        _lastVelocity = velocity;
+        _lastDt = gameDt;
+
+        // The player only cares about a platform they're riding.
+        if (_entity.Above.Any(e => e is PlayerEntity))
+        {
+            Telemetry.Report(Metric.PlatformStrain, _entity.Strain);
+        }
+    }
+
+    /// <summary>How much of the last drive didn't accelerate the platform, and so was spent against its load or an obstacle.</summary>
+    private float DriveFought(Vector2 velocity)
+    {
+        if (_lastDt == 0)
+        {
+            return 0;
+        }
+        // Drive beyond what the measured acceleration accounts for (force = mass * acceleration) was fought off.
+        float acceleration = (velocity - _lastVelocity).Dot(_lastHeading) / _lastDt;
+        return MathF.Max(0, _lastDrive - _entity.Mass * acceleration);
+    }
+}

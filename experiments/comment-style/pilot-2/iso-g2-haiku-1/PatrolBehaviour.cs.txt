@@ -1,0 +1,134 @@
+using BodyCheck.Core.Entities;
+
+namespace BodyCheck.Core.Controllers;
+
+/// <summary>
+/// The thresholds a <see cref="PatrolBehaviour"/> uses to detect a stall and to overheat from stalling. Supply
+/// functions that read the current features, so the behaviour always uses up-to-date values.
+/// </summary>
+public sealed record PatrolTuning
+{
+    /// <summary>The speed below which a walker counts as too slow while patrolling.</summary>
+    public required Func<float> StallSpeed { get; init; }
+
+    /// <summary>How long, in game seconds, a walker must stay too slow to count as stalled. Should be positive.</summary>
+    public required Func<float> StallTime { get; init; }
+
+    /// <summary>The heat added each time the walker stalls.</summary>
+    public required Func<float> StallHeat { get; init; }
+
+    /// <summary>The heat at which the walker overheats and stops patrolling. Should be positive.</summary>
+    public required Func<float> StallMaxHeat { get; init; }
+
+    /// <summary>How fast the heat drains, per game second, when the walker is not stalling.</summary>
+    public required Func<float> StallCooldownRate { get; init; }
+
+    /// <summary>The tuning for robot walkers, read from the current features.</summary>
+    public static PatrolTuning Robot { get; } = new()
+    {
+        StallSpeed = () => Features.Current.RobotStallSpeed,
+        StallTime = () => Features.Current.RobotStallTime,
+        StallHeat = () => Features.Current.RobotStallHeat,
+        StallMaxHeat = () => Features.Current.RobotStallMaxHeat,
+        StallCooldownRate = () => Features.Current.RobotStallCooldownRate,
+    };
+}
+
+/// <summary>
+/// What a patrolling walker wants to do this step. <c>Move</c> is the direction to walk: 1 for right, -1 for left,
+/// and 0 to stand still. <c>Facing</c> is the direction the walker faces, in the same units.
+/// </summary>
+public readonly record struct PatrolIntent(float Move, float Facing);
+
+/// <summary>
+/// Decides which way a walker patrols. It turns back at walls and when it stalls against something, and it stops
+/// patrolling for a while if it keeps stalling and overheats.
+/// </summary>
+/// <remarks>
+/// Call <see cref="Apply"/> once per physics step, and use the returned intent to drive the walker.
+/// </remarks>
+public sealed class PatrolBehaviour(WalkerEntity entity, PatrolTuning tuning)
+{
+    // The direction to start in when the walker has no facing and no wall to turn away from: right.
+    private const float ArbitraryFirstMove = 1;
+
+    private float _move;
+
+    // Stall detection is reset whenever the walker changes direction, so each direction starts its own count.
+    private readonly StallDetector _stall = new(new StallTuning { MinSpeed = tuning.StallSpeed, MaxTime = tuning.StallTime });
+    private readonly OverheatDetector _stallHeat = new(new OverheatTuning
+    {
+        HeatPerEvent = tuning.StallHeat,
+        MaxHeat = tuning.StallMaxHeat,
+        CooldownRate = tuning.StallCooldownRate,
+    });
+
+    /// <summary>
+    /// Works out the walker's intent for this step. Supply whether the walker should patrol, its current facing, and
+    /// the step's length in game time. Call this once per step.
+    /// </summary>
+    /// <param name="patrols">Whether the walker should patrol. When false, it stands still and keeps its facing.</param>
+    /// <param name="facing">The walker's current facing.</param>
+    /// <param name="gameDt">The step's length in game time.</param>
+    /// <returns>
+    /// The walker's intent. Its facing is 0 while it is in the air or on another body.
+    /// </returns>
+    public PatrolIntent Apply(bool patrols, float facing, float gameDt)
+    {
+        // Cool down first, even when not patrolling, so the heat still drains while the walker is idle.
+        _stallHeat.CoolDown(gameDt);
+
+        if (!patrols)
+        {
+            _move = 0;
+            _stall.Reset();
+            return new PatrolIntent(0, facing);
+        }
+
+        if (!entity.OnGround || entity.Support is not null)
+        {
+            _move = 0;
+            _stall.Reset();
+            return new PatrolIntent(0, 0);
+        }
+
+        bool contactLeft = entity.Contacts.HasFlag(Contacts.Left);
+        bool contactRight = entity.Contacts.HasFlag(Contacts.Right);
+
+        // Stalled means the walker is moving too slowly in its intended direction. The velocity is multiplied by the
+        // move so it is negative when the walker moves against its intent.
+        bool stalled = _stall.Update(entity.LinearVelocity.X * _move, gameDt);
+
+        if (stalled)
+        {
+            _stallHeat.HeatUp();
+        }
+
+        // Heat is added before this check, so the stall that overheats the walker stops it in the same step.
+        if (_stallHeat.Overheated)
+        {
+            facing = _move = 0;
+            _stall.Reset();
+        }
+        else if (_move == 0)
+        {
+            // Not moving yet: move away from a wall that touches the walker. With walls on both sides, stay still.
+            // Without a wall, keep the current facing, or start right if there is none.
+            facing = _move = contactLeft ? (contactRight ? 0 : 1) : contactRight ? -1 : facing != 0 ? facing : ArbitraryFirstMove;
+            _stall.Reset();
+        }
+        else if (_move < 0 && stalled)
+        {
+            // Stalled while moving left: turn right, unless there is also a wall on the right.
+            facing = _move = contactRight ? 0 : 1;
+            _stall.Reset();
+        }
+        else if (_move > 0 && stalled)
+        {
+            // Stalled while moving right: turn left, unless there is also a wall on the left.
+            facing = _move = contactLeft ? 0 : -1;
+            _stall.Reset();
+        }
+        return new PatrolIntent(_move, facing);
+    }
+}

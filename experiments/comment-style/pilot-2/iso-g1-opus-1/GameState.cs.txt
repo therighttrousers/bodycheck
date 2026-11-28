@@ -1,0 +1,235 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+using BodyCheck.Core;
+using BodyCheck.Core.Entities;
+using BodyCheck.Core.WorldData;
+
+using Godot;
+
+namespace BodyCheck.State;
+
+/// <summary>
+/// The state of one playthrough: the story, the player, and every entity that a loaded world has contained.
+/// </summary>
+/// <remarks>
+/// An entity's state exists from the first time a world containing the entity is passed to <see cref="Fill"/>, and
+/// lasts for the rest of the playthrough. A save contains the saved data of every entity, including those in worlds
+/// not loaded since the save was read.
+/// </remarks>
+public sealed partial class GameState : RefCounted, IGameState
+{
+    // Every entity's state, by ID, including the player's.
+    private readonly Dictionary<string, EntityState> _entities = [];
+
+    // The entities that have a name, by name. The player is in it under its untranslated name, which no other entity
+    // may take.
+    private readonly Dictionary<string, EntityState> _entitiesByName = [];
+
+    // The ID of the entity at which the player respawns, by world name.
+    private readonly Dictionary<string, string> _respawnIds = [];
+
+    // The saved data of entities that no world filled since the save was read. Fill moves each into its entity's state,
+    // and ToSave writes the rest back, so loading a save and saving again doesn't lose them.
+    private readonly Dictionary<string, EntityData> _saved = [];
+
+    /// <summary>Creates the state of a new game, started now, with no world filled.</summary>
+    public GameState() : this(DateTimeOffset.Now, story: null, player: null) { }
+
+    /// <summary>Creates the state of a new game, started now, filled from <paramref name="world"/>.</summary>
+    public GameState(World world) : this() => Fill(world);
+
+    /// <summary>
+    /// Creates the state of a game continued from <paramref name="save"/>, with no world filled.
+    /// </summary>
+    /// <remarks>
+    /// Entities other than the player take their saved data when <see cref="Fill"/> first meets them.
+    /// </remarks>
+    public GameState(SaveData save)
+        : this(save.Started, save.Story, save.Entities.GetValueOrDefault(Constants.PlayerId) as PlayerData)
+    {
+        WorldName = save.WorldName;
+        foreach ((string worldName, string respawnId) in save.RespawnIds)
+        {
+            _respawnIds[worldName] = respawnId;
+        }
+        foreach ((string id, EntityData data) in save.Entities)
+        {
+            if (id != Constants.PlayerId)
+            {
+                _saved[id] = data;
+            }
+        }
+    }
+
+    private GameState(DateTimeOffset started, StoryState? story, PlayerData? player)
+    {
+        Started = started;
+        Story = story ?? new();
+        Player = new PlayerState(Constants.PlayerId, PlayerKindName, player ?? new());
+        _entities[Player.Id] = Player;
+        _entitiesByName[Player.UntranslatedName] = Player;
+    }
+
+    /// <summary>The time at which this playthrough started, which saves preserve.</summary>
+    public DateTimeOffset Started { get; }
+
+    /// <summary>
+    /// Creates a save of this state, marked as saved at <paramref name="saved"/>.
+    /// </summary>
+    public SaveData ToSave(DateTimeOffset saved)
+    {
+        // Saved data not yet filled comes first, so that a live entity's state replaces it.
+        var entities = new Dictionary<string, EntityData>(_saved);
+        foreach (EntityState entity in _entities.Values)
+        {
+            // An entity with nothing worth saving has no saved data, and the save omits it.
+            if (entity.Saved is EntityData data)
+            {
+                entities[entity.Id] = data;
+            }
+        }
+        return new SaveData
+        {
+            Version = SaveData.CurrentVersion,
+            Started = Started,
+            Saved = saved,
+            WorldName = WorldName,
+            Story = Story,
+            RespawnIds = new Dictionary<string, string>(_respawnIds),
+            Entities = entities,
+        };
+    }
+
+    /// <summary>
+    /// Adds a state for each entity in <paramref name="world"/> that has none yet, and updates every entity's name
+    /// from the world.
+    /// </summary>
+    /// <remarks>
+    /// Call it whenever a world is loaded, before anything reads its entities' states. A new entity's state starts
+    /// from its saved data when the save contains some, and otherwise from its configuration. An existing state keeps
+    /// its data, so a world loaded again resumes where it was left. Throws <see cref="ArgumentException"/> when an
+    /// entity's name is the player's.
+    /// </remarks>
+    public void Fill(World world)
+    {
+        foreach (EntityConfig config in world.Bodies.Concat(world.Controls))
+        {
+            if (!_entities.TryGetValue(config.Id, out EntityState? entity))
+            {
+                var kindName = KindName(config.Kind);
+                _saved.Remove(config.Id, out EntityData? saved);
+                entity = config switch
+                {
+                    EntityConfig.VerticalDoor => new DoorState(config.Id, kindName, saved as DoorData ?? new()),
+                    EntityConfig.Trigger trigger =>
+                        new SwitchState(config.Id, kindName, saved as SwitchData ?? new() { IsOn = trigger.StartsOn }),
+                    EntityConfig.Once => new SwitchState(config.Id, kindName, saved as SwitchData ?? new() { IsOn = true }),
+                    _ => new EntityState(config.Id, kindName),
+                };
+                _entities[config.Id] = entity;
+            }
+            // An existing state is renamed too, so a name changed in the world data takes effect.
+            Rename(entity, config.Name);
+        }
+    }
+
+    // Gives the entity the name, or no name when it is null, and updates the index of entities by name. When names
+    // change in the world data, another entity can take this entity's old name before this entity is renamed, so the
+    // old name is removed from the index only while it still refers to this entity.
+    private void Rename(EntityState entity, string? name)
+    {
+        if (entity.GivenName is string old && _entitiesByName.GetValueOrDefault(old) == entity)
+        {
+            _entitiesByName.Remove(old);
+        }
+        if (name is not null && _entitiesByName.GetValueOrDefault(name) == Player)
+        {
+            throw new ArgumentException($"Entity {entity.Id} is named '{name}', as the player is.", nameof(name));
+        }
+        entity.GivenName = name;
+        if (name is not null)
+        {
+            _entitiesByName[name] = entity;
+        }
+    }
+
+    /// <summary>
+    /// The name of the world that the player is in, or null before the game has entered one.
+    /// </summary>
+    public string? WorldName { get; set; }
+
+    /// <summary>The state of the story, which dialogue reads and changes.</summary>
+    public StoryState Story { get; }
+
+    /// <summary>
+    /// The ID of the entity at which the player respawns in the world named <paramref name="worldName"/>, or null
+    /// when no respawn point in that world has been set.
+    /// </summary>
+    public string? GetRespawnId(string worldName) => _respawnIds.GetValueOrDefault(worldName);
+
+    /// <summary>
+    /// Sets the entity at which the player respawns in the world named <paramref name="worldName"/>.
+    /// </summary>
+    public void SetRespawnId(string worldName, string respawnId) => _respawnIds[worldName] = respawnId;
+
+    private static readonly string PlayerKindName = Translatable.Mark("B-CON", KindContext);
+
+    // An entity kind's untranslated name. A kind without a translatable name uses its enum identifier.
+    private static string KindName(EntityKind kind) => kind switch
+    {
+        EntityKind.VerticalDoor => Translatable.Mark("Door", KindContext),
+        _ => kind.ToString(),
+    };
+
+    // The translation contexts of kind names and of entities' given names. A word can need different translations
+    // as a kind and as a name, so the two are separate.
+    internal const string KindContext = "kind";
+
+    internal const string NameContext = "entity name";
+
+    private static T CastEntity<T>(object entity, string id) => entity switch
+    {
+        T value => value,
+        var value => throw new InvalidOperationException($"Entity {id} is a {value.GetType().Name}, not a {typeof(T).Name}."),
+    };
+
+    /// <summary>The player's state, which exists from the start, before any world is filled.</summary>
+    public PlayerState Player { get; }
+
+    /// <summary>
+    /// The speaker of dialogue that no entity speaks, such as a narrator. It isn't an entity and isn't saved.
+    /// </summary>
+    public CharacterState Voice { get; } = new(Translatable.Mark("Voice", KindContext));
+
+    /// <summary>
+    /// The state of the entity with ID <paramref name="id"/>. Throws <see cref="KeyNotFoundException"/> when no filled
+    /// world has contained the entity.
+    /// </summary>
+    public EntityState GetEntity(string id) => _entities[id];
+
+    /// <summary>
+    /// The state of the entity with ID <paramref name="id"/>, as a <typeparamref name="T"/>. Throws
+    /// <see cref="InvalidOperationException"/> when the state is of another type.
+    /// </summary>
+    public T GetEntity<T>(string id) where T : EntityState => CastEntity<T>(GetEntity(id), id);
+
+    /// <summary>
+    /// The state of the entity whose untranslated name is <paramref name="name"/>. Throws
+    /// <see cref="KeyNotFoundException"/> when no filled entity has the name.
+    /// </summary>
+    public EntityState GetEntityNamed(string name) => _entitiesByName[name];
+
+    /// <summary>
+    /// The character whose displayed name is <paramref name="name"/>, or null when there is none. Dialogue uses it to
+    /// find a line's speaker.
+    /// </summary>
+    public CharacterState? GetSpeaker(string name) =>
+        Voice.Name == name ? Voice : _entities.Values.FirstOrDefault(entity => entity.Name == name);
+
+    // IGameState is Core's view of this state, which Core can use without depending on the game.
+    IGameState.IPlayerState IGameState.Player => Player;
+
+    T IGameState.GetEntity<T>(string id) => CastEntity<T>(_entities[id], id);
+}

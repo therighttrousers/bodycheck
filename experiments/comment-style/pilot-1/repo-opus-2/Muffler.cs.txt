@@ -1,0 +1,77 @@
+using BodyCheck.Core;
+
+using Godot;
+
+namespace BodyCheck.Modes;
+
+/// <summary>
+/// Muffles every sound to suit the game's mode, with the low-pass filter on the master bus, which the bus layout leaves
+/// off. Each frame, it sets the filter's cutoff from the mode: open while playing and in a cutscene; falling with the
+/// slowdown factor while slowing for a phase, most of the way early on; and closed while paused for any reason, at the
+/// cutoff the layout gives the filter. It interpolates the cutoff in octaves, so that the fall sounds even.
+/// </summary>
+public partial class Muffler : Node
+{
+    /// <summary>The cutoff, in Hz, at which the filter muffles nothing that can be heard.</summary>
+    private const float OpenCutoff = 20500;
+
+    /// <summary>
+    /// The power the slowdown's progress is raised to, to give how muffled sound is. Below 1, so that most of the
+    /// muffling comes early in the slowdown, which falls in a straight line.
+    /// </summary>
+    private const float SlowdownCurve = 0.5f;
+
+    /// <summary>The index of the master bus, which every sound reaches.</summary>
+    private const int MasterBus = 0;
+
+    private readonly GameModeManager _gameModeManager;
+
+    // The master bus's low-pass filter and its index there, or null if it has none; and its cutoff in the layout, which
+    // is its cutoff when closed.
+    private AudioEffectLowPassFilter? _filter;
+    private int _filterIndex;
+    private float _closedCutoff;
+
+    /// <param name="gameModeManager">What holds the game's mode, which the muffling follows.</param>
+    public Muffler(GameModeManager gameModeManager)
+    {
+        _gameModeManager = gameModeManager;
+    }
+
+    public override void _Ready()
+    {
+        // Muffle while the tree is paused, too, which is when sound is most muffled.
+        ProcessMode = ProcessModeEnum.Always;
+        for (int i = 0; i < AudioServer.GetBusEffectCount(MasterBus); i++)
+        {
+            if (AudioServer.GetBusEffect(MasterBus, i) is AudioEffectLowPassFilter filter)
+            {
+                _filter = filter;
+                _filterIndex = i;
+                _closedCutoff = filter.CutoffHz;
+                return;
+            }
+        }
+        GD.PushWarning("The master bus has no low-pass filter, so sound won't be muffled.");
+    }
+
+    public override void _Process(double delta)
+    {
+        if (_filter is null)
+        {
+            return;
+        }
+
+        // How muffled sound is, from 0, not at all, to 1, closed.
+        float muffling = _gameModeManager.GameMode switch
+        {
+            GameMode.Playing or GameMode.Cutscene => 0,
+            GameMode.SlowingForPhase => Mathf.Pow((float)Mathf.Clamp(
+                (1 - _gameModeManager.SlowdownFactor) / (1 - GameModeState.SlowestSlowdownFactor), 0, 1), SlowdownCurve),
+            _ => 1,
+        };
+        // Bypass the filter while it is open, so that it doesn't colour the sound at all.
+        AudioServer.SetBusEffectEnabled(MasterBus, _filterIndex, muffling > 0);
+        _filter.CutoffHz = OpenCutoff * Mathf.Pow(_closedCutoff / OpenCutoff, muffling);
+    }
+}

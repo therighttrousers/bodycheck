@@ -1,0 +1,73 @@
+namespace BodyCheck.Core.Tasks;
+
+/// <summary>
+/// Every <see cref="ITick"/>: a scheduler's tick, which makes its waits on the scheduler with its condition, so that
+/// the scheduler cancels them once the condition no longer holds. The scheduler's own tick has none, and lasts until
+/// the scheduler stops. Everything else it does is built on its waits, so every tick of a scheduler is one scheduler
+/// to its tasks, and a chain can await tasks of any of them.
+/// </summary>
+/// <param name="scheduler">The scheduler the waits are made on.</param>
+/// <param name="condition">What the tick's scope lasts while, or null if it has no scope.</param>
+internal sealed class ScopedTick(TickScheduler scheduler, Func<bool>? condition) : ITick
+{
+    public TickTask NextTick() => Wait(0);
+
+    public TickTask Wait(float seconds) => scheduler.Wait(seconds, condition);
+
+    // The outer condition first, so that it can guard the inner one, such as one that reads an entity only while it is
+    // there.
+    public ITick Scoped(Func<bool> inner) =>
+        new ScopedTick(scheduler, condition is null ? inner : () => condition() && inner());
+
+    public async TickTask While(Func<bool> condition)
+    {
+        while (condition())
+        {
+            await NextTick();
+        }
+    }
+
+    public async TickTask While(Func<bool> condition, Action body)
+    {
+        while (condition())
+        {
+            body();
+            await NextTick();
+        }
+    }
+
+    public async TickTask While(Func<bool> condition, Func<TickTask> body)
+    {
+        while (condition())
+        {
+            double time = Time;
+            await body();
+            // A body that let no time pass, such as one that finished at once, would otherwise spin within the run.
+            if (Time == time)
+            {
+                await NextTick();
+            }
+        }
+    }
+
+    public async TickTask UntilCompleted(Task task)
+    {
+        await While(() => !task.IsCompleted);
+        // Throws the task's exception if it failed, or an OperationCanceledException if it was cancelled.
+        task.GetAwaiter().GetResult();
+    }
+
+    public async TickTask All(IEnumerable<TickTask> tasks)
+    {
+        // Enumerate them all before awaiting any, so that a sequence that starts them as it goes starts them all now.
+        List<TickTask> taskList = [.. tasks];
+        foreach (var task in taskList)
+        {
+            await task;
+        }
+    }
+
+    public float Dt => scheduler.Dt;
+
+    public double Time => scheduler.Time;
+}

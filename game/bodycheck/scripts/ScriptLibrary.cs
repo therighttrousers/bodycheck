@@ -21,7 +21,7 @@ public sealed class ScriptLibrary : IScriptLibrary
     {
         Type type = Find(className) ?? throw new ArgumentException($"{className} isn't a script.", nameof(className));
         var constructor = ScriptArguments.Constructor(type, [.. entities.Select(entity => entity.GetType())])
-            ?? throw new ArgumentException($"{className} doesn't take these entities.", nameof(entities));
+            ?? throw new ArgumentException($"{className} can't receive these entities.", nameof(entities));
         return (IScript)constructor.Invoke(ScriptArguments.For(constructor, entities));
     }
 

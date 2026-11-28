@@ -4,28 +4,34 @@ using BodyCheck.Core.Tasks;
 namespace BodyCheck.Core.Scripts;
 
 /// <summary>
-/// What presents dialogue, which the game implements, so that Core knows nothing of the dialogue backend or how the
-/// game shows it.
+/// Shows dialogue on screen. The game implements it, so that Core knows nothing of the dialogue backend or of how the
+/// game shows dialogue. A <see cref="DialogueRunner"/> presents through it, and the world calls <see cref="Holds"/> on
+/// it when the world is built, to check every dialogue in the world.
 /// </summary>
 public interface IDialoguePresenter
 {
     /// <summary>
-    /// Presents the title <paramref name="title"/> of the dialogue file <paramref name="file"/>, after any dialogue
-    /// already presented or waiting. It plays no cutscene of its own: what presents it holds one, if it wants one. The
-    /// task finishes when the dialogue ends, and what waits for it resumes in the world's next tick.
+    /// Shows a dialogue from its title. Returns the task that finishes when the dialogue ends. Dialogue is presented
+    /// after any dialogue already being presented or waiting, in the order of the calls. The presenter holds no
+    /// cutscene of its own: a caller that wants one holds it, as <see cref="DialogueRunner"/> does. Code awaiting the
+    /// task resumes in the world's next tick after the dialogue ends.
     /// </summary>
-    /// <param name="tick">The tick that what waits for the dialogue resumes on.</param>
-    /// <param name="file">The dialogue file, by its name, without a directory or an extension.</param>
+    /// <remarks>
+    /// Check the file and title with <see cref="Holds"/> before calling this.
+    /// </remarks>
+    /// <param name="tick">The tick that the dialogue waits on, and that its actions on the entities run on.</param>
+    /// <param name="file">The dialogue file's name, with no directory and no extension, as <see cref="Holds"/> receives
+    /// it.</param>
+    /// <param name="title">The title where the dialogue starts.</param>
     /// <param name="entities">
-    /// The entities the dialogue is about, which it can name, and ask for actions through their controllers, which run
-    /// on <paramref name="tick"/>.
+    /// The entities that the dialogue is about. The dialogue file chooses who speaks each line, and the dialogue can
+    /// ask these entities for actions through their controllers.
     /// </param>
     TickTask Present(ITick tick, string file, string title, IReadOnlyList<Entity> entities);
 
     /// <summary>
-    /// Whether the dialogue file <paramref name="file"/> exists and holds the title <paramref name="title"/>, so that
-    /// a world can check its dialogues when it is built, not when they are presented.
+    /// Whether the dialogue file contains the title. The world calls this when it is built, so a wrong file or title
+    /// fails then, not when the dialogue is presented.
     /// </summary>
-    /// <param name="file">The dialogue file, by its name, as <see cref="Present"/> takes it.</param>
     bool Holds(string file, string title);
 }

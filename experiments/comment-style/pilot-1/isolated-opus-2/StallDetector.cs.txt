@@ -1,0 +1,39 @@
+namespace BodyCheck.Core.Controllers;
+
+/// <summary>
+/// Tuning for a <see cref="StallDetector"/>. Each value is a function, read whenever it's needed, so a change to the
+/// features takes effect at once.
+/// </summary>
+public sealed record StallTuning
+{
+    /// <summary>The speed below which something trying to move counts as slow.</summary>
+    public required Func<float> MinSpeed { get; init; }
+    /// <summary>How long, in game seconds, something must stay slow to count as stalled.</summary>
+    public required Func<float> MaxTime { get; init; }
+}
+
+/// <summary>
+/// Detects that something trying to move has stalled: that it has gone slower than a minimum speed, in the direction
+/// it's trying to go, for long enough, such as when it's pushing against a wall.
+/// </summary>
+internal sealed class StallDetector(StallTuning tuning)
+{
+    // How long it has been slow without a break.
+    private float _slowTime;
+
+    /// <summary>Forgets how long it has been slow, such as when it starts moving in a new direction.</summary>
+    public void Reset() => _slowTime = 0;
+
+    /// <summary>Times how long it has been slow, and returns whether it has stalled.</summary>
+    /// <param name="speed">
+    /// The speed in the direction it's trying to go, which is negative when it's going the other way.
+    /// </param>
+    /// <param name="gameDt">The game time since the last update.</param>
+    /// <returns>Whether it has been slow for at least the tuning's maximum time.</returns>
+    public bool Update(float speed, float gameDt)
+    {
+        // Any moment at speed starts the timing again: only an unbroken run of slowness is a stall.
+        _slowTime = speed < tuning.MinSpeed() ? _slowTime + gameDt : 0;
+        return _slowTime >= tuning.MaxTime();
+    }
+}

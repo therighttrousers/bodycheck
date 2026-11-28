@@ -1,0 +1,16 @@
+using BodyCheck.Core.Tasks;
+
+namespace BodyCheck.Core.Scripts;
+
+/// <summary>
+/// A script that runs game logic over several ticks, such as a cutscene. A <see cref="IScriptLibrary"/> makes a new
+/// script for each run.
+/// </summary>
+public interface IScript
+{
+    /// <summary>Runs the script in the world. Returns the task that finishes when the script does.</summary>
+    /// <remarks>
+    /// Hold any cutscene in a <c>using</c> block, so the hold is released however the script ends.
+    /// </remarks>
+    TickTask Run(IScriptWorld world);
+}

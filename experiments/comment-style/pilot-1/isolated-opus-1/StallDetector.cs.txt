@@ -1,0 +1,41 @@
+namespace BodyCheck.Core.Controllers;
+
+/// <summary>
+/// Tuning for a <see cref="StallDetector"/>. Each value is a function, read every update, so that it can follow
+/// tuning that changes while the game runs.
+/// </summary>
+public sealed record StallTuning
+{
+    /// <summary>The speed, in the intended direction, below which a body counts as slow.</summary>
+    public required Func<float> MinSpeed { get; init; }
+
+    /// <summary>How long, in game seconds, a body must stay slow to count as stalled.</summary>
+    public required Func<float> MaxTime { get; init; }
+}
+
+/// <summary>
+/// Tells when something that is trying to move has been too slow for too long, such as when it is pushing against
+/// something it can't move.
+/// </summary>
+internal sealed class StallDetector(StallTuning tuning)
+{
+    private float _slowTime;
+
+    /// <summary>Forgets how long the body has been slow, such as after it changes direction.</summary>
+    public void Reset() => _slowTime = 0;
+
+    /// <summary>
+    /// Advances the detector by one step.
+    /// </summary>
+    /// <param name="speed">
+    /// The body's speed in the direction it is trying to move: negative when it is moving the other way.
+    /// </param>
+    /// <param name="gameDt">The step's length in game time.</param>
+    /// <returns>Whether the body has been slower than the minimum speed for at least the maximum time.</returns>
+    public bool Update(float speed, float gameDt)
+    {
+        // Any step at speed starts the count again: only an unbroken run of slow steps is a stall.
+        _slowTime = speed < tuning.MinSpeed() ? _slowTime + gameDt : 0;
+        return _slowTime >= tuning.MaxTime();
+    }
+}

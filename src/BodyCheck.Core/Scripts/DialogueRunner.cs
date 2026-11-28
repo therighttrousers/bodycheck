@@ -4,15 +4,22 @@ using BodyCheck.Core.Tasks;
 namespace BodyCheck.Core.Scripts;
 
 /// <summary>
-/// What runs a dialogue: on <c>Present</c>, it presents the title <paramref name="title"/> of the dialogue file
-/// <paramref name="file"/>, about <paramref name="entities"/>, holding a cutscene in <paramref name="world"/> while it
-/// does, as a script would, and finishes when the dialogue ends. Every <c>Present</c> presents it, after any dialogue
-/// already waiting.
+/// The action target that runs a <c>Dialogue</c> control entity. It presents a title from a dialogue file, and holds a
+/// cutscene until the dialogue ends.
 /// </summary>
+/// <param name="presenter">The presenter that shows the dialogue.</param>
+/// <param name="world">The world whose cutscene holds while the dialogue is shown.</param>
+/// <param name="file">The dialogue file. It must contain <paramref name="title"/>.</param>
+/// <param name="title">The title where the dialogue starts.</param>
+/// <param name="entities">The entities that the dialogue is about, passed on unchanged.</param>
 public sealed class DialogueRunner(
     IDialoguePresenter presenter, IScriptWorld world, string file, string title, IReadOnlyList<Entity> entities)
     : IActionTarget
 {
+    /// <summary>
+    /// Presents the dialogue. Returns the task that finishes when the dialogue ends. Each call presents the dialogue
+    /// again, queued after any dialogue that is already being presented or waiting. Calls are not joined.
+    /// </summary>
     public async TickTask Present(ITick tick)
     {
         using IDisposable cutscene = world.HoldCutscene();

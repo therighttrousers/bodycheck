@@ -1,0 +1,80 @@
+namespace BodyCheck.Core.Tasks;
+
+/// <summary>
+/// An <see cref="ITick"/> whose waits all belong to a scope: a condition that must hold for the task to go on.
+/// When the condition stops holding, the scheduler ends whatever is waiting rather than resuming it.
+/// </summary>
+/// <param name="scheduler">The scheduler that resumes waiting tasks.</param>
+/// <param name="condition">The scope's condition, or <see langword="null"/> for no scope, which always holds.</param>
+internal sealed class ScopedTick(TickScheduler scheduler, Func<bool>? condition) : ITick
+{
+    /// <inheritdoc/>
+    public TickTask NextTick() => Wait(0);
+
+    /// <inheritdoc/>
+    public TickTask Wait(float seconds) => scheduler.Wait(seconds, condition);
+
+    /// <inheritdoc/>
+    /// <remarks>An inner scope holds only while this one does too.</remarks>
+    public ITick Scoped(Func<bool> inner) =>
+        new ScopedTick(scheduler, condition is null ? inner : () => condition() && inner());
+
+    /// <inheritdoc/>
+    public async TickTask While(Func<bool> condition)
+    {
+        while (condition())
+        {
+            await NextTick();
+        }
+    }
+
+    /// <inheritdoc/>
+    public async TickTask While(Func<bool> condition, Action body)
+    {
+        while (condition())
+        {
+            body();
+            await NextTick();
+        }
+    }
+
+    /// <inheritdoc/>
+    public async TickTask While(Func<bool> condition, Func<TickTask> body)
+    {
+        while (condition())
+        {
+            double time = Time;
+            await body();
+            // A body that finished without waiting would loop forever within one tick, so wait for the next.
+            if (Time == time)
+            {
+                await NextTick();
+            }
+        }
+    }
+
+    /// <inheritdoc/>
+    public async TickTask UntilCompleted(Task task)
+    {
+        await While(() => !task.IsCompleted);
+        // Rethrow the task's exception, if it has one, without wrapping it in an AggregateException.
+        task.GetAwaiter().GetResult();
+    }
+
+    /// <inheritdoc/>
+    public async TickTask All(IEnumerable<TickTask> tasks)
+    {
+        // Start every task before awaiting any, so that they run together rather than one after another.
+        List<TickTask> taskList = [.. tasks];
+        foreach (var task in taskList)
+        {
+            await task;
+        }
+    }
+
+    /// <inheritdoc/>
+    public float Dt => scheduler.Dt;
+
+    /// <inheritdoc/>
+    public double Time => scheduler.Time;
+}

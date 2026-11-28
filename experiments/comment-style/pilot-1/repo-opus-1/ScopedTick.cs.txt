@@ -1,0 +1,83 @@
+namespace BodyCheck.Core.Tasks;
+
+/// <summary>
+/// Every <see cref="ITick"/>: a scheduler's tick, which makes its waits on its scheduler, with the condition of its
+/// scope, if it has one. Everything else it offers is made of those waits, so every tick of a scheduler is the same
+/// scheduler to its tasks, and a chain can await tasks of any of them.
+/// </summary>
+/// <param name="scheduler">The scheduler that makes and finishes its waits.</param>
+/// <param name="condition">What its waits last while, or null for the scheduler's own tick, with no scope.</param>
+internal sealed class ScopedTick(TickScheduler scheduler, Func<bool>? condition) : ITick
+{
+    /// <inheritdoc/>
+    public TickTask NextTick() => Wait(0);
+
+    /// <inheritdoc/>
+    public TickTask Wait(float seconds) => scheduler.Wait(seconds, condition);
+
+    /// <inheritdoc/>
+    public ITick Scoped(Func<bool> inner) =>
+        // The outer condition first, so that it can guard the inner one, such as one that reads an entity only while it
+        // is there.
+        new ScopedTick(scheduler, condition is null ? inner : () => condition() && inner());
+
+    /// <inheritdoc/>
+    public async TickTask While(Func<bool> condition)
+    {
+        while (condition())
+        {
+            await NextTick();
+        }
+    }
+
+    /// <inheritdoc/>
+    public async TickTask While(Func<bool> condition, Action body)
+    {
+        while (condition())
+        {
+            body();
+            await NextTick();
+        }
+    }
+
+    /// <inheritdoc/>
+    public async TickTask While(Func<bool> condition, Func<TickTask> body)
+    {
+        while (condition())
+        {
+            double time = Time;
+            await body();
+            // A body that let no time pass, such as one that finished at once, would otherwise loop within the run.
+            if (Time == time)
+            {
+                await NextTick();
+            }
+        }
+    }
+
+    /// <inheritdoc/>
+    public async TickTask UntilCompleted(Task task)
+    {
+        // Poll, since awaiting the task would resume off the tick, on whatever thread completed it.
+        await While(() => !task.IsCompleted);
+        // Throws the task's exception if it failed, or a cancellation if it was cancelled.
+        task.GetAwaiter().GetResult();
+    }
+
+    /// <inheritdoc/>
+    public async TickTask All(IEnumerable<TickTask> tasks)
+    {
+        // Enumerate them all before awaiting any, so that a sequence that starts them as it goes starts every one now.
+        List<TickTask> taskList = [.. tasks];
+        foreach (var task in taskList)
+        {
+            await task;
+        }
+    }
+
+    /// <inheritdoc/>
+    public float Dt => scheduler.Dt;
+
+    /// <inheritdoc/>
+    public double Time => scheduler.Time;
+}

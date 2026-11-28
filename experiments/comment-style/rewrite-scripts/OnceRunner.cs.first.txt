@@ -1,0 +1,36 @@
+using BodyCheck.Core.Entities;
+using BodyCheck.Core.Tasks;
+
+namespace BodyCheck.Core.Scripts;
+
+/// <summary>
+/// A step that runs while its switch is on, and turns the switch off when the step finishes. Use it for a step that
+/// should happen once, unless something turns the switch back on.
+/// </summary>
+/// <param name="step">The step to run.</param>
+/// <param name="state">Returns the switch that says whether the step is still to run. Called each time the switch is needed.</param>
+public sealed class OnceRunner(Call step, Func<IGameState.ISwitchState> state) : IActionTarget
+{
+    // A run that starts while one is still going joins it, so the step doesn't run twice.
+    private readonly ReentrantTask _step = new(Reentry.Join);
+
+    /// <summary>
+    /// Runs the step if the switch is on, and returns the task that finishes when the step does. If the step is already
+    /// running, returns the task of that run. Returns a finished task if the switch is off.
+    /// </summary>
+    public TickTask Run(ITick tick) => state().IsOn ? _step.Run(() => RunThenTurnOff(tick)) : TickTask.Finished;
+
+    private async TickTask RunThenTurnOff(ITick tick)
+    {
+        await step.Run(tick);
+        // Turned off only after the step finishes. If the step throws, the switch stays on, so the step runs again next time.
+        state().IsOn = false;
+    }
+
+    /// <summary>Turns the switch on, without running the step.</summary>
+    public TickTask TurnOn(ITick tick) => Switches.Switch(state(), true);
+    /// <summary>Turns the switch off, without running the step.</summary>
+    public TickTask TurnOff(ITick tick) => Switches.Switch(state(), false);
+    /// <summary>Flips the switch, without running the step.</summary>
+    public TickTask ToggleOnOff(ITick tick) => Switches.Switch(state(), !state().IsOn);
+}

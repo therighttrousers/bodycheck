@@ -4,30 +4,47 @@ using BodyCheck.Core.Tasks;
 namespace BodyCheck.Core.Scripts;
 
 /// <summary>
-/// What runs a trigger: when set off, it runs its step, if it is on. Setting it off while the step runs starts
-/// nothing. Routes can turn it on and off, which finishes at once, but can't set it off: only the player does.
+/// The action target that runs a <c>Trigger</c> control entity. It runs its step when the trigger is set off, while the
+/// trigger's switch is on. The world sets a trigger off when the player touches its area, interacts with it, or when
+/// the world starts. A route can switch a trigger on and off, but can't set it off, since this runner doesn't respond
+/// to <see cref="IActionTarget.Run"/>.
 /// </summary>
-/// <param name="state">Its state in the game's state, which says whether it is on, read each time it is needed.</param>
+/// <remarks>
+/// The switch stays on after the step runs, so a trigger that stays on runs its step each time it is set off.
+/// </remarks>
+/// <param name="step">The step to run when the trigger is set off.</param>
+/// <param name="state">
+/// Returns the entity's switch in the game's state, which says whether the trigger is on. The state is saved and
+/// outlives the world, so this is called each time the switch is needed.
+/// </param>
 public sealed class TriggerRunner(Call step, Func<IGameState.ISwitchState> state) : IActionTarget
 {
+    // A set-off during a run of the step joins that run, so the step doesn't run twice at once.
     private readonly ReentrantTask _step = new(Reentry.Join);
 
-    /// <summary>Whether it is on. Turning it off doesn't stop a run in progress.</summary>
+    /// <summary>
+    /// Whether the switch is on, so the trigger runs its step when it is set off. Turning the switch off doesn't stop a
+    /// run that is in progress.
+    /// </summary>
     public bool IsOn => state().IsOn;
 
-    /// <summary>Runs the step if it is on, unless it is running already.</summary>
-    /// <returns>The step's run, which finishes when the step does, or a finished task if it is off.</returns>
+    /// <summary>
+    /// Runs the step if the switch is on, and returns the task that finishes when the step does. If the step is already
+    /// running, returns the task of that run. Returns a finished task if the switch is off.
+    /// </summary>
     public TickTask SetOff(ITick tick) => IsOn ? _step.Run(() => step.Run(tick)) : TickTask.Finished;
 
+    /// <summary>Turns the switch on, without running the step.</summary>
     public TickTask TurnOn(ITick tick) => Switches.Switch(state(), true);
+    /// <summary>Turns the switch off, without running the step.</summary>
     public TickTask TurnOff(ITick tick) => Switches.Switch(state(), false);
+    /// <summary>Flips the switch, without running the step.</summary>
     public TickTask ToggleOnOff(ITick tick) => Switches.Switch(state(), !state().IsOn);
 }
 
-/// <summary>Switching a control entity on and off, as its runner responds to a route.</summary>
 internal static class Switches
 {
-    /// <summary>Switches <paramref name="state"/> on or off, at once.</summary>
+    /// <summary>Sets the switch now, and returns a finished task, since the change takes no time.</summary>
     public static TickTask Switch(IGameState.ISwitchState state, bool on)
     {
         state.IsOn = on;

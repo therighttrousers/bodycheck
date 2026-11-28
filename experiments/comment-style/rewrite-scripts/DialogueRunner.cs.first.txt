@@ -1,0 +1,24 @@
+using BodyCheck.Core.Entities;
+using BodyCheck.Core.Tasks;
+
+namespace BodyCheck.Core.Scripts;
+
+/// <summary>
+/// A step that presents a title from a dialogue file, and holds a cutscene until the dialogue ends.
+/// </summary>
+/// <param name="presenter">The presenter that shows the dialogue.</param>
+/// <param name="world">The world whose cutscene holds while the dialogue is shown.</param>
+/// <param name="file">The dialogue file. It must hold <paramref name="title"/>.</param>
+/// <param name="title">The title where the dialogue starts.</param>
+/// <param name="entities">The entities in the dialogue. The first one is the speaker.</param>
+public sealed class DialogueRunner(
+    IDialoguePresenter presenter, IScriptWorld world, string file, string title, IReadOnlyList<Entity> entities)
+    : IActionTarget
+{
+    /// <summary>Presents the dialogue. Returns the task that finishes when the dialogue ends.</summary>
+    public async TickTask Present(ITick tick)
+    {
+        using IDisposable cutscene = world.HoldCutscene();
+        await presenter.Present(tick, file, title, entities);
+    }
+}

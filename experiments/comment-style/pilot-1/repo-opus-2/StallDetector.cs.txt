@@ -1,0 +1,41 @@
+namespace BodyCheck.Core.Controllers;
+
+/// <summary>
+/// How a <see cref="StallDetector"/> is tuned. Each value is a function that reads it from the features in effect when
+/// it is used, so that a change to them takes effect at once.
+/// </summary>
+public sealed record StallTuning
+{
+    /// <summary>The speed below which the entity counts as slow.</summary>
+    public required Func<float> MinSpeed { get; init; }
+    /// <summary>How long, in game time, the entity must stay slow to have stalled.</summary>
+    public required Func<float> MaxTime { get; init; }
+}
+
+/// <summary>
+/// Tells when an entity trying to move has stalled: when its speed the way it is trying to go has stayed below a
+/// minimum for long enough. A moment of slowness, such as a bump, isn't a stall.
+/// </summary>
+/// <param name="tuning">How the detector is tuned.</param>
+internal sealed class StallDetector(StallTuning tuning)
+{
+    // How long, in game time, the entity has been slow without a break.
+    private float _slowTime;
+
+    /// <summary>Starts counting afresh, as when the entity turns around, or stops trying to move.</summary>
+    public void Reset() => _slowTime = 0;
+
+    /// <summary>
+    /// Counts <paramref name="gameDt"/> of game time at <paramref name="speed"/>, and says whether the entity has now
+    /// stalled. Any tick at or above the minimum speed starts the count again.
+    /// </summary>
+    /// <param name="speed">
+    /// The entity's speed the way it is trying to go, which is negative if something pushes it back.
+    /// </param>
+    /// <param name="gameDt">The length of the tick, in game time.</param>
+    public bool Update(float speed, float gameDt)
+    {
+        _slowTime = speed < tuning.MinSpeed() ? _slowTime + gameDt : 0;
+        return _slowTime >= tuning.MaxTime();
+    }
+}

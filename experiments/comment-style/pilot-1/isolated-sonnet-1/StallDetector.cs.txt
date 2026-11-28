@@ -1,0 +1,29 @@
+namespace BodyCheck.Core.Controllers;
+
+/// <summary>The thresholds that decide when something counts as stalled. They are read each update, so they follow live tuning.</summary>
+public sealed record StallTuning
+{
+    /// <summary>The speed below which the thing is considered to be making no progress.</summary>
+    public required Func<float> MinSpeed { get; init; }
+    /// <summary>How many seconds of game time it may stay below <see cref="MinSpeed"/> before it is stalled.</summary>
+    public required Func<float> MaxTime { get; init; }
+}
+
+/// <summary>Detects that something has been moving too slowly, in the direction it wants to go, for too long.</summary>
+internal sealed class StallDetector(StallTuning tuning)
+{
+    private float _slowTime;
+
+    /// <summary>Forgets the time spent slow, such as after the thing turns around or stops trying to move.</summary>
+    public void Reset() => _slowTime = 0;
+
+    /// <summary>Counts <paramref name="gameDt"/> as slow time if <paramref name="speed"/> is below the minimum, and otherwise restarts the count.</summary>
+    /// <param name="speed">The speed in the intended direction, so it is negative when pushed backwards.</param>
+    /// <param name="gameDt">The game time that has passed, so a slowed game doesn't stall things.</param>
+    /// <returns>Whether it has now been slow for the maximum time.</returns>
+    public bool Update(float speed, float gameDt)
+    {
+        _slowTime = speed < tuning.MinSpeed() ? _slowTime + gameDt : 0;
+        return _slowTime >= tuning.MaxTime();
+    }
+}

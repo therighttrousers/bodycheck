@@ -1,0 +1,3 @@
+src/BodyCheck.Core/Controllers/PlatformController.cs
+src/BodyCheck.Core/Controllers/PatrolBehaviour.cs
+game/bodycheck/state/GameState.cs

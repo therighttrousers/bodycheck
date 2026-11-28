@@ -1,0 +1,6 @@
+src/BodyCheck.Core/Controllers/StallDetector.cs
+src/BodyCheck.Core/Controllers/PlatformController.cs
+src/BodyCheck.Core/Controllers/PatrolBehaviour.cs
+src/BodyCheck.Core/Tasks/ScopedTick.cs
+game/bodycheck/modes/Muffler.cs
+game/bodycheck/state/GameState.cs
