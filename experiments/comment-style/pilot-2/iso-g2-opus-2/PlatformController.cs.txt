@@ -1,0 +1,140 @@
+using BodyCheck.Core.Entities;
+using BodyCheck.Core.Maths;
+
+using Godot;
+
+namespace BodyCheck.Core.Controllers;
+
+/// <summary>
+/// Drives a platform back and forth along a straight line between two points, carrying what stands on it. The
+/// platform turns back when it nears either end, or when something blocks it between the ends. Its thrust is limited,
+/// so a heavy enough load pushes it off course, and it reports how hard it is working as its strain.
+/// </summary>
+public sealed class PlatformController : IController<PlatformEntity>
+{
+    private readonly PlatformEntity _entity;
+    private readonly Vector2 _rangeA;
+    private readonly Vector2 _rangeB;
+    private readonly float _length;
+    private readonly Vector2 _along;
+    private readonly Vector2 _across;
+    private bool _towardB = true;
+    private readonly StallDetector _stall = new(new StallTuning
+    {
+        MinSpeed = () => Features.Current.PlatformStallSpeed,
+        MaxTime = () => Features.Current.PlatformStallTime,
+    });
+    // The previous step's drive and its inputs, to tell how much of that drive something resisted.
+    private float _lastDrive;
+    private Vector2 _lastHeading;
+    private Vector2 _lastVelocity;
+    private float _lastDt;
+
+    /// <summary>
+    /// Creates a controller that drives <paramref name="entity"/> between <paramref name="rangeA"/> and
+    /// <paramref name="rangeB"/>, heading toward B first.
+    /// </summary>
+    /// <param name="entity">The platform. Its position should be on the line between the ends.</param>
+    /// <param name="rangeA">One end of the platform's path, in world coordinates.</param>
+    /// <param name="rangeB">The other end. Should differ from <paramref name="rangeA"/>.</param>
+    public PlatformController(PlatformEntity entity, Vector2 rangeA, Vector2 rangeB)
+    {
+        _entity = entity;
+        _rangeA = rangeA;
+        _rangeB = rangeB;
+        _length = rangeA.DistanceTo(rangeB);
+        _along = (rangeB - rangeA) / _length;
+        _across = _along.Orthogonal();
+    }
+
+    /// <inheritdoc/>
+    public PlatformEntity Entity => _entity;
+
+    /// <inheritdoc/>
+    public void Apply(float gameDt, float realDt, IDefer defer)
+    {
+        Features features = Features.Current;
+        var position = new Vector2(_entity.Position.X, _entity.Position.Y);
+        var velocity = new Vector2(_entity.LinearVelocity.X, _entity.LinearVelocity.Y);
+
+        // How far along the path the platform is, from 0 at A to 1 at B.
+        float fraction = (position - _rangeA).Dot(_along) / _length;
+        float turnFraction = features.PlatformTurnDistance / _length;
+        bool atEnd = _towardB ? fraction >= 1 - turnFraction : fraction <= turnFraction;
+
+        // A stall counts only between the turning zones. Just after turning, the platform is slow in its new heading
+        // until it reverses, and that isn't being blocked.
+        bool between = fraction > turnFraction && fraction < 1 - turnFraction;
+        bool stalled = _stall.Update(velocity.Dot(_towardB ? _along : -_along), gameDt);
+
+        if (atEnd || (stalled && between))
+        {
+            _towardB = !_towardB;
+            _stall.Reset();
+        }
+
+        // Gravity on the platform itself is cancelled separately below, so the thrust limit is the load it can carry,
+        // as a fraction of its own weight.
+        float unscaledWeight = _entity.Mass * Constants.Gravity;
+
+        float maxThrustFrac = features.PlatformCapacityPerTile / features.PlatformMassPerTile;
+
+        Vector2 heading = _towardB ? _along : -_along;
+        // The target speed is the speed from which braking would stop the platform the turning distance past the end,
+        // so it still moves when it reaches the turning zone instead of creeping toward the end. Braking with only part
+        // of the maximum thrust leaves the rest for carrying a load.
+        float distanceLeft = ((_towardB ? _rangeB : _rangeA) - position).Dot(heading);
+        float braking = features.PlatformBrakeFrac * maxThrustFrac * Constants.Gravity;
+        float targetSpeed = MathF.Min(
+            features.PlatformTopSpeed,
+            MathF.Sqrt(2 * braking * MathF.Max(0, distanceLeft + features.PlatformTurnDistance)));
+        float maxThrust = maxThrustFrac * unscaledWeight;
+        float drive = Math.Clamp(
+            _entity.Mass * features.PlatformDriveGain * (targetSpeed - velocity.Dot(heading)), -maxThrust, maxThrust);
+
+        // Pulls the platform back onto the line through the ends, across the direction of travel.
+        float hold = Math.Clamp(
+            Spring.CriticallyDampedForce(
+                position.Dot(_across),
+                velocity.Dot(_across),
+                goal: _rangeA.Dot(_across),
+                features.PlatformSmoothTime,
+                _entity.Mass),
+            -maxThrust,
+            maxThrust);
+
+        Vector2 thrust = drive * heading + hold * _across;
+        // Cancels gravity, so the platform floats even when it carries no load.
+        _entity.ApplyCentralForce(new Vector3(thrust.X, thrust.Y, 0) - _entity.Mass * _entity.GetGravity());
+
+        // Strain is the fraction of the maximum thrust spent resisting something: holding the platform on the line, or
+        // driving against something that stops it from accelerating.
+        float strain = MathF.Min(1, MathF.Max(MathF.Abs(hold), DriveFought(velocity)) / maxThrust);
+        _entity.Strain = Smoothing.Exponential(_entity.Strain, strain, features.PlatformStrainTime, gameDt);
+        _lastDrive = drive;
+        _lastHeading = heading;
+        _lastVelocity = velocity;
+        _lastDt = gameDt;
+
+        if (_entity.Above.Any(e => e is PlayerEntity))
+        {
+            Telemetry.Report(Metric.PlatformStrain, _entity.Strain);
+        }
+    }
+
+    /// <summary>
+    /// Returns how much of the previous step's drive force was resisted: the part that didn't accelerate the platform
+    /// in its heading.
+    /// </summary>
+    /// <param name="velocity">The platform's velocity now, after the previous step.</param>
+    private float DriveFought(Vector2 velocity)
+    {
+        // No previous step to compare with.
+        if (_lastDt == 0)
+        {
+            return 0;
+        }
+        float acceleration = (velocity - _lastVelocity).Dot(_lastHeading) / _lastDt;
+        return MathF.Max(0, _lastDrive - _entity.Mass * acceleration);
+    }
+}

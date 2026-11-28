@@ -1,0 +1,10 @@
+The comments have been removed from these C# files:
+
+- src/BodyCheck.Core/Controllers/PlatformController.cs
+- src/BodyCheck.Core/Controllers/PatrolBehaviour.cs
+- game/bodycheck/state/GameState.cs
+
+Add the doc comments and inline comments that this code should have, as if you had written the code yourself. Edit the
+files in place, and change only comments.
+
+Work as AGENTS.md says.

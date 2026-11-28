@@ -11,7 +11,6 @@ param(
 )
 $ErrorActionPreference = "Stop"
 $repo = (Resolve-Path "${PSScriptRoot}\..\..").Path
-$testSet = Get-Content "${PSScriptRoot}\test-set.txt" | Where-Object { $_ }
 
 # The code without its comments, blank lines or trailing spaces, so that only a change to the code differs.
 function Get-Code([string] $path) {
@@ -20,6 +19,7 @@ function Get-Code([string] $path) {
 }
 
 foreach ($dir in $Trial) {
+    $testSet = Get-Content (Join-Path $dir 'test-set.txt') | Where-Object { $_ }
     $files = $testSet | ForEach-Object { Join-Path $dir "workspace\$_" }
     $changed = @($testSet | Where-Object { (Get-Code (Join-Path $dir "workspace\$_")) -ne (Get-Code (Join-Path $repo $_)) })
     $row = & "${PSScriptRoot}\Measure-CommentStyle.ps1" $files

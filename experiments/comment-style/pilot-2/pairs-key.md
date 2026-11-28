@@ -1,0 +1,35 @@
+# Pairwise choices: key
+
+- Pair 1: 1 is pilot-1\repo-opus-1, 2 is pilot-2\repo-g2-opus-1
+- Pair 2: 1 is pilot-2\repo-g2-opus-1, 2 is pilot-1\repo-opus-1
+- Pair 3: 1 is pilot-1\isolated-opus-1, 2 is pilot-2\iso-g2-opus-1
+- Pair 4: 1 is pilot-2\iso-g2-haiku-1, 2 is pilot-2\iso-g2-opus-2
+- Pair 5: 1 is original, 2 is pilot-2\iso-g2-opus-1
+- Pair 6: 1 is pilot-2\iso-g2-opus-2, 2 is pilot-2\iso-g1-opus-2
+- Pair 7: 1 is pilot-1\isolated-opus-1, 2 is pilot-2\iso-g2-opus-1
+- Pair 8: 1 is pilot-2\iso-g1-opus-2, 2 is pilot-2\iso-g2-opus-2
+- Pair 9: 1 is pilot-2\iso-g2-opus-1, 2 is original
+- Pair 10: 1 is pilot-1\isolated-opus-1, 2 is pilot-2\iso-g2-opus-1
+- Pair 11: 1 is pilot-2\iso-g2-opus-1, 2 is original
+- Pair 12: 1 is pilot-2\iso-g2-opus-2, 2 is pilot-2\iso-g1-opus-2
+- Pair 13: 1 is pilot-2\iso-g2-haiku-1, 2 is pilot-2\iso-g2-opus-2
+- Pair 14: 1 is pilot-2\repo-g2-opus-1, 2 is pilot-1\repo-opus-1
+- Pair 15: 1 is pilot-2\repo-g2-opus-1, 2 is pilot-1\repo-opus-1
+- Pair 16: 1 is original, 2 is pilot-2\iso-g2-opus-1
+- Pair 17: 1 is pilot-1\isolated-opus-1, 2 is pilot-2\iso-g2-opus-1
+- Pair 18: 1 is pilot-1\isolated-opus-1, 2 is pilot-2\iso-g2-opus-1
+- Pair 19: 1 is pilot-2\iso-g2-opus-2, 2 is pilot-2\iso-g1-opus-2
+- Pair 20: 1 is pilot-2\iso-g2-opus-1, 2 is original
+- Pair 21: 1 is pilot-2\iso-g2-opus-2, 2 is pilot-2\iso-g2-haiku-1
+- Pair 22: 1 is pilot-2\iso-g2-haiku-1, 2 is pilot-2\iso-g2-opus-2
+- Pair 23: 1 is pilot-2\iso-g1-opus-2, 2 is pilot-2\iso-g2-opus-2
+- Pair 24: 1 is pilot-2\repo-g2-opus-1, 2 is pilot-1\repo-opus-1
+- Pair 25: 1 is pilot-1\repo-opus-1, 2 is pilot-2\repo-g2-opus-1
+- Pair 26: 1 is pilot-2\iso-g2-haiku-1, 2 is pilot-2\iso-g2-opus-2
+- Pair 27: 1 is pilot-1\isolated-opus-1, 2 is pilot-2\iso-g2-opus-1
+- Pair 28: 1 is pilot-1\isolated-opus-1, 2 is pilot-2\iso-g2-opus-1
+- Pair 29: 1 is pilot-2\iso-g2-haiku-1, 2 is pilot-2\iso-g2-opus-2
+- Pair 30: 1 is pilot-2\iso-g1-opus-2, 2 is pilot-2\iso-g2-opus-2
+- Pair 31: 1 is pilot-2\iso-g2-opus-1, 2 is pilot-1\isolated-opus-1
+- Pair 32: 1 is pilot-2\repo-g2-opus-1, 2 is pilot-1\repo-opus-1
+- Pair 33: 1 is pilot-2\repo-g2-opus-1, 2 is pilot-1\repo-opus-1

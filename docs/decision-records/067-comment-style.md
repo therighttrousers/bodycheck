@@ -45,7 +45,7 @@ Tools for the experiments are in [`experiments/comment-style/`](../../experiment
   - (a) **Imitation of the repository.** Sessions copy the style of what they read, which keeps the repository in that style.
   - (b) **A trained habit**, such as an overcorrection away from inflated vocabulary ("leverage", "robust", "utilize") and toward brevity.
   - (c) **Watermarking**, as the issue suggests. Claude has no information either way. The experiments don't need to settle it: if asking for standard vocabulary fixes the output, the cause matters less.
-- [ ] 2.2 Pilot experiment (2026-11-27). Six files from Core and the game have their comments removed, and a fresh agent writes them again, under three conditions: **Isolated** (only the six files), **Repo** (the whole repository, following its `AGENTS.md`) and **RepoGuideline** (as Repo, with `guideline.md` added to `AGENTS.md`). Two Opus 5.5 runs each, and one Sonnet 5.5 and one Haiku 5.5 run under Isolated, to see whether the style is specific to one model. If Isolated scores far lower than Repo, (a) is a large part of the cause; if Isolated scores high too, (b) or (c) is. Neil rates the outputs blind as well, since the markers are rough.
+- [ ] 2.2 Pilot experiment (2026-11-27). Six files from Core and the game have their comments removed, and a fresh agent writes them again, under three conditions: **Isolated** (only the six files), **Repo** (the whole repository, following its `AGENTS.md`) and **RepoGuideline** (as Repo, with `guideline-1.md` added to `AGENTS.md`). Two Opus 5.5 runs each, and one Sonnet 5.5 and one Haiku 5.5 run under Isolated, to see whether the style is specific to one model. If Isolated scores far lower than Repo, (a) is a large part of the cause; if Isolated scores high too, (b) or (c) is. Neil rates the outputs blind as well, since the markers are rough.
 
   The pilot's agents are subagents of a session in this repository, so even under Isolated they had this repository's `AGENTS.md` and Claude's memory index in context. Later runs should use `New-Trial.ps1 -Run`, which starts a clean Claude Code session in the workspace, once the `claude` CLI is logged in.
 - [~] 2.3 Pilot results. The outputs are in [`pilot-1/`](../../experiments/comment-style/pilot-1/). No trial changed any code. Rates per 100 comment words:
@@ -77,7 +77,7 @@ Tools for the experiments are in [`experiments/comment-style/`](../../experiment
 ## 3. Mitigations
 
 - [ ] 3.1 Options, from the issue; they can be combined:
-  - (a) Instructions for writing comments and docs, in `AGENTS.md`. `guideline.md` is a first draft, written as what the reader needs rather than as a list of banned words, so that it ages better.
+  - (a) Instructions for writing comments and docs, in `AGENTS.md`. `guideline-1.md` is a first draft, written as what the reader needs rather than as a list of banned words, so that it ages better.
   - (b) A skill that reviews and rewrites comments and docs, perhaps run by cheaper subagents.
   - (c) Instructions to write `// TODO: Explain X, Y and Z` placeholders instead, and a skill that fills them in.
   - (d) Instructions to use the industry-standard term. A small shift in word choice may be enough.
@@ -87,6 +87,44 @@ Tools for the experiments are in [`experiments/comment-style/`](../../experiment
   - Run the guideline under Isolated as well, to tell whether it doesn't work at all or is outweighed by the repository (2.3).
   - Rewrite the guideline around 1.3's framing, with Neil's rewrites as examples, and try it under Isolated and Repo.
   - Use Neil's rewritten files as references. For judging, ask Neil to choose between two versions of one comment at a time, rather than to rate whole files, which he found too demanding.
+- [~] 3.4 Pilot 2 (2026-11-27). [`guideline-2.md`](../../experiments/comment-style/guideline-2.md) frames doc comments as contracts (1.3), with Neil's rewrites of `StallDetector.cs`, `ScopedTick.cs` and `Muffler.cs` as examples. So the trials rewrote the other three files of pilot 1: `PlatformController.cs`, `PatrolBehaviour.cs` and `GameState.cs`. With a guideline, the Isolated workspace has an `AGENTS.md` that contains only the guideline. Pilot 1's trials, scored on the same three files, are the baselines. The outputs are in [`pilot-2/`](../../experiments/comment-style/pilot-2/). No trial changed any code, except one that deleted a space. Rates per 100 comment words:
+
+  | Trial | Words | Words per sentence | General-purpose verbs | Stranded auxiliaries | Starts with "What" |
+  | --- | --- | --- | --- | --- | --- |
+  | The three files as they are | 1,359 | 16.4 | 2.58 | 0.59 | 0.15 |
+  | Pilot 1: Isolated, Opus, runs 1 and 2 | 1,361, 1,324 | 14.5, 14.5 | 1.10, 1.28 | 0.51, 0.60 | 0.07, 0.15 |
+  | Pilot 1: Isolated, Sonnet | 1,031 | 12.3 | 1.36 | 0.10 | 0.10 |
+  | Pilot 1: Isolated, Haiku | 1,160 | 11.7 | 1.29 | 0 | 0 |
+  | Pilot 1: Repo, Opus, runs 1 and 2 | 1,615, 1,532 | 14.3, 16.0 | 2.17, 2.48 | 0.68, 0.59 | 0.25, 0.26 |
+  | Isolated, guideline 1, Opus, runs 1 and 2 | 1,404, 1,204 | 14.3, 14.3 | 0.50, 0.66 | 0.07, 0 | 0, 0 |
+  | Isolated, guideline 2, Opus, runs 1 and 2 | 1,101, 1,111 | 12.8, 11.8 | 0.36, 0.27 | 0, 0.18 | 0, 0 |
+  | Isolated, guideline 2, Sonnet | 1,312 | 13.1 | 2.06 | 0.38 | 0.08 |
+  | Isolated, guideline 2, Haiku | 1,422 | 11.0 | 0.91 | 0.14 | 0.07 |
+  | Repo, guideline 2, Opus, runs 1 and 2 | 1,522, 1,597 | 16.5, 16.8 | 2.63, 2.32 | 0.53, 0.56 | 0.26, 0.25 |
+
+  Leaning (Claude), pending Neil's choices in [`pairs.md`](../../experiments/comment-style/pilot-2/pairs.md):
+  - Either guideline works for Opus without the repository: it halves the general-purpose verbs or better, and nearly removes the stranded auxiliaries and the free relatives. Guideline 2 scores lowest, and its comments are shortest.
+  - Neither works with the repository: Repo with guideline 2 scores as Repo did without one. So the guideline isn't too weak; the repository's prose outweighs it. This answers 3.3's first question, and makes rewriting what exists (section 4), or rewriting in isolation (3.1(e)), more important than instructions alone.
+  - Sonnet scored worse with guideline 2 than without. Many of its general-purpose verbs are in their literal, physical sense, such as a spring that "holds the platform on the path's line", which the marker can't tell apart. One Sonnet file also repeats five comment lines. One run each is too few to conclude anything about Sonnet or Haiku.
+
+  The pair sheet has 33 pairs, shuffled, each of one comment in two versions: guideline 2 against no guideline, under Isolated (8) and Repo (8); guideline 2 against guideline 1 (6); Opus against Haiku, both with guideline 2 (6); and guideline 2 against the original (5).
+- [~] 3.5 Neil's choices in pilot 2's pairs. Choosing between two versions of one comment worked where rating whole files didn't. Tallied against the key:
+
+  | Comparison | Wins | Ties |
+  | --- | --- | --- |
+  | Isolated, Opus: guideline 2 against none | 2 against 4 | 2 |
+  | Repo, Opus: guideline 2 against none | 0 against 6 | 2 |
+  | Isolated, Opus: guideline 2 against guideline 1 | 3 against 2 | 1 |
+  | Isolated, guideline 2: Haiku against Opus | 4 against 2 | 0 |
+  | Isolated, Opus, guideline 2, against the original | 5 against 0 | 0 |
+
+  Neil called three comments very clear: two from Isolated with guideline 2, including the rewritten `GameState.Fill`, and one from Isolated with guideline 1. He called a fourth, from Isolated with no guideline, fairly clear. All four came from Isolated runs.
+
+  Leaning (Claude):
+  - Working without the repository's prose matters most. Isolated, with guideline 2, beat the original every time.
+  - The markers don't measure what Neil cares about. Guideline 2 cut the markers, but Neil preferred the versions without it more often. Each comparison sets one run against one other, so differences between runs, rather than between conditions, may explain much of this. The markers remain useful for detecting the style, not for ranking versions that are free of it.
+  - Once the style is gone, what remains is mostly accuracy and terminology. Neil's notes are about a term that differs from the code's ("pull" for "thrust", "units"), a wrong impression (that the Voice is no character, or that `ToSave` writes a file), a doc that mentions what callers don't need (the range's ends, characters that aren't entities), and a doc so short that it confuses until the code is read. These need someone who understands the code, so they are a matter for review more than for a style guideline.
+  - Haiku did at least as well as Opus, so a cheap model could do the rewriting, as 3.1(e) proposes.
 
 ## 4. Rewriting what exists
 
